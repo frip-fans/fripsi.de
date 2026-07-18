@@ -1,0 +1,37 @@
+---
+import type { EventRecord } from "@frip-fan/core";
+
+interface Props { event?: EventRecord; submitLabel?: string }
+const { event, submitLabel = "创建变更提案" } = Astro.props;
+const sources = event?.sources?.map((source) => `${source.url}${source.label ? ` | ${source.label}` : ""}`).join("\n") ?? "";
+---
+<div class="form-grid">
+  <label class="wide">活动标题 *<input name="title" required maxlength="240" value={event?.title ?? ""} /></label>
+  <label>开始日期 *<input type="date" name="start_date" required value={event?.start_date ?? ""} /></label>
+  <label>结束日期<input type="date" name="end_date" value={event?.end_date ?? ""} /></label>
+  <label>开始时间<input type="time" name="start_time" value={event?.start_time ?? ""} /></label>
+  <label>结束时间<input type="time" name="end_time" value={event?.end_time ?? ""} /></label>
+  <label>分类 *
+    <select name="category" required>
+      {(["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"] as const).map((value) => <option value={value} selected={(event?.category ?? "LIVE") === value}>{value}</option>)}
+    </select>
+  </label>
+  <label>状态
+    <select name="status">
+      {(["scheduled", "completed", "cancelled", "postponed"] as const).map((value) => <option value={value} selected={(event?.status ?? "scheduled") === value}>{value}</option>)}
+    </select>
+  </label>
+  <label>细分类<input name="classification" maxlength="120" value={event?.classification ?? ""} placeholder="Tour / Anniversary / Single…" /></label>
+  <label>时区<input name="timezone" value={event?.timezone ?? "Asia/Tokyo"} /></label>
+  <label>场地<input name="venue" maxlength="240" value={event?.venue ?? ""} /></label>
+  <label>地区<input name="region" maxlength="120" value={event?.region ?? ""} /></label>
+  <label class="wide">Slug<input name="slug" maxlength="180" value={event?.slug ?? ""} placeholder="留空则自动生成" /></label>
+  <label class="wide">说明<textarea name="remark" maxlength="4000">{event?.remark ?? ""}</textarea></label>
+  <label class="wide">官方来源 *<textarea name="sources" required placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称">{sources}</textarea><small>每行一个：<code>https://… | fripSide official</code></small></label>
+  <label class="wide">变更原因 *<textarea name="reason" required maxlength="1000" placeholder="说明新增或修改依据"></textarea></label>
+</div>
+<div class="actions form-actions"><button type="submit">{submitLabel}</button><a class="button secondary" href={event ? "/admin/events" : "/admin"}>取消</a></div>
+<style>
+  small { color: var(--muted); }
+  .form-actions { margin-top: 1.5rem; }
+</style>

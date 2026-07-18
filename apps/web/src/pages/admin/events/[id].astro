@@ -1,0 +1,42 @@
+---
+import { getEventById } from "@frip-fan/core";
+import EventForm from "../../../components/EventForm.astro";
+import Icon from "../../../components/Icon.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+
+const event = await getEventById(getEnv().DB, Astro.params.id!);
+if (!event) return Astro.redirect("/admin/events", 302);
+const actor = Astro.locals.actor!;
+---
+<SiteLayout title={event.title} admin>
+  <a class="muted back-link" href="/admin/events"><Icon name="arrow-left" />活动列表</a>
+  <header class="edit-head"><div><p class="eyebrow">Event · v{event.version}</p><h1>{event.title}</h1></div>{event.published && !event.archived_at && <a class="button secondary" href={`/events/${event.slug}`} target="_blank">公开页面 <Icon name="box-arrow-up-right" /></a>}</header>
+  {event.archived_at && <p class="notice">此活动已归档：{event.archived_at}</p>}
+  <form class="panel event-form" method="post" action="/api/admin/proposals">
+    <input type="hidden" name="intent" value="update" />
+    <input type="hidden" name="target_event_id" value={event.id} />
+    <input type="hidden" name="expected_version" value={event.version} />
+    <input type="hidden" name="idempotency_key" value={`admin-update-${event.id}-${crypto.randomUUID()}`} />
+    <EventForm event={event} submitLabel="创建修改提案" />
+  </form>
+  <section class="panel lifecycle">
+    <div><h2>状态与可见性</h2><p class="muted">这些操作同样只创建提案，不会立即改变公开页面。</p></div>
+    <div class="actions">
+      <form method="post" action="/api/admin/proposals"><input type="hidden" name="intent" value="status"/><input type="hidden" name="target_event_id" value={event.id}/><input type="hidden" name="expected_version" value={event.version}/><input type="hidden" name="status" value="cancelled"/><input type="hidden" name="source_url" value={event.sources?.[0]?.url}/><input type="hidden" name="reason" value="在管理后台提出取消状态变更"/><input type="hidden" name="idempotency_key" value={`status-cancel-${event.id}-${crypto.randomUUID()}`}/><button class="secondary">标记取消</button></form>
+      <form method="post" action="/api/admin/proposals"><input type="hidden" name="intent" value="status"/><input type="hidden" name="target_event_id" value={event.id}/><input type="hidden" name="expected_version" value={event.version}/><input type="hidden" name="status" value="postponed"/><input type="hidden" name="source_url" value={event.sources?.[0]?.url}/><input type="hidden" name="reason" value="在管理后台提出延期状态变更"/><input type="hidden" name="idempotency_key" value={`status-postpone-${event.id}-${crypto.randomUUID()}`}/><button class="secondary">标记延期</button></form>
+      {event.published && <form method="post" action="/api/admin/proposals"><input type="hidden" name="intent" value="unpublish"/><input type="hidden" name="target_event_id" value={event.id}/><input type="hidden" name="expected_version" value={event.version}/><input type="hidden" name="reason" value="在管理后台提出下线"/><input type="hidden" name="idempotency_key" value={`unpublish-${event.id}-${crypto.randomUUID()}`}/><button class="danger" disabled={!actor.scopes.includes("events:archive")}>提出下线</button></form>}
+      {!event.archived_at ? <form method="post" action="/api/admin/proposals"><input type="hidden" name="intent" value="archive"/><input type="hidden" name="target_event_id" value={event.id}/><input type="hidden" name="expected_version" value={event.version}/><input type="hidden" name="reason" value="在管理后台提出归档"/><input type="hidden" name="idempotency_key" value={`archive-${event.id}-${crypto.randomUUID()}`}/><button class="danger" disabled={!actor.scopes.includes("events:archive")}>提出归档</button></form> : <form method="post" action="/api/admin/proposals"><input type="hidden" name="intent" value="restore"/><input type="hidden" name="target_event_id" value={event.id}/><input type="hidden" name="expected_version" value={event.version}/><input type="hidden" name="reason" value="在管理后台提出恢复"/><input type="hidden" name="idempotency_key" value={`restore-${event.id}-${crypto.randomUUID()}`}/><button disabled={!actor.scopes.includes("events:archive")}>提出恢复</button></form>}
+    </div>
+  </section>
+</SiteLayout>
+<style>
+  .edit-head { display: flex; justify-content: space-between; align-items: end; gap: 2rem; margin: 1.5rem 0 2rem; }
+  .back-link { display: inline-flex; align-items: center; gap: .35rem; text-decoration: none; }
+  .edit-head h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin: 0; }
+  .event-form { max-width: 900px; }
+  .lifecycle { max-width: 900px; margin-top: 1rem; display: grid; gap: 1rem; }
+  .lifecycle h2 { font-size: 1.1rem; margin-bottom: .35rem; }
+  form { margin: 0; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+</style>

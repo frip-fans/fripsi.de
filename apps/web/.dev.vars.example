@@ -1,0 +1,6 @@
+DEV_AUTH_BYPASS=true
+DEV_ACTOR=local-editor@example.com
+SITE_URL=http://localhost:4321
+ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
+ACCESS_AUD=replace-with-access-application-aud
+ADMIN_PUBLISHERS=local-editor@example.com

@@ -1,0 +1,41 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "frip-fan-web",
+  "main": "@astrojs/cloudflare/entrypoints/server",
+  "compatibility_date": "2026-07-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "./dist"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "frip-fan-dev",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "../../migrations"
+    }
+  ],
+  "vars": {
+    "SITE_URL": "https://fripsi.de"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "production": {
+      "name": "frip-fan-web",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "frip-fan-prod",
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "../../migrations"
+        }
+      ],
+      "vars": {
+        "SITE_URL": "https://fripsi.de"
+      }
+    }
+  }
+}

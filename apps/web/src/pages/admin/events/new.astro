@@ -1,0 +1,14 @@
+---
+import EventForm from "../../../components/EventForm.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+---
+<SiteLayout title="新增活动" admin>
+  <p class="eyebrow">New proposal</p><h1 class="page-title">新增活动</h1>
+  <p class="lede">保存后只会创建待审核提案；在下一页预览并明确发布后，活动才会出现在公开网站。</p>
+  <form class="panel event-form" method="post" action="/api/admin/proposals">
+    <input type="hidden" name="intent" value="create" />
+    <input type="hidden" name="idempotency_key" value={`admin-create-${crypto.randomUUID()}`} />
+    <EventForm />
+  </form>
+</SiteLayout>
+<style>.page-title { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 1rem; }.event-form { max-width: 900px; margin-top: 2rem; }</style>

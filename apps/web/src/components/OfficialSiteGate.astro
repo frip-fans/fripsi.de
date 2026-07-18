@@ -1,0 +1,179 @@
+---
+import Icon from "./Icon.astro";
+---
+<dialog class="site-gate" data-site-gate open aria-labelledby="site-gate-title" aria-describedby="site-gate-description">
+  <div class="gate-card">
+    <div class="gate-mark" aria-hidden="true">
+      <span>fS</span>
+    </div>
+    <p class="gate-kicker">fripsi.de · Before you continue</p>
+    <h2 id="site-gate-title">这里是粉丝兴趣网站</h2>
+    <div id="site-gate-description" class="gate-copy">
+      <p>本站并非 fripSide 官方网站，也不代表或隶属于 fripSide 及其相关机构。</p>
+      <p>官方公告、会员内容与权威信息，请以 <strong>fripside.net</strong> 为准。</p>
+    </div>
+    <div class="gate-actions">
+      <a class="button official-link" href="https://fripside.net" rel="external">前往 fS 官方网站 <Icon name="box-arrow-up-right" /></a>
+      <form method="dialog">
+        <button class="secondary" type="submit" data-continue-site>继续查看本站</button>
+      </form>
+    </div>
+    <p class="gate-footnote">Fan-made · Independent · Non-commercial</p>
+  </div>
+</dialog>
+
+<script>
+  import { OFFICIAL_SITE_NOTICE_COOKIE, OFFICIAL_SITE_NOTICE_STORAGE_KEY } from "../lib/site-notice";
+
+  const gate = document.querySelector<HTMLDialogElement>("[data-site-gate]");
+  const continueButton = gate?.querySelector<HTMLButtonElement>("[data-continue-site]");
+
+  function hasAcknowledgedNotice() {
+    try {
+      return sessionStorage.getItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY) === "yes";
+    } catch {
+      return false;
+    }
+  }
+
+  function persistAcknowledgement() {
+    try {
+      sessionStorage.setItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY, "yes");
+    } catch {
+      // The session cookie remains the server-side source of truth.
+    }
+
+    const secure = location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${OFFICIAL_SITE_NOTICE_COOKIE}=yes; Path=/; SameSite=Lax${secure}`;
+  }
+
+  function acknowledgeNotice() {
+    persistAcknowledgement();
+    gate?.close();
+  }
+
+  if (gate) {
+    if (hasAcknowledgedNotice()) {
+      persistAcknowledgement();
+      gate.close();
+    } else if (typeof gate.showModal === "function") {
+      gate.close();
+      gate.showModal();
+      continueButton?.focus();
+    }
+
+    continueButton?.addEventListener("click", acknowledgeNotice);
+    gate.addEventListener("cancel", (event) => {
+      event.preventDefault();
+      acknowledgeNotice();
+    });
+  }
+</script>
+
+<style>
+  .site-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: clamp(1rem, 5vw, 3rem);
+    place-items: center;
+    overflow-y: auto;
+    color: var(--text);
+    background:
+      radial-gradient(circle at 50% 25%, rgba(var(--accent-rgb), .18), transparent 32rem),
+      rgba(5, 12, 21, .94);
+    border: 0;
+  }
+
+  .site-gate[open] { display: grid; }
+  .site-gate:not([open]) { display: none; }
+  .site-gate::backdrop { background: rgba(5, 12, 21, .96); }
+
+  .gate-card {
+    position: relative;
+    width: min(100%, 620px);
+    padding: clamp(1.5rem, 5vw, 3.25rem);
+    overflow: hidden;
+    text-align: center;
+    background: linear-gradient(145deg, rgba(16, 31, 49, .98), rgba(8, 18, 31, .98));
+    border: 1px solid rgba(var(--accent-rgb), .35);
+    border-radius: clamp(18px, 4vw, 28px);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, .48), 0 0 60px rgba(var(--accent-rgb), .08);
+  }
+
+  .gate-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+
+  .gate-mark {
+    display: grid;
+    width: 4.25rem;
+    height: 4.25rem;
+    margin: 0 auto 1.6rem;
+    place-items: center;
+    color: var(--accent);
+    background: rgba(var(--accent-rgb), .1);
+    border: 1px solid rgba(var(--accent-rgb), .38);
+    border-radius: 50%;
+    box-shadow: 0 0 0 9px rgba(var(--accent-rgb), .035);
+    font-size: 1.25rem;
+    font-weight: 900;
+    letter-spacing: -.06em;
+  }
+
+  .gate-kicker {
+    margin-bottom: .75rem;
+    color: var(--accent);
+    font: 700 .68rem/1 ui-monospace, monospace;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin-bottom: 1.25rem;
+    font-size: clamp(1.8rem, 6vw, 3rem);
+    line-height: 1.15;
+  }
+
+  .gate-copy {
+    max-width: 31rem;
+    margin: 0 auto;
+    color: var(--muted);
+    font-size: clamp(.92rem, 2.2vw, 1.03rem);
+    line-height: 1.75;
+  }
+
+  .gate-copy p { margin-bottom: .55rem; }
+  .gate-copy strong { color: var(--text); }
+
+  .gate-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .75rem;
+    margin-top: 2rem;
+  }
+
+  .gate-actions form { display: contents; }
+  .gate-actions :global(.button), .gate-actions :global(button) { min-height: 48px; }
+  .gate-footnote {
+    margin: 1.5rem 0 0;
+    color: rgba(157, 178, 197, .62);
+    font: .62rem/1.4 ui-monospace, monospace;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 560px) {
+    .gate-actions { grid-template-columns: 1fr; }
+    .gate-card { padding-top: 2rem; }
+  }
+</style>

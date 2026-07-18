@@ -1,0 +1,41 @@
+{
+  "name": "frip-fan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace @frip-fan/web",
+    "dev:mcp": "npm run dev --workspace @frip-fan/mcp",
+    "build": "npm run build --workspaces --if-present",
+    "build:web": "npm run build --workspace @frip-fan/web",
+    "build:mcp": "npm run build --workspace @frip-fan/mcp",
+    "typecheck": "npm run typecheck:workspaces && npm run typecheck:scripts",
+    "typecheck:workspaces": "npm run typecheck --workspaces --if-present",
+    "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "visual:check": "node scripts/visual-check.mjs",
+    "deploy:web": "npm run deploy --workspace @frip-fan/web",
+    "deploy:mcp": "npm run deploy --workspace @frip-fan/mcp",
+    "db:migrate:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 migrations apply frip-fan-dev --local --config apps/web/wrangler.jsonc",
+    "db:seed:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 execute frip-fan-dev --local --config apps/web/wrangler.jsonc --file scripts/seed.sql",
+    "import:notion": "tsx scripts/import-notion-export.ts",
+    "import:sql": "tsx scripts/build-import-sql.ts"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260718.1",
+    "@types/node": "^24.13.3",
+    "playwright": "^1.61.1",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10",
+    "wrangler": "^4.112.0"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

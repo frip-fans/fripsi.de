@@ -1,0 +1,62 @@
+---
+import { listAuditLogs, listChangeSets, searchEvents } from "@frip-fan/core";
+import Icon from "../../components/Icon.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getEnv } from "../../lib/env";
+
+const db = getEnv().DB;
+const [proposed, recentEvents, audit] = await Promise.all([
+  listChangeSets(db, "proposed", 8),
+  searchEvents(db, { include_archived: true, limit: 8 }),
+  listAuditLogs(db, 6)
+]);
+const actor = Astro.locals.actor!;
+---
+<SiteLayout title="Calendar Studio" admin>
+  <header class="admin-head">
+    <div><p class="eyebrow">Protected workspace</p><h1>内容控制台</h1><p class="lede">登录身份：{actor.id} · {actor.scopes.includes("events:publish") ? "publisher" : "editor"}</p></div>
+    <a class="button" href="/admin/events/new"><Icon name="plus" />新活动</a>
+  </header>
+  <section class="stats">
+    <div class="panel"><small>PENDING</small><strong>{proposed.length}</strong><span>待处理提案</span></div>
+    <div class="panel"><small>VISIBLE SET</small><strong>{recentEvents.filter((event) => event.published && !event.archived_at).length}</strong><span>本页公开记录</span></div>
+    <div class="panel"><small>ROLE</small><strong>{actor.scopes.includes("events:publish") ? "P" : "E"}</strong><span>{actor.scopes.length} scopes</span></div>
+  </section>
+  <div class="columns">
+    <section class="panel">
+      <div class="section-heading"><h2>待处理提案</h2><a href="/admin/changes">查看全部</a></div>
+      {proposed.length ? <div class="stack compact-list">
+        {proposed.map((change) => <a href={`/admin/changes/${change.id}`}><span>{change.operation}</span><strong>{change.reason || change.id}</strong><small>{change.created_by} · {change.created_at.slice(0, 16).replace("T", " ")}</small></a>)}
+      </div> : <div class="empty">没有待处理提案。</div>}
+    </section>
+    <section class="panel">
+      <div class="section-heading"><h2>最近审计</h2><a href="/admin/audit">审计日志</a></div>
+      <div class="stack audit-list">
+        {audit.map((entry) => <div><i></i><p><strong>{entry.action}</strong><small>{entry.actor_id} · {entry.created_at.slice(0, 16).replace("T", " ")}</small></p></div>)}
+      </div>
+    </section>
+  </div>
+</SiteLayout>
+
+<style>
+  .admin-head { display: flex; justify-content: space-between; align-items: end; gap: 2rem; }
+  .admin-head h1 { font-size: clamp(2.5rem, 6vw, 4.7rem); margin-bottom: .6rem; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2.5rem 0; }
+  .stats .panel { display: grid; gap: .2rem; }
+  .stats small { color: var(--muted); font: .65rem/1 ui-monospace; letter-spacing: .1em; }
+  .stats strong { font-size: 2.5rem; color: var(--accent); }
+  .stats span { color: var(--muted); font-size: .8rem; }
+  .columns { display: grid; grid-template-columns: 1.2fr .8fr; gap: 1rem; }
+  .section-heading { margin: 0 0 1rem; }
+  .section-heading h2 { font-size: 1.1rem; }
+  .section-heading a { color: var(--accent); font-size: .8rem; }
+  .compact-list a { display: grid; grid-template-columns: 90px 1fr; gap: .25rem .8rem; padding-bottom: .8rem; border-bottom: 1px solid var(--line); text-decoration: none; }
+  .compact-list a:last-child { border: 0; }
+  .compact-list span { color: var(--accent); font: .7rem/1.5 ui-monospace; }
+  .compact-list small { grid-column: 2; color: var(--muted); }
+  .audit-list div { display: flex; gap: .7rem; }
+  .audit-list i { width: 7px; height: 7px; margin-top: .35rem; border-radius: 50%; background: var(--accent); }
+  .audit-list p, .audit-list strong, .audit-list small { display: block; margin: 0; }
+  .audit-list small { color: var(--muted); margin-top: .2rem; }
+  @media (max-width: 780px) { .stats, .columns { grid-template-columns: 1fr; } .admin-head { align-items: flex-start; flex-direction: column; } }
+</style>

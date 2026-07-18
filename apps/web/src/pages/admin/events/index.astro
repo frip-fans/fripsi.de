@@ -1,0 +1,50 @@
+---
+import { searchEvents } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import { categoryLabels, statusLabels } from "../../../lib/format";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+
+const query = Astro.url.searchParams.get("q") ?? undefined;
+const category = Astro.url.searchParams.get("category") ?? undefined;
+const events = await searchEvents(getEnv().DB, {
+  query,
+  categories: category ? [category as "LIVE"] : undefined,
+  include_archived: Astro.url.searchParams.get("archived") === "1",
+  limit: 100
+});
+---
+<SiteLayout title="活动管理" admin>
+  <header class="list-head"><div><p class="eyebrow">Events</p><h1>活动管理</h1></div><a class="button" href="/admin/events/new"><Icon name="plus" />新活动</a></header>
+  <form class="filters panel" method="get">
+    <label>搜索<input type="search" name="q" value={query} placeholder="标题、场地、来源 URL" /></label>
+    <label>分类<select name="category"><option value="">全部</option>{Object.keys(categoryLabels).map((value) => <option value={value} selected={category === value}>{value}</option>)}</select></label>
+    <label class="check"><input type="checkbox" name="archived" value="1" checked={Astro.url.searchParams.get("archived") === "1"} /> 包含归档</label>
+    <button type="submit"><Icon name="funnel" />筛选</button>
+  </form>
+  <div class="panel table-wrap">
+    <table>
+      <thead><tr><th>日期</th><th>活动</th><th>分类</th><th>状态</th><th>公开</th><th>版本</th></tr></thead>
+      <tbody>
+        {events.map((event) => <tr>
+          <td>{event.start_date}</td>
+          <td><a href={`/admin/events/${event.id}`}>{event.title}</a><small>{event.venue}</small></td>
+          <td>{categoryLabels[event.category]}</td>
+          <td><span class:list={["tag", event.status]}>{statusLabels[event.status]}</span></td>
+          <td>{event.archived_at ? "归档" : event.published ? "是" : "否"}</td>
+          <td>v{event.version}</td>
+        </tr>)}
+      </tbody>
+    </table>
+    {!events.length && <div class="empty">没有符合条件的活动。</div>}
+  </div>
+</SiteLayout>
+<style>
+  .list-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 2rem; }
+  .list-head h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin: 0; }
+  .filters { display: grid; grid-template-columns: 1fr 180px auto auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
+  .check { display: flex; align-items: center; padding-bottom: .8rem; white-space: nowrap; }
+  .check input { width: auto; }
+  td small { display: block; color: var(--muted); margin-top: .2rem; }
+  @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
+</style>

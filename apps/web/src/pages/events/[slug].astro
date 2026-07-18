@@ -1,0 +1,57 @@
+---
+import { getPublicEventBySlug } from "@frip-fan/core";
+import Icon from "../../components/Icon.astro";
+import { categoryLabels, formatDate, formatTime, statusLabels } from "../../lib/format";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getEnv } from "../../lib/env";
+
+const event = await getPublicEventBySlug(getEnv().DB, Astro.params.slug!);
+if (!event) return Astro.redirect("/404", 302);
+---
+<SiteLayout title={event.title} description={`${formatDate(event.start_date, event.end_date)} ${event.title}`}>
+  <a class="back" href="/calendar"><Icon name="arrow-left" />返回日历</a>
+  <article class="event-detail">
+    <header>
+      <div class="meta">
+        <span class="tag live">{categoryLabels[event.category]}</span>
+        <span class:list={["tag", event.status]}>{statusLabels[event.status]}</span>
+        {event.classification && <span class="tag">{event.classification}</span>}
+      </div>
+      <h1>{event.title}</h1>
+      <p class="date">{formatDate(event.start_date, event.end_date)}</p>
+    </header>
+    <div class="detail-grid">
+      <section class="panel facts">
+        <div><small>TIME</small><strong>{formatTime(event)}</strong></div>
+        <div><small>VENUE</small><strong>{event.venue || "待定"}</strong></div>
+        <div><small>REGION</small><strong>{event.region || "—"}</strong></div>
+        <div><small>TIMEZONE</small><strong>{event.timezone}</strong></div>
+      </section>
+      <section class="content">
+        {event.remark ? <p>{event.remark}</p> : <p class="muted">这项记录暂时没有补充说明。</p>}
+        <div class="sources">
+          <p class="eyebrow">Sources</p>
+          {event.sources?.map((source, index) => <a href={source.url} target="_blank" rel="noreferrer">{source.label || `来源 ${index + 1}`} <Icon name="box-arrow-up-right" /></a>)}
+        </div>
+      </section>
+    </div>
+  </article>
+</SiteLayout>
+
+<style>
+  .back { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); text-decoration: none; font-size: .85rem; }
+  .event-detail { max-width: 1000px; margin: 3rem auto 0; }
+  .meta { display: flex; gap: .4rem; flex-wrap: wrap; }
+  h1 { margin: 1.2rem 0; max-width: 1000px; }
+  .date { color: var(--accent); font-size: 1.1rem; }
+  .detail-grid { display: grid; grid-template-columns: .72fr 1.28fr; gap: clamp(2rem, 7vw, 6rem); margin-top: 4rem; }
+  .facts { display: grid; gap: 1.4rem; }
+  .facts div { display: grid; gap: .3rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
+  .facts div:last-child { border-bottom: 0; }
+  .facts small { color: var(--muted); font: .65rem/1 ui-monospace; letter-spacing: .1em; }
+  .facts strong { font-size: .95rem; }
+  .content { font-size: 1rem; line-height: 1.9; white-space: pre-wrap; }
+  .sources { margin-top: 3rem; display: grid; justify-items: start; gap: .7rem; }
+  .sources a { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); text-decoration: none; font-size: .9rem; }
+  @media (max-width: 760px) { .detail-grid { grid-template-columns: 1fr; } }
+</style>

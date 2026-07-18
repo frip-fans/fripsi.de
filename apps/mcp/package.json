@@ -1,0 +1,23 @@
+{
+  "name": "@frip-fan/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "XDG_CONFIG_HOME=../../.cache/xdg wrangler dev --persist-to ../web/.wrangler/state",
+    "build": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --dry-run --env '' --outdir dist",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "deploy": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --env production"
+  },
+  "dependencies": {
+    "@frip-fan/core": "*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "agents": "^0.17.4",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260718.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.112.0"
+  }
+}

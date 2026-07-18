@@ -1,0 +1,13 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+import Icon from "../components/Icon.astro";
+---
+<SiteLayout title="页面未找到">
+  <section class="empty-state">
+    <p class="eyebrow">404 · Signal lost</p>
+    <h1>这里没有活动。</h1>
+    <p class="lede">这个链接可能已经失效，或活动还没有公开。</p>
+    <a class="button" href="/"><Icon name="house-door" />返回首页</a>
+  </section>
+</SiteLayout>
+<style>.empty-state { min-height: 55vh; display: grid; place-content: center; justify-items: start; }</style>

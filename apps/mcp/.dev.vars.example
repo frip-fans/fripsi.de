@@ -1,0 +1,7 @@
+DEV_AUTH_BYPASS=true
+DEV_ACTOR=local-ai@example.com
+MCP_RESOURCE_URL=http://localhost:8787
+SITE_URL=http://localhost:4321
+MCP_AUTHORIZATION_SERVER=https://your-team.cloudflareaccess.com
+ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
+MCP_AUDIENCE=replace-with-mcp-access-aud

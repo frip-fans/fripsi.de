@@ -1,0 +1,12 @@
+---
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import Icon from "../../components/Icon.astro";
+---
+<SiteLayout title="数据管理" admin>
+  <p class="eyebrow">Data portability</p><h1 class="page-title">数据管理</h1>
+  <div class="data-grid">
+    <section class="panel"><h2>导出</h2><p class="muted">下载全部活动和来源的 UTF-8 CSV，可用于备份或迁移。</p><a class="button" href="/api/admin/export.csv"><Icon name="download" />下载 CSV</a></section>
+    <section class="panel"><h2>Notion 一次性迁移</h2><p class="muted">把 Notion 导出的 CSV 放入 <code>data/raw/</code>，运行仓库脚本先生成核验报告；不会把 Notion 设为运行时依赖。</p><pre>npm run import:notion -- data/raw/export.csv</pre></section>
+  </div>
+</SiteLayout>
+<style>.page-title{font-size:clamp(2.5rem,6vw,4.5rem);margin-bottom:2rem}.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.panel h2{font-size:1.2rem}@media(max-width:760px){.data-grid{grid-template-columns:1fr}}</style>

@@ -1,0 +1,11 @@
+---
+import { listAuditLogs } from "@frip-fan/core";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getEnv } from "../../lib/env";
+const logs = await listAuditLogs(getEnv().DB, 200);
+---
+<SiteLayout title="审计日志" admin>
+  <p class="eyebrow">Audit trail</p><h1 class="page-title">审计日志</h1>
+  <div class="panel table-wrap"><table><thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>目标</th><th>请求 ID</th></tr></thead><tbody>{logs.map((log) => <tr><td>{log.created_at.slice(0,19).replace("T"," ")}</td><td>{log.action}</td><td>{log.actor_id}<small>{log.actor_type} / {log.channel}</small></td><td>{log.target_type}<small>{log.target_id}</small></td><td><code>{log.request_id}</code></td></tr>)}</tbody></table>{!logs.length && <div class="empty">还没有写操作。</div>}</div>
+</SiteLayout>
+<style>.page-title{font-size:clamp(2.5rem,6vw,4.5rem);margin-bottom:2rem}td small{display:block;color:var(--muted);margin-top:.2rem}td code{font-size:.7rem;color:var(--muted)}</style>

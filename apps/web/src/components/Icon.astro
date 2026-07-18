@@ -1,0 +1,63 @@
+---
+import archive from "bootstrap-icons/icons/archive.svg?raw";
+import arrowLeft from "bootstrap-icons/icons/arrow-left.svg?raw";
+import arrowRight from "bootstrap-icons/icons/arrow-right.svg?raw";
+import arrowUpRight from "bootstrap-icons/icons/arrow-up-right.svg?raw";
+import boxArrowUpRight from "bootstrap-icons/icons/box-arrow-up-right.svg?raw";
+import calendar3 from "bootstrap-icons/icons/calendar3.svg?raw";
+import calendarPlus from "bootstrap-icons/icons/calendar-plus.svg?raw";
+import checkCircle from "bootstrap-icons/icons/check2-circle.svg?raw";
+import chevronLeft from "bootstrap-icons/icons/chevron-left.svg?raw";
+import chevronRight from "bootstrap-icons/icons/chevron-right.svg?raw";
+import download from "bootstrap-icons/icons/download.svg?raw";
+import funnel from "bootstrap-icons/icons/funnel.svg?raw";
+import houseDoor from "bootstrap-icons/icons/house-door.svg?raw";
+import list from "bootstrap-icons/icons/list-ul.svg?raw";
+import plus from "bootstrap-icons/icons/plus-lg.svg?raw";
+import trash from "bootstrap-icons/icons/trash3.svg?raw";
+
+const icons = {
+  archive,
+  "arrow-left": arrowLeft,
+  "arrow-right": arrowRight,
+  "arrow-up-right": arrowUpRight,
+  "box-arrow-up-right": boxArrowUpRight,
+  calendar3,
+  "calendar-plus": calendarPlus,
+  "check-circle": checkCircle,
+  "chevron-left": chevronLeft,
+  "chevron-right": chevronRight,
+  download,
+  funnel,
+  "house-door": houseDoor,
+  list,
+  plus,
+  trash
+} as const;
+
+interface Props {
+  name: keyof typeof icons;
+  size?: number | string;
+  label?: string;
+  class?: string;
+}
+
+const { name, size = "1em", label, class: className } = Astro.props;
+const content = icons[name].replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
+---
+<svg
+  class:list={["icon", className]}
+  width={size}
+  height={size}
+  viewBox="0 0 16 16"
+  fill="currentColor"
+  focusable="false"
+  role={label ? "img" : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : "true"}
+  set:html={content}
+></svg>
+
+<style>
+  .icon { display: inline-block; flex: 0 0 auto; vertical-align: -.125em; }
+</style>

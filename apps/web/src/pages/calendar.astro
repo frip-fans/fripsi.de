@@ -1,0 +1,96 @@
+---
+import { dateInTimeZone, searchEvents, type EventRecord } from "@frip-fan/core";
+import EventCard from "../components/EventCard.astro";
+import Icon from "../components/Icon.astro";
+import { categoryLabels, monthBounds, parseMonth, shiftMonth, statusLabels } from "../lib/format";
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { getEnv } from "../lib/env";
+
+const env = getEnv();
+const today = dateInTimeZone();
+const month = parseMonth(Astro.url.searchParams.get("month"), today);
+const category = Astro.url.searchParams.get("category");
+const { from, to, days, offset } = monthBounds(month);
+const categories = category && ["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"].includes(category) ? [category as EventRecord["category"]] : undefined;
+const events = await searchEvents(env.DB, { date_from: from, date_to: to, categories, limit: 100 }, true);
+const byDay = new Map<number, EventRecord[]>();
+for (const event of events) {
+  const day = Number(event.start_date.slice(-2));
+  byDay.set(day, [...(byDay.get(day) ?? []), event]);
+}
+const monthLabel = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${month}-01T00:00:00Z`));
+const weeks = Array.from({ length: Math.ceil((offset + days) / 7) * 7 }, (_, index) => index - offset + 1);
+const filterQuery = category ? `&category=${category}` : "";
+const subscriptionUrl = new URL("/calendar.ics", env.SITE_URL || Astro.url.origin);
+const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
+---
+<SiteLayout title="活动日历" description={`${monthLabel} fripSide 活动日历`}>
+  <header class="page-head">
+    <div><p class="eyebrow">Calendar</p><h1>{monthLabel}</h1></div>
+    <div class="page-actions">
+      <a class="button secondary subscribe-button" href={webcalUrl} title={`订阅地址：${subscriptionUrl.href}`}><Icon name="calendar-plus" />订阅日历</a>
+      <div class="month-nav">
+        <a href={`/calendar?month=${shiftMonth(month, -1)}${filterQuery}`} aria-label="上个月"><Icon name="chevron-left" /></a>
+        <a class="today" href={`/calendar?month=${today.slice(0, 7)}${filterQuery}`}>今天</a>
+        <a href={`/calendar?month=${shiftMonth(month, 1)}${filterQuery}`} aria-label="下个月"><Icon name="chevron-right" /></a>
+      </div>
+    </div>
+  </header>
+  <div class="filters" aria-label="分类筛选">
+    <a class:list={{ active: !category }} href={`/calendar?month=${month}`}>全部</a>
+    {Object.entries(categoryLabels).map(([value, label]) => <a class:list={{ active: category === value }} href={`/calendar?month=${month}&category=${value}`}>{label}</a>)}
+  </div>
+
+  <section class="calendar-grid" aria-label={`${monthLabel}月历`}>
+    {["日", "一", "二", "三", "四", "五", "六"].map((day) => <div class="weekday">{day}</div>)}
+    {weeks.map((day) => (
+      <div class:list={["day", { outside: day < 1 || day > days, current: `${month}-${String(day).padStart(2, "0")}` === today }]}>
+        {day >= 1 && day <= days && <>
+          <span class="day-number">{day}</span>
+          <div class="day-events">
+            {(byDay.get(day) ?? []).map((event) => (
+              <a class:list={["calendar-event", event.category.toLowerCase(), event.status]} href={`/events/${event.slug}`} title={event.title}>
+                <small>{event.start_time ?? "ALL"}</small>{event.title}
+                {event.status !== "scheduled" && <b>{statusLabels[event.status]}</b>}
+              </a>
+            ))}
+          </div>
+        </>}
+      </div>
+    ))}
+  </section>
+
+  <section class="mobile-timeline stack">
+    {events.map((event) => <EventCard event={event} compact />)}
+    {!events.length && <div class="empty panel">这个月还没有公开活动。</div>}
+  </section>
+</SiteLayout>
+
+<style>
+  .page-head { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
+  .page-head h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: 0; }
+  .page-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; justify-content: flex-end; }
+  .subscribe-button { min-height: 42px; font-size: .85rem; }
+  .month-nav { display: flex; align-items: center; gap: .35rem; }
+  .month-nav a { display: grid; place-items: center; min-width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--accent); }
+  .month-nav .today { color: var(--text); width: auto; padding: 0 .8rem; }
+  .filters { display: flex; gap: .35rem; margin: 2rem 0 1rem; overflow-x: auto; }
+  .filters a { white-space: nowrap; padding: .5rem .8rem; text-decoration: none; color: var(--muted); border: 1px solid transparent; border-radius: 999px; font-size: .8rem; }
+  .filters a.active { color: var(--accent); border-color: rgba(var(--accent-rgb), .28); background: rgba(var(--accent-rgb), .06); }
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: rgba(7,16,28,.55); }
+  .weekday { padding: .7rem; color: var(--muted); text-align: center; font-size: .68rem; border-bottom: 1px solid var(--line); }
+  .day { min-height: 132px; padding: .55rem; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; }
+  .day:nth-child(7n + 7) { border-right: 0; }
+  .day.outside { opacity: .18; background: rgba(0,0,0,.2); }
+  .day.current .day-number { color: #07101c; background: var(--accent); }
+  .day-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: var(--muted); font-size: .72rem; }
+  .day-events { display: grid; gap: .3rem; margin-top: .45rem; }
+  .calendar-event { display: block; padding: .38rem .42rem; overflow: hidden; color: #dceaf3; background: rgba(156,134,255,.1); border-left: 2px solid var(--purple); border-radius: 4px; text-decoration: none; font-size: .68rem; line-height: 1.35; }
+  .calendar-event.live { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
+  .calendar-event.release { border-color: #70a7ff; }
+  .calendar-event.cancelled { text-decoration: line-through; opacity: .7; }
+  .calendar-event small, .calendar-event b { display: block; color: var(--muted); font: .55rem/1.4 ui-monospace; }
+  .calendar-event b { color: var(--warning); }
+  .mobile-timeline { display: none; }
+  @media (max-width: 800px) { .calendar-grid { display: none; } .mobile-timeline { display: grid; } .page-head { align-items: flex-start; flex-direction: column; } .page-actions { justify-content: flex-start; } }
+</style>

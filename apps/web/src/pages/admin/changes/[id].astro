@@ -1,0 +1,39 @@
+---
+import { ChangeService } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+
+const service = new ChangeService(getEnv().DB);
+let preview;
+try { preview = await service.preview(Astro.params.id!, Astro.locals.actor!); }
+catch { return Astro.redirect("/admin/changes", 302); }
+const { change, before, after, warnings, duplicate_candidates } = preview;
+const actor = Astro.locals.actor!;
+const fields = ["title", "slug", "start_date", "end_date", "start_time", "end_time", "category", "classification", "venue", "region", "remark", "status", "published", "archived_at"] as const;
+const changedFields = fields.filter((field) => JSON.stringify(before?.[field] ?? null) !== JSON.stringify(after[field] ?? null));
+---
+<SiteLayout title={`提案 ${change.id}`} admin>
+  <a class="muted back-link" href="/admin/changes"><Icon name="arrow-left" />变更列表</a>
+  <header class="change-head"><div><p class="eyebrow">{change.operation} · {change.status}</p><h1>变更预览</h1><p class="lede">{change.reason}</p></div><code>{change.id}</code></header>
+  {warnings.map((warning) => <p class="notice">{warning}</p>)}
+  <section class="panel diff">
+    <h2>字段差异</h2>
+    <div class="table-wrap"><table><thead><tr><th>字段</th><th>修改前</th><th>修改后</th></tr></thead><tbody>
+      {changedFields.map((field) => <tr><td><code>{field}</code></td><td>{String(before?.[field] ?? "—")}</td><td>{String(after[field] ?? "—")}</td></tr>)}
+    </tbody></table></div>
+    {!changedFields.length && change.operation === "create" && <pre>{JSON.stringify(after, null, 2)}</pre>}
+  </section>
+  {duplicate_candidates.length > 0 && <section class="panel duplicates"><h2>可能重复</h2>{duplicate_candidates.map(({ event, reasons }) => <p><a href={`/admin/events/${event.id}`}>{event.start_date} · {event.title}</a><small>{reasons.join("；")}</small></p>)}</section>}
+  <section class="publish panel">
+    <div><h2>审核操作</h2><p class="muted">发布会立即修改 D1，并反映到公开网站；系统会再次检查版本。</p></div>
+    {change.status === "proposed" && <div class="actions">
+      <form method="post" action={`/api/admin/changes/${change.id}/publish`}><input type="hidden" name="idempotency_key" value={`admin-publish-${change.id}-${crypto.randomUUID()}`}/><button disabled={!actor.scopes.includes("events:publish")}><Icon name="check-circle" />确认发布</button></form>
+      <form method="post" action={`/api/admin/changes/${change.id}/discard`}><button class="danger"><Icon name="trash" />丢弃提案</button></form>
+    </div>}
+    {!actor.scopes.includes("events:publish") && <p class="notice">当前 editor 身份可以创建和预览提案，但不能发布。</p>}
+  </section>
+</SiteLayout>
+<style>
+  .back-link{display:inline-flex;align-items:center;gap:.35rem;text-decoration:none}.change-head { display:flex;justify-content:space-between;align-items:end;gap:2rem;margin:1.5rem 0 2rem }.change-head h1{font-size:clamp(2.5rem,6vw,4.5rem);margin:.4rem 0}.change-head>code{color:var(--muted);font-size:.7rem}.diff,.duplicates,.publish{max-width:950px;margin-top:1rem}.diff h2,.duplicates h2,.publish h2{font-size:1.1rem}.duplicates p{display:grid;gap:.2rem;border-bottom:1px solid var(--line);padding-bottom:.7rem}.duplicates small{color:var(--muted)}.publish{display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center}form{margin:0}button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:700px){.change-head,.publish{display:grid;grid-template-columns:1fr}.change-head>code{overflow-wrap:anywhere}}
+</style>

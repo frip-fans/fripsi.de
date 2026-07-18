@@ -1,0 +1,22 @@
+---
+import SiteLayout from "../layouts/SiteLayout.astro";
+---
+<SiteLayout title="关于本站">
+  <section class="about">
+    <div><p class="eyebrow">About</p><h1>ずっと忘れることのない<br /><span class="title-outline">深く刻まれたこの記憶</span></h1></div>
+    <div class="copy">
+      <p class="lede">这是一个由粉丝制作和维护的非官方网站，用于整理 fripSide 相关活动与发行时间线。</p>
+      <h2>权利说明</h2>
+      <p>fripSide 名称、标识、作品及相关素材的权利属于各自权利人。本站不代表、隶属于或获得 fripSide 官方背书，也不提供票务或付费内容。</p>
+    </div>
+  </section>
+</SiteLayout>
+
+<style>
+  .about { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(3rem, 9vw, 9rem); align-items: start; }
+  .title-outline { color: transparent; -webkit-text-stroke: 1.5px var(--text); }
+  .copy { padding-top: 3rem; line-height: 1.8; }
+  .copy h2 { margin-top: 3rem; font-size: 1.1rem; color: var(--accent); }
+  .copy p:not(.lede) { color: var(--muted); }
+  @media (max-width: 780px) { .about { grid-template-columns: 1fr; gap: 0; } }
+</style>

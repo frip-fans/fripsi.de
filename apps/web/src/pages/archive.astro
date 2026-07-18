@@ -1,0 +1,36 @@
+---
+import { listArchiveYears, searchEvents } from "@frip-fan/core";
+import EventCard from "../components/EventCard.astro";
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { getEnv } from "../lib/env";
+
+const db = getEnv().DB;
+const years = await listArchiveYears(db);
+const requested = Astro.url.searchParams.get("year");
+const year = requested && /^\d{4}$/.test(requested) ? requested : years[0]?.year;
+const events = year ? await searchEvents(db, { date_from: `${year}-01-01`, date_to: `${year}-12-31`, limit: 100 }, true) : [];
+---
+<SiteLayout title="历史归档">
+  <header class="archive-head">
+    <div><p class="eyebrow">Archive</p><h1>History,<br />in sequence.</h1></div>
+    <p class="lede">按年份浏览已整理的 Live、Event、发行与媒体活动。历史数据迁移完成后，这里会成为一条可查询的完整时间线。</p>
+  </header>
+  <div class="year-tabs">
+    {years.map((item) => <a class:list={{ active: item.year === year }} href={`/archive?year=${item.year}`}><strong>{item.year}</strong><small>{item.count} records</small></a>)}
+  </div>
+  <section class="stack">
+    {events.map((event) => <EventCard event={event} />)}
+    {!events.length && <div class="empty panel">还没有可归档的公开记录。</div>}
+  </section>
+</SiteLayout>
+
+<style>
+  .archive-head { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 4rem; }
+  .archive-head h1 { margin-bottom: 0; }
+  .year-tabs { display: flex; gap: .7rem; margin: 4rem 0 2rem; overflow-x: auto; padding-bottom: .5rem; }
+  .year-tabs a { min-width: 120px; display: grid; gap: .2rem; text-decoration: none; border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; }
+  .year-tabs a.active { border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .06); }
+  .year-tabs strong { font-size: 1.2rem; }
+  .year-tabs small { color: var(--muted); }
+  @media (max-width: 760px) { .archive-head { grid-template-columns: 1fr; gap: 1rem; } }
+</style>

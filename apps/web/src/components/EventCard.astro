@@ -1,0 +1,43 @@
+---
+import type { EventRecord } from "@frip-fan/core";
+import { categoryLabels, formatDate, formatTime, statusLabels } from "../lib/format";
+import Icon from "./Icon.astro";
+
+interface Props { event: EventRecord; compact?: boolean }
+const { event, compact = false } = Astro.props;
+---
+<article class:list={["event-card", { compact, dimmed: event.status === "completed" }]}>
+  <div class="event-date">
+    <span>{event.start_date.slice(0, 4)}</span>
+    <strong>{event.start_date.slice(5).replace("-", ".")}</strong>
+  </div>
+  <div class="event-main">
+    <div class="meta">
+      <span class:list={["tag", event.category.toLowerCase()]}>{categoryLabels[event.category]}</span>
+      {event.status !== "scheduled" && <span class:list={["tag", event.status]}>{statusLabels[event.status]}</span>}
+      {event.classification && <span class="tag">{event.classification}</span>}
+    </div>
+    <h3><a href={`/events/${event.slug}`}>{event.title}</a></h3>
+    <p>{formatDate(event.start_date, event.end_date)} · {formatTime(event)}</p>
+    {(event.venue || event.region) && <p class="venue">{[event.venue, event.region].filter(Boolean).join(" · ")}</p>}
+  </div>
+  <a class="arrow" href={`/events/${event.slug}`} aria-label={`查看 ${event.title}`}><Icon name="arrow-up-right" size="1.05rem" /></a>
+</article>
+
+<style>
+  .event-card { display: grid; grid-template-columns: 74px 1fr auto; gap: 1rem; align-items: start; padding: 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(135deg, rgba(15,31,51,.86), rgba(10,21,36,.7)); transition: border-color .18s, transform .18s; }
+  .event-card:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .3); }
+  .event-date { display: grid; align-content: start; text-align: right; border-right: 1px solid var(--line); padding-right: 1rem; }
+  .event-date span { color: var(--muted); font-size: .7rem; letter-spacing: .12em; }
+  .event-date strong { color: var(--accent); font-size: 1.32rem; letter-spacing: -.04em; }
+  .meta { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .7rem; }
+  h3 { margin: 0 0 .5rem; font-size: 1.08rem; line-height: 1.45; }
+  h3 a { text-decoration: none; }
+  h3 a:hover { color: var(--accent); }
+  p { margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+  .venue { color: #c8d9e7; margin-top: .25rem; }
+  .arrow { color: var(--accent); text-decoration: none; opacity: .65; }
+  .dimmed { opacity: .72; }
+  .compact { grid-template-columns: 62px 1fr auto; padding: 1rem; }
+  @media (max-width: 560px) { .event-card { grid-template-columns: 58px 1fr; } .arrow { display: none; } }
+</style>

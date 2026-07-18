@@ -1,0 +1,172 @@
+---
+import { dateInTimeZone, searchEvents } from "@frip-fan/core";
+import EventCard from "../components/EventCard.astro";
+import Icon from "../components/Icon.astro";
+import OfficialSiteGate from "../components/OfficialSiteGate.astro";
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { getEnv } from "../lib/env";
+import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
+import type { EventRecord } from "@frip-fan/core";
+
+const env = getEnv();
+const db = env.DB;
+const showOfficialSiteGate = Astro.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value !== "yes";
+const subscriptionUrl = new URL("/calendar.ics", env.SITE_URL || Astro.url.origin);
+const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
+const today = dateInTimeZone();
+const upcoming = await searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 8 }, true);
+const next = upcoming[0];
+let recent: EventRecord[] = [];
+if (!upcoming.length) {
+  const history = await searchEvents(db, { date_to: today, limit: 100 }, true);
+  recent = history.slice(-6).reverse();
+}
+---
+<SiteLayout>
+  {showOfficialSiteGate && <OfficialSiteGate />}
+  <section class="hero">
+    <div>
+      <p class="eyebrow">fripsi.de · Independent fan archive</p>
+      <h1 class="hero-title" data-lyric-rotator>
+        <span class="title-lead" data-lyric-lead>This sound</span>
+        <span class="title-solid"><span data-lyric-line-one>is bound</span><br /><span data-lyric-line-two>in the melody.</span></span>
+      </h1>
+      <div class="actions">
+        <a class="button" href="/calendar"><Icon name="calendar3" />活动日历</a>
+        <a class="button secondary" href={webcalUrl} title={`订阅地址：${subscriptionUrl.href}`}><Icon name="calendar-plus" />订阅日历</a>
+        <a class="button secondary" href="/archive"><Icon name="list" />全部活动列表</a>
+      </div>
+    </div>
+    <aside class="signal panel">
+      <div class="signal-top"><span>Coming up next</span><i></i></div>
+      {next ? (
+        <>
+          <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
+          <h2>{next.title}</h2>
+          <p>{[next.venue, next.region].filter(Boolean).join(" · ") || "地点待定"}</p>
+          <a href={`/events/${next.slug}`}>查看详情 <Icon name="arrow-up-right" /></a>
+        </>
+      ) : (
+        <div class="no-signal"><strong>—</strong><h2>等待下一条公告</h2><p>近期没有已发布的未来活动。</p></div>
+      )}
+    </aside>
+  </section>
+
+  <div class="section-heading">
+    <div><p class="eyebrow">Timeline</p><h2>{upcoming.length ? "近期活动" : "最近记录"}</h2></div>
+    <a class="muted all-calendar" href="/calendar">全部日历 <Icon name="arrow-right" /></a>
+  </div>
+  <section class="event-list stack">
+    {(upcoming.length ? upcoming : recent).map((event) => <EventCard event={event} />)}
+    {!upcoming.length && !recent.length && <div class="empty panel">数据库中还没有公开活动。登录管理后台创建第一条记录吧。</div>}
+  </section>
+
+</SiteLayout>
+
+<script>
+  const rotator = document.querySelector<HTMLElement>("[data-lyric-rotator]");
+  const lead = rotator?.querySelector<HTMLElement>("[data-lyric-lead]");
+  const lineOne = rotator?.querySelector<HTMLElement>("[data-lyric-line-one]");
+  const lineTwo = rotator?.querySelector<HTMLElement>("[data-lyric-line-two]");
+  const lyrics = [
+    { lead: "This sound", lineOne: "is bound", lineTwo: "in the melody.", variant: "" },
+    { lead: "Did my song arrive？", lineOne: "Up to that far", lineTwo: "distant moon.", variant: "english" },
+    { lead: "変わりゆく季節が今、", lineOne: "迷いながら", lineTwo: "景色を染めてく", variant: "japanese" }
+  ];
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let activeIndex = 0;
+  let rotationTimer: number | undefined;
+  let transitionTimer: number | undefined;
+  let cleanupTimer: number | undefined;
+
+  const renderLyric = () => {
+    const lyric = lyrics[activeIndex];
+    if (!rotator || !lead || !lineOne || !lineTwo || !lyric) return;
+    lead.textContent = lyric.lead;
+    lineOne.textContent = lyric.lineOne;
+    lineTwo.textContent = lyric.lineTwo;
+    rotator.dataset.variant = lyric.variant;
+    rotator.lang = lyric.variant === "japanese" ? "ja" : "en";
+  };
+
+  const showNextLyric = () => {
+    if (!rotator) return;
+    rotator.classList.add("is-glitching");
+    transitionTimer = window.setTimeout(() => {
+      activeIndex = (activeIndex + 1) % lyrics.length;
+      renderLyric();
+      transitionTimer = undefined;
+    }, 260);
+    cleanupTimer = window.setTimeout(() => {
+      rotator.classList.remove("is-glitching");
+      cleanupTimer = undefined;
+    }, 560);
+  };
+
+  const stopRotation = () => {
+    if (rotationTimer !== undefined) window.clearInterval(rotationTimer);
+    if (transitionTimer !== undefined) window.clearTimeout(transitionTimer);
+    if (cleanupTimer !== undefined) window.clearTimeout(cleanupTimer);
+    rotationTimer = undefined;
+    transitionTimer = undefined;
+    cleanupTimer = undefined;
+    rotator?.classList.remove("is-glitching");
+  };
+
+  const startRotation = () => {
+    stopRotation();
+    if (!reducedMotion.matches && lyrics.length > 1 && !document.hidden) {
+      rotationTimer = window.setInterval(showNextLyric, 8000);
+    }
+  };
+
+  reducedMotion.addEventListener("change", startRotation);
+  document.addEventListener("visibilitychange", startRotation);
+  startRotation();
+</script>
+
+<style>
+  .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: center; gap: clamp(2rem, 7vw, 7rem); padding: 2rem 0 .5rem; }
+  .hero-title { position: relative; display: grid; align-content: start; gap: .14em; height: clamp(6.25rem, 18.2vw, 14.3rem); margin-bottom: 0; }
+  .hero-title::after { content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(120, 225, 255, .14) 6px, transparent 7px); mix-blend-mode: screen; }
+  .hero-title.is-glitching { animation: lyric-signal-glitch .56s steps(2, end) both; }
+  .hero-title.is-glitching::after { animation: lyric-scanlines .56s steps(3, end) both; }
+  .title-lead, .title-solid { display: block; }
+  .title-lead { color: var(--text); }
+  .title-solid { color: var(--text); font-size: .72em; line-height: 1.08; letter-spacing: -.045em; }
+  .hero-title[data-variant="english"] .title-lead { font-size: .7em; line-height: 1.06; letter-spacing: -.055em; }
+  .hero-title[data-variant="japanese"] .title-lead { font-size: .56em; line-height: 1.12; letter-spacing: -.06em; }
+  .hero-title[data-variant="japanese"] .title-solid { font-size: .5em; line-height: 1.28; letter-spacing: -.06em; }
+  @supports (-webkit-text-stroke: 1px currentColor) {
+    .title-solid { color: transparent; -webkit-text-stroke: 1.5px var(--text); }
+  }
+  @keyframes lyric-signal-glitch {
+    0%, 100% { opacity: 1; clip-path: inset(0); transform: translate(0) skewX(0); filter: none; }
+    10% { transform: translate(3px, -1px) skewX(-1deg); filter: drop-shadow(-4px 0 rgba(102, 224, 255, .7)) drop-shadow(4px 0 rgba(var(--accent-rgb), .75)); }
+    22% { clip-path: inset(8% 0 58% 0); transform: translate(-7px, 1px) skewX(2deg); }
+    34% { clip-path: inset(52% 0 16% 0); transform: translate(6px, -2px) skewX(-2deg); filter: drop-shadow(5px 0 rgba(102, 224, 255, .8)) drop-shadow(-5px 0 rgba(var(--accent-rgb), .8)); }
+    46%, 52% { opacity: 0; clip-path: inset(0 0 82% 0); transform: translate(-10px, 0) scaleX(1.025); }
+    62% { opacity: .72; clip-path: inset(62% 0 5% 0); transform: translate(8px, 1px) skewX(2deg); filter: drop-shadow(-5px 0 rgba(102, 224, 255, .75)) drop-shadow(5px 0 rgba(var(--accent-rgb), .8)); }
+    76% { opacity: 1; clip-path: inset(18% 0 40% 0); transform: translate(-4px, -1px); }
+    88% { clip-path: inset(0); transform: translate(2px, 0); filter: drop-shadow(2px 0 rgba(var(--accent-rgb), .45)); }
+  }
+  @keyframes lyric-scanlines {
+    0%, 100% { opacity: 0; transform: translateX(0); }
+    18%, 78% { opacity: .8; transform: translateX(-5px); }
+    48% { opacity: 1; transform: translateX(7px); }
+  }
+  .hero .actions { margin-top: 2rem; }
+  .hero .actions .button { min-height: 52px; padding: .82rem 1.25rem; border-radius: 12px; font-size: .95rem; }
+  .hero + .section-heading { margin-top: 1.5rem; }
+  .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+  .signal::before { content: ""; position: absolute; inset: -20% -40% 35%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 17px, rgba(var(--accent-rgb),.12) 18px 19px); transform: rotate(-10deg); }
+  .signal-top { position: absolute; left: 1.6rem; right: 1.6rem; top: 1.5rem; display: flex; justify-content: space-between; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
+  .signal-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
+  .signal > strong, .no-signal strong { color: var(--accent); font-size: clamp(3.7rem, 8vw, 6rem); line-height: 1; letter-spacing: -.08em; position: relative; }
+  .signal h2 { font-size: 1.25rem; margin: 1rem 0 .4rem; position: relative; }
+  .signal p { color: var(--muted); position: relative; }
+  .signal a { color: var(--accent); margin-top: 1.5rem; font-size: .85rem; text-decoration: none; position: relative; }
+  .signal a, .all-calendar { display: inline-flex; align-items: center; gap: .35rem; }
+  @media (prefers-reduced-motion: reduce) { .hero-title.is-glitching, .hero-title.is-glitching::after { animation: none; } }
+  @media (max-width: 800px) { .hero { grid-template-columns: 1fr; min-height: 0; } .signal { min-height: 290px; } }
+</style>

@@ -24,24 +24,36 @@ await page.setViewportSize({ width: viewportWidth, height: viewportHeight });
 await page.goto(baseUrl, { waitUntil: "networkidle" });
 await page.waitForTimeout(800);
 
-const background = await page.locator(".moon-backdrop").evaluate((element) => {
+const backgroundSlides = page.locator("[data-background-slide]");
+const backgrounds = await backgroundSlides.evaluateAll((elements) => elements.map((element) => {
   const style = getComputedStyle(element);
   const rect = element.getBoundingClientRect();
   return {
+    className: element.className,
     backgroundImage: style.backgroundImage,
     filter: style.filter,
     opacity: style.opacity,
-    zIndex: style.zIndex,
+    transitionDuration: style.transitionDuration,
     size: `${Math.round(rect.width)}x${Math.round(rect.height)}`
   };
-});
+}));
 const lyricRotators = await page.locator("[data-lyric-rotator]").count();
 
-if (!background.backgroundImage.includes("A_New_View_of_the_Moon")) {
+if (!backgrounds[0]?.backgroundImage.includes("A_New_View_of_the_Moon")) {
   throw new Error("The moon background image is not present in the computed style.");
+}
+if (!backgrounds[1]?.backgroundImage.includes("ISS")) {
+  throw new Error("The ISS background image is not present in the computed style.");
+}
+if (!backgrounds[0]?.transitionDuration.startsWith("5s") || !backgrounds[1]?.transitionDuration.startsWith("5s")) {
+  throw new Error("Expected both background slides to use a five-second crossfade.");
 }
 if (lyricRotators !== 1) throw new Error(`Expected one lyric rotator, found ${lyricRotators}.`);
 
+await backgroundSlides.evaluateAll((elements) => {
+  elements.forEach((element, index) => element.classList.toggle("is-active", index === 1));
+  elements.forEach((element) => element.getAnimations().forEach((animation) => animation.finish()));
+});
 await page.screenshot({ path: outputPath, fullPage: true });
-console.log(JSON.stringify({ url: page.url(), outputPath, viewport: `${viewportWidth}x${viewportHeight}`, lyricRotators, background }, null, 2));
+console.log(JSON.stringify({ url: page.url(), outputPath, viewport: `${viewportWidth}x${viewportHeight}`, lyricRotators, backgrounds }, null, 2));
 await browser.close();

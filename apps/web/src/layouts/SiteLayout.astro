@@ -3,33 +3,51 @@ interface Props {
   title?: string;
   description?: string;
   admin?: boolean;
+  clientRouting?: boolean;
 }
+import { ClientRouter } from "astro:transitions";
 import { getEnv } from "../lib/env";
+import { getLocale, t } from "../lib/i18n";
 import Icon from "../components/Icon.astro";
+import LanguageSwitcher from "../components/LanguageSwitcher.astro";
+import OfficialSiteGate from "../components/OfficialSiteGate.astro";
+import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
 import moonBackground from "../../../../images/A_New_View_of_the_Moon.jpg?url";
+import issBackground from "../../../../images/ISS.jpg?url";
 
 const {
-  title = "fripSide Fan Site",
-  description = "fripsi.de 是由粉丝维护的非官方 fripSide 活动日历与历史档案。",
-  admin = false
+  title = "fripSi.de Fan Site",
+  description,
+  admin = false,
+  clientRouting = false
 } = Astro.props;
 const current = Astro.url.pathname;
-const siteName = admin ? "Calendar Studio" : "fripSide Fan Site";
+const locale = admin ? "zh-CN" : getLocale(Astro.request);
+const resolvedDescription = description ?? t(locale, "site.description");
+const rotateHomeBackground = !admin && current === "/";
+const siteName = admin ? "Calendar Studio" : "fripSi.de Fan Site";
+const autoOpenOfficialSiteGate = !admin && current === "/" && Astro.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value !== "yes";
 const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 ---
 <!doctype html>
-<html lang="zh-CN">
+<html lang={locale}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="description" content={description} />
+    <meta name="description" content={resolvedDescription} />
     <meta name="theme-color" content="#07101c" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={new URL(Astro.url.pathname, canonicalBase)} />
     <title>{title === siteName ? title : `${title} · ${siteName}`}</title>
+    {clientRouting && <ClientRouter fallback="swap" />}
   </head>
-  <body class:list={{ admin }}>
-    <div class="moon-backdrop" style={`--moon-image: url("${moonBackground}")`} aria-hidden="true"></div>
+  <body class:list={{ admin }} transition:animate={clientRouting ? "none" : undefined}>
+    <div class="background-rotator" data-background-rotator={rotateHomeBackground || undefined} aria-hidden="true">
+      <div class="space-backdrop moon-backdrop is-active" data-background-slide style={`--space-image: url("${moonBackground}"); --space-position: center top`}></div>
+      {rotateHomeBackground && (
+        <div class="space-backdrop iss-backdrop" data-background-slide style={`--space-image: url("${issBackground}"); --space-position: center 18%`}></div>
+      )}
+    </div>
     <div class="ambient ambient-a"></div>
     <div class="ambient ambient-b"></div>
     <header class="site-header">
@@ -42,15 +60,17 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         ) : (
           <>
             <img class="brand-logo" src="/fan-site-logo.svg" width="48" height="48" alt="" />
-            <span><b>{siteName}</b><small>fripsi.de · unofficial</small></span>
+            <span><b>fripSi<span class="brand-tld">.de</span> Fan Site</b><small>unofficial</small></span>
           </>
         )}
       </a>
-      <nav aria-label="主导航">
+      <div class="header-actions">
+      <nav aria-label={admin ? "主导航" : t(locale, "nav.main")}>
         {admin ? (
           <>
             <a class:list={{ active: current === "/admin" }} href="/admin">概览</a>
             <a class:list={{ active: current.startsWith("/admin/events") }} href="/admin/events">活动</a>
+            <a class:list={{ active: current.startsWith("/admin/music") }} href="/admin/music/setlists">音乐库</a>
             <a class:list={{ active: current.startsWith("/admin/changes") }} href="/admin/changes">提案</a>
             <a class:list={{ active: current.startsWith("/admin/audit") }} href="/admin/audit">审计</a>
             <a class:list={{ active: current.startsWith("/admin/data") }} href="/admin/data">数据</a>
@@ -58,21 +78,56 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
           </>
         ) : (
           <>
-            <a class:list={{ active: current === "/" }} href="/">首页</a>
-            <a class:list={{ active: current.startsWith("/calendar") }} href="/calendar">日历</a>
-            <a class:list={{ active: current.startsWith("/archive") }} href="/archive">归档</a>
-            <a class:list={{ active: current.startsWith("/about") }} href="/about">关于</a>
+            <a class:list={{ active: current === "/" }} href="/">{t(locale, "nav.home")}</a>
+            <a class:list={{ active: current.startsWith("/calendar") }} href="/calendar">{t(locale, "nav.calendar")}</a>
+            <a class:list={{ active: current.startsWith("/archive") }} href="/archive">{t(locale, "nav.events")}</a>
+            <a class:list={{ active: current.startsWith("/music") }} href="/music/lives">{t(locale, "nav.music")}</a>
+            <a class:list={{ active: current.startsWith("/about") }} href="/about">{t(locale, "nav.about")}</a>
           </>
         )}
       </nav>
+      {!admin && <div class="locale-control"><LanguageSwitcher /></div>}
+      </div>
     </header>
+    {!admin && <OfficialSiteGate autoOpen={autoOpenOfficialSiteGate} />}
     <main><slot /></main>
     <footer>
-      <span>Fan-made, independent, and source-linked.</span>
-      <span>非 fripSide 官方网站</span>
+      <span>{admin ? "fripSide 名称、标识、作品及其他相关内容的权利归各自权利人所有。" : t(locale, "footer.rights")}</span>
+      {admin ? <span>本站并非 fripSide 官方网站</span> : <button class="footer-notice" type="button" data-open-site-notice>{t(locale, "footer.unofficial")}</button>}
     </footer>
   </body>
 </html>
+
+<script>
+  const backgroundRotator = document.querySelector<HTMLElement>("[data-background-rotator]");
+  const backgroundSlides = [...(backgroundRotator?.querySelectorAll<HTMLElement>("[data-background-slide]") ?? [])];
+  const reducedBackgroundMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let activeBackgroundIndex = 0;
+  let backgroundTimer: number | undefined;
+
+  const showBackground = (index: number) => {
+    backgroundSlides.forEach((slide, slideIndex) => slide.classList.toggle("is-active", slideIndex === index));
+    activeBackgroundIndex = index;
+  };
+
+  const stopBackgroundRotation = () => {
+    if (backgroundTimer !== undefined) window.clearInterval(backgroundTimer);
+    backgroundTimer = undefined;
+  };
+
+  const startBackgroundRotation = () => {
+    stopBackgroundRotation();
+    if (backgroundSlides.length > 1 && !reducedBackgroundMotion.matches && !document.hidden) {
+      backgroundTimer = window.setInterval(() => {
+        showBackground((activeBackgroundIndex + 1) % backgroundSlides.length);
+      }, 16000);
+    }
+  };
+
+  reducedBackgroundMotion.addEventListener("change", startBackgroundRotation);
+  document.addEventListener("visibilitychange", startBackgroundRotation);
+  startBackgroundRotation();
+</script>
 
 <style is:global>
   :root {
@@ -99,7 +154,31 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   a { color: inherit; }
   button, input, select, textarea { font: inherit; }
   button, .button { cursor: pointer; }
-  .moon-backdrop { position: fixed; z-index: -3; inset: 0; pointer-events: none; background-image: radial-gradient(ellipse 48% 46% at 20% 30%, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%), linear-gradient(180deg, rgba(7,16,28,.3) 0%, rgba(7,16,28,.44) 52%, rgba(7,16,28,.86) 88%, var(--bg) 100%), linear-gradient(90deg, rgba(7,16,28,.18), rgba(7,16,28,.02) 52%, rgba(7,16,28,.24)), var(--moon-image); background-position: center top; background-size: cover; background-repeat: no-repeat; filter: saturate(.76) contrast(1.08) brightness(1.08); }
+  .background-rotator { position: fixed; z-index: -3; inset: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
+  .space-backdrop {
+    position: absolute;
+    inset: -1.5%;
+    opacity: 0;
+    background-image:
+      radial-gradient(ellipse 48% 46% at 20% 30%, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%),
+      linear-gradient(180deg, rgba(7,16,28,.3) 0%, rgba(7,16,28,.44) 52%, rgba(7,16,28,.86) 88%, var(--bg) 100%),
+      linear-gradient(90deg, rgba(7,16,28,.18), rgba(7,16,28,.02) 52%, rgba(7,16,28,.24)),
+      var(--space-image);
+    background-position: center, center, center, var(--space-position);
+    background-size: cover;
+    background-repeat: no-repeat;
+    filter: saturate(.76) contrast(1.08) brightness(1.08);
+    transform: scale(1.015);
+    transition: opacity 5s ease-in-out, transform 18s ease-out;
+  }
+  .space-backdrop.is-active { opacity: 1; transform: scale(1); }
+  .iss-backdrop { filter: saturate(.68) contrast(1.06) brightness(.72); }
+  .iss-backdrop::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 62% 48% at 20% 45%, rgba(4,10,18,.78) 0%, rgba(4,10,18,.58) 52%, rgba(4,10,18,.18) 78%, transparent 100%);
+  }
   .ambient { position: fixed; width: 28rem; height: 28rem; border-radius: 50%; filter: blur(110px); opacity: .12; pointer-events: none; z-index: -1; }
   .ambient-a { background: var(--accent); left: -16rem; top: 12rem; }
   .ambient-b { background: var(--purple); right: -18rem; top: 35rem; }
@@ -108,13 +187,18 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .brand-logo { display: block; width: 3rem; height: 3rem; object-fit: contain; }
   .brand-mark { display: grid; place-items: center; width: 2.55rem; height: 2.55rem; border: 1px solid rgba(var(--accent-rgb), .5); border-radius: 12px; background: linear-gradient(145deg, rgba(var(--accent-rgb), .16), rgba(156,134,255,.2)); color: var(--accent); font-weight: 900; font-size: 1.25rem; }
   .brand b, .brand small { display: block; }
+  .brand-tld { position: relative; top: .035em; color: var(--accent); }
   .brand small { color: var(--muted); font-size: .67rem; margin-top: .15rem; text-transform: uppercase; letter-spacing: .15em; }
   nav { display: flex; align-items: center; gap: .2rem; flex-wrap: wrap; }
+  .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: .55rem; min-width: 0; }
+  .locale-control { flex: 0 0 auto; }
   nav a { text-decoration: none; color: var(--muted); padding: .6rem .72rem; border-radius: 9px; font-size: .92rem; }
   nav a:hover, nav a.active { color: var(--text); background: rgba(255,255,255,.06); }
   nav a.active { box-shadow: inset 0 -1px var(--accent); }
   main { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; min-height: calc(100vh - 180px); }
   footer { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; border-top: 1px solid var(--line); padding: 1.5rem 0 2.5rem; display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .78rem; }
+  .footer-notice { min-height: 0; padding: 0; color: inherit; background: none; border: 0; border-radius: 0; font: inherit; font-weight: inherit; text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), .5); text-underline-offset: .25em; cursor: pointer; }
+  .footer-notice:hover { color: var(--text); filter: none; transform: none; }
   h1, h2, h3, p { margin-top: 0; }
   h1 { font-size: clamp(2.4rem, 7vw, 5.5rem); line-height: .98; letter-spacing: -.055em; }
   h2 { font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -.025em; }
@@ -152,11 +236,28 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   pre { overflow: auto; color: #cde5f5; background: #050c15; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }
   @media (max-width: 760px) {
-    .site-header { align-items: flex-start; padding: 1rem 0; flex-direction: column; gap: .8rem; }
-    nav { width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+    .site-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 1rem 0; gap: .8rem; }
+    .brand { grid-column: 1; grid-row: 1; min-width: 0; }
+    .header-actions { display: contents; }
+    .header-actions nav { grid-column: 1 / -1; grid-row: 2; width: 100%; min-width: 0; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; overscroll-behavior-inline: contain; }
+    .header-actions nav::-webkit-scrollbar { display: none; }
+    .locale-control { grid-column: 2; grid-row: 1; }
     nav a { white-space: nowrap; }
     main { padding-top: 2rem; }
     .form-grid { grid-template-columns: 1fr; }
     footer { flex-direction: column; }
+  }
+  @media (max-width: 380px) {
+    .site-header { gap: .55rem; }
+    .brand { gap: .55rem; }
+    .brand-logo { width: 2.65rem; height: 2.65rem; }
+    .brand b { font-size: .9rem; }
+    .brand small { font-size: .56rem; letter-spacing: .1em; }
+    .locale-control select[data-language-switcher] { padding-left: 1.65rem; padding-right: 1.15rem; font-size: .7rem; }
+    .locale-control select[data-current-locale="ja"], .locale-control select[data-current-locale="en"] { width: 6.5rem; min-width: 6.5rem; }
+    .locale-control select[data-current-locale^="zh-"] { width: 6.8rem; min-width: 6.8rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .space-backdrop { transition: none; transform: none; }
   }
 </style>

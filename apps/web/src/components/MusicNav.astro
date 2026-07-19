@@ -1,0 +1,38 @@
+---
+import Icon from "./Icon.astro";
+import { getLocale, t } from "../lib/i18n";
+
+const current = Astro.url.pathname;
+const locale = getLocale(Astro.request);
+const links = [
+  { href: "/music/lives", label: t(locale, "music.nav.lives"), icon: "mic", active: current.startsWith("/music/lives") },
+  { href: "/music/releases", label: t(locale, "music.nav.releases"), icon: "vinyl", active: current.startsWith("/music/releases") },
+  { href: "/music/songs", label: t(locale, "music.nav.songs"), icon: "music-note-beamed", active: current.startsWith("/music/songs") },
+] as const;
+---
+<div class="music-tabs" role="navigation" aria-label={t(locale, "music.nav.label")} data-music-tabs>
+  {links.map((link) => (
+    <a class:list={{ active: link.active }} href={link.href} aria-current={link.active ? "page" : undefined}>
+      <Icon name={link.icon} />
+      <span>{link.label}</span>
+    </a>
+  ))}
+</div>
+
+<script>
+  const revealActiveMusicTab = () => {
+    const tabs = document.querySelector<HTMLElement>("[data-music-tabs]");
+    const active = tabs?.querySelector<HTMLElement>("a.active");
+    if (!tabs || !active || tabs.scrollWidth <= tabs.clientWidth) return;
+    tabs.scrollTo({ left: active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2, behavior: "instant" });
+  };
+  revealActiveMusicTab();
+</script>
+
+<style>
+  .music-tabs { display: flex; align-items: center; gap: .45rem; margin: 1.8rem 0 1.5rem; padding: .4rem; width: fit-content; max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: rgba(5,13,23,.58); backdrop-filter: blur(18px); }
+  .music-tabs a { display: inline-flex; align-items: center; gap: .45rem; padding: .62rem .8rem; color: var(--muted); border-radius: 10px; text-decoration: none; white-space: nowrap; font-size: .84rem; font-weight: 650; }
+  .music-tabs a:hover { color: var(--text); background: rgba(255,255,255,.045); }
+  .music-tabs a.active { color: #08111d; background: var(--accent); box-shadow: 0 8px 26px rgba(var(--accent-rgb),.16); }
+  @media (max-width: 560px) { .music-tabs { width: 100%; margin-bottom: 1.25rem; } }
+</style>

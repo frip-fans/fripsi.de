@@ -1,9 +1,9 @@
 ---
 import type { EventRecord } from "@frip-fan/core";
 
-interface Props { event?: EventRecord; submitLabel?: string }
-const { event, submitLabel = "创建变更提案" } = Astro.props;
-const sources = event?.sources?.map((source) => `${source.url}${source.label ? ` | ${source.label}` : ""}`).join("\n") ?? "";
+interface Props { event?: EventRecord; submitLabel?: string; canWrite?: boolean }
+const { event, submitLabel = "保存活动", canWrite = true } = Astro.props;
+const sources = event?.sources?.map((source) => `${source.url} | ${source.label ?? ""} | ${source.source_type ?? "official"}`).join("\n") ?? "";
 ---
 <div class="form-grid">
   <label class="wide">活动标题 *<input name="title" required maxlength="240" value={event?.title ?? ""} /></label>
@@ -27,11 +27,14 @@ const sources = event?.sources?.map((source) => `${source.url}${source.label ? `
   <label>地区<input name="region" maxlength="120" value={event?.region ?? ""} /></label>
   <label class="wide">Slug<input name="slug" maxlength="180" value={event?.slug ?? ""} placeholder="留空则自动生成" /></label>
   <label class="wide">说明<textarea name="remark" maxlength="4000">{event?.remark ?? ""}</textarea></label>
-  <label class="wide">官方来源 *<textarea name="sources" required placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称">{sources}</textarea><small>每行一个：<code>https://… | fripSide official</code></small></label>
-  <label class="wide">变更原因 *<textarea name="reason" required maxlength="1000" placeholder="说明新增或修改依据"></textarea></label>
+  <label class="wide">来源 *<textarea name="sources" required placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea><small>例如：<code>https://… | fripSide official | official</code></small></label>
+  <label class="wide publish-check"><input type="checkbox" name="published" checked={event?.published ?? true} />在公开网站显示</label>
 </div>
-<div class="actions form-actions"><button type="submit">{submitLabel}</button><a class="button secondary" href={event ? "/admin/events" : "/admin"}>取消</a></div>
+<div class="actions form-actions"><button type="submit" disabled={!canWrite}>{submitLabel}</button><a class="button secondary" href={event ? "/admin/events" : "/admin"}>取消</a>{!canWrite && <span class="muted">当前账号没有 events:publish 权限。</span>}</div>
 <style>
   small { color: var(--muted); }
   .form-actions { margin-top: 1.5rem; }
+  .publish-check { display: flex; align-items: center; gap: .55rem; }
+  .publish-check input { width: auto; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
 </style>

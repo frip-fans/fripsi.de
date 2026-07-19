@@ -1,20 +1,31 @@
 ---
 import SiteLayout from "../layouts/SiteLayout.astro";
+import { getLocale, t } from "../lib/i18n";
+const locale = getLocale(Astro.request);
 ---
-<SiteLayout title="关于本站">
+<SiteLayout title={t(locale, "about.title")}>
   <section class="about">
-    <div><p class="eyebrow">About</p><h1>ずっと忘れることのない<br /><span class="title-outline">深く刻まれたこの記憶</span></h1></div>
+    <div>
+      <p class="eyebrow">About</p>
+      <h1><span class="domain-name">fripSi<span>.de</span></span><span class="fan-title">Fan Site</span></h1>
+    </div>
     <div class="copy">
-      <p class="lede">这是一个由粉丝制作和维护的非官方网站，用于整理 fripSide 相关活动与发行时间线。</p>
-      <h2>权利说明</h2>
-      <p>fripSide 名称、标识、作品及相关素材的权利属于各自权利人。本站不代表、隶属于或获得 fripSide 官方背书，也不提供票务或付费内容。</p>
+      <p class="lede">{t(locale, "about.intro")}</p>
+      <h2>{t(locale, "about.rightsTitle")}</h2>
+      <p>{t(locale, "about.rights")}</p>
     </div>
   </section>
 </SiteLayout>
 
 <style>
   .about { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(3rem, 9vw, 9rem); align-items: start; }
-  .title-outline { color: transparent; -webkit-text-stroke: 1.5px var(--text); }
+  .about h1 { display: grid; gap: .04em; }
+  .domain-name { color: #d8e4ed; }
+  .domain-name span { color: var(--accent); }
+  .fan-title { color: rgba(157,178,197,.34); }
+  @supports (-webkit-text-stroke: 1px currentColor) {
+    .fan-title { color: transparent; -webkit-text-stroke: 1.5px rgba(200,218,232,.72); }
+  }
   .copy { padding-top: 3rem; line-height: 1.8; }
   .copy h2 { margin-top: 3rem; font-size: 1.1rem; color: var(--accent); }
   .copy p:not(.lede) { color: var(--muted); }

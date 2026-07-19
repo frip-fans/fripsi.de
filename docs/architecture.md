@@ -74,7 +74,13 @@ frip-fan/
 - `/calendar.ics`：由公开活动动态生成的完整 iCalendar 订阅源。
 - `/archive`：按年份归档。
 - `/events/:slug`：活动详情和来源。
+- `/music`：歌单库总览与交叉统计。
+- `/music/lives/:id`：某场 Live 的曲目顺序，并回链活动。
+- `/music/releases/:slug`：发行曲目及歌曲/具体版本的 Live 出现次数。
+- `/music/songs/:slug`：歌曲版本关系、发行位置和演唱历史。
 - `/about`：制作人员、数据说明、非官方网站声明。
+
+公开 UI 使用轻量的 Astro SSR 国际化层，支持 `zh-CN`、`zh-TW`、`ja` 和 `en`。服务端优先读取当前 URL 的 `lang` 参数，其次读取 `frip_fan_locale` Cookie，默认使用简体中文；语言选择器保留当前页面的其他查询参数，并把选择保存一年。HTML 响应设置 `Content-Language`，同时通过 `Vary: Cookie` 防止不同语言的 SSR 页面被错误共用缓存。当前只翻译导航、按钮、筛选器、状态、日期格式和空状态等 UI 文案，D1 中的活动、歌曲、专辑、场地与来源内容保持原文。
 
 公开查询只能返回：
 
@@ -87,8 +93,10 @@ published = 1 AND archived_at IS NULL
 - `/admin`：概览和待处理变更。
 - `/admin/events`：搜索、过滤和批量检查。
 - `/admin/events/new`：人工创建活动。
-- `/admin/events/:id`：编辑、预览、发布、取消、归档。
-- `/admin/changes`：AI 和人工创建的变更提案。
+- `/admin/events/:id`：人工直接编辑、公开/隐藏和归档。
+- `/admin/music/setlists`：Setlist 列表、新建与完整曲序编辑。
+- `/admin/music/releases`：专辑列表、新建与曲目编辑。
+- `/admin/changes`：AI/MCP 创建的变更提案与审核。
 - `/admin/audit`：审计记录。
 - `/admin/data`：CSV 导入、导出和迁移检查。
 

@@ -1,0 +1,23 @@
+---
+import Icon from "./Icon.astro";
+
+const current = Astro.url.pathname;
+const links = [
+  { href: "/admin/music/setlists", label: "Setlist", icon: "mic", active: current.startsWith("/admin/music/setlists") },
+  { href: "/admin/music/releases", label: "专辑", icon: "vinyl", active: current.startsWith("/admin/music/releases") },
+  { href: "/admin/music/songs", label: "歌曲", icon: "music-note-beamed", active: current.startsWith("/admin/music/songs") },
+] as const;
+---
+<nav class="admin-music-nav" aria-label="音乐库管理导航">
+  {links.map((link) => (
+    <a class:list={{ active: link.active }} href={link.href} aria-current={link.active ? "page" : undefined}>
+      <Icon name={link.icon} />{link.label}
+    </a>
+  ))}
+</nav>
+
+<style>
+  .admin-music-nav { display: inline-flex; gap: .35rem; margin-bottom: 1.5rem; padding: .35rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(4,11,20,.58); }
+  .admin-music-nav a { display: inline-flex; align-items: center; gap: .4rem; padding: .62rem .85rem; border-radius: 9px; color: var(--muted); text-decoration: none; font-size: .82rem; font-weight: 700; }
+  .admin-music-nav a.active { color: #07101c; background: var(--accent); }
+</style>

@@ -1,0 +1,17 @@
+---
+import { getMusicEditorOptions } from "@frip-fan/core";
+import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
+import ReleaseAdminForm from "../../../../components/ReleaseAdminForm.astro";
+import SiteLayout from "../../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../../lib/env";
+
+const options = await getMusicEditorOptions(getEnv().DB);
+const canWrite = Astro.locals.actor!.scopes.includes("music:write");
+---
+<SiteLayout title="新增专辑" admin>
+  <AdminMusicNav />
+  <p class="eyebrow">New release</p><h1 class="page-title">新增专辑</h1>
+  <p class="lede">保存后直接写入音乐库；关闭“公开显示”可以先保存在后台。</p>
+  <ReleaseAdminForm options={options} canWrite={canWrite} />
+</SiteLayout>
+<style>.page-title{font-size:clamp(2.5rem,6vw,4.5rem);margin-bottom:.8rem}.catalog-form{margin-top:2rem}</style>

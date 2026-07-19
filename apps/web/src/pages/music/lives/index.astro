@@ -1,0 +1,108 @@
+---
+import { countSetlists, listSetlists, listSetlistYears } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import MusicNav from "../../../components/MusicNav.astro";
+import Pagination from "../../../components/Pagination.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+import {
+  formatMusicDate,
+  setlistCompletenessLabel,
+  setlistDisplayTitle,
+  setlistEventTypeLabel,
+} from "../../../lib/music";
+import { getLocale, t } from "../../../lib/i18n";
+import "../../../styles/music.css";
+
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const locale = getLocale(Astro.request);
+const requestedYear = Astro.url.searchParams.get("year") ?? "";
+const year = /^\d{4}$/.test(requestedYear) ? requestedYear : undefined;
+const classificationOptions = [
+  { value: "专场", label: t(locale, "music.solo") },
+  { value: "拼盘", label: t(locale, "music.festival") },
+] as const;
+const requestedClassification = Astro.url.searchParams.get("classification") ?? "";
+const classification = classificationOptions.some((option) => option.value === requestedClassification)
+  ? requestedClassification
+  : undefined;
+const PAGE_SIZE = 20;
+const requestedPageValue = Astro.url.searchParams.get("page") ?? "1";
+const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
+const filters = { query: query || undefined, year, classification };
+const totalItems = await countSetlists(getEnv().DB, filters);
+const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+const page = Math.min(requestedPage, totalPages);
+const [setlists, years] = await Promise.all([
+  listSetlists(getEnv().DB, { ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
+  listSetlistYears(getEnv().DB, { query: query || undefined, classification }),
+]);
+const makeYearHref = (value?: string) => {
+  const params = new URLSearchParams();
+  if (value) params.set("year", value);
+  if (query) params.set("q", query);
+  if (classification) params.set("classification", classification);
+  return `/music/lives${params.size ? `?${params}` : ""}`;
+};
+const makeClassificationHref = (value?: string) => {
+  const params = new URLSearchParams();
+  if (value) params.set("classification", value);
+  if (year) params.set("year", year);
+  if (query) params.set("q", query);
+  return `/music/lives${params.size ? `?${params}` : ""}`;
+};
+---
+<SiteLayout title={t(locale, "music.nav.lives")}>
+  <div class="music-page">
+    <MusicNav />
+    <section class="music-section music-list-section" aria-label={t(locale, "music.nav.lives")}>
+      <form class="music-toolbar" method="get">
+        {year && <input type="hidden" name="year" value={year} />}
+        {classification && <input type="hidden" name="classification" value={classification} />}
+        <label class="music-search">
+          <span class="visually-hidden">{t(locale, "music.searchLive")}</span>
+          <Icon name="search" />
+          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchLivePlaceholder")} />
+        </label>
+        <button type="submit" class="secondary">{t(locale, "common.search")}</button>
+      </form>
+      <div class="music-filter-stack" aria-label={t(locale, "common.filter")}>
+        <div class="music-filter-row">
+          <span class="music-filter-label"><Icon name="funnel" />{t(locale, "music.performanceType")}</span>
+          <div class="music-chips">
+            <a class:list={{ active: !classification }} href={makeClassificationHref()}>{t(locale, "music.allTypes")}</a>
+            {classificationOptions.map((option) => (
+              <a class:list={{ active: classification === option.value }} href={makeClassificationHref(option.value)}>{option.label}</a>
+            ))}
+          </div>
+        </div>
+        {years.length > 0 && (
+          <div class="music-filter-row">
+            <span class="music-filter-label"><Icon name="calendar3" />{t(locale, "music.year")}</span>
+            <div class="music-chips">
+              <a class:list={{ active: !year }} href={makeYearHref()}>{t(locale, "music.allYears")}</a>
+              {years.map((item) => <a class:list={{ active: year === item.year }} href={makeYearHref(item.year)}>{item.year}<span> · {item.count}</span></a>)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {setlists.length ? (
+        <div class="music-grid">
+          {setlists.map((setlist) => (
+            <a class="music-card" href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
+              <div class="music-card-top">
+                <time class="music-card-date" datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
+                <span class="music-event-type">{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
+              </div>
+              <h3>{setlistDisplayTitle(setlist)}</h3>
+              <div class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span>·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></div>
+              <div class="music-card-stats"><span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span><span>{setlistCompletenessLabel(setlist.completeness, locale)}</span></div>
+            </a>
+          ))}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.noLives")}</div>}
+      <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} itemLabel={t(locale, "music.liveItem")} />
+    </section>
+  </div>
+</SiteLayout>

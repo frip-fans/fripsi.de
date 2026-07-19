@@ -23,7 +23,7 @@ const inputPath = resolve(process.argv[2] || "data/normalized/events.json");
 const outputPath = resolve(process.argv[3] || "data/normalized/import.sql");
 const events = JSON.parse(await readFile(inputPath, "utf8")) as ImportEvent[];
 const now = new Date().toISOString();
-const statements = ["PRAGMA foreign_keys = ON;", "BEGIN TRANSACTION;"];
+const statements = ["PRAGMA foreign_keys = ON;"];
 
 for (const event of events) {
   statements.push(`INSERT OR IGNORE INTO events (
@@ -44,9 +44,25 @@ VALUES (${[
     stableId(event.id, "req_import"), null, JSON.stringify(event), JSON.stringify({ source: "notion-csv", source_url: event.source_url }), now
   ].map(sql).join(", ")});`);
 }
-statements.push("COMMIT;");
+
+const dates = events.map((event) => event.start_date).sort();
+const importReport = {
+  source_file: "fripside-notion-import.csv",
+  normalized_rows: events.length,
+  min_date: dates[0] ?? null,
+  max_date: dates.at(-1) ?? null,
+  note: "Notion legacy import; rows without source URLs require later source enrichment."
+};
+statements.push(`INSERT OR IGNORE INTO import_jobs (
+  id, filename, status, total_rows, valid_rows, invalid_rows, report_json, created_by, created_at, imported_at
+) VALUES (${[
+  stableId(`fripside-notion-import.csv|${events.length}|${dates[0] ?? ""}|${dates.at(-1) ?? ""}`, "imp_notion"),
+  "fripside-notion-import.csv", "imported", events.length, events.length, 0,
+  JSON.stringify(importReport), "notion-import", now, now
+].map(sql).join(", ")});`);
 
 await mkdir(resolve("data/normalized"), { recursive: true });
 await writeFile(outputPath, `${statements.join("\n\n")}\n`, "utf8");
 console.log(`已为 ${events.length} 条活动生成 ${outputPath}`);
 console.log("本地导入：npx wrangler d1 execute frip-fan-dev --local --config apps/web/wrangler.jsonc --file data/normalized/import.sql");
+console.log("生产导入：npx wrangler d1 execute frip-fan-prod --remote --env production --config apps/web/wrangler.jsonc --file data/normalized/import.sql");

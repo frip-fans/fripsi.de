@@ -1,0 +1,105 @@
+---
+import { getSongBySlug } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import MusicNav from "../../../components/MusicNav.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+import { formatMusicDate, releaseTypeLabels, setlistSectionLabels, versionRelationLabel } from "../../../lib/music";
+import { getLocale, t } from "../../../lib/i18n";
+import "../../../styles/music.css";
+
+const locale = getLocale(Astro.request);
+const song = await getSongBySlug(getEnv().DB, Astro.params.slug!);
+if (!song) return Astro.redirect("/404", 302);
+---
+<SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
+  <div class="music-page">
+    <MusicNav />
+    <a class="music-back" href="/music/songs"><Icon name="arrow-left" />{t(locale, "music.backSongs")}</a>
+    <header class="music-detail-head">
+      <p class="eyebrow">Song · {song.original_artist}</p>
+      <h1>{song.title}</h1>
+      <div class="music-detail-meta">
+        <span class="tag">{t(locale, "music.versionsCount", { count: song.version_count })}</span>
+        <span class="tag">{t(locale, "music.releasesCount", { count: song.release_count })}</span>
+        <span class="tag">{t(locale, "music.showsCount", { count: song.show_count })}</span>
+        {song.aliases.map((alias) => <span class="tag">aka {alias}</span>)}
+      </div>
+    </header>
+
+    <section class="music-section" aria-labelledby="performances-heading">
+      <div class="music-section-head"><div><p class="music-kicker">Live history</p><h2 id="performances-heading">{t(locale, "music.liveHistory")}</h2></div><span class="muted">{t(locale, "music.timesCount", { count: song.performance_count })}</span></div>
+      {song.performances.length ? (
+        <div class="music-track-list">
+          {song.performances.map((performance) => (
+            <article class="music-track performance-row">
+              <span class="music-track-number">{formatMusicDate(performance.start_date, locale)}</span>
+              <div class="music-track-main">
+                <a href={`/music/lives/${encodeURIComponent(performance.setlist_id)}`}><strong>{performance.event_title}</strong></a>
+                <small>{performance.performance_label} · {setlistSectionLabels[performance.section]} #{performance.position}{performance.performed_version_title ? ` · ${performance.performed_version_title}` : song.version_count > 1 ? ` · ${t(locale, "music.versionUnknown")}` : ""}</small>
+              </div>
+              <div class="music-track-stats"><span>{performance.venue || t(locale, "common.venuePending")}<br />{performance.region || ""}</span></div>
+            </article>
+          ))}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.noSongPerformances")}</div>}
+    </section>
+
+    <section class="music-section" aria-labelledby="versions-heading">
+      <div class="music-section-head"><div><p class="music-kicker">Recordings</p><h2 id="versions-heading">{t(locale, "music.songVersions")}</h2></div></div>
+      {song.versions.length ? (
+        <div class="music-grid">
+          {song.versions.map((version) => (
+            <article class="music-card">
+              <span class="music-kicker">{formatMusicDate(version.release_date, locale)}</span>
+              <h3>{version.title}</h3>
+              <div class="music-card-meta"><span>{version.version_label || t(locale, "common.originalRecording")}</span><span>·</span><span>{version.artist_credit}</span></div>
+            </article>
+          ))}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.noVersions")}</div>}
+    </section>
+
+    {song.relations.length > 0 && (
+      <section class="music-section" aria-labelledby="relations-heading">
+        <div class="music-section-head"><div><p class="music-kicker">Version graph</p><h2 id="relations-heading">{t(locale, "music.versionRelations")}</h2></div></div>
+        <div class="version-graph">
+          {song.relations.map((relation) => (
+            <div class="version-node">
+              <span><strong>{relation.child_version_title}</strong></span>
+              <span class="version-relation"><Icon name="diagram-3" /><span>{versionRelationLabel(relation.relation_type, locale)}</span></span>
+              <span><strong>{relation.parent_version_title}</strong></span>
+            </div>
+          ))}
+        </div>
+      </section>
+    )}
+
+    <section class="music-section" aria-labelledby="releases-heading">
+      <div class="music-section-head"><div><p class="music-kicker">Discography</p><h2 id="releases-heading">{t(locale, "music.inAlbums")}</h2></div></div>
+      {song.releases.length ? (
+        <div class="music-grid">
+          {song.releases.map((release) => (
+            <a class="music-card" href={`/music/releases/${encodeURIComponent(release.release_slug)}`}>
+              <span class="music-kicker">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
+              <h3>{release.release_title}</h3>
+              <div class="music-card-meta"><span>Disc {release.disc_number} / Track {release.track_number}</span><span>·</span><span>{release.version_label || release.version_title}</span></div>
+            </a>
+          ))}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.noAlbums")}</div>}
+    </section>
+
+    {(song.notes || song.sources.length > 0) && (
+      <section class="music-section panel">
+        {song.notes && <p class="muted">{song.notes}</p>}
+        {song.sources.length > 0 && <div class="music-source-list">{song.sources.map((source, index) => <a href={source.url} target="_blank" rel="noreferrer">{source.label || t(locale, "music.songSource", { index: index + 1 })} <Icon name="box-arrow-up-right" /></a>)}</div>}
+      </section>
+    )}
+  </div>
+</SiteLayout>
+
+<style>
+  .performance-row { grid-template-columns: 7.5rem minmax(0, 1fr) auto; }
+  @media (max-width: 640px) { .performance-row { grid-template-columns: 1fr; } .performance-row :global(.music-track-stats) { grid-column: 1; } }
+</style>

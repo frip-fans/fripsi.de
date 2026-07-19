@@ -1,0 +1,136 @@
+---
+import { getSetlistById } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import MusicNav from "../../../components/MusicNav.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+import {
+  formatMusicDate,
+  setlistCompletenessLabel,
+  setlistConfidenceLabel,
+  setlistDisplayTitle,
+  setlistEventTypeLabel,
+  setlistSectionLabels,
+} from "../../../lib/music";
+import { getLocale, t } from "../../../lib/i18n";
+import "../../../styles/music.css";
+
+const locale = getLocale(Astro.request);
+const setlist = await getSetlistById(getEnv().DB, Astro.params.id!);
+if (!setlist) return Astro.redirect("/404", 302);
+type SetlistEntry = (typeof setlist.entries)[number];
+interface EntryGroup {
+  section: SetlistEntry["section"];
+  medleyGroup: string | null;
+  entries: SetlistEntry[];
+}
+const entryGroups: EntryGroup[] = [];
+for (const entry of setlist.entries) {
+  const previous = entryGroups.at(-1);
+  if (entry.medley_group && previous?.medleyGroup === entry.medley_group && previous.section === entry.section) {
+    previous.entries.push(entry);
+  } else {
+    entryGroups.push({ section: entry.section, medleyGroup: entry.medley_group, entries: [entry] });
+  }
+}
+const versionNote = (entry: SetlistEntry) => entry.performed_version_title
+  ? t(locale, "music.version", { title: entry.performed_version_title })
+  : entry.song_version_count > 1 ? t(locale, "music.versionPending") : null;
+let previousSection = "";
+---
+<SiteLayout title={t(locale, "music.setlistPageTitle", { title: setlistDisplayTitle(setlist) })} description={t(locale, "music.setlistDescription", { title: setlist.event_title, count: setlist.entry_count })}>
+  <div class="music-page">
+    <MusicNav />
+    <a class="music-back" href="/music/lives"><Icon name="arrow-left" />{t(locale, "music.backLives")}</a>
+    <header class="music-detail-head">
+      <p class="music-detail-date">
+        <time datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
+        <span>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
+        {setlist.performance_label !== "本公演" && <span>{setlist.performance_label}</span>}
+      </p>
+      <h1>{setlistDisplayTitle(setlist)}</h1>
+      <div class="music-detail-meta">
+        <span class="tag">{setlistCompletenessLabel(setlist.completeness, locale)}</span>
+        <span class="tag">{setlistConfidenceLabel(setlist.confidence, locale)}</span>
+        <span class="tag">{t(locale, "music.recordsCount", { count: setlist.entry_count })}</span>
+      </div>
+    </header>
+
+    <section class="music-section">
+      <div class="panel setlist-facts">
+        <div><small>EVENT</small><a href={`/events/${encodeURIComponent(setlist.event_slug)}`}>{setlist.event_title} <Icon name="arrow-up-right" /></a></div>
+        <div><small>VENUE</small><strong>{setlist.venue || t(locale, "common.pending")}</strong></div>
+        <div><small>REGION</small><strong>{setlist.region || t(locale, "common.pending")}</strong></div>
+      </div>
+    </section>
+
+    <section class="music-section" aria-labelledby="setlist-heading">
+      <div class="music-section-head"><div><p class="music-kicker">Setlist</p><h2 id="setlist-heading">{t(locale, "music.order")}</h2></div></div>
+      {setlist.entries.length ? (
+        <div class="setlist-entries">
+          {entryGroups.map((group) => {
+            const beginsSection = group.section !== previousSection;
+            previousSection = group.section;
+            const entry = group.entries[0];
+            return (
+              <>
+                {beginsSection && <p class="setlist-section">{setlistSectionLabels[group.section]}</p>}
+                {group.medleyGroup ? (
+                  <article class="setlist-medley">
+                    <header class="setlist-medley-head">
+                      <span>MEDLEY {group.medleyGroup}</span>
+                      <small>{t(locale, "music.medleyCount", { count: group.entries.length })}</small>
+                    </header>
+                    <div class="setlist-medley-tracks">
+                      {group.entries.map((medleyEntry) => (
+                        <div class="setlist-entry setlist-entry-child">
+                          <b>{String(medleyEntry.position).padStart(2, "0")}</b>
+                          <div class="setlist-entry-main">
+                            <a href={`/music/songs/${encodeURIComponent(medleyEntry.song_slug)}`}>{medleyEntry.display_title}</a>
+                            {versionNote(medleyEntry) && <small>{versionNote(medleyEntry)}</small>}
+                            {medleyEntry.notes && <small class="setlist-entry-note">{medleyEntry.notes}</small>}
+                          </div>
+                          {medleyEntry.release_titles && <small>{medleyEntry.release_titles}</small>}
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ) : (
+                  <article class="setlist-entry">
+                    <b>{String(entry.position).padStart(2, "0")}</b>
+                    <div class="setlist-entry-main">
+                      <a href={`/music/songs/${encodeURIComponent(entry.song_slug)}`}>{entry.display_title}</a>
+                      {versionNote(entry) && <small>{versionNote(entry)}</small>}
+                      {entry.notes && <small class="setlist-entry-note">{entry.notes}</small>}
+                    </div>
+                    {entry.release_titles && <small>{entry.release_titles}</small>}
+                  </article>
+                )}
+              </>
+            );
+          })}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.emptySetlist")}</div>}
+    </section>
+
+    {(setlist.notes || setlist.sources.length > 0) && (
+      <section class="music-section panel">
+        {setlist.notes && <p class="muted">{setlist.notes}</p>}
+        {setlist.sources.length > 0 && (
+          <div class="music-source-list">
+            {setlist.sources.map((source, index) => <a href={source.url} target="_blank" rel="noreferrer">{source.label || t(locale, "music.setlistSource", { index: index + 1 })} <Icon name="box-arrow-up-right" /></a>)}
+          </div>
+        )}
+      </section>
+    )}
+  </div>
+</SiteLayout>
+
+<style>
+  .setlist-facts { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 1.5rem; }
+  .setlist-facts div { display: grid; align-content: start; gap: .4rem; }
+  .setlist-facts small { color: var(--muted); font: .62rem/1 ui-monospace, monospace; letter-spacing: .12em; }
+  .setlist-facts a { color: var(--text); text-decoration: none; font-weight: 700; }
+  .setlist-facts a:hover { color: var(--accent); }
+  @media (max-width: 700px) { .setlist-facts { grid-template-columns: 1fr; } }
+</style>

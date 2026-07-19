@@ -2,63 +2,53 @@
 import { dateInTimeZone, searchEvents } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import Icon from "../components/Icon.astro";
-import OfficialSiteGate from "../components/OfficialSiteGate.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
-import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
-import type { EventRecord } from "@frip-fan/core";
+import { getLocale, t } from "../lib/i18n";
 
 const env = getEnv();
+const locale = getLocale(Astro.request);
 const db = env.DB;
-const showOfficialSiteGate = Astro.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value !== "yes";
-const subscriptionUrl = new URL("/calendar.ics", env.SITE_URL || Astro.url.origin);
-const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
 const today = dateInTimeZone();
 const upcoming = await searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 8 }, true);
 const next = upcoming[0];
-let recent: EventRecord[] = [];
-if (!upcoming.length) {
-  const history = await searchEvents(db, { date_to: today, limit: 100 }, true);
-  recent = history.slice(-6).reverse();
-}
+const latest = upcoming.slice(0, 6);
 ---
 <SiteLayout>
-  {showOfficialSiteGate && <OfficialSiteGate />}
   <section class="hero">
     <div>
       <p class="eyebrow">fripsi.de · Independent fan archive</p>
       <h1 class="hero-title" data-lyric-rotator>
-        <span class="title-lead" data-lyric-lead>This sound</span>
-        <span class="title-solid"><span data-lyric-line-one>is bound</span><br /><span data-lyric-line-two>in the melody.</span></span>
+        <span class="title-lead" data-lyric-lead>This desire</span>
+        <span class="title-solid"><span data-lyric-line-one>is bound</span><br data-lyric-break /><span data-lyric-line-two>in the melody.</span></span>
       </h1>
       <div class="actions">
-        <a class="button" href="/calendar"><Icon name="calendar3" />活动日历</a>
-        <a class="button secondary" href={webcalUrl} title={`订阅地址：${subscriptionUrl.href}`}><Icon name="calendar-plus" />订阅日历</a>
-        <a class="button secondary" href="/archive"><Icon name="list" />全部活动列表</a>
+        <a class="button" href="/calendar"><Icon name="calendar3" />{t(locale, "home.calendar")}</a>
+        <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" />{t(locale, "home.setlistDatabase")}</a>
       </div>
     </div>
     <aside class="signal panel">
-      <div class="signal-top"><span>Coming up next</span><i></i></div>
+      <div class="signal-top"><span>{t(locale, "home.next")}</span><i></i></div>
       {next ? (
         <>
           <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
           <h2>{next.title}</h2>
-          <p>{[next.venue, next.region].filter(Boolean).join(" · ") || "地点待定"}</p>
-          <a href={`/events/${next.slug}`}>查看详情 <Icon name="arrow-up-right" /></a>
+          <p>{[next.venue, next.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending")}</p>
+          <a href={`/events/${next.slug}`}>{t(locale, "home.details")} <Icon name="arrow-up-right" /></a>
         </>
       ) : (
-        <div class="no-signal"><strong>—</strong><h2>等待下一条公告</h2><p>近期没有已发布的未来活动。</p></div>
+        <div class="no-signal"><strong>—</strong><h2>{t(locale, "home.waiting")}</h2><p>{t(locale, "home.noUpcoming")}</p></div>
       )}
     </aside>
   </section>
 
   <div class="section-heading">
-    <div><p class="eyebrow">Timeline</p><h2>{upcoming.length ? "近期活动" : "最近记录"}</h2></div>
-    <a class="muted all-calendar" href="/calendar">全部日历 <Icon name="arrow-right" /></a>
+    <div><p class="eyebrow">Timeline</p><h2>{t(locale, "home.latest")}</h2></div>
+    <a class="muted all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="arrow-right" /></a>
   </div>
   <section class="event-list stack">
-    {(upcoming.length ? upcoming : recent).map((event) => <EventCard event={event} />)}
-    {!upcoming.length && !recent.length && <div class="empty panel">数据库中还没有公开活动。登录管理后台创建第一条记录吧。</div>}
+    {latest.map((event) => <EventCard event={event} />)}
+    {!latest.length && <div class="empty panel">{t(locale, "home.empty")}</div>}
   </section>
 
 </SiteLayout>
@@ -68,10 +58,13 @@ if (!upcoming.length) {
   const lead = rotator?.querySelector<HTMLElement>("[data-lyric-lead]");
   const lineOne = rotator?.querySelector<HTMLElement>("[data-lyric-line-one]");
   const lineTwo = rotator?.querySelector<HTMLElement>("[data-lyric-line-two]");
+  const lineBreak = rotator?.querySelector<HTMLElement>("[data-lyric-break]");
   const lyrics = [
-    { lead: "This sound", lineOne: "is bound", lineTwo: "in the melody.", variant: "" },
+    { lead: "This desire", lineOne: "is bound", lineTwo: "in the melody.", variant: "" },
     { lead: "Did my song arrive？", lineOne: "Up to that far", lineTwo: "distant moon.", variant: "english" },
-    { lead: "変わりゆく季節が今、", lineOne: "迷いながら", lineTwo: "景色を染めてく", variant: "japanese" }
+    { lead: "変わりゆく季節が今、", lineOne: "迷いながら", lineTwo: "景色を染めてく", variant: "japanese" },
+    { lead: "ずっと忘れることのない", lineOne: "深く刻まれたこの記憶", lineTwo: "", variant: "japanese" },
+    { lead: "君と出会った必然が", lineOne: "無限の宇宙に解き放たれて輝く", lineTwo: "その絆だけが　unlimited destiny", variant: "japanese-long" }
   ];
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let activeIndex = 0;
@@ -85,8 +78,10 @@ if (!upcoming.length) {
     lead.textContent = lyric.lead;
     lineOne.textContent = lyric.lineOne;
     lineTwo.textContent = lyric.lineTwo;
+    if (lineBreak) lineBreak.hidden = !lyric.lineTwo;
+    lineTwo.hidden = !lyric.lineTwo;
     rotator.dataset.variant = lyric.variant;
-    rotator.lang = lyric.variant === "japanese" ? "ja" : "en";
+    rotator.lang = lyric.variant.startsWith("japanese") ? "ja" : "en";
   };
 
   const showNextLyric = () => {
@@ -137,6 +132,8 @@ if (!upcoming.length) {
   .hero-title[data-variant="english"] .title-lead { font-size: .7em; line-height: 1.06; letter-spacing: -.055em; }
   .hero-title[data-variant="japanese"] .title-lead { font-size: .56em; line-height: 1.12; letter-spacing: -.06em; }
   .hero-title[data-variant="japanese"] .title-solid { font-size: .5em; line-height: 1.28; letter-spacing: -.06em; }
+  .hero-title[data-variant="japanese-long"] .title-lead { font-size: .46em; line-height: 1.16; letter-spacing: -.055em; }
+  .hero-title[data-variant="japanese-long"] .title-solid { font-size: .34em; line-height: 1.42; letter-spacing: -.035em; }
   @supports (-webkit-text-stroke: 1px currentColor) {
     .title-solid { color: transparent; -webkit-text-stroke: 1.5px var(--text); }
   }
@@ -157,6 +154,10 @@ if (!upcoming.length) {
   }
   .hero .actions { margin-top: 2rem; }
   .hero .actions .button { min-height: 52px; padding: .82rem 1.25rem; border-radius: 12px; font-size: .95rem; }
+  .hero .actions .button.secondary { background: rgba(7,16,28,.76); border-color: rgba(200,220,237,.22); box-shadow: 0 10px 28px rgba(0,0,0,.18); backdrop-filter: blur(16px); }
+  .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
+  .setlist-button :global(.icon) { color: var(--accent); }
+  .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
   .hero + .section-heading { margin-top: 1.5rem; }
   .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
   .signal::before { content: ""; position: absolute; inset: -20% -40% 35%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 17px, rgba(var(--accent-rgb),.12) 18px 19px); transform: rotate(-10deg); }
@@ -168,5 +169,25 @@ if (!upcoming.length) {
   .signal a { color: var(--accent); margin-top: 1.5rem; font-size: .85rem; text-decoration: none; position: relative; }
   .signal a, .all-calendar { display: inline-flex; align-items: center; gap: .35rem; }
   @media (prefers-reduced-motion: reduce) { .hero-title.is-glitching, .hero-title.is-glitching::after { animation: none; } }
-  @media (max-width: 800px) { .hero { grid-template-columns: 1fr; min-height: 0; } .signal { min-height: 290px; } }
+  @media (max-width: 1100px) {
+    @supports (-webkit-text-stroke: 1px currentColor) {
+      .hero-title[data-variant^="japanese"] .title-solid {
+        color: rgba(239, 248, 255, .38);
+        -webkit-text-stroke: 1.25px rgba(239, 248, 255, .96);
+        text-shadow: 0 2px 18px rgba(0, 0, 0, .42);
+      }
+    }
+    .hero-title[data-variant="japanese"] .title-solid { letter-spacing: -.035em; }
+  }
+  @media (max-width: 800px) {
+    .hero { grid-template-columns: 1fr; min-height: 0; }
+    .signal { min-height: 290px; }
+    @supports (-webkit-text-stroke: 1px currentColor) {
+      .hero-title[data-variant^="japanese"] .title-solid {
+        color: rgba(239, 248, 255, .92);
+        -webkit-text-stroke: .4px rgba(239, 248, 255, .72);
+        text-shadow: 0 2px 20px rgba(0, 0, 0, .55);
+      }
+    }
+  }
 </style>

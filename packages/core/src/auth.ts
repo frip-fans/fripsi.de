@@ -11,7 +11,7 @@ export interface AuthEnv {
   DEV_ACTOR?: string;
 }
 
-const allScopes = ["events:read", "events:draft", "events:publish", "events:archive"];
+const allScopes = ["events:read", "events:draft", "events:publish", "events:archive", "music:read", "music:write"];
 const jwksCache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 
 function normalizeTeamDomain(value?: string): string {
@@ -49,8 +49,8 @@ export async function authenticateAdmin(request: Request, env: AuthEnv): Promise
   const payload = await verifyToken(token, env.ACCESS_TEAM_DOMAIN!, env.ACCESS_AUD);
   const email = String(payload.email || payload.sub || "unknown");
   const publishers = (env.ADMIN_PUBLISHERS ?? "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
-  const scopes = ["events:read", "events:draft"];
-  if (publishers.includes(email.toLowerCase())) scopes.push("events:publish", "events:archive");
+  const scopes = ["events:read", "events:draft", "music:read"];
+  if (publishers.includes(email.toLowerCase())) scopes.push("events:publish", "events:archive", "music:write");
   return { id: email, type: "human", channel: "admin", scopes };
 }
 

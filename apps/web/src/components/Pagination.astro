@@ -1,0 +1,68 @@
+---
+import Icon from "./Icon.astro";
+import { getLocale, t } from "../lib/i18n";
+
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemLabel: string;
+}
+
+const { currentPage, totalPages, totalItems, itemLabel } = Astro.props;
+const locale = getLocale(Astro.request);
+
+const pageHref = (page: number) => {
+  const params = new URLSearchParams(Astro.url.searchParams);
+  if (page <= 1) params.delete("page");
+  else params.set("page", String(page));
+  const query = params.toString();
+  return `${Astro.url.pathname}${query ? `?${query}` : ""}`;
+};
+
+type PageToken = number | "ellipsis-start" | "ellipsis-end";
+const pageTokens: PageToken[] = totalPages <= 7
+  ? Array.from({ length: totalPages }, (_, index) => index + 1)
+  : currentPage <= 4
+    ? [1, 2, 3, 4, 5, "ellipsis-end", totalPages]
+    : currentPage >= totalPages - 3
+      ? [1, "ellipsis-start", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
+      : [1, "ellipsis-start", currentPage - 1, currentPage, currentPage + 1, "ellipsis-end", totalPages];
+---
+{totalPages > 1 && (
+  <nav class="pagination" aria-label={t(locale, "pagination.label")}>
+    <p>{t(locale, "pagination.summary", { total: totalItems, item: itemLabel, current: currentPage, pages: totalPages })}</p>
+    <div class="pagination-pages">
+      {currentPage > 1
+        ? <a class="pagination-step" href={pageHref(currentPage - 1)} rel="prev" aria-label={t(locale, "pagination.previous")}><Icon name="chevron-left" /><span>{t(locale, "pagination.previous")}</span></a>
+        : <span class="pagination-step disabled" aria-hidden="true"><Icon name="chevron-left" /><span>{t(locale, "pagination.previous")}</span></span>}
+      {pageTokens.map((token) => typeof token === "number"
+        ? <a class:list={{ "pagination-number": true, active: token === currentPage }} href={pageHref(token)} aria-current={token === currentPage ? "page" : undefined}>{token}</a>
+        : <span class="pagination-ellipsis" aria-hidden="true">…</span>)}
+      {currentPage < totalPages
+        ? <a class="pagination-step" href={pageHref(currentPage + 1)} rel="next"><span>{t(locale, "pagination.next")}</span><Icon name="chevron-right" /></a>
+        : <span class="pagination-step disabled" aria-hidden="true"><span>{t(locale, "pagination.next")}</span><Icon name="chevron-right" /></span>}
+    </div>
+  </nav>
+)}
+
+<style>
+  .pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; padding: .75rem; border: 1px solid var(--line); border-radius: 14px; background: rgba(5,13,23,.66); backdrop-filter: blur(18px); }
+  .pagination p { margin: 0 0 0 .35rem; color: var(--muted); font-size: .72rem; white-space: nowrap; }
+  .pagination-pages { display: flex; align-items: center; gap: .3rem; }
+  .pagination a { text-decoration: none; }
+  .pagination-step, .pagination-number { display: inline-flex; align-items: center; justify-content: center; min-height: 2.25rem; border-radius: 9px; color: var(--muted); font-size: .75rem; font-weight: 650; }
+  .pagination-step { gap: .32rem; padding: 0 .7rem; }
+  .pagination-number { min-width: 2.25rem; padding: 0 .35rem; }
+  .pagination-step:not(.disabled):hover, .pagination-number:hover { color: var(--text); background: rgba(255,255,255,.055); }
+  .pagination-number.active { color: #08111d; background: var(--accent); }
+  .pagination-step.disabled { opacity: .35; }
+  .pagination-ellipsis { min-width: 1.4rem; color: var(--muted); text-align: center; }
+  @media (max-width: 720px) {
+    .pagination { align-items: stretch; flex-direction: column; }
+    .pagination p { margin: 0; text-align: center; }
+    .pagination-pages { justify-content: center; overflow-x: auto; }
+    .pagination-step span { display: none; }
+    .pagination-step { padding: 0; min-width: 2.25rem; }
+  }
+</style>

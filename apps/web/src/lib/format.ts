@@ -1,4 +1,5 @@
 import type { EventRecord } from "@frip-fan/core";
+import { t, type Locale } from "./i18n";
 
 export const categoryLabels: Record<EventRecord["category"], string> = {
   LIVE: "Live",
@@ -15,8 +16,19 @@ export const statusLabels: Record<EventRecord["status"], string> = {
   postponed: "延期"
 };
 
-export function formatDate(date: string, endDate?: string | null): string {
-  const render = (value: string) => new Intl.DateTimeFormat("zh-CN", {
+const statusKeys: Record<EventRecord["status"], "status.scheduled" | "status.completed" | "status.cancelled" | "status.postponed"> = {
+  scheduled: "status.scheduled",
+  completed: "status.completed",
+  cancelled: "status.cancelled",
+  postponed: "status.postponed",
+};
+
+export function statusLabel(locale: Locale, status: EventRecord["status"]): string {
+  return t(locale, statusKeys[status]);
+}
+
+export function formatDate(date: string, endDate?: string | null, locale: Locale = "zh-CN"): string {
+  const render = (value: string) => new Intl.DateTimeFormat(locale, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -26,8 +38,8 @@ export function formatDate(date: string, endDate?: string | null): string {
   return endDate && endDate !== date ? `${render(date)} — ${render(endDate)}` : render(date);
 }
 
-export function formatTime(event: EventRecord): string {
-  if (!event.start_time) return "全天 / 时间未定";
+export function formatTime(event: EventRecord, locale: Locale = "zh-CN"): string {
+  if (!event.start_time) return t(locale, "date.allDay");
   return event.end_time ? `${event.start_time}–${event.end_time}` : event.start_time;
 }
 

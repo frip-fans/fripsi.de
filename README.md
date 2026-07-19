@@ -6,14 +6,17 @@
 
 ## 已实现
 
-- Astro SSR 公开站：首页、月历、年份归档、活动详情、About、sitemap。
+- Astro SSR 公开站：首页、月历、年份归档、活动详情、歌单库、About、sitemap。
+- 公开 UI 支持简体中文、繁体中文、日语和英语；语言选择写入 Cookie，并在当前筛选 URL 上切换。
 - Bootstrap Icons 本地 SVG 图标系统，不依赖 CDN、React 或 Bootstrap CSS。
 - 完整公开 iCalendar 订阅源：`/calendar.ics`，支持活动更新、延期和取消同步。
 - D1 migrations：活动、来源、变更提案、审计、幂等回执和导入任务。
-- 站内管理后台：活动表单、提案预览、发布、下线、归档、审计和 CSV 导出。
+- 站内管理后台：活动直接保存、Setlist/专辑编辑、AI 提案审核、归档、审计和 CSV 导出。
 - Remote MCP Worker：13 个受控工具、OAuth resource metadata、Bearer JWT 校验和 scope 校验。
 - AI 提案工作流：重复检查 → propose → preview → 明确确认 → publish。
+- 人工维护工作流：表单保存 → D1 条件写入 → audit log；关闭“公开显示”即可暂存在后台，不再额外创建人工草稿。
 - Notion CSV 一次性离线转换与可复现 SQL 生成。
+- 歌曲/版本/发行物/Live 歌单数据模型、交叉查询与幂等 CSV 导入。
 
 ## 本地启动
 
@@ -58,3 +61,5 @@ npm run import:sql
 第一条命令输出规范化 JSON 和核验报告，第二条生成可重复执行的 `data/normalized/import.sql`。先阅读 `data/reports/notion-import.json`，确认数量、日期范围、分类和排除项，再导入本地或 dev D1。
 
 详细方案和部署步骤见 [docs/README.md](./docs/README.md) 与 [docs/deployment.md](./docs/deployment.md)。
+
+歌单库的数据准备与导入方式见 [docs/music-library.md](./docs/music-library.md)。

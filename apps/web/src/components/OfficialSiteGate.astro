@@ -1,76 +1,116 @@
 ---
+interface Props {
+  autoOpen?: boolean;
+}
 import Icon from "./Icon.astro";
+import LanguageSwitcher from "./LanguageSwitcher.astro";
+import { getLocale, t } from "../lib/i18n";
+const { autoOpen = false } = Astro.props;
+const locale = getLocale(Astro.request);
 ---
-<dialog class="site-gate" data-site-gate open aria-labelledby="site-gate-title" aria-describedby="site-gate-description">
+<dialog class="site-gate" data-site-gate data-auto-open={autoOpen ? "true" : undefined} open={autoOpen || undefined} aria-labelledby="site-gate-title" aria-describedby="site-gate-description">
   <div class="gate-card">
+    <div class="gate-language"><LanguageSwitcher /></div>
     <div class="gate-mark" aria-hidden="true">
-      <span>fS</span>
+      <img src="/fan-site-logo.svg" width="72" height="72" alt="" />
     </div>
-    <p class="gate-kicker">fripsi.de · Before you continue</p>
-    <h2 id="site-gate-title">这里是粉丝兴趣网站</h2>
+    <h2 id="site-gate-title">{t(locale, "gate.title")}</h2>
     <div id="site-gate-description" class="gate-copy">
-      <p>本站并非 fripSide 官方网站，也不代表或隶属于 fripSide 及其相关机构。</p>
-      <p>官方公告、会员内容与权威信息，请以 <strong>fripside.net</strong> 为准。</p>
+      <p>{t(locale, "gate.unofficial")}</p>
+      <p>{t(locale, "gate.authority")}</p>
     </div>
     <div class="gate-actions">
-      <a class="button official-link" href="https://fripside.net" rel="external">前往 fS 官方网站 <Icon name="box-arrow-up-right" /></a>
+      <a class="button official-link" href="https://fripside.net" rel="external">{t(locale, "gate.official")} <Icon name="box-arrow-up-right" /></a>
       <form method="dialog">
-        <button class="secondary" type="submit" data-continue-site>继续查看本站</button>
+        <button class="secondary" type="submit" data-continue-site>{t(locale, "gate.continue")}</button>
       </form>
     </div>
-    <p class="gate-footnote">Fan-made · Independent · Non-commercial</p>
   </div>
 </dialog>
 
 <script>
   import { OFFICIAL_SITE_NOTICE_COOKIE, OFFICIAL_SITE_NOTICE_STORAGE_KEY } from "../lib/site-notice";
 
-  const gate = document.querySelector<HTMLDialogElement>("[data-site-gate]");
-  const continueButton = gate?.querySelector<HTMLButtonElement>("[data-continue-site]");
+  let siteGateController: AbortController | undefined;
 
-  function hasAcknowledgedNotice() {
-    try {
-      return sessionStorage.getItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY) === "yes";
-    } catch {
-      return false;
-    }
-  }
+  const setupSiteGate = () => {
+    siteGateController?.abort();
+    const controller = new AbortController();
+    const { signal } = controller;
+    siteGateController = controller;
 
-  function persistAcknowledgement() {
-    try {
-      sessionStorage.setItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY, "yes");
-    } catch {
-      // The session cookie remains the server-side source of truth.
-    }
+    const gate = document.querySelector<HTMLDialogElement>("[data-site-gate]");
+    const continueButton = gate?.querySelector<HTMLButtonElement>("[data-continue-site]");
+    const openButtons = document.querySelectorAll<HTMLElement>("[data-open-site-notice]");
+    if (!gate) return;
 
-    const secure = location.protocol === "https:" ? "; Secure" : "";
-    document.cookie = `${OFFICIAL_SITE_NOTICE_COOKIE}=yes; Path=/; SameSite=Lax${secure}`;
-  }
+    const hasAcknowledgedNotice = () => {
+      try {
+        return sessionStorage.getItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY) === "yes";
+      } catch {
+        return false;
+      }
+    };
 
-  function acknowledgeNotice() {
-    persistAcknowledgement();
-    gate?.close();
-  }
+    const persistAcknowledgement = () => {
+      try {
+        sessionStorage.setItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY, "yes");
+      } catch {
+        // The session cookie remains the server-side source of truth.
+      }
 
-  if (gate) {
-    if (hasAcknowledgedNotice()) {
+      const secure = location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `${OFFICIAL_SITE_NOTICE_COOKIE}=yes; Path=/; SameSite=Lax${secure}`;
+    };
+
+    const setPageScrollLocked = (locked: boolean) => {
+      document.documentElement.classList.toggle("site-gate-open", locked);
+      document.body.classList.toggle("site-gate-open", locked);
+    };
+
+    const openNotice = () => {
+      setPageScrollLocked(true);
+      if (typeof gate.showModal === "function") {
+        if (gate.open) gate.close();
+        gate.showModal();
+      } else {
+        gate.setAttribute("open", "");
+      }
+      continueButton?.focus();
+    };
+
+    const acknowledgeNotice = () => {
       persistAcknowledgement();
       gate.close();
-    } else if (typeof gate.showModal === "function") {
-      gate.close();
-      gate.showModal();
-      continueButton?.focus();
+      setPageScrollLocked(false);
+    };
+
+    if (gate.dataset.autoOpen === "true" && !hasAcknowledgedNotice()) openNotice();
+    else {
+      if (gate.open) gate.close();
+      setPageScrollLocked(false);
     }
 
-    continueButton?.addEventListener("click", acknowledgeNotice);
+    continueButton?.addEventListener("click", acknowledgeNotice, { signal });
     gate.addEventListener("cancel", (event) => {
       event.preventDefault();
       acknowledgeNotice();
-    });
-  }
+    }, { signal });
+    openButtons.forEach((button) => button.addEventListener("click", openNotice, { signal }));
+  };
+
+  document.addEventListener("astro:page-load", setupSiteGate);
+  setupSiteGate();
 </script>
 
 <style>
+  :global(html.site-gate-open),
+  :global(body.site-gate-open),
+  :global(html:has(.site-gate[open])) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
   .site-gate {
     position: fixed;
     inset: 0;
@@ -96,8 +136,8 @@ import Icon from "./Icon.astro";
 
   .gate-card {
     position: relative;
-    width: min(100%, 620px);
-    padding: clamp(1.5rem, 5vw, 3.25rem);
+    width: min(100%, 600px);
+    padding: clamp(1.75rem, 5vw, 3rem);
     overflow: hidden;
     text-align: center;
     background: linear-gradient(145deg, rgba(16, 31, 49, .98), rgba(8, 18, 31, .98));
@@ -114,32 +154,19 @@ import Icon from "./Icon.astro";
     background: linear-gradient(90deg, transparent, var(--accent), transparent);
   }
 
+  .gate-language { position: absolute; top: 1rem; right: 1rem; }
+
   .gate-mark {
-    display: grid;
-    width: 4.25rem;
-    height: 4.25rem;
-    margin: 0 auto 1.6rem;
-    place-items: center;
-    color: var(--accent);
-    background: rgba(var(--accent-rgb), .1);
-    border: 1px solid rgba(var(--accent-rgb), .38);
-    border-radius: 50%;
-    box-shadow: 0 0 0 9px rgba(var(--accent-rgb), .035);
-    font-size: 1.25rem;
-    font-weight: 900;
-    letter-spacing: -.06em;
+    width: 4.5rem;
+    height: 4.5rem;
+    margin: 0 auto 1.8rem;
+    filter: drop-shadow(0 0 24px rgba(var(--accent-rgb), .16));
   }
 
-  .gate-kicker {
-    margin-bottom: .75rem;
-    color: var(--accent);
-    font: 700 .68rem/1 ui-monospace, monospace;
-    letter-spacing: .18em;
-    text-transform: uppercase;
-  }
+  .gate-mark img { display: block; width: 100%; height: 100%; }
 
   h2 {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.35rem;
     font-size: clamp(1.8rem, 6vw, 3rem);
     line-height: 1.15;
   }
@@ -159,21 +186,14 @@ import Icon from "./Icon.astro";
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: .75rem;
-    margin-top: 2rem;
+    margin-top: 2.2rem;
   }
 
   .gate-actions form { display: contents; }
   .gate-actions :global(.button), .gate-actions :global(button) { min-height: 48px; }
-  .gate-footnote {
-    margin: 1.5rem 0 0;
-    color: rgba(157, 178, 197, .62);
-    font: .62rem/1.4 ui-monospace, monospace;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-  }
-
   @media (max-width: 560px) {
     .gate-actions { grid-template-columns: 1fr; }
     .gate-card { padding-top: 2rem; }
+    .gate-language { position: static; display: flex; justify-content: flex-end; margin-bottom: 1.2rem; }
   }
 </style>

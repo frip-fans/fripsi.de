@@ -5,9 +5,8 @@
 管理后台和 MCP 是两种操作界面，但必须调用同一套服务：
 
 ```text
-Admin API ─┐
-           ├─> EventService / ChangeService ─> D1
-MCP Tools ─┘
+Admin API ──> ContentAdminService ─────────────> D1
+MCP Tools ──> EventService / ChangeService ───> D1
 ```
 
 共享服务负责：
@@ -17,7 +16,7 @@ MCP Tools ─┘
 - 重复检测。
 - 来源要求。
 - 幂等和乐观锁。
-- change set 发布事务。
+- 人工直接保存或 change set 发布的条件写入。
 - audit log。
 
 不能只在前端或 MCP 工具描述中声明规则；服务端必须再次执行。
@@ -42,8 +41,8 @@ Worker 接到请求后仍需验证 `Cf-Access-Jwt-Assertion`：
 
 | 角色 | 权限 |
 |---|---|
-| editor | 查询、创建草稿、编辑草稿、预览、导入验证 |
-| publisher | editor 的全部权限，加发布、下线、归档、正式导入 |
+| editor | 查询、检查 AI 提案、导入验证 |
+| publisher | editor 的全部权限，加人工直接保存、公开/隐藏、归档和正式导入 |
 
 身份来源和角色映射可以先通过 Access policy/配置完成，不急于创建站内用户密码表。
 
@@ -63,7 +62,9 @@ Worker 接到请求后仍需验证 `Cf-Access-Jwt-Assertion`：
 - 分类和细分类。
 - 状态、场地、地区、备注。
 - 多个来源 URL。
-- 草稿保存、预览、发布。
+- 直接保存；关闭“公开显示”后记录只在后台可见。
+
+人工后台不为每次编辑额外创建 change set。所有保存仍要求服务端校验、幂等键和乐观锁，并在同一 D1 batch 中写入业务数据、operation receipt 和 audit log。`change_sets` 保留给 AI/MCP 提案，避免低风险日常维护被重复确认拖慢，也不降低自动化写入的审核门槛。
 
 危险操作必须二次确认，并显示影响：
 
@@ -322,4 +323,3 @@ default_tools_approval_mode = "writes"
 - 已发布/已丢弃 change set 再次发布。
 - D1 写入失败时无部分提交。
 - 工具结果不包含凭据或内部异常堆栈。
-

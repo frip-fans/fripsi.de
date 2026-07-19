@@ -1,0 +1,46 @@
+---
+import { listAdminReleases } from "@frip-fan/core";
+import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
+import Icon from "../../../../components/Icon.astro";
+import SiteLayout from "../../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../../lib/env";
+
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const releases = await listAdminReleases(getEnv().DB, query || undefined);
+const canWrite = Astro.locals.actor!.scopes.includes("music:write");
+---
+<SiteLayout title="专辑管理" admin>
+  <AdminMusicNav />
+  <header class="list-head">
+    <div><p class="eyebrow">Music catalog</p><h1>专辑管理</h1><p class="lede">维护专辑元数据、曲序、歌曲版本关联与来源。</p></div>
+    <a class:list={["button", { disabled: !canWrite }]} href={canWrite ? "/admin/music/releases/new" : undefined} aria-disabled={!canWrite}><Icon name="plus" />新专辑</a>
+  </header>
+  <form class="filters panel" method="get">
+    <label>搜索<input type="search" name="q" value={query} placeholder="标题、品番或 slug" /></label>
+    <button type="submit"><Icon name="search" />搜索</button>
+  </form>
+  <div class="panel table-wrap">
+    <table>
+      <thead><tr><th>发行日期</th><th>专辑</th><th>类型</th><th>曲目</th><th>公开</th><th>操作</th></tr></thead>
+      <tbody>
+        {releases.map((release) => <tr>
+          <td>{release.release_date ?? "—"}</td>
+          <td><a href={`/admin/music/releases/${release.id}`}>{release.title}</a><small>{release.catalog_number || release.slug}</small></td>
+          <td>{release.release_type}</td>
+          <td>{release.track_count}</td>
+          <td><span class:list={["tag", { live: release.published }]}>{release.published ? "公开" : "未公开"}</span></td>
+          <td>{release.published && <a href={`/music/releases/${release.slug}`} target="_blank" aria-label="查看公开页面"><Icon name="box-arrow-up-right" /></a>}</td>
+        </tr>)}
+      </tbody>
+    </table>
+    {!releases.length && <div class="empty">没有符合条件的专辑。</div>}
+  </div>
+</SiteLayout>
+<style>
+  .list-head { display: flex; justify-content: space-between; align-items: end; gap: 2rem; margin-bottom: 2rem; }
+  .list-head h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: .5rem; }
+  .filters { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
+  td small { display: block; color: var(--muted); margin-top: .2rem; }
+  .button.disabled { opacity: .45; pointer-events: none; }
+  @media (max-width: 720px) { .list-head { align-items: flex-start; flex-direction: column; } .filters { grid-template-columns: 1fr; } }
+</style>

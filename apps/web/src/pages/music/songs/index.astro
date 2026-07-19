@@ -1,0 +1,48 @@
+---
+import { countSongs, listSongs } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import MusicNav from "../../../components/MusicNav.astro";
+import Pagination from "../../../components/Pagination.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+import { getLocale, t } from "../../../lib/i18n";
+import "../../../styles/music.css";
+
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const locale = getLocale(Astro.request);
+const PAGE_SIZE = 20;
+const requestedPageValue = Astro.url.searchParams.get("page") ?? "1";
+const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
+const filters = { query: query || undefined };
+const totalItems = await countSongs(getEnv().DB, filters);
+const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+const page = Math.min(requestedPage, totalPages);
+const songs = await listSongs(getEnv().DB, { ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+---
+<SiteLayout title={t(locale, "music.nav.songs")}>
+  <div class="music-page">
+    <MusicNav />
+    <section class="music-section music-list-section" aria-label={t(locale, "music.nav.songs")}>
+      <form class="music-toolbar" method="get">
+        <label class="music-search">
+          <span class="visually-hidden">{t(locale, "music.searchSong")}</span>
+          <Icon name="search" />
+          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchSongPlaceholder")} />
+        </label>
+        <button type="submit" class="secondary">{t(locale, "common.search")}</button>
+      </form>
+      {songs.length ? (
+        <div class="music-grid">
+          {songs.map((song) => (
+            <a class="music-card" href={`/music/songs/${encodeURIComponent(song.slug)}`}>
+              <span class="music-artist">{song.original_artist}</span>
+              <h3>{song.title}</h3>
+              <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
+            </a>
+          ))}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.noSongs")}</div>}
+      <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} itemLabel={t(locale, "music.songItem")} />
+    </section>
+  </div>
+</SiteLayout>

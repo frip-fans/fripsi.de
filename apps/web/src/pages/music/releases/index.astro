@@ -1,0 +1,48 @@
+---
+import { listReleases, type ReleaseType } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import MusicNav from "../../../components/MusicNav.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+import { formatMusicDate, releaseTypeLabels } from "../../../lib/music";
+import { getLocale, t } from "../../../lib/i18n";
+import "../../../styles/music.css";
+
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const locale = getLocale(Astro.request);
+const requestedType = Astro.url.searchParams.get("type") as ReleaseType | null;
+const type = requestedType && requestedType in releaseTypeLabels ? requestedType : undefined;
+const releases = await listReleases(getEnv().DB, { query: query || undefined, type, limit: 500 });
+---
+<SiteLayout title={t(locale, "music.nav.releases")}>
+  <div class="music-page">
+    <MusicNav />
+    <section class="music-section music-list-section" aria-label={t(locale, "music.nav.releases")}>
+      <form class="music-toolbar release-toolbar" method="get">
+        <label class="music-search">
+          <span class="visually-hidden">{t(locale, "music.searchRelease")}</span>
+          <Icon name="search" />
+          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchReleasePlaceholder")} />
+        </label>
+        <select class="music-filter" name="type" aria-label={t(locale, "music.releaseType")}>
+          <option value="">{t(locale, "music.allTypes")}</option>
+          {Object.entries(releaseTypeLabels).map(([value, label]) => <option value={value} selected={type === value}>{label}</option>)}
+        </select>
+        <button type="submit" class="secondary">{t(locale, "common.filter")}</button>
+      </form>
+
+      {releases.length ? (
+        <div class="music-grid">
+          {releases.map((release) => (
+            <a class="music-card" href={`/music/releases/${encodeURIComponent(release.slug)}`}>
+              <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
+              <h3>{release.title}</h3>
+              <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
+              <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span><span>{t(locale, "music.performedSongs", { count: release.performed_song_count })}</span></div>
+            </a>
+          ))}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.noReleases")}</div>}
+    </section>
+  </div>
+</SiteLayout>

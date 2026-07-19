@@ -1,0 +1,66 @@
+---
+import { getReleaseBySlug } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import MusicNav from "../../../components/MusicNav.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+import { formatMusicDate, releaseTypeLabels } from "../../../lib/music";
+import { getLocale, t } from "../../../lib/i18n";
+import "../../../styles/music.css";
+
+const locale = getLocale(Astro.request);
+const release = await getReleaseBySlug(getEnv().DB, Astro.params.slug!);
+if (!release) return Astro.redirect("/404", 302);
+let previousDisc = 0;
+---
+<SiteLayout title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
+  <div class="music-page">
+    <MusicNav />
+    <a class="music-back" href="/music/releases"><Icon name="arrow-left" />{t(locale, "music.backReleases")}</a>
+    <header class="music-detail-head">
+      <p class="eyebrow">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</p>
+      <h1>{release.title}</h1>
+      <div class="music-detail-meta">
+        {release.catalog_number && <span class="tag">{release.catalog_number}</span>}
+        {release.edition && <span class="tag">{release.edition}</span>}
+        <span class="tag">{t(locale, "music.tracksCount", { count: release.track_count })}</span>
+        <span class="tag">{t(locale, "music.performedLive", { count: release.performed_song_count })}</span>
+      </div>
+    </header>
+
+    <section class="music-section" aria-labelledby="tracks-heading">
+      <div class="music-section-head"><div><p class="music-kicker">Track list</p><h2 id="tracks-heading">{t(locale, "music.trackList")}</h2></div></div>
+      {release.tracks.length ? (
+        <div class="music-track-list">
+          {release.tracks.map((track) => {
+            const beginsDisc = track.disc_number !== previousDisc;
+            previousDisc = track.disc_number;
+            return (
+              <>
+                {beginsDisc && release.tracks.some((item) => item.disc_number > 1) && <p class="setlist-section">Disc {track.disc_number}</p>}
+                <article class="music-track">
+                  <span class="music-track-number">{String(track.track_number).padStart(2, "0")}</span>
+                  <div class="music-track-main">
+                    <a href={`/music/songs/${encodeURIComponent(track.song_slug)}`}><strong>{track.display_title}</strong></a>
+                    <small>{track.version_label || (track.version_title !== track.song_title ? track.version_title : t(locale, "common.originalRecording"))}</small>
+                  </div>
+                  <div class="music-track-stats">
+                    <span><strong>{track.work_show_count}</strong> {t(locale, "music.workShows")}</span>
+                    <span><strong>{track.exact_version_show_count}</strong> {t(locale, "music.exactShows")}</span>
+                  </div>
+                </article>
+              </>
+            );
+          })}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.emptyRelease")}</div>}
+    </section>
+
+    {(release.notes || release.sources.length > 0) && (
+      <section class="music-section panel">
+        {release.notes && <p class="muted">{release.notes}</p>}
+        {release.sources.length > 0 && <div class="music-source-list">{release.sources.map((source, index) => <a href={source.url} target="_blank" rel="noreferrer">{source.label || t(locale, "music.releaseSource", { index: index + 1 })} <Icon name="box-arrow-up-right" /></a>)}</div>}
+      </section>
+    )}
+  </div>
+</SiteLayout>

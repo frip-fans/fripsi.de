@@ -1,10 +1,12 @@
 ---
 import type { EventRecord } from "@frip-fan/core";
-import { categoryLabels, formatDate, formatTime, statusLabels } from "../lib/format";
+import { categoryLabels, formatDate, formatTime, statusLabel } from "../lib/format";
+import { getLocale, t } from "../lib/i18n";
 import Icon from "./Icon.astro";
 
 interface Props { event: EventRecord; compact?: boolean }
 const { event, compact = false } = Astro.props;
+const locale = getLocale(Astro.request);
 ---
 <article class:list={["event-card", { compact, dimmed: event.status === "completed" }]}>
   <div class="event-date">
@@ -14,14 +16,14 @@ const { event, compact = false } = Astro.props;
   <div class="event-main">
     <div class="meta">
       <span class:list={["tag", event.category.toLowerCase()]}>{categoryLabels[event.category]}</span>
-      {event.status !== "scheduled" && <span class:list={["tag", event.status]}>{statusLabels[event.status]}</span>}
+      {event.status !== "scheduled" && <span class:list={["tag", event.status]}>{statusLabel(locale, event.status)}</span>}
       {event.classification && <span class="tag">{event.classification}</span>}
     </div>
     <h3><a href={`/events/${event.slug}`}>{event.title}</a></h3>
-    <p>{formatDate(event.start_date, event.end_date)} · {formatTime(event)}</p>
+    <p>{formatDate(event.start_date, event.end_date, locale)} · {formatTime(event, locale)}</p>
     {(event.venue || event.region) && <p class="venue">{[event.venue, event.region].filter(Boolean).join(" · ")}</p>}
   </div>
-  <a class="arrow" href={`/events/${event.slug}`} aria-label={`查看 ${event.title}`}><Icon name="arrow-up-right" size="1.05rem" /></a>
+  <a class="arrow" href={`/events/${event.slug}`} aria-label={t(locale, "common.view", { title: event.title })}><Icon name="arrow-up-right" size="1.05rem" /></a>
 </article>
 
 <style>

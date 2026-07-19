@@ -4,6 +4,8 @@
   "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-07-18",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
   "assets": {
     "binding": "ASSETS",
     "directory": "./dist"
@@ -25,16 +27,26 @@
   "env": {
     "production": {
       "name": "frip-fan-web",
+      "workers_dev": false,
+      "preview_urls": false,
+      "routes": [
+        {
+          "pattern": "fripsi.de",
+          "custom_domain": true
+        }
+      ],
       "d1_databases": [
         {
           "binding": "DB",
           "database_name": "frip-fan-prod",
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "f35ee3c1-3f65-44ed-988b-e6cbf2c187f6",
           "migrations_dir": "../../migrations"
         }
       ],
       "vars": {
-        "SITE_URL": "https://fripsi.de"
+        "SITE_URL": "https://fripsi.de",
+        "ACCESS_TEAM_DOMAIN": "rklee.cloudflareaccess.com",
+        "ACCESS_AUD": "38ea414c004a9c76d1835d12a76f9cd76e1ca4b0ae7a1fca7743921f2ecaaf40"
       }
     }
   }

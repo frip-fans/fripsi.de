@@ -1,37 +1,51 @@
 ---
-import { getPublicEventBySlug } from "@frip-fan/core";
+import { getPublicEventBySlug, listPublicSetlistsForEvent } from "@frip-fan/core";
 import Icon from "../../components/Icon.astro";
-import { categoryLabels, formatDate, formatTime, statusLabels } from "../../lib/format";
+import { categoryLabels, formatDate, formatTime, statusLabel } from "../../lib/format";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { getEnv } from "../../lib/env";
+import { getLocale, t } from "../../lib/i18n";
 
+const locale = getLocale(Astro.request);
 const event = await getPublicEventBySlug(getEnv().DB, Astro.params.slug!);
 if (!event) return Astro.redirect("/404", 302);
+const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
 ---
-<SiteLayout title={event.title} description={`${formatDate(event.start_date, event.end_date)} ${event.title}`}>
-  <a class="back" href="/calendar"><Icon name="arrow-left" />返回日历</a>
+<SiteLayout title={event.title} description={`${formatDate(event.start_date, event.end_date, locale)} ${event.title}`}>
+  <a class="back" href="/calendar"><Icon name="arrow-left" />{t(locale, "event.back")}</a>
   <article class="event-detail">
     <header>
       <div class="meta">
         <span class="tag live">{categoryLabels[event.category]}</span>
-        <span class:list={["tag", event.status]}>{statusLabels[event.status]}</span>
+        <span class:list={["tag", event.status]}>{statusLabel(locale, event.status)}</span>
         {event.classification && <span class="tag">{event.classification}</span>}
       </div>
       <h1>{event.title}</h1>
-      <p class="date">{formatDate(event.start_date, event.end_date)}</p>
+      <p class="date">{formatDate(event.start_date, event.end_date, locale)}</p>
     </header>
     <div class="detail-grid">
       <section class="panel facts">
-        <div><small>TIME</small><strong>{formatTime(event)}</strong></div>
-        <div><small>VENUE</small><strong>{event.venue || "待定"}</strong></div>
+        <div><small>TIME</small><strong>{formatTime(event, locale)}</strong></div>
+        <div><small>VENUE</small><strong>{event.venue || t(locale, "common.pending")}</strong></div>
         <div><small>REGION</small><strong>{event.region || "—"}</strong></div>
         <div><small>TIMEZONE</small><strong>{event.timezone}</strong></div>
       </section>
       <section class="content">
-        {event.remark ? <p>{event.remark}</p> : <p class="muted">这项记录暂时没有补充说明。</p>}
+        {event.remark ? <p>{event.remark}</p> : <p class="muted">{t(locale, "event.noRemark")}</p>}
+        {setlists.length > 0 && (
+          <div class="setlist-links">
+            <p class="eyebrow">Setlist</p>
+            {setlists.map((setlist) => (
+              <a href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
+                <span><Icon name="list-stars" /> {setlist.title || t(locale, "event.setlistFallback", { label: setlist.performance_label })}</span>
+                <small>{t(locale, "event.records", { count: setlist.entry_count })}</small>
+              </a>
+            ))}
+          </div>
+        )}
         <div class="sources">
           <p class="eyebrow">Sources</p>
-          {event.sources?.map((source, index) => <a href={source.url} target="_blank" rel="noreferrer">{source.label || `来源 ${index + 1}`} <Icon name="box-arrow-up-right" /></a>)}
+          {event.sources?.map((source, index) => <a href={source.url} target="_blank" rel="noreferrer">{source.label || t(locale, "event.source", { index: index + 1 })} <Icon name="box-arrow-up-right" /></a>)}
         </div>
       </section>
     </div>
@@ -53,5 +67,11 @@ if (!event) return Astro.redirect("/404", 302);
   .content { font-size: 1rem; line-height: 1.9; white-space: pre-wrap; }
   .sources { margin-top: 3rem; display: grid; justify-items: start; gap: .7rem; }
   .sources a { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); text-decoration: none; font-size: .9rem; }
+  .setlist-links { display: grid; gap: .55rem; margin-top: 2rem; }
+  .setlist-links p { margin-bottom: .15rem; }
+  .setlist-links a { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem .9rem; color: var(--text); border: 1px solid var(--line); border-radius: 11px; background: rgba(12,25,43,.62); text-decoration: none; white-space: normal; }
+  .setlist-links a:hover { color: var(--accent); border-color: rgba(var(--accent-rgb),.35); }
+  .setlist-links span { display: inline-flex; align-items: center; gap: .4rem; }
+  .setlist-links small { color: var(--muted); }
   @media (max-width: 760px) { .detail-grid { grid-template-columns: 1fr; } }
 </style>

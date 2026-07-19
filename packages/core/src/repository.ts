@@ -81,6 +81,17 @@ export async function listPublicCalendarEvents(db: D1Database): Promise<EventRec
   return result.results.map(mapEvent);
 }
 
+export async function listLatestPublicEvents(db: D1Database, limit = 6): Promise<EventRecord[]> {
+  const safeLimit = Math.max(1, Math.min(limit, 100));
+  const result = await db.prepare(`
+    SELECT * FROM events
+    WHERE published = 1 AND archived_at IS NULL
+    ORDER BY start_date DESC, start_time DESC, title ASC
+    LIMIT ?
+  `).bind(safeLimit).all<EventRow>();
+  return result.results.map(mapEvent);
+}
+
 export async function listArchiveYears(db: D1Database): Promise<Array<{ year: string; count: number }>> {
   const result = await db.prepare(`
     SELECT substr(start_date, 1, 4) AS year, COUNT(*) AS count

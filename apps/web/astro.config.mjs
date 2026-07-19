@@ -10,6 +10,10 @@ export default defineConfig({
   trailingSlash: "never",
   vite: {
     build: {
+      // The production CSP only permits same-origin scripts. Keep Astro from
+      // inlining small client scripts so browsers can execute them under that
+      // policy (the site notice and lyric rotator both rely on these scripts).
+      assetsInlineLimit: 0,
       cssMinify: true
     }
   }

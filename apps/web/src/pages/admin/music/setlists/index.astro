@@ -1,0 +1,42 @@
+---
+import { listAdminSetlists } from "@frip-fan/core";
+import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
+import Icon from "../../../../components/Icon.astro";
+import SiteLayout from "../../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../../lib/env";
+
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const setlists = await listAdminSetlists(getEnv().DB, query || undefined);
+const canWrite = Astro.locals.actor!.scopes.includes("music:write");
+---
+<SiteLayout title="Setlist 管理" admin>
+  <AdminMusicNav />
+  <header class="list-head">
+    <div><p class="eyebrow">Live catalog</p><h1>Setlist 管理</h1><p class="lede">维护关联活动、歌曲顺序、演唱版本、Medley 与来源。</p></div>
+    <a class:list={["button", { disabled: !canWrite }]} href={canWrite ? "/admin/music/setlists/new" : undefined} aria-disabled={!canWrite}><Icon name="plus" />新 Setlist</a>
+  </header>
+  <form class="filters panel" method="get">
+    <label>搜索<input type="search" name="q" value={query} placeholder="活动、场地或 Setlist 标题" /></label>
+    <button type="submit"><Icon name="search" />搜索</button>
+  </form>
+  <div class="panel table-wrap">
+    <table>
+      <thead><tr><th>日期</th><th>Setlist</th><th>类型</th><th>歌曲</th><th>公开</th><th>操作</th></tr></thead>
+      <tbody>
+        {setlists.map((setlist) => <tr>
+          <td>{setlist.start_date}</td>
+          <td><a href={`/admin/music/setlists/${setlist.id}`}>{setlist.title || setlist.event_title}</a><small>{setlist.performance_label} · {setlist.venue || "场地待补"}</small></td>
+          <td>{setlist.event_classification || "—"}</td>
+          <td>{setlist.entry_count}</td>
+          <td><span class:list={["tag", { live: setlist.published }]}>{setlist.published ? "公开" : "未公开"}</span></td>
+          <td>{setlist.published && <a href={`/music/lives/${setlist.id}`} target="_blank" aria-label="查看公开页面"><Icon name="box-arrow-up-right" /></a>}</td>
+        </tr>)}
+      </tbody>
+    </table>
+    {!setlists.length && <div class="empty">没有符合条件的 Setlist。</div>}
+  </div>
+</SiteLayout>
+<style>
+  .list-head { display:flex;justify-content:space-between;align-items:end;gap:2rem;margin-bottom:2rem }.list-head h1{font-size:clamp(2.5rem,6vw,4.5rem);margin-bottom:.5rem}.filters{display:grid;grid-template-columns:1fr auto;align-items:end;gap:.8rem;margin-bottom:1rem}td small{display:block;color:var(--muted);margin-top:.2rem}.button.disabled{opacity:.45;pointer-events:none}
+  @media(max-width:720px){.list-head{align-items:flex-start;flex-direction:column}.filters{grid-template-columns:1fr}}
+</style>

@@ -1,0 +1,50 @@
+---
+import Icon from "./Icon.astro";
+import { getLocale, localeNames, supportedLocales, t } from "../lib/i18n";
+
+const locale = getLocale(Astro.request);
+---
+<label class="language-switcher">
+  <span>{t(locale, "language.label")}</span>
+  <Icon name="globe" class="language-icon" />
+  <select aria-label={t(locale, "language.label")} data-language-switcher data-current-locale={locale}>
+    {supportedLocales.map((value) => <option value={value} selected={value === locale}>{localeNames[value]}</option>)}
+  </select>
+  <Icon name="chevron-down" class="language-caret" />
+</label>
+
+<script>
+  import { LOCALE_COOKIE } from "../lib/i18n";
+
+  const setupLanguageSwitchers = () => {
+    document.querySelectorAll("[data-language-switcher]").forEach((select) => {
+      if (!(select instanceof HTMLSelectElement)) return;
+      if (select.dataset.bound === "true") return;
+      select.dataset.bound = "true";
+      const secure = location.protocol === "https:" ? "; Secure" : "";
+      const persist = (locale: string) => {
+        document.cookie = `${LOCALE_COOKIE}=${encodeURIComponent(locale)}; Path=/; Max-Age=31536000; SameSite=Lax${secure}`;
+      };
+      persist(select.dataset.currentLocale ?? select.value);
+      select.addEventListener("change", () => {
+        persist(select.value);
+        const url = new URL(location.href);
+        url.searchParams.set("lang", select.value);
+        location.assign(url.href);
+      });
+    });
+  };
+  document.addEventListener("astro:page-load", setupLanguageSwitchers);
+  setupLanguageSwitchers();
+</script>
+
+<style>
+  .language-switcher { position: relative; display: flex; align-items: center; color: var(--muted); }
+  .language-switcher > span { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .language-switcher :global(.language-icon) { position: absolute; left: .7rem; z-index: 1; pointer-events: none; color: var(--accent); font-size: .88rem; }
+  .language-switcher :global(.language-caret) { position: absolute; right: .6rem; z-index: 1; pointer-events: none; color: var(--muted); font-size: .68rem; }
+  .language-switcher select { width: 6.5rem; min-width: 6.5rem; height: 38px; padding: 0 1.3rem 0 2rem; appearance: none; -webkit-appearance: none; color: var(--muted); background-color: rgba(7,16,28,.64); border-radius: 9px; font-size: .78rem; cursor: pointer; }
+  .language-switcher select[data-current-locale^="zh-"] { width: 6.8rem; min-width: 6.8rem; }
+  .language-switcher select:hover, .language-switcher select:focus { color: var(--text); }
+  @media (max-width: 760px) { .language-switcher { flex: 0 0 auto; } }
+</style>

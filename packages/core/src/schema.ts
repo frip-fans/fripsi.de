@@ -81,7 +81,7 @@ export const searchInputSchema = z.object({
   statuses: z.array(eventStatusSchema).max(4).optional(),
   published: z.boolean().optional(),
   include_archived: z.boolean().default(false),
-  limit: z.number().int().min(1).max(100).default(20)
+  limit: z.number().int().min(1).max(500).default(20)
 });
 
 export const duplicateInputSchema = z.object({

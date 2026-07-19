@@ -1,22 +1,31 @@
 import { authenticateAdmin, ServiceError } from "@frip-fan/core";
 import { defineMiddleware } from "astro:middleware";
 import { getEnv } from "./lib/env";
+import { getLocale, type Locale } from "./lib/i18n";
 
-function secure(response: Response, privateRoute = false): Response {
+function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale): Response {
   const headers = new Headers(response.headers);
   headers.set("x-content-type-options", "nosniff");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("x-frame-options", "DENY");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
   headers.set("content-security-policy", "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'");
+  if (locale && headers.get("content-type")?.includes("text/html")) {
+    headers.set("content-language", locale);
+    headers.append("vary", "Cookie");
+  }
   if (privateRoute) headers.set("cache-control", "private, no-store");
+  else if (cacheControl) headers.set("cache-control", cacheControl);
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const path = context.url.pathname;
   const privateRoute = path.startsWith("/admin") || path.startsWith("/api/admin");
-  if (!privateRoute) return secure(await next());
+  if (!privateRoute) {
+    const cacheControl = path === "/archive" ? "private, max-age=60, stale-while-revalidate=30" : undefined;
+    return secure(await next(), false, cacheControl, getLocale(context.request));
+  }
 
   try {
     context.locals.actor = await authenticateAdmin(context.request, getEnv());

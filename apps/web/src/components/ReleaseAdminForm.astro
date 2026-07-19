@@ -1,0 +1,177 @@
+---
+import type { AdminReleaseDetail, MusicEditorOptions } from "@frip-fan/core";
+import Icon from "./Icon.astro";
+
+interface Props {
+  release?: AdminReleaseDetail;
+  options: MusicEditorOptions;
+  canWrite: boolean;
+}
+
+const { release, options, canWrite } = Astro.props;
+const songs = new Map(options.songs.map((song) => [song.id, song]));
+const sources = release?.sources.map((source) => `${source.url} | ${source.label ?? ""} | ${source.source_type ?? "official"}`).join("\n") ?? "";
+const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
+  const song = songs.get(version.song_id);
+  return `${song?.title ?? "未知歌曲"} — ${version.title}`;
+};
+---
+<form class="panel catalog-form" method="post" action="/api/admin/music/releases/save" data-release-editor>
+  {release && <input type="hidden" name="id" value={release.id} />}
+  {release && <input type="hidden" name="expected_updated_at" value={release.updated_at} />}
+  <input type="hidden" name="idempotency_key" value={`admin-release-${release?.id ?? "new"}-${crypto.randomUUID()}`} />
+
+  <div class="form-grid">
+    <label class="wide">专辑标题 *<input name="title" required maxlength="240" value={release?.title ?? ""} /></label>
+    <label>类型
+      <select name="release_type" required>
+        {(["album", "single", "ep", "compilation", "video", "other"] as const).map((type) => <option value={type} selected={(release?.release_type ?? "album") === type}>{type}</option>)}
+      </select>
+    </label>
+    <label>发行日期<input type="date" name="release_date" value={release?.release_date ?? ""} /></label>
+    <label>品番<input name="catalog_number" maxlength="120" value={release?.catalog_number ?? ""} /></label>
+    <label>版本 / Edition<input name="edition" maxlength="160" value={release?.edition ?? ""} /></label>
+    <label class="wide">Slug<input name="slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={release?.slug ?? ""} placeholder="留空自动生成" /></label>
+    <label class="wide">说明<textarea name="notes" maxlength="4000">{release?.notes ?? ""}</textarea></label>
+    <label class="wide">来源<textarea name="sources" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea></label>
+    <label class="publish-check wide"><input type="checkbox" name="published" checked={release?.published ?? true} />在公开歌单库显示</label>
+  </div>
+
+  <section class="track-editor">
+    <div class="editor-heading">
+      <div><p class="eyebrow">Track editor</p><h2>专辑曲目</h2><p class="muted">上下调整曲序；Disc 与 Track 编号会作为正式排序依据。</p></div>
+      <button type="button" class="secondary" data-add-track><Icon name="plus" />添加曲目</button>
+    </div>
+    <div class="editor-rows" data-track-rows>
+      {release?.tracks.map((track) => (
+        <div class="editor-row track-row" data-track-row>
+          <span class="row-index" data-row-index>{track.disc_number}.{track.track_number}</span>
+          <label>Disc<input type="number" min="1" max="99" name="track_disc" required value={track.disc_number} /></label>
+          <label>Track<input type="number" min="1" max="999" name="track_number" required value={track.track_number} /></label>
+          <label class="row-main">歌曲版本
+            <select name="track_version_id" required>
+              <option value="">选择歌曲版本…</option>
+              {options.versions.map((version) => <option value={version.id} data-title={version.title} selected={track.version_id === version.id}>{versionLabel(version)}</option>)}
+            </select>
+          </label>
+          <label class="row-title">显示标题<input name="track_title" required maxlength="240" value={track.display_title} /></label>
+          <label class="row-note">备注<input name="track_notes" maxlength="1000" value={track.notes ?? ""} /></label>
+          <div class="row-actions">
+            <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
+            <button type="button" class="secondary icon-button" data-move-down aria-label="下移">↓</button>
+            <button type="button" class="danger icon-button" data-remove-row aria-label="删除"><Icon name="trash" /></button>
+          </div>
+        </div>
+      ))}
+    </div>
+    <div class="empty editor-empty" data-track-empty hidden={Boolean(release?.tracks.length)}>还没有曲目，请点击“添加曲目”。</div>
+  </section>
+
+  <div class="actions form-actions">
+    <button type="submit" disabled={!canWrite}><Icon name="check-circle" />{release ? "保存专辑" : "创建专辑"}</button>
+    <a class="button secondary" href="/admin/music/releases">取消</a>
+    {!canWrite && <span class="muted">当前账号没有 music:write 权限。</span>}
+  </div>
+
+  <template data-track-template>
+    <div class="editor-row track-row" data-track-row>
+      <span class="row-index" data-row-index>1.1</span>
+      <label>Disc<input type="number" min="1" max="99" name="track_disc" required value="1" /></label>
+      <label>Track<input type="number" min="1" max="999" name="track_number" required value="1" /></label>
+      <label class="row-main">歌曲版本
+        <select name="track_version_id" required>
+          <option value="">选择歌曲版本…</option>
+          {options.versions.map((version) => <option value={version.id} data-title={version.title}>{versionLabel(version)}</option>)}
+        </select>
+      </label>
+      <label class="row-title">显示标题<input name="track_title" required maxlength="240" /></label>
+      <label class="row-note">备注<input name="track_notes" maxlength="1000" /></label>
+      <div class="row-actions">
+        <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
+        <button type="button" class="secondary icon-button" data-move-down aria-label="下移">↓</button>
+        <button type="button" class="danger icon-button" data-remove-row aria-label="删除"><Icon name="trash" /></button>
+      </div>
+    </div>
+  </template>
+</form>
+
+<script>
+  const releaseEditor = document.querySelector<HTMLElement>("[data-release-editor]");
+  const trackRows = releaseEditor?.querySelector<HTMLElement>("[data-track-rows]");
+  const trackTemplate = releaseEditor?.querySelector<HTMLTemplateElement>("[data-track-template]");
+  const trackEmpty = releaseEditor?.querySelector<HTMLElement>("[data-track-empty]");
+
+  const refreshTracks = () => {
+    const rows = [...(trackRows?.querySelectorAll<HTMLElement>("[data-track-row]") ?? [])];
+    if (trackEmpty) trackEmpty.hidden = rows.length > 0;
+    for (const row of rows) {
+      const disc = row.querySelector<HTMLInputElement>("[name=track_disc]")?.value || "1";
+      const track = row.querySelector<HTMLInputElement>("[name=track_number]")?.value || "1";
+      const index = row.querySelector<HTMLElement>("[data-row-index]");
+      if (index) index.textContent = `${disc}.${track}`;
+    }
+  };
+
+  releaseEditor?.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-add-track]") && trackRows && trackTemplate) {
+      const clone = trackTemplate.content.firstElementChild?.cloneNode(true);
+      if (!(clone instanceof HTMLElement)) return;
+      const previous = trackRows.lastElementChild as HTMLElement | null;
+      const previousDisc = previous?.querySelector<HTMLInputElement>("[name=track_disc]")?.value ?? "1";
+      const previousTrack = Number(previous?.querySelector<HTMLInputElement>("[name=track_number]")?.value ?? 0);
+      const discInput = clone.querySelector<HTMLInputElement>("[name=track_disc]");
+      const trackInput = clone.querySelector<HTMLInputElement>("[name=track_number]");
+      if (discInput) discInput.value = previousDisc;
+      if (trackInput) trackInput.value = String(previousTrack + 1);
+      trackRows.insertAdjacentElement("beforeend", clone);
+      refreshTracks();
+      const select = clone.querySelector("select");
+      if (select instanceof HTMLElement) select.focus();
+      return;
+    }
+    const row = target.closest<HTMLElement>("[data-track-row]");
+    if (!row || !trackRows) return;
+    if (target.closest("[data-remove-row]")) row.remove();
+    if (target.closest("[data-move-up]") && row.previousElementSibling) trackRows.insertBefore(row, row.previousElementSibling);
+    if (target.closest("[data-move-down]") && row.nextElementSibling) trackRows.insertBefore(row.nextElementSibling, row);
+    refreshTracks();
+  });
+
+  releaseEditor?.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement) || target.name !== "track_version_id") return;
+    const row = target.closest<HTMLElement>("[data-track-row]");
+    const title = row?.querySelector<HTMLInputElement>("[name=track_title]");
+    const selectedTitle = target.selectedOptions[0]?.dataset.title;
+    if (title && selectedTitle && !title.value.trim()) title.value = selectedTitle;
+  });
+  releaseEditor?.addEventListener("input", refreshTracks);
+  refreshTracks();
+</script>
+
+<style>
+  .catalog-form { display: grid; gap: 2rem; }
+  .publish-check { display: flex; align-items: center; gap: .55rem; }
+  .publish-check input { width: auto; }
+  .editor-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+  .editor-heading h2, .editor-heading p { margin-bottom: .35rem; }
+  .editor-rows { display: grid; gap: .7rem; }
+  .editor-row { display: grid; grid-template-columns: 50px 70px 80px minmax(240px, 1.4fr) minmax(180px, 1fr) minmax(150px, .8fr) auto; gap: .55rem; align-items: end; padding: .8rem; border: 1px solid var(--line); border-radius: 13px; background: rgba(4,11,20,.52); }
+  .row-index { align-self: center; color: var(--accent); font: 700 .72rem/1 ui-monospace, monospace; text-align: center; }
+  .row-actions { display: flex; gap: .25rem; padding-bottom: .05rem; }
+  .icon-button { width: 2.25rem; min-height: 2.25rem; padding: 0; }
+  .editor-empty { padding: 2rem 1rem; }
+  .form-actions { border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  @media (max-width: 1100px) {
+    .editor-row { grid-template-columns: 45px 70px 80px 1fr auto; }
+    .row-main, .row-title, .row-note { grid-column: 2 / -1; }
+    .row-actions { grid-column: 5; grid-row: 1; }
+  }
+  @media (max-width: 680px) {
+    .editor-heading { align-items: stretch; flex-direction: column; }
+    .editor-row { grid-template-columns: 42px 1fr 1fr; }
+    .row-main, .row-title, .row-note { grid-column: 1 / -1; }
+    .row-actions { grid-column: 1 / -1; grid-row: auto; }
+  }
+</style>

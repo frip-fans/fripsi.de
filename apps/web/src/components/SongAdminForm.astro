@@ -1,0 +1,167 @@
+---
+import type { AdminSongDetail, AdminSongVersion, CatalogSource } from "@frip-fan/core";
+import Icon from "./Icon.astro";
+
+interface Props {
+  song?: AdminSongDetail;
+  canWrite: boolean;
+}
+
+const { song, canWrite } = Astro.props;
+const sourceLines = (sources: CatalogSource[]) => sources
+  .map((source) => `${source.url} | ${source.label ?? ""} | ${source.source_type ?? "official"}`)
+  .join("\n");
+const versions: Array<AdminSongVersion | undefined> = song?.versions.length ? song.versions : [undefined];
+---
+<form class="panel song-form" method="post" action="/api/admin/music/songs/save" data-song-editor>
+  {song && <input type="hidden" name="id" value={song.id} />}
+  {song && <input type="hidden" name="expected_updated_at" value={song.updated_at} />}
+  <input type="hidden" name="idempotency_key" value={`admin-song-${song?.id ?? "new"}-${crypto.randomUUID()}`} />
+
+  <div class="form-grid">
+    <label class="wide">歌曲名 *<input name="title" required maxlength="240" value={song?.title ?? ""} data-song-title /></label>
+    <label>原唱 / Artist<input name="original_artist" required maxlength="240" value={song?.original_artist ?? "fripSide"} /></label>
+    <label>首次发行日期<input type="date" name="first_release_date" value={song?.first_release_date ?? ""} /></label>
+    <label class="wide">Slug<input name="slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={song?.slug ?? ""} placeholder="留空自动生成" /></label>
+    <label class="wide">别名<textarea name="aliases" maxlength="8000" placeholder="每行一个别名；可用于公开歌曲搜索">{song?.aliases.join("\n") ?? ""}</textarea></label>
+    <label class="wide">说明<textarea name="notes" maxlength="4000">{song?.notes ?? ""}</textarea></label>
+    <label class="wide">歌曲来源<textarea name="sources" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sourceLines(song?.sources ?? [])}</textarea></label>
+    <label class="publish-check wide"><input type="checkbox" name="published" checked={song?.published ?? true} />在公开歌单库显示</label>
+  </div>
+
+  <section class="version-editor">
+    <div class="editor-heading">
+      <div>
+        <p class="eyebrow">Song versions</p>
+        <h2>歌曲版本</h2>
+        <p class="muted">歌曲至少需要一个版本，之后就能在专辑曲目和 Setlist 中选择。已被引用的已有版本不会在这里直接删除。</p>
+      </div>
+      <button type="button" class="secondary" data-add-version><Icon name="plus" />添加版本</button>
+    </div>
+
+    <div class="version-rows" data-version-rows>
+      {versions.map((version, index) => (
+        <article class="version-row" data-version-row data-existing={version ? "true" : "false"}>
+          <header>
+            <span class="version-index" data-version-index>VERSION {String(index + 1).padStart(2, "0")}</span>
+            {version
+              ? <span class="tag">已保存版本</span>
+              : <button type="button" class="danger remove-version" data-remove-version aria-label="删除此版本"><Icon name="trash" />删除</button>}
+          </header>
+          <input type="hidden" name="version_id" value={version?.id ?? ""} />
+          <div class="version-grid">
+            <label class="version-title">版本标题 *<input name="version_title" required maxlength="240" value={version?.title ?? ""} placeholder="通常与歌曲名相同" /></label>
+            <label>版本标签<input name="version_label" maxlength="160" value={version?.version_label ?? ""} placeholder="original / version 2024" /></label>
+            <label>演唱者<input name="version_artist_credit" required maxlength="240" value={version?.artist_credit ?? "fripSide"} /></label>
+            <label>发行日期<input type="date" name="version_release_date" value={version?.release_date ?? ""} /></label>
+            <label class="wide">版本 Slug<input name="version_slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={version?.slug ?? ""} placeholder="留空自动生成" /></label>
+            <label class="wide">版本说明<textarea name="version_notes" maxlength="4000">{version?.notes ?? ""}</textarea></label>
+            <label class="wide">版本来源<textarea name="version_sources" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sourceLines(version?.sources ?? [])}</textarea></label>
+            <label>公开状态
+              <select name="version_published">
+                <option value="1" selected={version?.published ?? true}>公开</option>
+                <option value="0" selected={version?.published === false}>不公开</option>
+              </select>
+            </label>
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <div class="actions form-actions">
+    <button type="submit" disabled={!canWrite}><Icon name="check-circle" />{song ? "保存歌曲" : "创建歌曲"}</button>
+    <a class="button secondary" href="/admin/music/songs">取消</a>
+    {!canWrite && <span class="muted">当前账号没有 music:write 权限。</span>}
+  </div>
+
+  <template data-version-template>
+    <article class="version-row" data-version-row data-existing="false">
+      <header>
+        <span class="version-index" data-version-index>VERSION 01</span>
+        <button type="button" class="danger remove-version" data-remove-version aria-label="删除此版本"><Icon name="trash" />删除</button>
+      </header>
+      <input type="hidden" name="version_id" value="" />
+      <div class="version-grid">
+        <label class="version-title">版本标题 *<input name="version_title" required maxlength="240" placeholder="通常与歌曲名相同" /></label>
+        <label>版本标签<input name="version_label" maxlength="160" placeholder="original / version 2024" /></label>
+        <label>演唱者<input name="version_artist_credit" required maxlength="240" value="fripSide" /></label>
+        <label>发行日期<input type="date" name="version_release_date" /></label>
+        <label class="wide">版本 Slug<input name="version_slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="留空自动生成" /></label>
+        <label class="wide">版本说明<textarea name="version_notes" maxlength="4000"></textarea></label>
+        <label class="wide">版本来源<textarea name="version_sources" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型"></textarea></label>
+        <label>公开状态<select name="version_published"><option value="1" selected>公开</option><option value="0">不公开</option></select></label>
+      </div>
+    </article>
+  </template>
+</form>
+
+<script>
+  const editor = document.querySelector<HTMLElement>("[data-song-editor]");
+  const rows = editor?.querySelector<HTMLElement>("[data-version-rows]");
+  const template = editor?.querySelector<HTMLTemplateElement>("[data-version-template]");
+
+  const refreshVersions = () => {
+    const versionRows = [...(rows?.querySelectorAll<HTMLElement>("[data-version-row]") ?? [])];
+    versionRows.forEach((row, index) => {
+      const label = row.querySelector<HTMLElement>("[data-version-index]");
+      if (label) label.textContent = `VERSION ${String(index + 1).padStart(2, "0")}`;
+    });
+    const removes = [...(rows?.querySelectorAll<HTMLButtonElement>("[data-remove-version]") ?? [])];
+    for (const remove of removes) remove.disabled = versionRows.length <= 1;
+  };
+
+  editor?.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-add-version]") && rows && template) {
+      const clone = template.content.firstElementChild?.cloneNode(true);
+      if (!(clone instanceof HTMLElement)) return;
+      const songTitle = editor.querySelector<HTMLInputElement>("[data-song-title]")?.value.trim();
+      const title = clone.querySelector<HTMLInputElement>("[name=version_title]");
+      if (title && songTitle) title.value = songTitle;
+      rows.insertAdjacentElement("beforeend", clone);
+      refreshVersions();
+      title?.focus();
+      return;
+    }
+    const remove = target.closest("[data-remove-version]");
+    const row = remove?.closest<HTMLElement>("[data-version-row]");
+    if (!row || row.dataset.existing === "true") return;
+    row.remove();
+    refreshVersions();
+  });
+
+  const songTitle = editor?.querySelector<HTMLInputElement>("[data-song-title]");
+  songTitle?.addEventListener("input", () => {
+    const first = rows?.querySelector<HTMLInputElement>("[data-version-row] [name=version_title]");
+    if (first && !first.dataset.touched) first.value = songTitle.value;
+  });
+  rows?.addEventListener("input", (event) => {
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.name === "version_title") target.dataset.touched = "true";
+  });
+  refreshVersions();
+</script>
+
+<style>
+  .song-form { display: grid; gap: 2rem; }
+  .publish-check { display: flex; align-items: center; gap: .55rem; }
+  .publish-check input { width: auto; }
+  .editor-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+  .editor-heading h2, .editor-heading p { margin-bottom: .35rem; }
+  .version-rows { display: grid; gap: 1rem; }
+  .version-row { padding: 1rem; border: 1px solid var(--line); border-radius: 14px; background: rgba(4,11,20,.52); }
+  .version-row > header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+  .version-index { color: var(--accent); font: 800 .72rem/1 ui-monospace, monospace; letter-spacing: .12em; }
+  .version-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: .8rem; }
+  .version-grid .wide { grid-column: 1 / -1; }
+  .remove-version { min-height: 2rem; padding: .4rem .65rem; font-size: .75rem; }
+  .remove-version:disabled { opacity: .35; cursor: not-allowed; }
+  .version-row textarea { min-height: 84px; }
+  .form-actions { border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  @media (max-width: 680px) {
+    .editor-heading { align-items: stretch; flex-direction: column; }
+    .version-grid { grid-template-columns: 1fr; }
+    .version-grid .wide { grid-column: auto; }
+  }
+</style>

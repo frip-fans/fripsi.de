@@ -1,0 +1,216 @@
+---
+import type { AdminSetlistDetail, MusicEditorOptions } from "@frip-fan/core";
+import Icon from "./Icon.astro";
+
+interface Props {
+  setlist?: AdminSetlistDetail;
+  options: MusicEditorOptions;
+  canWrite: boolean;
+}
+
+const { setlist, options, canWrite } = Astro.props;
+const sources = setlist?.sources.map((source) => `${source.url} | ${source.label ?? ""} | ${source.source_type ?? "official"}`).join("\n") ?? "";
+const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double encore", opening: "Opening", other: "其他" } as const;
+---
+<form class="panel catalog-form" method="post" action="/api/admin/music/setlists/save" data-setlist-editor>
+  {setlist && <input type="hidden" name="id" value={setlist.id} />}
+  {setlist && <input type="hidden" name="expected_updated_at" value={setlist.updated_at} />}
+  <input type="hidden" name="idempotency_key" value={`admin-setlist-${setlist?.id ?? "new"}-${crypto.randomUUID()}`} />
+
+  <div class="form-grid">
+    <label class="wide">关联活动 *
+      <select name="event_id" required>
+        <option value="">选择活动…</option>
+        {options.events.map((event) => <option value={event.id} selected={setlist?.event_id === event.id}>{event.start_date} · {event.title}{event.classification ? ` · ${event.classification}` : ""}</option>)}
+      </select>
+    </label>
+    <label>演出标签 *<input name="performance_label" required maxlength="160" value={setlist?.performance_label ?? "本公演"} placeholder="本公演 / fripSide出演枠" /></label>
+    <label>显示标题<input name="title" maxlength="240" value={setlist?.title ?? ""} placeholder="留空时使用活动标题" /></label>
+    <label>完整度
+      <select name="completeness">
+        <option value="complete" selected={(setlist?.completeness ?? "complete") === "complete"}>完整歌单</option>
+        <option value="partial" selected={setlist?.completeness === "partial"}>部分歌单</option>
+        <option value="unknown" selected={setlist?.completeness === "unknown"}>完整度未知</option>
+      </select>
+    </label>
+    <label>可信度
+      <select name="confidence">
+        <option value="official" selected={setlist?.confidence === "official"}>官方</option>
+        <option value="reported" selected={(setlist?.confidence ?? "reported") === "reported"}>现场记录</option>
+        <option value="unverified" selected={setlist?.confidence === "unverified"}>待核验</option>
+      </select>
+    </label>
+    <label class="wide">说明<textarea name="notes" maxlength="4000">{setlist?.notes ?? ""}</textarea></label>
+    <label class="wide">来源<textarea name="sources" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea></label>
+    <label class="publish-check wide"><input type="checkbox" name="published" checked={setlist?.published ?? true} />在公开歌单库显示</label>
+  </div>
+
+  <section class="entry-editor">
+    <div class="editor-heading">
+      <div><p class="eyebrow">Setlist editor</p><h2>演唱顺序</h2><p class="muted">拖动暂未启用；使用上下按钮调整顺序，保存时按当前排列重新编号。</p></div>
+      <button type="button" class="secondary" data-add-entry><Icon name="plus" />添加歌曲</button>
+    </div>
+    <div class="editor-rows" data-entry-rows>
+      {setlist?.entries.map((entry, index) => (
+        <div class="editor-row entry-row" data-entry-row>
+          <span class="row-index" data-row-index>{String(index + 1).padStart(2, "0")}</span>
+          <label class="row-song">歌曲 *
+            <select name="entry_song_id" required>
+              <option value="">选择歌曲…</option>
+              {options.songs.map((song) => <option value={song.id} data-title={song.title} selected={entry.song_id === song.id}>{song.title}</option>)}
+            </select>
+          </label>
+          <label class="row-version">演唱版本
+            <select name="entry_version_id">
+              <option value="">未指定具体版本</option>
+              {options.versions.map((version) => <option value={version.id} data-song-id={version.song_id} data-title={version.title} selected={entry.performed_version_id === version.id}>{version.title}</option>)}
+            </select>
+          </label>
+          <label>段落
+            <select name="entry_section">
+              {Object.entries(sectionLabels).map(([value, label]) => <option value={value} selected={entry.section === value}>{label}</option>)}
+            </select>
+          </label>
+          <label>Medley 组<input name="entry_medley" maxlength="40" value={entry.medley_group ?? ""} placeholder="例如 01" /></label>
+          <label class="row-title">显示标题 *<input name="entry_title" required maxlength="240" value={entry.display_title} /></label>
+          <label class="row-note">备注<input name="entry_notes" maxlength="1000" value={entry.notes ?? ""} /></label>
+          <div class="row-actions">
+            <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
+            <button type="button" class="secondary icon-button" data-move-down aria-label="下移">↓</button>
+            <button type="button" class="danger icon-button" data-remove-row aria-label="删除"><Icon name="trash" /></button>
+          </div>
+        </div>
+      ))}
+    </div>
+    <div class="empty editor-empty" data-entry-empty hidden={Boolean(setlist?.entries.length)}>还没有歌曲，请点击“添加歌曲”。</div>
+  </section>
+
+  <div class="actions form-actions">
+    <button type="submit" disabled={!canWrite}><Icon name="check-circle" />{setlist ? "保存 Setlist" : "创建 Setlist"}</button>
+    <a class="button secondary" href="/admin/music/setlists">取消</a>
+    {!canWrite && <span class="muted">当前账号没有 music:write 权限。</span>}
+  </div>
+
+  <template data-entry-template>
+    <div class="editor-row entry-row" data-entry-row>
+      <span class="row-index" data-row-index>01</span>
+      <label class="row-song">歌曲 *
+        <select name="entry_song_id" required>
+          <option value="">选择歌曲…</option>
+          {options.songs.map((song) => <option value={song.id} data-title={song.title}>{song.title}</option>)}
+        </select>
+      </label>
+      <label class="row-version">演唱版本
+        <select name="entry_version_id">
+          <option value="">未指定具体版本</option>
+          {options.versions.map((version) => <option value={version.id} data-song-id={version.song_id} data-title={version.title}>{version.title}</option>)}
+        </select>
+      </label>
+      <label>段落<select name="entry_section">{Object.entries(sectionLabels).map(([value, label]) => <option value={value}>{label}</option>)}</select></label>
+      <label>Medley 组<input name="entry_medley" maxlength="40" placeholder="例如 01" /></label>
+      <label class="row-title">显示标题 *<input name="entry_title" required maxlength="240" /></label>
+      <label class="row-note">备注<input name="entry_notes" maxlength="1000" /></label>
+      <div class="row-actions">
+        <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
+        <button type="button" class="secondary icon-button" data-move-down aria-label="下移">↓</button>
+        <button type="button" class="danger icon-button" data-remove-row aria-label="删除"><Icon name="trash" /></button>
+      </div>
+    </div>
+  </template>
+</form>
+
+<script>
+  const setlistEditor = document.querySelector<HTMLElement>("[data-setlist-editor]");
+  const entryRows = setlistEditor?.querySelector<HTMLElement>("[data-entry-rows]");
+  const entryTemplate = setlistEditor?.querySelector<HTMLTemplateElement>("[data-entry-template]");
+  const entryEmpty = setlistEditor?.querySelector<HTMLElement>("[data-entry-empty]");
+
+  const filterVersions = (row: HTMLElement) => {
+    const song = row.querySelector("[name=entry_song_id]");
+    const version = row.querySelector("[name=entry_version_id]");
+    if (!(song instanceof HTMLSelectElement) || !(version instanceof HTMLSelectElement)) return;
+    for (const option of version.options) {
+      if (!option.value) continue;
+      option.hidden = option.dataset.songId !== song.value;
+    }
+    const selected = version.selectedOptions[0];
+    if (selected?.value && selected.dataset.songId !== song.value) version.value = "";
+  };
+
+  const refreshEntries = () => {
+    const rows = [...(entryRows?.querySelectorAll<HTMLElement>("[data-entry-row]") ?? [])];
+    if (entryEmpty) entryEmpty.hidden = rows.length > 0;
+    rows.forEach((row, index) => {
+      const label = row.querySelector<HTMLElement>("[data-row-index]");
+      if (label) label.textContent = String(index + 1).padStart(2, "0");
+      filterVersions(row);
+    });
+  };
+
+  setlistEditor?.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-add-entry]") && entryRows && entryTemplate) {
+      const clone = entryTemplate.content.firstElementChild?.cloneNode(true);
+      if (!(clone instanceof HTMLElement)) return;
+      entryRows.insertAdjacentElement("beforeend", clone);
+      refreshEntries();
+      const songSelect = clone.querySelector("[name=entry_song_id]");
+      if (songSelect instanceof HTMLElement) songSelect.focus();
+      return;
+    }
+    const row = target.closest<HTMLElement>("[data-entry-row]");
+    if (!row || !entryRows) return;
+    if (target.closest("[data-remove-row]")) row.remove();
+    if (target.closest("[data-move-up]") && row.previousElementSibling) entryRows.insertBefore(row, row.previousElementSibling);
+    if (target.closest("[data-move-down]") && row.nextElementSibling) entryRows.insertBefore(row.nextElementSibling, row);
+    refreshEntries();
+  });
+
+  setlistEditor?.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLSelectElement)) return;
+    const row = target.closest<HTMLElement>("[data-entry-row]");
+    if (!row) return;
+    const title = row.querySelector<HTMLInputElement>("[name=entry_title]");
+    if (target.name === "entry_song_id") {
+      filterVersions(row);
+      const songTitle = target.selectedOptions[0]?.dataset.title;
+      if (title && songTitle && !title.value.trim()) title.value = songTitle;
+    }
+    if (target.name === "entry_version_id") {
+      const versionTitle = target.selectedOptions[0]?.dataset.title;
+      if (title && versionTitle && !title.value.trim()) title.value = versionTitle;
+    }
+  });
+  refreshEntries();
+</script>
+
+<style>
+  .catalog-form { display: grid; gap: 2rem; }
+  .publish-check { display: flex; align-items: center; gap: .55rem; }
+  .publish-check input { width: auto; }
+  .editor-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+  .editor-heading h2, .editor-heading p { margin-bottom: .35rem; }
+  .editor-rows { display: grid; gap: .7rem; }
+  .editor-row { display: grid; grid-template-columns: 46px minmax(210px, 1.15fr) minmax(210px, 1.15fr) 120px 100px auto; gap: .55rem; align-items: end; padding: .8rem; border: 1px solid var(--line); border-radius: 13px; background: rgba(4,11,20,.52); }
+  .row-index { align-self: center; color: var(--accent); font: 800 .78rem/1 ui-monospace, monospace; text-align: center; }
+  .row-title { grid-column: 2 / 4; }
+  .row-note { grid-column: 4 / 6; }
+  .row-actions { display: flex; gap: .25rem; grid-column: 6; grid-row: 1; }
+  .icon-button { width: 2.25rem; min-height: 2.25rem; padding: 0; }
+  .editor-empty { padding: 2rem 1rem; }
+  .form-actions { border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  @media (max-width: 1050px) {
+    .editor-row { grid-template-columns: 46px 1fr 1fr auto; }
+    .row-song { grid-column: 2 / 3; }
+    .row-version { grid-column: 3 / 4; }
+    .row-title, .row-note { grid-column: 2 / -1; }
+    .row-actions { grid-column: 4; }
+  }
+  @media (max-width: 680px) {
+    .editor-heading { align-items: stretch; flex-direction: column; }
+    .editor-row { grid-template-columns: 42px 1fr; }
+    .row-song, .row-version, .row-title, .row-note { grid-column: 1 / -1; }
+    .row-actions { grid-column: 1 / -1; grid-row: auto; }
+  }
+</style>

@@ -8,9 +8,10 @@
 - LIVE、EVENT、RELEASE、MEDIA、OTHER 分类及细分类。
 - 取消、延期、完成、下线和归档。
 - 多条官方来源。
-- 人工编辑与 AI 提案使用同一条发布链路。
+- 人工编辑使用受控的直接保存链路，AI/MCP 使用可审核的提案发布链路。
 - 幂等、防重复、乐观锁和完整审计。
 - 从 Notion 一次性迁移约 369 条历史记录。
+- 歌曲作品、录音/编曲版本、发行曲目与 Live 歌单之间的多向查询。
 
 所有日期以 ISO 格式存储：
 
@@ -40,7 +41,7 @@ cancelled
 postponed
 ```
 
-草稿不属于活动状态。尚未创建或尚未应用的内容保存在 `change_sets`；`events.published = 0` 表示已有活动当前未公开，不代表另一套草稿模型。
+草稿不属于活动状态。`change_sets` 只保存 AI/MCP 或其他低信任自动化提交的待审核提案；可信人工维护者直接保存到正式表。`events.published = 0` 表示记录已保存在后台但尚未公开，不再另建一套人工草稿模型。
 
 ### `change_operation`
 
@@ -288,3 +289,21 @@ classification,venue,region,remark,status,published,source_url
 ```
 
 导入分为两步：验证预览和明确确认。验证失败不能部分写入。导出包含所有活动和来源，但不包含 audit log 中的内部元数据。
+
+## 9. 歌单库扩展
+
+`0003_music_library.sql` 增加：
+
+```text
+songs                    作品主记录
+song_aliases             搜索别名
+song_versions            具体录音、编曲或演唱版本
+song_version_relations   版本之间的有向关系
+releases                 Album/Single/EP/Video 等发行物
+release_tracks           Disc/Track 与歌曲版本的关联
+setlists                 与 events 关联的一份 Live 歌单
+setlist_entries          顺序、章节、作品及可选的具体版本
+catalog_sources          歌曲、版本、发行物和歌单的来源
+```
+
+完整语义、CSV 字段和导入流程见 [歌单库](./music-library.md)。

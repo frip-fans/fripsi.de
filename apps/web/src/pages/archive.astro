@@ -1,36 +1,361 @@
 ---
 import { listArchiveYears, searchEvents } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
+import Icon from "../components/Icon.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
+import { getLocale, t } from "../lib/i18n";
 
 const db = getEnv().DB;
+const locale = getLocale(Astro.request);
 const years = await listArchiveYears(db);
 const requested = Astro.url.searchParams.get("year");
 const year = requested && /^\d{4}$/.test(requested) ? requested : years[0]?.year;
-const events = year ? await searchEvents(db, { date_from: `${year}-01-01`, date_to: `${year}-12-31`, limit: 100 }, true) : [];
+const events = year ? await searchEvents(db, { date_from: `${year}-01-01`, date_to: `${year}-12-31`, limit: 500 }, true) : [];
+const categoryOptions = [
+  { value: "LIVE", label: "Live" },
+  { value: "EVENT", label: "Event" },
+  { value: "RELEASE", label: "Release" },
+  { value: "MEDIA", label: "Media" },
+  { value: "OTHER", label: "Other" }
+].map((option) => ({ ...option, count: events.filter((event) => event.category === option.value).length }));
 ---
-<SiteLayout title="历史归档">
+<SiteLayout title={t(locale, "archive.title")} clientRouting>
   <header class="archive-head">
-    <div><p class="eyebrow">Archive</p><h1>History,<br />in sequence.</h1></div>
-    <p class="lede">按年份浏览已整理的 Live、Event、发行与媒体活动。历史数据迁移完成后，这里会成为一条可查询的完整时间线。</p>
+    <h1>Event List</h1>
   </header>
-  <div class="year-tabs">
-    {years.map((item) => <a class:list={{ active: item.year === year }} href={`/archive?year=${item.year}`}><strong>{item.year}</strong><small>{item.count} records</small></a>)}
+  <div class="year-tabs" data-year-tabs>
+    {years.map((item) => <a class:list={{ active: item.year === year }} href={`/archive?year=${item.year}`} data-astro-prefetch="viewport"><strong>{item.year}</strong><small>{t(locale, "archive.yearCount", { count: item.count })}</small></a>)}
   </div>
-  <section class="stack">
-    {events.map((event) => <EventCard event={event} />)}
-    {!events.length && <div class="empty panel">还没有可归档的公开记录。</div>}
+  {events.length > 0 && (
+    <div class="list-toolbar">
+      <label class="event-search">
+        <span class="visually-hidden">{t(locale, "archive.searchLabel")}</span>
+        <Icon name="search" />
+        <input type="search" placeholder={t(locale, "archive.searchPlaceholder")} autocomplete="off" data-event-search-input />
+      </label>
+      <div class="list-control-row">
+        <div class="list-controls">
+          <div class="control-popover" data-control-popover>
+            <button
+              type="button"
+              class="control-button"
+              aria-expanded="false"
+              aria-controls="event-filter-panel"
+              data-filter-toggle
+            >
+              <Icon name="funnel" />
+              <span>{t(locale, "common.filter")}</span>
+              <span class="active-filter-count" data-filter-count hidden>0</span>
+            </button>
+            <div class="control-card filter-card" id="event-filter-panel" data-filter-panel hidden>
+              <div class="control-card-head">
+                <div><strong>{t(locale, "archive.activityType")}</strong><span>{t(locale, "archive.multiple")}</span></div>
+                <small>FILTER</small>
+              </div>
+              <div class="filter-options">
+                {categoryOptions.map((option) => (
+                  <label class:list={["filter-choice", { disabled: option.count === 0 }]}>
+                    <input
+                      type="checkbox"
+                      value={option.value}
+                      data-category-filter
+                      disabled={option.count === 0}
+                    />
+                    <span class="filter-pill"><span>{option.label}</span><small>{option.count}</small></span>
+                  </label>
+                ))}
+              </div>
+              <div class="control-card-actions">
+                <button type="button" class="clear-control" data-filter-clear disabled>{t(locale, "archive.clear")}</button>
+                <button type="button" class="done-control" data-filter-done>{t(locale, "archive.done")}</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-popover" data-control-popover>
+            <button
+              type="button"
+              class="control-button"
+              aria-expanded="false"
+              aria-controls="event-sort-panel"
+              data-sort-toggle
+            >
+              <Icon name="arrow-down-up" />
+              <span>{t(locale, "archive.sort")}</span>
+              <span class="control-value" data-sort-button-label>{t(locale, "archive.sortAsc")}</span>
+            </button>
+            <div class="control-card sort-card" id="event-sort-panel" data-sort-panel hidden>
+              <div class="control-card-head">
+                <div><strong>{t(locale, "archive.sortTitle")}</strong><span>{t(locale, "archive.sortHelp")}</span></div>
+                <small>SORT</small>
+              </div>
+              <div class="sort-options">
+                <label class="sort-choice">
+                  <input type="radio" name="event-sort" value="asc" data-sort-option data-sort-label={t(locale, "archive.sortAsc")} checked />
+                  <span><strong>{t(locale, "archive.sortAsc")}</strong><small>{t(locale, "archive.sortAscHelp")}</small></span>
+                </label>
+                <label class="sort-choice">
+                  <input type="radio" name="event-sort" value="desc" data-sort-option data-sort-label={t(locale, "archive.sortDesc")} />
+                  <span><strong>{t(locale, "archive.sortDesc")}</strong><small>{t(locale, "archive.sortDescHelp")}</small></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <span
+          class="search-count"
+          data-search-count
+          data-total-template={t(locale, "archive.total", { count: "{count}" })}
+          data-filtered-template={t(locale, "archive.filtered", { visible: "{visible}", total: "{total}" })}
+          aria-live="polite"
+        >{t(locale, "archive.total", { count: events.length })}</span>
+      </div>
+    </div>
+  )}
+  <section class="stack" data-event-list>
+    {events.map((event, index) => (
+      <div
+        class="event-item"
+        data-event-item
+        data-event-index={index}
+        data-event-category={event.category}
+        data-event-sort={`${event.start_date}T${event.start_time ?? "00:00"}`}
+        data-search-text={[event.title, event.category, event.classification, event.venue, event.region, event.remark].filter(Boolean).join(" ").toLocaleLowerCase()}
+      >
+        <EventCard event={event} />
+      </div>
+    ))}
+    <div class="empty panel" data-search-empty hidden>{t(locale, "archive.noMatch")}</div>
+    {!events.length && <div class="empty panel">{t(locale, "archive.empty")}</div>}
   </section>
 </SiteLayout>
 
+<script>
+  const yearTabsScrollKey = "frip-fan:archive-year-tabs-scroll";
+  let archivePageController: AbortController | undefined;
+
+  const setupArchivePage = () => {
+    archivePageController?.abort();
+    archivePageController = undefined;
+
+    const yearTabs = document.querySelector<HTMLElement>("[data-year-tabs]");
+    if (!yearTabs) return;
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    archivePageController = controller;
+    const searchInput = document.querySelector<HTMLInputElement>("[data-event-search-input]");
+    const eventItems = [...document.querySelectorAll<HTMLElement>("[data-event-item]")];
+    const eventList = document.querySelector<HTMLElement>("[data-event-list]");
+    const searchCount = document.querySelector<HTMLElement>("[data-search-count]");
+    const searchEmpty = document.querySelector<HTMLElement>("[data-search-empty]");
+    const filterToggle = document.querySelector<HTMLButtonElement>("[data-filter-toggle]");
+    const filterPanel = document.querySelector<HTMLElement>("[data-filter-panel]");
+    const filterInputs = [...document.querySelectorAll<HTMLInputElement>("[data-category-filter]")];
+    const filterCount = document.querySelector<HTMLElement>("[data-filter-count]");
+    const filterClear = document.querySelector<HTMLButtonElement>("[data-filter-clear]");
+    const filterDone = document.querySelector<HTMLButtonElement>("[data-filter-done]");
+    const sortToggle = document.querySelector<HTMLButtonElement>("[data-sort-toggle]");
+    const sortPanel = document.querySelector<HTMLElement>("[data-sort-panel]");
+    const sortInputs = [...document.querySelectorAll<HTMLInputElement>("[data-sort-option]")];
+    const sortButtonLabel = document.querySelector<HTMLElement>("[data-sort-button-label]");
+
+    const saveYearTabsScroll = () => {
+      const max = Math.max(0, yearTabs.scrollWidth - yearTabs.clientWidth);
+      try {
+        sessionStorage.setItem(yearTabsScrollKey, JSON.stringify({
+          left: yearTabs.scrollLeft,
+          max,
+          progress: max > 0 ? yearTabs.scrollLeft / max : 0
+        }));
+      } catch {
+        // The archive remains usable when browser storage is unavailable.
+      }
+    };
+
+    const restoreYearTabsScroll = () => {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(yearTabsScrollKey) ?? "null") as {
+          left?: number;
+          max?: number;
+          progress?: number;
+        } | null;
+        if (!saved) return;
+        const max = Math.max(0, yearTabs.scrollWidth - yearTabs.clientWidth);
+        const sameTrackWidth = Number.isFinite(saved.max) && Math.abs(max - (saved.max ?? 0)) < 1;
+        const target = sameTrackWidth
+          ? saved.left ?? 0
+          : max * Math.min(1, Math.max(0, saved.progress ?? 0));
+        yearTabs.scrollLeft = Math.min(max, Math.max(0, target));
+      } catch {
+        // Ignore invalid or inaccessible session storage.
+      }
+    };
+
+    const closePanel = (button: HTMLButtonElement | null, panel: HTMLElement | null) => {
+      if (!button || !panel) return;
+      panel.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+    };
+
+    const closeControlPanels = () => {
+      closePanel(filterToggle, filterPanel);
+      closePanel(sortToggle, sortPanel);
+    };
+
+    const togglePanel = (button: HTMLButtonElement | null, panel: HTMLElement | null) => {
+      if (!button || !panel) return;
+      const shouldOpen = panel.hidden;
+      closeControlPanels();
+      panel.hidden = !shouldOpen;
+      button.setAttribute("aria-expanded", String(shouldOpen));
+    };
+
+    const applyListState = () => {
+      const terms = searchInput?.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean) ?? [];
+      const selectedCategories = new Set(filterInputs.filter((input) => input.checked).map((input) => input.value));
+      const sortDirection = sortInputs.find((input) => input.checked)?.value === "desc" ? -1 : 1;
+
+      const sortedItems = [...eventItems].sort((left, right) => {
+        const byTime = (left.dataset.eventSort ?? "").localeCompare(right.dataset.eventSort ?? "") * sortDirection;
+        if (byTime !== 0) return byTime;
+        return Number(left.dataset.eventIndex ?? 0) - Number(right.dataset.eventIndex ?? 0);
+      });
+      sortedItems.forEach((item) => eventList?.insertBefore(item, searchEmpty));
+
+      let visibleCount = 0;
+      eventItems.forEach((item) => {
+        const searchText = item.dataset.searchText ?? "";
+        const matchesSearch = terms.every((term) => searchText.includes(term));
+        const matchesCategory = selectedCategories.size === 0 || selectedCategories.has(item.dataset.eventCategory ?? "");
+        item.hidden = !(matchesSearch && matchesCategory);
+        if (!item.hidden) visibleCount += 1;
+      });
+
+      const filtering = terms.length > 0 || selectedCategories.size > 0;
+      if (searchCount) {
+        const totalTemplate = searchCount.dataset.totalTemplate ?? "{count}";
+        const filteredTemplate = searchCount.dataset.filteredTemplate ?? "{visible} / {total}";
+        searchCount.textContent = filtering
+          ? filteredTemplate.replaceAll("{visible}", String(visibleCount)).replaceAll("{total}", String(eventItems.length))
+          : totalTemplate.replaceAll("{count}", String(eventItems.length));
+      }
+      if (searchEmpty) searchEmpty.hidden = !filtering || visibleCount > 0;
+      if (filterCount) {
+        filterCount.textContent = String(selectedCategories.size);
+        filterCount.hidden = selectedCategories.size === 0;
+      }
+      if (filterClear) filterClear.disabled = selectedCategories.size === 0;
+      filterToggle?.classList.toggle("active", selectedCategories.size > 0);
+    };
+
+    restoreYearTabsScroll();
+    requestAnimationFrame(() => { if (!signal.aborted) restoreYearTabsScroll(); });
+    yearTabs.addEventListener("scroll", saveYearTabsScroll, { passive: true, signal });
+    yearTabs.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const link = event.target.closest<HTMLAnchorElement>("a");
+      if (!link) return;
+      saveYearTabsScroll();
+      if (!link.classList.contains("active")) {
+        link.classList.add("is-pending");
+        link.setAttribute("aria-busy", "true");
+      }
+    }, { signal });
+    window.addEventListener("pagehide", saveYearTabsScroll, { signal });
+    window.addEventListener("pageshow", restoreYearTabsScroll, { signal });
+    searchInput?.addEventListener("input", applyListState, { signal });
+    filterToggle?.addEventListener("click", () => togglePanel(filterToggle, filterPanel), { signal });
+    sortToggle?.addEventListener("click", () => togglePanel(sortToggle, sortPanel), { signal });
+    filterInputs.forEach((input) => input.addEventListener("change", applyListState, { signal }));
+    filterClear?.addEventListener("click", () => {
+      filterInputs.forEach((input) => { input.checked = false; });
+      applyListState();
+    }, { signal });
+    filterDone?.addEventListener("click", () => closePanel(filterToggle, filterPanel), { signal });
+    sortInputs.forEach((input) => input.addEventListener("change", () => {
+      if (sortButtonLabel) sortButtonLabel.textContent = input.dataset.sortLabel ?? sortInputs[0]?.dataset.sortLabel ?? "";
+      applyListState();
+      closePanel(sortToggle, sortPanel);
+    }, { signal }));
+    document.addEventListener("pointerdown", (event) => {
+      const target = event.target;
+      if (target instanceof Element && !target.closest("[data-control-popover]")) closeControlPanels();
+    }, { signal });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeControlPanels();
+    }, { signal });
+  };
+
+  document.addEventListener("astro:page-load", setupArchivePage);
+  setupArchivePage();
+</script>
+
 <style>
-  .archive-head { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 4rem; }
   .archive-head h1 { margin-bottom: 0; }
-  .year-tabs { display: flex; gap: .7rem; margin: 4rem 0 2rem; overflow-x: auto; padding-bottom: .5rem; }
-  .year-tabs a { min-width: 120px; display: grid; gap: .2rem; text-decoration: none; border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; }
+  .year-tabs { display: flex; gap: .7rem; margin: 2.5rem 0 1.25rem; overflow-x: auto; padding-bottom: .5rem; }
+  .year-tabs a { min-width: 120px; display: grid; gap: .2rem; text-decoration: none; border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; transition: color .16s, border-color .16s, background .16s, opacity .16s; }
   .year-tabs a.active { border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .06); }
+  .year-tabs a.is-pending { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .08); animation: year-tab-pulse .8s ease-in-out infinite alternate; }
   .year-tabs strong { font-size: 1.2rem; }
   .year-tabs small { color: var(--muted); }
-  @media (max-width: 760px) { .archive-head { grid-template-columns: 1fr; gap: 1rem; } }
+  @keyframes year-tab-pulse { to { opacity: .58; } }
+  .list-toolbar { display: grid; gap: .75rem; margin-bottom: 1.25rem; }
+  .event-search { position: relative; display: flex; align-items: center; width: 100%; color: var(--muted); }
+  .event-search :global(.icon) { position: absolute; left: .9rem; pointer-events: none; }
+  .event-search input { height: 46px; padding-left: 2.65rem; background: rgba(7,16,28,.74); border-color: var(--line); }
+  .event-search input::-webkit-search-cancel-button { cursor: pointer; }
+  .list-control-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 38px; }
+  .list-controls { display: flex; align-items: center; gap: .55rem; }
+  .control-popover { position: relative; }
+  .control-button { min-height: 38px; padding: .5rem .75rem; color: #dce8f2; background: rgba(8,18,31,.78); border: 1px solid var(--line); border-radius: 10px; font-size: .78rem; font-weight: 680; box-shadow: 0 8px 24px rgba(0,0,0,.12); backdrop-filter: blur(16px); }
+  .control-button:hover, .control-button[aria-expanded="true"] { color: var(--text); border-color: rgba(var(--accent-rgb),.38); background: rgba(16,29,46,.92); }
+  .control-button.active { color: var(--accent); border-color: rgba(var(--accent-rgb),.38); }
+  .control-value { color: var(--muted); font-weight: 540; padding-left: .25rem; border-left: 1px solid var(--line); }
+  .active-filter-count { display: inline-grid; place-items: center; min-width: 1.25rem; height: 1.25rem; padding: 0 .28rem; color: #07101c; background: var(--accent); border-radius: 999px; font-size: .66rem; font-weight: 850; }
+  .active-filter-count[hidden] { display: none; }
+  .control-card { position: absolute; z-index: 30; top: calc(100% + .65rem); left: 0; width: min(20rem, calc(100vw - 2rem)); padding: 1rem; background: linear-gradient(145deg, rgba(15,30,49,.98), rgba(7,16,28,.98)); border: 1px solid rgba(var(--accent-rgb),.28); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.5); backdrop-filter: blur(24px); }
+  .control-card[hidden] { display: none; }
+  .control-card-head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: .15rem .15rem .85rem; border-bottom: 1px solid var(--line); }
+  .control-card-head div { display: grid; gap: .2rem; }
+  .control-card-head strong { font-size: .92rem; }
+  .control-card-head span { color: var(--muted); font-size: .7rem; }
+  .control-card-head > small { color: var(--accent); font-size: .58rem; letter-spacing: .18em; }
+  .filter-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: .9rem 0; }
+  .filter-choice { display: block; cursor: pointer; }
+  .filter-choice input, .sort-choice input { position: absolute; opacity: 0; pointer-events: none; }
+  .filter-pill { display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: .55rem .7rem; color: var(--muted); background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 10px; transition: color .16s, border-color .16s, background .16s; }
+  .filter-pill > span { font-size: .78rem; font-weight: 680; }
+  .filter-pill small { min-width: 1.45rem; text-align: center; color: var(--muted); font-size: .65rem; }
+  .filter-choice:hover .filter-pill { color: var(--text); border-color: rgba(var(--accent-rgb),.25); }
+  .filter-choice input:focus-visible + .filter-pill { box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.1); }
+  .filter-choice input:checked + .filter-pill { color: var(--accent); border-color: rgba(var(--accent-rgb),.55); background: rgba(var(--accent-rgb),.09); box-shadow: inset 0 -1px rgba(var(--accent-rgb),.22); }
+  .filter-choice.disabled { opacity: .35; cursor: not-allowed; }
+  .control-card-actions { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding-top: .85rem; border-top: 1px solid var(--line); }
+  .control-card-actions button { min-height: 34px; padding: .42rem .7rem; font-size: .7rem; }
+  .clear-control { color: var(--muted); background: transparent; border: 1px solid transparent; }
+  .clear-control:not(:disabled):hover { color: var(--text); border-color: var(--line); background: rgba(255,255,255,.035); }
+  .clear-control:disabled { opacity: .35; cursor: not-allowed; }
+  .done-control { color: #07101c; background: var(--accent); }
+  .sort-card { width: min(17rem, calc(100vw - 2rem)); }
+  .sort-options { display: grid; gap: .45rem; padding-top: .85rem; }
+  .sort-choice { display: block; cursor: pointer; }
+  .sort-choice > span { position: relative; display: grid; gap: .15rem; padding: .72rem .8rem .72rem 2rem; color: var(--muted); border: 1px solid transparent; border-radius: 11px; transition: color .16s, border-color .16s, background .16s; }
+  .sort-choice > span::before { content: ""; position: absolute; left: .75rem; top: .95rem; width: .55rem; height: .55rem; border: 1px solid #66778a; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(7,16,28,.98); }
+  .sort-choice strong { font-size: .78rem; }
+  .sort-choice small { color: var(--muted); font-size: .66rem; }
+  .sort-choice:hover > span { color: var(--text); background: rgba(255,255,255,.025); }
+  .sort-choice input:focus-visible + span { box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.1); }
+  .sort-choice input:checked + span { color: var(--accent); border-color: rgba(var(--accent-rgb),.26); background: rgba(var(--accent-rgb),.065); }
+  .sort-choice input:checked + span::before { border-color: var(--accent); background: var(--accent); }
+  .search-count { margin-left: auto; padding-right: .15rem; color: var(--muted); font-size: .72rem; white-space: nowrap; }
+  .event-item[hidden], [data-search-empty][hidden] { display: none; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  @media (max-width: 560px) {
+    .list-control-row { align-items: flex-start; }
+    .list-controls { flex-wrap: wrap; }
+    .control-card { position: fixed; top: auto; left: 1rem; right: 1rem; bottom: 1rem; width: auto; }
+    .control-value { display: none; }
+  }
 </style>

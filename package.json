@@ -24,7 +24,13 @@
     "db:migrate:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 migrations apply frip-fan-dev --local --config apps/web/wrangler.jsonc",
     "db:seed:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 execute frip-fan-dev --local --config apps/web/wrangler.jsonc --file scripts/seed.sql",
     "import:notion": "tsx scripts/import-notion-export.ts",
-    "import:sql": "tsx scripts/build-import-sql.ts"
+    "import:sql": "tsx scripts/build-import-sql.ts",
+    "import:music": "tsx scripts/import-music-library.ts",
+    "build:phase3-albums": "node scripts/build-phase3-album-import.mjs",
+    "build:liberation-setlists": "node scripts/build-liberation-protocol-setlists.mjs",
+    "build:anisama-setlists": "node scripts/build-anisama-setlists.mjs",
+    "build:asia-festival-setlists": "node scripts/build-asia-festival-setlists.mjs",
+    "build:dawn-final-setlist": "node scripts/build-dawn-of-resonance-final-setlist.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",

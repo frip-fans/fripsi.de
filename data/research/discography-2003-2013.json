@@ -1,0 +1,2297 @@
+{
+  "scope": {
+    "from": "2003-01-01",
+    "to": "2013-12-31",
+    "included_official_types": [
+      "ALBUM",
+      "SINGLE",
+      "DIGITAL"
+    ],
+    "excluded": [
+      "standalone DVD/Blu-ray releases",
+      "video-only bonus discs and tracks"
+    ],
+    "note": "Only releases listed in the official fripSide Discography are included. The official Discography lists no DIGITAL or EP releases in this date range."
+  },
+  "source": "https://fripside.net/discography",
+  "releases": [
+    {
+      "source_url": "https://fripside.net/musics/11702",
+      "official_type": "ALBUM",
+      "title": "【第1期】first odyssey of fripSide",
+      "release_date": "2003-04-12",
+      "editions": [
+        {
+          "name": "収録内容（公式ページに版名記載なし）",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "introduction"
+                },
+                {
+                  "number": 2,
+                  "title": "distant moon"
+                },
+                {
+                  "number": 3,
+                  "title": "come to mind"
+                },
+                {
+                  "number": 4,
+                  "title": "Love to Sing"
+                },
+                {
+                  "number": 5,
+                  "title": "Colorless fate"
+                },
+                {
+                  "number": 6,
+                  "title": "Your Ocean -azure reproduct mix-"
+                },
+                {
+                  "number": 7,
+                  "title": "be sure... -album mix-"
+                },
+                {
+                  "number": 8,
+                  "title": "bright days"
+                },
+                {
+                  "number": 9,
+                  "title": "in the future -side02-"
+                },
+                {
+                  "number": 10,
+                  "title": "Love to Sing -HEAVENS WiRE RMX-"
+                },
+                {
+                  "number": 11,
+                  "title": "end game"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The official page does not state an edition name or catalog number."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11703",
+      "official_type": "ALBUM",
+      "title": "【第1期】2nd fragment of fripSide",
+      "release_date": "2004-03-28",
+      "editions": [
+        {
+          "name": "（CD+DVD）",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "second fragment"
+                },
+                {
+                  "number": 2,
+                  "title": "sky"
+                },
+                {
+                  "number": 3,
+                  "title": "transitory orbit"
+                },
+                {
+                  "number": 4,
+                  "title": "message"
+                },
+                {
+                  "number": 5,
+                  "title": "save me again"
+                },
+                {
+                  "number": 6,
+                  "title": "tearful voice"
+                },
+                {
+                  "number": 7,
+                  "title": "belief"
+                },
+                {
+                  "number": 8,
+                  "title": "stellar"
+                },
+                {
+                  "number": 9,
+                  "title": "Detour -fripSide edition-"
+                },
+                {
+                  "number": 10,
+                  "title": "crying moon"
+                },
+                {
+                  "number": 11,
+                  "title": "belief -TRI-HEDGE RMX-"
+                },
+                {
+                  "number": 12,
+                  "title": "storm of sorrow"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The official page does not state a catalog number. Disc 2 is a video disc and is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11704",
+      "official_type": "ALBUM",
+      "title": "【第1期】3rd reflection of fripSide",
+      "release_date": "2005-06-23",
+      "editions": [
+        {
+          "name": "収録内容（公式ページに版名記載なし）",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "an evening calm"
+                },
+                {
+                  "number": 2,
+                  "title": "reminiscense blue"
+                },
+                {
+                  "number": 3,
+                  "title": "nostalgia"
+                },
+                {
+                  "number": 4,
+                  "title": "transient wind"
+                },
+                {
+                  "number": 5,
+                  "title": "vanity destroyer -fripSide edition-"
+                },
+                {
+                  "number": 6,
+                  "title": "velocity -fripSide+vin-PRAD-"
+                },
+                {
+                  "number": 7,
+                  "title": "splash emotion"
+                },
+                {
+                  "number": 8,
+                  "title": "colors of summer dream"
+                },
+                {
+                  "number": 9,
+                  "title": "planet illusion"
+                },
+                {
+                  "number": 10,
+                  "title": "sky -sLab reproduct mix-"
+                },
+                {
+                  "number": 11,
+                  "title": "bright days -version2005-"
+                },
+                {
+                  "number": 12,
+                  "title": "distant moon -version2005-"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The official page does not state an edition name or catalog number. Track spelling follows the official page, including “reminiscense blue”."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11705",
+      "official_type": "ALBUM",
+      "title": "【第1期】the very best of fripSide 2002-2006",
+      "release_date": "2006-07-15",
+      "editions": [
+        {
+          "name": "同人盤（2CD）",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "come to mind"
+                },
+                {
+                  "number": 2,
+                  "title": "sky"
+                },
+                {
+                  "number": 3,
+                  "title": "an evening calm"
+                },
+                {
+                  "number": 4,
+                  "title": "save me again"
+                },
+                {
+                  "number": 5,
+                  "title": "nostalgia"
+                },
+                {
+                  "number": 6,
+                  "title": "transitory orbit"
+                },
+                {
+                  "number": 7,
+                  "title": "colorless fate"
+                },
+                {
+                  "number": 8,
+                  "title": "crescendo"
+                },
+                {
+                  "number": 9,
+                  "title": "velocity -fripSide+vin-PRAD-"
+                },
+                {
+                  "number": 10,
+                  "title": "bright days -version2005-"
+                },
+                {
+                  "number": 11,
+                  "title": "splash emotion"
+                },
+                {
+                  "number": 12,
+                  "title": "end game"
+                },
+                {
+                  "number": 13,
+                  "title": "crying moon"
+                },
+                {
+                  "number": 14,
+                  "title": "distant moon"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 2,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "the chaostic world"
+                },
+                {
+                  "number": 2,
+                  "title": "vanity destroyer"
+                },
+                {
+                  "number": 3,
+                  "title": "message"
+                },
+                {
+                  "number": 4,
+                  "title": "reminiscence blue"
+                },
+                {
+                  "number": 5,
+                  "title": "melody -reset+fripSide-"
+                },
+                {
+                  "number": 6,
+                  "title": "love to sing"
+                },
+                {
+                  "number": 7,
+                  "title": "stellar"
+                },
+                {
+                  "number": 8,
+                  "title": "transient wind"
+                },
+                {
+                  "number": 9,
+                  "title": "absolute one"
+                },
+                {
+                  "number": 10,
+                  "title": "colors of summer dream"
+                },
+                {
+                  "number": 11,
+                  "title": "planet illusion"
+                },
+                {
+                  "number": 12,
+                  "title": "be sure... -album mix-"
+                },
+                {
+                  "number": 13,
+                  "title": "belief"
+                },
+                {
+                  "number": 14,
+                  "title": "your ocean -azure reproduct mix-"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Doujin 2CD edition. The official page does not state a catalog number. This is a separate official entry from the 2006-12-29 commercial edition; their track orders and selections differ."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11706",
+      "official_type": "ALBUM",
+      "title": "【第1期】the very best of fripSide 2002-2006",
+      "release_date": "2006-12-29",
+      "editions": [
+        {
+          "name": "商業流通盤（2CD）",
+          "catalog_number": "SCFS-0701〜02",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "Red -reduction division-"
+                },
+                {
+                  "number": 2,
+                  "title": "sky"
+                },
+                {
+                  "number": 3,
+                  "title": "an evening calm"
+                },
+                {
+                  "number": 4,
+                  "title": "save me again"
+                },
+                {
+                  "number": 5,
+                  "title": "nostalgia"
+                },
+                {
+                  "number": 6,
+                  "title": "transitory orbit"
+                },
+                {
+                  "number": 7,
+                  "title": "colorless fate"
+                },
+                {
+                  "number": 8,
+                  "title": "crescendo"
+                },
+                {
+                  "number": 9,
+                  "title": "velocity -fripSide+vin-PRAD-"
+                },
+                {
+                  "number": 10,
+                  "title": "bright days -version2005-"
+                },
+                {
+                  "number": 11,
+                  "title": "splash emotion"
+                },
+                {
+                  "number": 12,
+                  "title": "come to mind"
+                },
+                {
+                  "number": 13,
+                  "title": "crying moon"
+                },
+                {
+                  "number": 14,
+                  "title": "distant moon"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 2,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "the chaostic world"
+                },
+                {
+                  "number": 2,
+                  "title": "vanity destroyer"
+                },
+                {
+                  "number": 3,
+                  "title": "message"
+                },
+                {
+                  "number": 4,
+                  "title": "reminiscence blue"
+                },
+                {
+                  "number": 5,
+                  "title": "melody -reset+fripSide-"
+                },
+                {
+                  "number": 6,
+                  "title": "true eternity"
+                },
+                {
+                  "number": 7,
+                  "title": "stellar"
+                },
+                {
+                  "number": 8,
+                  "title": "transient wind"
+                },
+                {
+                  "number": 9,
+                  "title": "absolute one"
+                },
+                {
+                  "number": 10,
+                  "title": "love to sing"
+                },
+                {
+                  "number": 11,
+                  "title": "planet illusion"
+                },
+                {
+                  "number": 12,
+                  "title": "belief"
+                },
+                {
+                  "number": 13,
+                  "title": "your ocean -azure reproduct mix-"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Commercial-distribution 2CD edition. This is a separate official entry from the 2006-07-15 doujin edition; their track orders and selections differ."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11707",
+      "official_type": "ALBUM",
+      "title": "【第1期】binarydigit",
+      "release_date": "2007-08-24",
+      "editions": [
+        {
+          "name": "収録内容（公式ページに版名記載なし）",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "binary digit"
+                },
+                {
+                  "number": 2,
+                  "title": "hurting heart"
+                },
+                {
+                  "number": 3,
+                  "title": "misery"
+                },
+                {
+                  "number": 4,
+                  "title": "prominence -version 2007-"
+                },
+                {
+                  "number": 5,
+                  "title": "refine progress"
+                },
+                {
+                  "number": 6,
+                  "title": "heat your wave"
+                },
+                {
+                  "number": 7,
+                  "title": "libration crisis"
+                },
+                {
+                  "number": 8,
+                  "title": "never no astray"
+                },
+                {
+                  "number": 9,
+                  "title": "transient wind -version 2007-"
+                },
+                {
+                  "number": 10,
+                  "title": "dream myself!"
+                },
+                {
+                  "number": 11,
+                  "title": "true eternity -album version-"
+                },
+                {
+                  "number": 12,
+                  "title": "brave new world"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 2,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "hurting heart -nao piano arrange-"
+                },
+                {
+                  "number": 2,
+                  "title": "feeling trust"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The official page does not state an edition name or catalog number. The two-track bonus disc is audio and is retained as CD 2."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11708",
+      "official_type": "ALBUM",
+      "title": "【第1期】Rabbit Syndrome/fripSide NAO project!",
+      "release_date": "2008-01-25",
+      "editions": [
+        {
+          "name": "収録内容（公式ページに版名記載なし）",
+          "catalog_number": "scfs-0801",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "あっせんぶる☆LOVEさんぶる"
+                },
+                {
+                  "number": 2,
+                  "title": "せな★せな@Surprise!!"
+                },
+                {
+                  "number": 3,
+                  "title": "Rabbit Syndrome"
+                },
+                {
+                  "number": 4,
+                  "title": "こんいろ∞トキメキ!! ?着せたら脱がさない?"
+                },
+                {
+                  "number": 5,
+                  "title": "かがやけ!dreamin'ガール"
+                },
+                {
+                  "number": 6,
+                  "title": "こいびと☆アクセント!!"
+                },
+                {
+                  "number": 7,
+                  "title": "Wireless Cosmic"
+                },
+                {
+                  "number": 8,
+                  "title": "リバーシブルロマンス"
+                },
+                {
+                  "number": 9,
+                  "title": "HAPPYジェネレーション"
+                },
+                {
+                  "number": 10,
+                  "title": "せな★せな@Surprise!! -生物RMX-"
+                },
+                {
+                  "number": 11,
+                  "title": "あっせんぶる☆LOVEさんぶる -R.S.PV RMX-"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The official page does not state an edition name. Catalog-number casing is preserved from the official page."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11710",
+      "official_type": "SINGLE",
+      "title": "【第1期】flower of bravery",
+      "release_date": "2008-07-16",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "PCCR-90028",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "flower of bravery"
+                },
+                {
+                  "number": 2,
+                  "title": "sky -version 2008-"
+                },
+                {
+                  "number": 3,
+                  "title": "flower of bravery(Instrumental)"
+                },
+                {
+                  "number": 4,
+                  "title": "sky -version 2008-(Instrumental)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "PCCR-90029",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "flower of bravery"
+                },
+                {
+                  "number": 2,
+                  "title": "sky -version 2008-"
+                },
+                {
+                  "number": 3,
+                  "title": "flower of bravery(Instrumental)"
+                },
+                {
+                  "number": 4,
+                  "title": "sky -version 2008-(Instrumental)"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same four-track audio CD. The limited-edition DVD is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11711",
+      "official_type": "SINGLE",
+      "title": "【第1期】やっぱり世界はあたし☆れじぇんど!!/fripSide NAO project!",
+      "release_date": "2008-08-20",
+      "editions": [
+        {
+          "name": "収録内容（公式ページに版名記載なし）",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "やっぱり世界はあたし☆れじぇんど!!"
+                },
+                {
+                  "number": 2,
+                  "title": "プール・バケーション"
+                },
+                {
+                  "number": 3,
+                  "title": "やっぱり世界はあたし☆れじぇんど!! -Instrumental-"
+                },
+                {
+                  "number": 4,
+                  "title": "プール・バケーション -Instrumental-"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The official page does not state an edition name or catalog number. The TV-anime tie-in annotation was removed from track 1's title field."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11713",
+      "official_type": "ALBUM",
+      "title": "【第1期】split tears",
+      "release_date": "2008-09-17",
+      "editions": [
+        {
+          "name": "（メジャー流通盤）",
+          "catalog_number": "PCCG-90010",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "before dawn daybreak"
+                },
+                {
+                  "number": 2,
+                  "title": "split tears"
+                },
+                {
+                  "number": 3,
+                  "title": "praying over (album version)"
+                },
+                {
+                  "number": 4,
+                  "title": "magicaride"
+                },
+                {
+                  "number": 5,
+                  "title": "fictional moon (album version)"
+                },
+                {
+                  "number": 6,
+                  "title": "snow blind (album version)"
+                },
+                {
+                  "number": 7,
+                  "title": "snow blind -after-"
+                },
+                {
+                  "number": 8,
+                  "title": "spiral of despair"
+                },
+                {
+                  "number": 9,
+                  "title": "escape -version2008-"
+                },
+                {
+                  "number": 10,
+                  "title": "tomorrow"
+                },
+                {
+                  "number": 11,
+                  "title": "eternal twinkle"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "（ソフトウェア流通盤）",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "before dawn daybreak"
+                },
+                {
+                  "number": 2,
+                  "title": "split tears"
+                },
+                {
+                  "number": 3,
+                  "title": "praying over (album version)"
+                },
+                {
+                  "number": 4,
+                  "title": "magicaride"
+                },
+                {
+                  "number": 5,
+                  "title": "fictional moon (album version)"
+                },
+                {
+                  "number": 6,
+                  "title": "snow blind (album version)"
+                },
+                {
+                  "number": 7,
+                  "title": "snow blind -after-"
+                },
+                {
+                  "number": 8,
+                  "title": "spiral of despair"
+                },
+                {
+                  "number": 9,
+                  "title": "escape -version2008-"
+                },
+                {
+                  "number": 10,
+                  "title": "tomorrow"
+                },
+                {
+                  "number": 11,
+                  "title": "eternal twinkle"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The major- and software-distribution editions have the same 11-track audio program. The official page does not state a catalog number for the software-distribution edition."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11714",
+      "official_type": "ALBUM",
+      "title": "【第1期】Re:product mixes ver.0.1",
+      "release_date": "2008-12-28",
+      "editions": [
+        {
+          "name": "（コミックマーケット75限定）",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "hurting heart ju-ri-mix"
+                },
+                {
+                  "number": 2,
+                  "title": "Red -reduction division- sat vs tkm RMX ver.2.1"
+                },
+                {
+                  "number": 3,
+                  "title": "magicaride kai Re:product RMX"
+                },
+                {
+                  "number": 4,
+                  "title": "vanity destroyer tkm Re:product RMX"
+                },
+                {
+                  "number": 5,
+                  "title": "spiral of despair tkm Re:product RMX"
+                },
+                {
+                  "number": 6,
+                  "title": "[bonus track]an evening calm kai Re:product RMX"
+                },
+                {
+                  "number": 7,
+                  "title": "[bonus track]Red -reduction division- sat vs tkm RMX"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Comic Market 75 limited release. The official page does not state a catalog number; bonus-track markers are preserved in the track titles."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11716",
+      "official_type": "SINGLE",
+      "title": "only my railgun",
+      "release_date": "2009-11-04",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-0151",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "only my railgun"
+                },
+                {
+                  "number": 2,
+                  "title": "late in autumn"
+                },
+                {
+                  "number": 3,
+                  "title": "only my railgun （Instrumental）"
+                },
+                {
+                  "number": 4,
+                  "title": "late in autumn （Instrumental）"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0152",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "only my railgun"
+                },
+                {
+                  "number": 2,
+                  "title": "late in autumn"
+                },
+                {
+                  "number": 3,
+                  "title": "only my railgun （Instrumental）"
+                },
+                {
+                  "number": 4,
+                  "title": "late in autumn （Instrumental）"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same four-track audio CD. The limited-edition DVD is omitted; the TV-anime tie-in annotation was removed from track 1's title field."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11717",
+      "official_type": "ALBUM",
+      "title": "【第1期】nao complete anthology 2002-2009 -my graduation-",
+      "release_date": "2009-12-29",
+      "editions": [
+        {
+          "name": "収録内容（公式ページに版名記載なし）",
+          "catalog_number": "SCFS-0901〜0910",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "introduction"
+                },
+                {
+                  "number": 2,
+                  "title": "distant moon"
+                },
+                {
+                  "number": 3,
+                  "title": "come to mind"
+                },
+                {
+                  "number": 4,
+                  "title": "Love to Sing"
+                },
+                {
+                  "number": 5,
+                  "title": "Colorless fate"
+                },
+                {
+                  "number": 6,
+                  "title": "your ocean -azure reproduct mix-"
+                },
+                {
+                  "number": 7,
+                  "title": "be sure...-album mix-"
+                },
+                {
+                  "number": 8,
+                  "title": "bright days"
+                },
+                {
+                  "number": 9,
+                  "title": "in the future -side02-"
+                },
+                {
+                  "number": 10,
+                  "title": "end game"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 2,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "second fragment"
+                },
+                {
+                  "number": 2,
+                  "title": "sky"
+                },
+                {
+                  "number": 3,
+                  "title": "transitory orbit"
+                },
+                {
+                  "number": 4,
+                  "title": "message"
+                },
+                {
+                  "number": 5,
+                  "title": "save me again"
+                },
+                {
+                  "number": 6,
+                  "title": "belief"
+                },
+                {
+                  "number": 7,
+                  "title": "stellar"
+                },
+                {
+                  "number": 8,
+                  "title": "Detour -fripSide edition-"
+                },
+                {
+                  "number": 9,
+                  "title": "crying moon"
+                },
+                {
+                  "number": 10,
+                  "title": "storm of sorrow"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 3,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "an evening calm"
+                },
+                {
+                  "number": 2,
+                  "title": "reminiscense blue"
+                },
+                {
+                  "number": 3,
+                  "title": "nostalgia"
+                },
+                {
+                  "number": 4,
+                  "title": "transient wind"
+                },
+                {
+                  "number": 5,
+                  "title": "vanity destroyer -fripSide edition-"
+                },
+                {
+                  "number": 6,
+                  "title": "velocity -fripSide+vin-PRAD-"
+                },
+                {
+                  "number": 7,
+                  "title": "splash emotion"
+                },
+                {
+                  "number": 8,
+                  "title": "colors of summer dream"
+                },
+                {
+                  "number": 9,
+                  "title": "planet illusion"
+                },
+                {
+                  "number": 10,
+                  "title": "sky -sLab reproduct mix-"
+                },
+                {
+                  "number": 11,
+                  "title": "bright days -version2005-"
+                },
+                {
+                  "number": 12,
+                  "title": "distant moon -version2005-"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 4,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "binary digit"
+                },
+                {
+                  "number": 2,
+                  "title": "hurting heart"
+                },
+                {
+                  "number": 3,
+                  "title": "misery"
+                },
+                {
+                  "number": 4,
+                  "title": "prominence -version2007-"
+                },
+                {
+                  "number": 5,
+                  "title": "refine progress"
+                },
+                {
+                  "number": 6,
+                  "title": "heat your wave"
+                },
+                {
+                  "number": 7,
+                  "title": "libration crisis"
+                },
+                {
+                  "number": 8,
+                  "title": "never no astray"
+                },
+                {
+                  "number": 9,
+                  "title": "transient wind -version2007-"
+                },
+                {
+                  "number": 10,
+                  "title": "dream myself!"
+                },
+                {
+                  "number": 11,
+                  "title": "true eternity -album version-"
+                },
+                {
+                  "number": 12,
+                  "title": "brave new world"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 5,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "あっせんぶる☆LOVEさんぶる/fripSide NAO project!"
+                },
+                {
+                  "number": 2,
+                  "title": "せな★せな＠Surprise!!/fripSide NAO project!"
+                },
+                {
+                  "number": 3,
+                  "title": "Rabbit Syndrome/fripSide NAO project!"
+                },
+                {
+                  "number": 4,
+                  "title": "こんいろ∞トキメキ!!?着せたら脱がさない?/fripSide NAO project!"
+                },
+                {
+                  "number": 5,
+                  "title": "かがやけ！dreamin'ガール/fripSide NAO project!"
+                },
+                {
+                  "number": 6,
+                  "title": "こいびと☆アクセント！！/fripSide NAO project!"
+                },
+                {
+                  "number": 7,
+                  "title": "Wireless Cosmic/fripSide NAO project!"
+                },
+                {
+                  "number": 8,
+                  "title": "リバーシブルロマンス/fripSide NAO project!"
+                },
+                {
+                  "number": 9,
+                  "title": "HAPPYジェネレーション/fripSide NAO project!"
+                },
+                {
+                  "number": 10,
+                  "title": "せな★せな＠Surprise!!-生物RMX-/fripSide NAO project!"
+                },
+                {
+                  "number": 11,
+                  "title": "あっせんぶる☆LOVEさんぶる-R.S.PV RMX-/fripSide NAO project!"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 6,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "before dawn daybreak"
+                },
+                {
+                  "number": 2,
+                  "title": "split tears"
+                },
+                {
+                  "number": 3,
+                  "title": "praying over (album version)"
+                },
+                {
+                  "number": 4,
+                  "title": "magicaride"
+                },
+                {
+                  "number": 5,
+                  "title": "fictional moon (album version)"
+                },
+                {
+                  "number": 6,
+                  "title": "snow blind (album version)"
+                },
+                {
+                  "number": 7,
+                  "title": "snow blind -after-"
+                },
+                {
+                  "number": 8,
+                  "title": "spiral of despair"
+                },
+                {
+                  "number": 9,
+                  "title": "escape -version2008-"
+                },
+                {
+                  "number": 10,
+                  "title": "tomorrow"
+                },
+                {
+                  "number": 11,
+                  "title": "eternal twinkle"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 7,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "hurting heart/ju-ri-mix"
+                },
+                {
+                  "number": 2,
+                  "title": "Red -reduction division-/sat vs tkm RMX ver.2.1"
+                },
+                {
+                  "number": 3,
+                  "title": "magicaride/kai Re:product RMX"
+                },
+                {
+                  "number": 4,
+                  "title": "vanity destroyer/tkm Re:product RMX"
+                },
+                {
+                  "number": 5,
+                  "title": "spiral of despair/tkm Re:product RMX"
+                },
+                {
+                  "number": 6,
+                  "title": "an evening calm/kai Re:product RMX"
+                },
+                {
+                  "number": 7,
+                  "title": "Red -reduction division-/sat vs tkm RMX"
+                },
+                {
+                  "number": 8,
+                  "title": "before dawn daybreak -phantoms RMX-"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 8,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "Red -reduction division-"
+                },
+                {
+                  "number": 2,
+                  "title": "the chaostic world"
+                },
+                {
+                  "number": 3,
+                  "title": "true eternity"
+                },
+                {
+                  "number": 4,
+                  "title": "crescendo"
+                },
+                {
+                  "number": 5,
+                  "title": "fictional moon"
+                },
+                {
+                  "number": 6,
+                  "title": "absolute one"
+                },
+                {
+                  "number": 7,
+                  "title": "melody -reset+fripSide-"
+                },
+                {
+                  "number": 8,
+                  "title": "come to mind -short version-"
+                },
+                {
+                  "number": 9,
+                  "title": "Love to sing -R&T factory Remix-"
+                },
+                {
+                  "number": 10,
+                  "title": "crying moon -acoustic version-"
+                },
+                {
+                  "number": 11,
+                  "title": "in the future"
+                },
+                {
+                  "number": 12,
+                  "title": "be sure"
+                },
+                {
+                  "number": 13,
+                  "title": "Your Ocean"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 9,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "holy night magic"
+                },
+                {
+                  "number": 2,
+                  "title": "a little christmas time"
+                },
+                {
+                  "number": 3,
+                  "title": "promise"
+                },
+                {
+                  "number": 4,
+                  "title": "cheer up forever"
+                },
+                {
+                  "number": 5,
+                  "title": "ないしょ思春期/fripSide NAO project!"
+                },
+                {
+                  "number": 6,
+                  "title": "せな★せな＠ultimate!!/fripSide NAO project!"
+                },
+                {
+                  "number": 7,
+                  "title": "every day⇔every way!/fripSide NAO project!"
+                },
+                {
+                  "number": 8,
+                  "title": "こいびと☆アクセント！！-remix edition-/fripSide NAO project!"
+                },
+                {
+                  "number": 9,
+                  "title": "Red Data Girl/fripSide NAO project!"
+                }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 10,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "grand blue"
+                },
+                {
+                  "number": 2,
+                  "title": "grace of summer"
+                },
+                {
+                  "number": 3,
+                  "title": "feeling trust"
+                },
+                {
+                  "number": 4,
+                  "title": "prominence"
+                },
+                {
+                  "number": 5,
+                  "title": "snow blind"
+                },
+                {
+                  "number": 6,
+                  "title": "colorless fate -erica 2007-(DEMO)"
+                },
+                {
+                  "number": 7,
+                  "title": "piece of azure"
+                },
+                {
+                  "number": 8,
+                  "title": "my graduation"
+                },
+                {
+                  "number": 9,
+                  "title": "hurting heart -nao piano arrange-"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Ten-CD anthology; all 10 audio discs are retained. Catalog number is a range as printed by the official page. Artist credits appended with “/fripSide NAO project!” and official spelling variants are preserved in track titles."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11718",
+      "official_type": "SINGLE",
+      "title": "LEVEL5 -judgelight-",
+      "release_date": "2010-02-17",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-0155",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "LEVEL5-judgelight-"
+                },
+                {
+                  "number": 2,
+                  "title": "memory of snow"
+                },
+                {
+                  "number": 3,
+                  "title": "LEVEL5-judgelight-（Instrumental）"
+                },
+                {
+                  "number": 4,
+                  "title": "memory of snow（Instrumental）"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0156",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "LEVEL5-judgelight-"
+                },
+                {
+                  "number": 2,
+                  "title": "memory of snow"
+                },
+                {
+                  "number": 3,
+                  "title": "LEVEL5-judgelight-（Instrumental）"
+                },
+                {
+                  "number": 4,
+                  "title": "memory of snow（Instrumental）"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same four-track audio CD. The limited-edition DVD is omitted; the anime tie-in annotation was removed from track 1's title field."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11721",
+      "official_type": "SINGLE",
+      "title": "future gazer",
+      "release_date": "2010-10-13",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-0181",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "future gazer"
+                },
+                {
+                  "number": 2,
+                  "title": "fortissimo-the ultimate crisis-"
+                },
+                {
+                  "number": 3,
+                  "title": "future gazer"
+                },
+                {
+                  "number": 4,
+                  "title": "fortissimo-the ultimate crisis-"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0182",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "future gazer"
+                },
+                {
+                  "number": 2,
+                  "title": "fortissimo-the ultimate crisis-"
+                },
+                {
+                  "number": 3,
+                  "title": "future gazer"
+                },
+                {
+                  "number": 4,
+                  "title": "fortissimo-the ultimate crisis-"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same four-track audio CD. The limited-edition DVD is omitted. The official page prints tracks 3 and 4 without an instrumental suffix, so no suffix was inferred."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11722",
+      "official_type": "ALBUM",
+      "title": "infinite synthesis",
+      "release_date": "2010-12-01",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-1271",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "only my railgun"
+                },
+                {
+                  "number": 2,
+                  "title": "LEVEL5-judgelight-"
+                },
+                {
+                  "number": 3,
+                  "title": "everlasting"
+                },
+                {
+                  "number": 4,
+                  "title": "late in autumn"
+                },
+                {
+                  "number": 5,
+                  "title": "future gazer"
+                },
+                {
+                  "number": 6,
+                  "title": "悲しい星座"
+                },
+                {
+                  "number": 7,
+                  "title": "crossing over"
+                },
+                {
+                  "number": 8,
+                  "title": "closest love"
+                },
+                {
+                  "number": 9,
+                  "title": "meditations"
+                },
+                {
+                  "number": 10,
+                  "title": "trusty snow"
+                },
+                {
+                  "number": 11,
+                  "title": "lost answer"
+                },
+                {
+                  "number": 12,
+                  "title": "eternal pain"
+                },
+                {
+                  "number": 13,
+                  "title": "stay with you"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-1272",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "only my railgun"
+                },
+                {
+                  "number": 2,
+                  "title": "LEVEL5-judgelight-"
+                },
+                {
+                  "number": 3,
+                  "title": "everlasting"
+                },
+                {
+                  "number": 4,
+                  "title": "late in autumn"
+                },
+                {
+                  "number": 5,
+                  "title": "future gazer"
+                },
+                {
+                  "number": 6,
+                  "title": "悲しい星座"
+                },
+                {
+                  "number": 7,
+                  "title": "crossing over"
+                },
+                {
+                  "number": 8,
+                  "title": "closest love"
+                },
+                {
+                  "number": 9,
+                  "title": "meditations"
+                },
+                {
+                  "number": 10,
+                  "title": "trusty snow"
+                },
+                {
+                  "number": 11,
+                  "title": "lost answer"
+                },
+                {
+                  "number": 12,
+                  "title": "eternal pain"
+                },
+                {
+                  "number": 13,
+                  "title": "stay with you"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same 13-track audio CD. The limited-edition DVD is omitted; tie-in annotations were removed from title fields."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11724",
+      "official_type": "SINGLE",
+      "title": "Heaven is a Place on Earth",
+      "release_date": "2011-08-24",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-0187",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "Heaven is a Place on Earth"
+                },
+                {
+                  "number": 2,
+                  "title": "The end of summer"
+                },
+                {
+                  "number": 3,
+                  "title": "Heaven is a Place on Earth"
+                },
+                {
+                  "number": 4,
+                  "title": "The end of summer"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0188",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "Heaven is a Place on Earth"
+                },
+                {
+                  "number": 2,
+                  "title": "The end of summer"
+                },
+                {
+                  "number": 3,
+                  "title": "Heaven is a Place on Earth"
+                },
+                {
+                  "number": 4,
+                  "title": "The end of summer"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same four-track audio CD. The limited-edition DVD is omitted. The official page prints tracks 3 and 4 without an instrumental suffix, so no suffix was inferred."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11726",
+      "official_type": "SINGLE",
+      "title": "way to answer",
+      "release_date": "2011-12-14",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-0228",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "way to answer"
+                },
+                {
+                  "number": 2,
+                  "title": "last fortune"
+                },
+                {
+                  "number": 3,
+                  "title": "way to answer(instrumental)"
+                },
+                {
+                  "number": 4,
+                  "title": "last fortune(instrumental)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0229",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "way to answer"
+                },
+                {
+                  "number": 2,
+                  "title": "last fortune"
+                },
+                {
+                  "number": 3,
+                  "title": "way to answer(instrumental)"
+                },
+                {
+                  "number": 4,
+                  "title": "last fortune(instrumental)"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same four-track audio CD. The limited-edition DVD is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11728",
+      "official_type": "ALBUM",
+      "title": "fripSide PC game compilation vol.1",
+      "release_date": "2012-01-01",
+      "editions": [
+        {
+          "name": "収録内容（公式ページに版名記載なし）",
+          "catalog_number": "SCFS-120",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "ひだまりバスケット Vo.fripSide（南條愛乃）"
+                },
+                {
+                  "number": 2,
+                  "title": "trust in you Vo.伊藤静＆こやまきみこ"
+                },
+                {
+                  "number": 3,
+                  "title": "Alice in Rosso Vo.fripSide（南條愛乃）"
+                },
+                {
+                  "number": 4,
+                  "title": "colorless fate -ver.Luna 2011- Vo.nao"
+                },
+                {
+                  "number": 5,
+                  "title": "Triptych -fripSide arrange ver.- Vo.真理絵"
+                },
+                {
+                  "number": 6,
+                  "title": "spiral of despair -resurrection- Vo.Rita"
+                },
+                {
+                  "number": 7,
+                  "title": "miracle luminous Vo.fripSide（南條愛乃）"
+                },
+                {
+                  "number": 8,
+                  "title": "STAR☆CARNIVAL Vo.今井麻美＆長谷川明子"
+                },
+                {
+                  "number": 9,
+                  "title": "prismatic fate Vo.fripSide（南條愛乃）"
+                },
+                {
+                  "number": 10,
+                  "title": "prism Vo.fripSide（南條愛乃）"
+                },
+                {
+                  "number": 11,
+                  "title": "whisper of winter Vo.fripSide（南條愛乃）"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The official page does not state an edition name. Vocalist credits are preserved in the track-title strings because the compilation includes multiple vocalists."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11730",
+      "official_type": "ALBUM",
+      "title": "Decade",
+      "release_date": "2012-12-05",
+      "editions": [
+        {
+          "name": "初回限定盤（CD＋Blu-ray）",
+          "catalog_number": "GNCA-1350",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "Decade"
+                },
+                {
+                  "number": 2,
+                  "title": "way to answer"
+                },
+                {
+                  "number": 3,
+                  "title": "fortissimo-the ultimate crisis-"
+                },
+                {
+                  "number": 4,
+                  "title": "come to mind(version3)"
+                },
+                {
+                  "number": 5,
+                  "title": "Heaven is a Place on Earth"
+                },
+                {
+                  "number": 6,
+                  "title": "fortissimo-from insanity affection-"
+                },
+                {
+                  "number": 7,
+                  "title": "grievous distance"
+                },
+                {
+                  "number": 8,
+                  "title": "whitebird"
+                },
+                {
+                  "number": 9,
+                  "title": "a silent voice"
+                },
+                {
+                  "number": 10,
+                  "title": "message(version2)"
+                },
+                {
+                  "number": 11,
+                  "title": "re:ceptivity"
+                },
+                {
+                  "number": 12,
+                  "title": "infinite orbit"
+                },
+                {
+                  "number": 13,
+                  "title": "endless memory ～refrain as Da Capo～"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-1351",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "Decade"
+                },
+                {
+                  "number": 2,
+                  "title": "way to answer"
+                },
+                {
+                  "number": 3,
+                  "title": "fortissimo-the ultimate crisis-"
+                },
+                {
+                  "number": 4,
+                  "title": "come to mind(version3)"
+                },
+                {
+                  "number": 5,
+                  "title": "Heaven is a Place on Earth"
+                },
+                {
+                  "number": 6,
+                  "title": "fortissimo-from insanity affection-"
+                },
+                {
+                  "number": 7,
+                  "title": "grievous distance"
+                },
+                {
+                  "number": 8,
+                  "title": "whitebird"
+                },
+                {
+                  "number": 9,
+                  "title": "a silent voice"
+                },
+                {
+                  "number": 10,
+                  "title": "message(version2)"
+                },
+                {
+                  "number": 11,
+                  "title": "re:ceptivity"
+                },
+                {
+                  "number": 12,
+                  "title": "infinite orbit"
+                },
+                {
+                  "number": 13,
+                  "title": "endless memory ～refrain as Da Capo～"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-1352",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "Decade"
+                },
+                {
+                  "number": 2,
+                  "title": "way to answer"
+                },
+                {
+                  "number": 3,
+                  "title": "fortissimo-the ultimate crisis-"
+                },
+                {
+                  "number": 4,
+                  "title": "come to mind(version3)"
+                },
+                {
+                  "number": 5,
+                  "title": "Heaven is a Place on Earth"
+                },
+                {
+                  "number": 6,
+                  "title": "fortissimo-from insanity affection-"
+                },
+                {
+                  "number": 7,
+                  "title": "grievous distance"
+                },
+                {
+                  "number": 8,
+                  "title": "whitebird"
+                },
+                {
+                  "number": 9,
+                  "title": "a silent voice"
+                },
+                {
+                  "number": 10,
+                  "title": "message(version2)"
+                },
+                {
+                  "number": 11,
+                  "title": "re:ceptivity"
+                },
+                {
+                  "number": 12,
+                  "title": "infinite orbit"
+                },
+                {
+                  "number": 13,
+                  "title": "endless memory ～refrain as Da Capo～"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "All three editions have the same 13-track audio CD. The Blu-ray and DVD bonus-video contents are omitted; tie-in annotations were removed from title fields."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11732",
+      "official_type": "SINGLE",
+      "title": "sister's noise",
+      "release_date": "2013-05-08",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-0280",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "sister's noise"
+                },
+                {
+                  "number": 2,
+                  "title": "I'm believing you"
+                },
+                {
+                  "number": 3,
+                  "title": "sister's noise(instrumental)"
+                },
+                {
+                  "number": 4,
+                  "title": "I'm believing you(instrumental)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0281",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "sister's noise"
+                },
+                {
+                  "number": 2,
+                  "title": "I'm believing you"
+                },
+                {
+                  "number": 3,
+                  "title": "sister's noise(instrumental)"
+                },
+                {
+                  "number": 4,
+                  "title": "I'm believing you(instrumental)"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same four-track audio CD. The limited-edition DVD is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11737",
+      "official_type": "SINGLE",
+      "title": "eternal reality",
+      "release_date": "2013-08-21",
+      "editions": [
+        {
+          "name": "初回限定アニメ盤（CD+DVD）",
+          "catalog_number": "GNCA-0305",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "eternal reality"
+                },
+                {
+                  "number": 2,
+                  "title": "waiting for the moment"
+                },
+                {
+                  "number": 3,
+                  "title": "eternal reality(TV size)"
+                },
+                {
+                  "number": 4,
+                  "title": "eternal reality(instrumental)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "初回限定盤（CD+DVD）",
+          "catalog_number": "GNCA-0306",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "eternal reality"
+                },
+                {
+                  "number": 2,
+                  "title": "scorching heart"
+                },
+                {
+                  "number": 3,
+                  "title": "eternal reality- instrumental-"
+                },
+                {
+                  "number": 4,
+                  "title": "scorching heart–instrumental-"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0307",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                {
+                  "number": 1,
+                  "title": "eternal reality"
+                },
+                {
+                  "number": 2,
+                  "title": "scorching heart"
+                },
+                {
+                  "number": 3,
+                  "title": "eternal reality-instrumental-"
+                },
+                {
+                  "number": 4,
+                  "title": "scorching heart–instrumental–"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The anime limited edition has a different coupling track from the other two editions. Both DVDs are omitted."
+    }
+  ]
+}

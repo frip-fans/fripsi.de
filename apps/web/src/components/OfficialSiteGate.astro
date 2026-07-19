@@ -10,7 +10,7 @@ const locale = getLocale(Astro.request);
 ---
 <dialog class="site-gate" data-site-gate data-auto-open={autoOpen ? "true" : undefined} open={autoOpen || undefined} aria-labelledby="site-gate-title" aria-describedby="site-gate-description">
   <div class="gate-card">
-    <div class="gate-language"><LanguageSwitcher /></div>
+    <div class="gate-language"><LanguageSwitcher context="site-gate" /></div>
     <div class="gate-mark" aria-hidden="true">
       <img src="/fan-site-logo.svg" width="72" height="72" alt="" />
     </div>
@@ -29,7 +29,11 @@ const locale = getLocale(Astro.request);
 </dialog>
 
 <script>
-  import { OFFICIAL_SITE_NOTICE_COOKIE, OFFICIAL_SITE_NOTICE_STORAGE_KEY } from "../lib/site-notice";
+  import {
+    OFFICIAL_SITE_NOTICE_COOKIE,
+    OFFICIAL_SITE_NOTICE_REOPEN_STORAGE_KEY,
+    OFFICIAL_SITE_NOTICE_STORAGE_KEY,
+  } from "../lib/site-notice";
 
   let siteGateController: AbortController | undefined;
 
@@ -63,6 +67,16 @@ const locale = getLocale(Astro.request);
       document.cookie = `${OFFICIAL_SITE_NOTICE_COOKIE}=yes; Path=/; SameSite=Lax${secure}`;
     };
 
+    const consumeLanguageChangeReopen = () => {
+      try {
+        const shouldReopen = sessionStorage.getItem(OFFICIAL_SITE_NOTICE_REOPEN_STORAGE_KEY) === "yes";
+        sessionStorage.removeItem(OFFICIAL_SITE_NOTICE_REOPEN_STORAGE_KEY);
+        return shouldReopen;
+      } catch {
+        return false;
+      }
+    };
+
     const setPageScrollLocked = (locked: boolean) => {
       document.documentElement.classList.toggle("site-gate-open", locked);
       document.body.classList.toggle("site-gate-open", locked);
@@ -81,11 +95,14 @@ const locale = getLocale(Astro.request);
 
     const acknowledgeNotice = () => {
       persistAcknowledgement();
+      delete gate.dataset.reopenAfterLanguageChange;
       gate.close();
       setPageScrollLocked(false);
     };
 
-    if (gate.dataset.autoOpen === "true" && !hasAcknowledgedNotice()) openNotice();
+    const reopenAfterLanguageChange = gate.dataset.reopenAfterLanguageChange === "true" || consumeLanguageChangeReopen();
+    if (reopenAfterLanguageChange) gate.dataset.reopenAfterLanguageChange = "true";
+    if (reopenAfterLanguageChange || (gate.dataset.autoOpen === "true" && !hasAcknowledgedNotice())) openNotice();
     else {
       if (gate.open) gate.close();
       setPageScrollLocked(false);

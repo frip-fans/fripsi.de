@@ -1,0 +1,820 @@
+{
+  "scope": {
+    "from": "2021-01-01",
+    "to": "2026-12-31",
+    "included_official_types": ["ALBUM", "SINGLE", "DIGITAL"],
+    "excluded": ["standalone DVD/Blu-ray releases", "video-only bonus discs and tracks"],
+    "note": "The official discography has no audio release dated in 2021. Announced 2026 releases are included."
+  },
+  "source": "https://fripside.net/discography",
+  "releases": [
+    {
+      "source_url": "https://fripside.net/musics/20902",
+      "official_type": "ALBUM",
+      "title": "infinite Resonance 4",
+      "release_date": "2026-08-26",
+      "editions": [
+        {
+          "name": "初回限定盤",
+          "catalog_number": "WPZL-32314～5",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Where the Light Leads Us" },
+                { "number": 2, "title": "The Edge of Reality" },
+                { "number": 3, "title": "Re:build the Order of Stars" },
+                { "number": 4, "title": "nostalgia -version2026-" },
+                { "number": 5, "title": "Our Last Place" },
+                { "number": 6, "title": "Find the Way" },
+                { "number": 7, "title": "unwavering One thing (vocal : Mao Uesugi)" },
+                { "number": 8, "title": "Where We Belong" },
+                { "number": 9, "title": "Brand New Me!" },
+                { "number": 10, "title": "Wandering Traveler (vocal : Hisayo Abe)" },
+                { "number": 11, "title": "PHASE NEXT -iR4 version-" },
+                { "number": 12, "title": "My Own Way -version2026-" },
+                { "number": 13, "title": "Across the Changing Sky" },
+                { "number": 14, "title": "Bound in the Melody" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤",
+          "catalog_number": "WPCL-13787",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Where the Light Leads Us" },
+                { "number": 2, "title": "The Edge of Reality" },
+                { "number": 3, "title": "Re:build the Order of Stars" },
+                { "number": 4, "title": "nostalgia -version2026-" },
+                { "number": 5, "title": "Our Last Place" },
+                { "number": 6, "title": "Find the Way" },
+                { "number": 7, "title": "unwavering One thing (vocal : Mao Uesugi)" },
+                { "number": 8, "title": "Where We Belong" },
+                { "number": 9, "title": "Brand New Me!" },
+                { "number": 10, "title": "Wandering Traveler (vocal : Hisayo Abe)" },
+                { "number": 11, "title": "PHASE NEXT -iR4 version-" },
+                { "number": 12, "title": "My Own Way -version2026-" },
+                { "number": 13, "title": "Across the Changing Sky" },
+                { "number": 14, "title": "Bound in the Melody" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions have the same 14-track audio CD. The limited edition also has a Blu-ray, omitted here. This was announced but not yet released as of the research date."
+    },
+    {
+      "source_url": "https://fripside.net/musics/19455",
+      "official_type": "DIGITAL",
+      "title": "とある科学の超音楽集 -Ａ Certain Scientific Railgun:Music Chronicles- (Selected Edition)",
+      "release_date": "2025-09-24",
+      "editions": [
+        {
+          "name": "Selected Edition (Digital)",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "DIGITAL",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "eternal reality -version2025-" },
+                { "number": 2, "title": "way to answer -version2025-" },
+                { "number": 3, "title": "eternal reality -version2025- [instrumental]" },
+                { "number": 4, "title": "way to answer -version2025- [instrumental]" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Digital four-track selection from the full physical Music Chronicles album released on the same date."
+    },
+    {
+      "source_url": "https://fripside.net/musics/19132",
+      "official_type": "ALBUM",
+      "title": "とある科学の超音楽集 −A Certain Scientific Railgun：Music Chronicles−",
+      "release_date": "2025-09-24",
+      "editions": [
+        {
+          "name": "初回生産限定盤",
+          "catalog_number": "WPZL-32229/32",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "only my railgun" },
+                { "number": 2, "title": "LEVEL5-judgelight-" },
+                { "number": 3, "title": "future gazer" },
+                { "number": 4, "title": "way to answer" },
+                { "number": 5, "title": "sister's noise" },
+                { "number": 6, "title": "eternal reality" },
+                { "number": 7, "title": "final phase" },
+                { "number": 8, "title": "dual existence" },
+                { "number": 9, "title": "only my railgun-version2020-" },
+                { "number": 10, "title": "only my railgun-15th Anniversary version-［Phase2＆Phase3］" }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 2,
+              "tracks": [
+                { "number": 1, "title": "only my railgun-version2024-" },
+                { "number": 2, "title": "LEVEL5-judgelight- -version2022-" },
+                { "number": 3, "title": "future gazer-version2024-" },
+                { "number": 4, "title": "way to answer-version2025-" },
+                { "number": 5, "title": "sister's noise-version2022-" },
+                { "number": 6, "title": "eternal reality-version2025-" },
+                { "number": 7, "title": "final phase-version2023-" },
+                { "number": 8, "title": "dual existence-version2023-" },
+                { "number": 9, "title": "PHASE NEXT" }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 3,
+              "tracks": [
+                { "number": 1, "title": "only my railgun-version2024-[instrumental]" },
+                { "number": 2, "title": "LEVEL5-judgelight- -version2022-[instrumental]" },
+                { "number": 3, "title": "future gazer-version2024-[instrumental]" },
+                { "number": 4, "title": "way to answer-version2025-[instrumental]" },
+                { "number": 5, "title": "sister's noise-version2022-[instrumental]" },
+                { "number": 6, "title": "eternal reality-version2025-[instrumental]" },
+                { "number": 7, "title": "final phase-version2023-[instrumental]" },
+                { "number": 8, "title": "dual existence-version2023-[instrumental]" },
+                { "number": 9, "title": "only my railgun-version2020-[instrumental]" },
+                { "number": 10, "title": "only my railgun-15th Anniversary version-[instrumental]" },
+                { "number": 11, "title": "PHASE NEXT[instrumental]" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "WMS専売商品",
+          "catalog_number": "WPZL-60066/9",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "only my railgun" },
+                { "number": 2, "title": "LEVEL5-judgelight-" },
+                { "number": 3, "title": "future gazer" },
+                { "number": 4, "title": "way to answer" },
+                { "number": 5, "title": "sister's noise" },
+                { "number": 6, "title": "eternal reality" },
+                { "number": 7, "title": "final phase" },
+                { "number": 8, "title": "dual existence" },
+                { "number": 9, "title": "only my railgun-version2020-" },
+                { "number": 10, "title": "only my railgun-15th Anniversary version-［Phase2＆Phase3］" }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 2,
+              "tracks": [
+                { "number": 1, "title": "only my railgun-version2024-" },
+                { "number": 2, "title": "LEVEL5-judgelight- -version2022-" },
+                { "number": 3, "title": "future gazer-version2024-" },
+                { "number": 4, "title": "way to answer-version2025-" },
+                { "number": 5, "title": "sister's noise-version2022-" },
+                { "number": 6, "title": "eternal reality-version2025-" },
+                { "number": 7, "title": "final phase-version2023-" },
+                { "number": 8, "title": "dual existence-version2023-" },
+                { "number": 9, "title": "PHASE NEXT" }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 3,
+              "tracks": [
+                { "number": 1, "title": "only my railgun-version2024-[instrumental]" },
+                { "number": 2, "title": "LEVEL5-judgelight- -version2022-[instrumental]" },
+                { "number": 3, "title": "future gazer-version2024-[instrumental]" },
+                { "number": 4, "title": "way to answer-version2025-[instrumental]" },
+                { "number": 5, "title": "sister's noise-version2022-[instrumental]" },
+                { "number": 6, "title": "eternal reality-version2025-[instrumental]" },
+                { "number": 7, "title": "final phase-version2023-[instrumental]" },
+                { "number": 8, "title": "dual existence-version2023-[instrumental]" },
+                { "number": 9, "title": "only my railgun-version2020-[instrumental]" },
+                { "number": 10, "title": "only my railgun-15th Anniversary version-[instrumental]" },
+                { "number": 11, "title": "PHASE NEXT[instrumental]" }
+              ]
+            },
+            {
+              "media": "BONUS CD",
+              "number": 4,
+              "tracks": []
+            }
+          ]
+        }
+      ],
+      "notes": "The WMS edition bundles the limited edition with merchandise and an officially described six-track live-sound bonus CD, but the official discography page does not enumerate those six track titles; its bonus-CD track list is therefore left empty. Both products also include a video Blu-ray, omitted here."
+    },
+    {
+      "source_url": "https://fripside.net/musics/19309",
+      "official_type": "DIGITAL",
+      "title": "eternal reality -version2025-",
+      "release_date": "2025-09-12",
+      "editions": [
+        {
+          "name": "Digital",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "DIGITAL",
+              "number": 1,
+              "tracks": [{ "number": 1, "title": "eternal reality -version2025-" }]
+            }
+          ]
+        }
+      ],
+      "notes": "Advance digital release of the vocal track from Music Chronicles; the official page explicitly says vocal-only."
+    },
+    {
+      "source_url": "https://fripside.net/musics/19112",
+      "official_type": "DIGITAL",
+      "title": "Echoes of the Stars",
+      "release_date": "2025-07-07",
+      "editions": [
+        {
+          "name": "Digital",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "DIGITAL",
+              "number": 1,
+              "tracks": [{ "number": 1, "title": "Echoes of the Stars" }]
+            }
+          ]
+        }
+      ],
+      "notes": "Single-track digital release; no catalog number is shown on the official page."
+    },
+    {
+      "source_url": "https://fripside.net/musics/19111",
+      "official_type": "DIGITAL",
+      "title": "Ｗandering Traveler",
+      "release_date": "2025-06-15",
+      "editions": [
+        {
+          "name": "Digital",
+          "catalog_number": null,
+          "discs": [
+            {
+              "media": "DIGITAL",
+              "number": 1,
+              "tracks": [{ "number": 1, "title": "Ｗandering Traveler" }]
+            }
+          ]
+        }
+      ],
+      "notes": "The official page uses a full-width initial W in the release title. Single-track digital release; no catalog number is shown."
+    },
+    {
+      "source_url": "https://fripside.net/musics/15742",
+      "official_type": "SINGLE",
+      "title": "only my railgun -version 2024-",
+      "release_date": "2024-12-18",
+      "editions": [
+        {
+          "name": "初回限定盤A",
+          "catalog_number": "GNCA-0716",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "only my railgun -version 2024-［Phase3］" },
+                { "number": 2, "title": "only my railgun -15th Anniversary version-［Phase2＆Phase3］" },
+                { "number": 3, "title": "only my railgun -version 2020-［Phase2］" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "初回限定盤B",
+          "catalog_number": "GNCA-0717",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "only my railgun -version 2024-［Phase3］" },
+                { "number": 2, "title": "only my railgun -15th Anniversary version-［Phase2＆Phase3］" },
+                { "number": 3, "title": "only my railgun -version 2020-［Phase2］" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤",
+          "catalog_number": "GNCA-0718",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "only my railgun -version 2024-［Phase3］" },
+                { "number": 2, "title": "only my railgun -15th Anniversary version-［Phase2＆Phase3］" },
+                { "number": 3, "title": "only my railgun -version 2020-［Phase2］" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "All three editions share the same audio CD. Limited A and B include different amounts of video material, omitted here."
+    },
+    {
+      "source_url": "https://fripside.net/musics/15538",
+      "official_type": "ALBUM",
+      "title": "infinite Resonance 3",
+      "release_date": "2024-10-09",
+      "editions": [
+        {
+          "name": "初回限定盤",
+          "catalog_number": "GNCA-1675",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Starlit Moment" },
+                { "number": 2, "title": "Unbroken Resolve" },
+                { "number": 3, "title": "Solitude in Autumn" },
+                { "number": 4, "title": "Winterfade" },
+                { "number": 5, "title": "Gratitude to You（vocal: Hisayo Abe）" },
+                { "number": 6, "title": "Secret Operation -fripSide Edition-" },
+                { "number": 7, "title": "Twinkle Star Nights" },
+                { "number": 8, "title": "killing bites -version2024-" },
+                { "number": 9, "title": "Salvation（vocal: Mao Uesugi）" },
+                { "number": 10, "title": "Turn Night Into Day" },
+                { "number": 11, "title": "Against the World" },
+                { "number": 12, "title": "Hesitation Snow -version2024-" },
+                { "number": 13, "title": "future gazer -version2024-" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤",
+          "catalog_number": "GNCA-1676",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Starlit Moment" },
+                { "number": 2, "title": "Unbroken Resolve" },
+                { "number": 3, "title": "Solitude in Autumn" },
+                { "number": 4, "title": "Winterfade" },
+                { "number": 5, "title": "Gratitude to You（vocal: Hisayo Abe）" },
+                { "number": 6, "title": "Secret Operation -fripSide Edition-" },
+                { "number": 7, "title": "Twinkle Star Nights" },
+                { "number": 8, "title": "killing bites -version2024-" },
+                { "number": 9, "title": "Salvation（vocal: Mao Uesugi）" },
+                { "number": 10, "title": "Turn Night Into Day" },
+                { "number": 11, "title": "Against the World" },
+                { "number": 12, "title": "Hesitation Snow -version2024-" },
+                { "number": 13, "title": "future gazer -version2024-" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions share the same 13-track audio CD. The limited edition video Blu-ray is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/15355",
+      "official_type": "SINGLE",
+      "title": "Secret Operation",
+      "release_date": "2024-08-21",
+      "editions": [
+        {
+          "name": "初回限定盤（CD＋特典Blu-ray）",
+          "catalog_number": "GNCA-0711",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Secret Operation" },
+                { "number": 2, "title": "Secret Operation -fripSide Edition-" },
+                { "number": 3, "title": "Secret Operation -Yoshino Nanjo Edition-" },
+                { "number": 4, "title": "Secret Operation (instrumental)" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0712",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Secret Operation" },
+                { "number": 2, "title": "Secret Operation -fripSide Edition-" },
+                { "number": 3, "title": "Secret Operation -Yoshino Nanjo Edition-" },
+                { "number": 4, "title": "Secret Operation (instrumental)" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions share the same audio CD. The title track is credited to fripSide feat. Yoshino Nanjo. The limited edition video Blu-ray is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/13906",
+      "official_type": "ALBUM",
+      "title": "infinite Resonance 2",
+      "release_date": "2023-11-08",
+      "editions": [
+        {
+          "name": "初回限定盤（CD＋Blu-ray）",
+          "catalog_number": "GNCA-1654",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Invisible Wings" },
+                { "number": 2, "title": "Red Liberation" },
+                { "number": 3, "title": "final phase -version2023-" },
+                { "number": 4, "title": "Freezing rain" },
+                { "number": 5, "title": "save me again -version2023-" },
+                { "number": 6, "title": "The Light of Darkness" },
+                { "number": 7, "title": "black bullet -version2023-" },
+                { "number": 8, "title": "Two souls -toward the truth- -version2023-" },
+                { "number": 9, "title": "Trust in my soul（vocal: Hisayo Abe）" },
+                { "number": 10, "title": "dual existence -version2023-" },
+                { "number": 11, "title": "Distance to starry sky（vocal: Mao Uesugi）" },
+                { "number": 12, "title": "Newage" },
+                { "number": 13, "title": "You" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-1655",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Invisible Wings" },
+                { "number": 2, "title": "Red Liberation" },
+                { "number": 3, "title": "final phase -version2023-" },
+                { "number": 4, "title": "Freezing rain" },
+                { "number": 5, "title": "save me again -version2023-" },
+                { "number": 6, "title": "The Light of Darkness" },
+                { "number": 7, "title": "black bullet -version2023-" },
+                { "number": 8, "title": "Two souls -toward the truth- -version2023-" },
+                { "number": 9, "title": "Trust in my soul（vocal: Hisayo Abe）" },
+                { "number": 10, "title": "dual existence -version2023-" },
+                { "number": 11, "title": "Distance to starry sky（vocal: Mao Uesugi）" },
+                { "number": 12, "title": "Newage" },
+                { "number": 13, "title": "You" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both cataloged editions share the same 13-track audio CD. The official page also describes an Aniversal merchandise bundle built from the limited edition; it has no separate catalog number or audio content and is not duplicated as an edition."
+    },
+    {
+      "source_url": "https://fripside.net/musics/13820",
+      "official_type": "SINGLE",
+      "title": "Red Liberation",
+      "release_date": "2023-10-11",
+      "editions": [
+        {
+          "name": "初回限定盤（CD+Blu-ray）",
+          "catalog_number": "GNCA-0700",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Red Liberation" },
+                { "number": 2, "title": "more than you know" },
+                { "number": 3, "title": "Red Liberation <instrumental>" },
+                { "number": 4, "title": "more than you know <instrumental>" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0701",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Red Liberation" },
+                { "number": 2, "title": "more than you know" },
+                { "number": 3, "title": "Red Liberation <instrumental>" },
+                { "number": 4, "title": "more than you know <instrumental>" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions share the same four-track audio CD. The limited edition video Blu-ray is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/12523",
+      "official_type": "ALBUM",
+      "title": "infinite Resonance",
+      "release_date": "2022-10-19",
+      "editions": [
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-1628",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "infinite Resonance" },
+                { "number": 2, "title": "dawn of infinity" },
+                { "number": 3, "title": "Flames（vocal：阿部寿世）" },
+                { "number": 4, "title": "Insoluble Snow" },
+                { "number": 5, "title": "trust in you -version 2022-" },
+                { "number": 6, "title": "with a smile（vocal：阿部寿世）" },
+                { "number": 7, "title": "Your Way" },
+                { "number": 8, "title": "Distance（vocal：上杉真央）" },
+                { "number": 9, "title": "Reach for the light（vocal：上杉真央）" },
+                { "number": 10, "title": "Forget-me-not" },
+                { "number": 11, "title": "an Effect of Fate" },
+                { "number": 12, "title": "New World" },
+                { "number": 13, "title": "Shape of Delight" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The same audio disc is also CD 2 of the separately cataloged double Decades＋infinite Resonance bundle (GNCA-1626)."
+    },
+    {
+      "source_url": "https://fripside.net/musics/12522",
+      "official_type": "ALBUM",
+      "title": "double Decades",
+      "release_date": "2022-10-19",
+      "editions": [
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-1627",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "double Decades＜vocal：nao（Phase1 vo.）, 南條愛乃（Phase2 vo.）, 上杉真央・阿部寿世（Phase3 vo.）＞" },
+                { "number": 2, "title": "magicaride -version 2022-" },
+                { "number": 3, "title": "BLACKFOX -version 2022-" },
+                { "number": 4, "title": "trusty snow -version 2022-" },
+                { "number": 5, "title": "fermata～Akkord:fortissimo～-version 2022-" },
+                { "number": 6, "title": "transitory orbit -version 2022-（vocal：上杉真央）" },
+                { "number": 7, "title": "LEVEL5-judgelight- -version 2022-" },
+                { "number": 8, "title": "come to mind -version 2022-" },
+                { "number": 9, "title": "crescendo -version 2022-" },
+                { "number": 10, "title": "sister’s noise -version 2022-" },
+                { "number": 11, "title": "before dawn daybreak -version 2022-（vocal：阿部寿世）" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "The same audio disc is also CD 1 of the separately cataloged double Decades＋infinite Resonance bundle (GNCA-1626)."
+    },
+    {
+      "source_url": "https://fripside.net/musics/12524",
+      "official_type": "ALBUM",
+      "title": "double Decades＋infinite Resonance",
+      "release_date": "2022-10-19",
+      "editions": [
+        {
+          "name": "初回限定盤（2CD＋Blu-ray）",
+          "catalog_number": "GNCA-1626",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "double Decades＜vocal：nao（Phase1 vo.）, 南條愛乃（Phase2 vo.）, 上杉真央・阿部寿世（Phase3 vo.）＞" },
+                { "number": 2, "title": "magicaride -version 2022-" },
+                { "number": 3, "title": "BLACKFOX -version 2022-" },
+                { "number": 4, "title": "trusty snow -version 2022-" },
+                { "number": 5, "title": "fermata～Akkord:fortissimo～-version 2022-" },
+                { "number": 6, "title": "transitory orbit -version 2022-（vocal：上杉真央）" },
+                { "number": 7, "title": "LEVEL5-judgelight- -version 2022-" },
+                { "number": 8, "title": "come to mind -version 2022-" },
+                { "number": 9, "title": "crescendo -version 2022-" },
+                { "number": 10, "title": "sister’s noise -version 2022-" },
+                { "number": 11, "title": "before dawn daybreak -version 2022-（vocal：阿部寿世）" }
+              ]
+            },
+            {
+              "media": "CD",
+              "number": 2,
+              "tracks": [
+                { "number": 1, "title": "infinite Resonance" },
+                { "number": 2, "title": "dawn of infinity" },
+                { "number": 3, "title": "Flames（vocal：阿部寿世）" },
+                { "number": 4, "title": "Insoluble Snow" },
+                { "number": 5, "title": "trust in you -version 2022-" },
+                { "number": 6, "title": "with a smile（vocal：阿部寿世）" },
+                { "number": 7, "title": "Your Way" },
+                { "number": 8, "title": "Distance（vocal：上杉真央）" },
+                { "number": 9, "title": "Reach for the light（vocal：上杉真央）" },
+                { "number": 10, "title": "Forget-me-not" },
+                { "number": 11, "title": "an Effect of Fate" },
+                { "number": 12, "title": "New World" },
+                { "number": 13, "title": "Shape of Delight" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Bundle release: CD 1 duplicates the complete double Decades album (GNCA-1627), and CD 2 duplicates the complete infinite Resonance album (GNCA-1628). Its video Blu-ray is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11821",
+      "official_type": "SINGLE",
+      "title": "dawn of infinity",
+      "release_date": "2022-05-18",
+      "editions": [
+        {
+          "name": "初回限定盤（CD＋Blu-ray）",
+          "catalog_number": "GNCA-0667",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "dawn of infinity" },
+                { "number": 2, "title": "Regeneration" },
+                { "number": 3, "title": "dawn of infinity <instrumental>" },
+                { "number": 4, "title": "Regeneration <instrumental>" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤",
+          "catalog_number": "GNCA-0668",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "dawn of infinity" },
+                { "number": 2, "title": "Regeneration" },
+                { "number": 3, "title": "dawn of infinity <instrumental>" },
+                { "number": 4, "title": "Regeneration <instrumental>" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions share the same four-track audio CD. The limited edition video Blu-ray is omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/11823",
+      "official_type": "ALBUM",
+      "title": "infinite synthesis 6",
+      "release_date": "2022-03-23",
+      "editions": [
+        {
+          "name": "初回限定盤（CD＋Blu-ray）",
+          "catalog_number": "GNCA-1610",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "stay with you -ver.2022-" },
+                { "number": 2, "title": "Leap of faith" },
+                { "number": 3, "title": "endless voyage" },
+                { "number": 4, "title": "legendary future" },
+                { "number": 5, "title": "Your breeze" },
+                { "number": 6, "title": "for Seasons" },
+                { "number": 7, "title": "worlds collide" },
+                { "number": 8, "title": "The wind in your heart" },
+                { "number": 9, "title": "faraway sky" },
+                { "number": 10, "title": "With falling snow" },
+                { "number": 11, "title": "preparedness star" },
+                { "number": 12, "title": "on this night" },
+                { "number": 13, "title": "regret" },
+                { "number": 14, "title": "Dear All" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "初回限定盤（CD＋DVD）",
+          "catalog_number": "GNCA-1611",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "stay with you -ver.2022-" },
+                { "number": 2, "title": "Leap of faith" },
+                { "number": 3, "title": "endless voyage" },
+                { "number": 4, "title": "legendary future" },
+                { "number": 5, "title": "Your breeze" },
+                { "number": 6, "title": "for Seasons" },
+                { "number": 7, "title": "worlds collide" },
+                { "number": 8, "title": "The wind in your heart" },
+                { "number": 9, "title": "faraway sky" },
+                { "number": 10, "title": "With falling snow" },
+                { "number": 11, "title": "preparedness star" },
+                { "number": 12, "title": "on this night" },
+                { "number": 13, "title": "regret" },
+                { "number": 14, "title": "Dear All" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-1612",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "stay with you -ver.2022-" },
+                { "number": 2, "title": "Leap of faith" },
+                { "number": 3, "title": "endless voyage" },
+                { "number": 4, "title": "legendary future" },
+                { "number": 5, "title": "Your breeze" },
+                { "number": 6, "title": "for Seasons" },
+                { "number": 7, "title": "worlds collide" },
+                { "number": 8, "title": "The wind in your heart" },
+                { "number": 9, "title": "faraway sky" },
+                { "number": 10, "title": "With falling snow" },
+                { "number": 11, "title": "preparedness star" },
+                { "number": 12, "title": "on this night" },
+                { "number": 13, "title": "regret" },
+                { "number": 14, "title": "Dear All" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "All three editions share the same 14-track audio CD. Limited-edition DVD/Blu-ray video discs are omitted."
+    },
+    {
+      "source_url": "https://fripside.net/musics/13485",
+      "official_type": "SINGLE",
+      "title": "Leap of faith",
+      "release_date": "2022-02-02",
+      "editions": [
+        {
+          "name": "初回限定盤（CD＋Blu-ray）",
+          "catalog_number": "GNCA-0656",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Leap of faith" },
+                { "number": 2, "title": "passage" },
+                { "number": 3, "title": "Leap of faith＜instrumental＞" },
+                { "number": 4, "title": "passage＜instrumental＞" }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "通常盤（CD）",
+          "catalog_number": "GNCA-0657",
+          "discs": [
+            {
+              "media": "CD",
+              "number": 1,
+              "tracks": [
+                { "number": 1, "title": "Leap of faith" },
+                { "number": 2, "title": "passage" },
+                { "number": 3, "title": "Leap of faith＜instrumental＞" },
+                { "number": 4, "title": "passage＜instrumental＞" }
+              ]
+            }
+          ]
+        }
+      ],
+      "notes": "Both editions share the same four-track audio CD. The limited edition video Blu-ray is omitted."
+    }
+  ]
+}

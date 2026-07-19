@@ -2,12 +2,22 @@
 import Icon from "./Icon.astro";
 import { getLocale, localeNames, supportedLocales, t } from "../lib/i18n";
 
+interface Props {
+  context?: "header" | "site-gate";
+}
+
+const { context = "header" } = Astro.props;
 const locale = getLocale(Astro.request);
 ---
 <label class="language-switcher">
   <span>{t(locale, "language.label")}</span>
   <Icon name="globe" class="language-icon" />
-  <select aria-label={t(locale, "language.label")} data-language-switcher data-current-locale={locale}>
+  <select
+    aria-label={t(locale, "language.label")}
+    data-language-switcher
+    data-language-context={context}
+    data-current-locale={locale}
+  >
     {supportedLocales.map((value) => <option value={value} selected={value === locale}>{localeNames[value]}</option>)}
   </select>
   <Icon name="chevron-down" class="language-caret" />
@@ -15,6 +25,7 @@ const locale = getLocale(Astro.request);
 
 <script>
   import { LOCALE_COOKIE } from "../lib/i18n";
+  import { OFFICIAL_SITE_NOTICE_REOPEN_STORAGE_KEY } from "../lib/site-notice";
 
   const setupLanguageSwitchers = () => {
     document.querySelectorAll("[data-language-switcher]").forEach((select) => {
@@ -28,6 +39,13 @@ const locale = getLocale(Astro.request);
       persist(select.dataset.currentLocale ?? select.value);
       select.addEventListener("change", () => {
         persist(select.value);
+        if (select.dataset.languageContext === "site-gate") {
+          try {
+            sessionStorage.setItem(OFFICIAL_SITE_NOTICE_REOPEN_STORAGE_KEY, "yes");
+          } catch {
+            // Navigation still works when session storage is unavailable.
+          }
+        }
         const url = new URL(location.href);
         url.searchParams.set("lang", select.value);
         location.assign(url.href);

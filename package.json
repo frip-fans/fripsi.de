@@ -26,6 +26,7 @@
     "import:notion": "tsx scripts/import-notion-export.ts",
     "import:sql": "tsx scripts/build-import-sql.ts",
     "import:music": "tsx scripts/import-music-library.ts",
+    "scrape:discography": "node scripts/scrape-official-discography.mjs",
     "build:phase3-albums": "node scripts/build-phase3-album-import.mjs",
     "build:liberation-setlists": "node scripts/build-liberation-protocol-setlists.mjs",
     "build:anisama-setlists": "node scripts/build-anisama-setlists.mjs",

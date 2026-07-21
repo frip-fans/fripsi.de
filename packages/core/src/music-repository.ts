@@ -324,10 +324,13 @@ export async function getSetlistById(db: D1Database, id: string): Promise<Setlis
         pv.title AS performed_version_title, pv.version_label AS performed_version_label,
         (SELECT COUNT(*) FROM song_versions sv
           WHERE sv.song_id = s.id AND sv.published = 1) AS song_version_count,
-        (SELECT group_concat(DISTINCT r.title)
+        (SELECT r.title
           FROM release_tracks rt
           JOIN releases r ON r.id = rt.release_id AND r.published = 1
-          WHERE rt.song_version_id = se.performed_version_id) AS release_titles
+          WHERE rt.song_version_id = se.performed_version_id
+          ORDER BY r.release_date IS NULL ASC, r.release_date ASC,
+            rt.disc_number ASC, rt.track_number ASC, r.title COLLATE NOCASE ASC
+          LIMIT 1) AS release_titles
       FROM setlist_entries se
       JOIN songs s ON s.id = se.song_id AND s.published = 1
       LEFT JOIN song_versions pv ON pv.id = se.performed_version_id AND pv.published = 1

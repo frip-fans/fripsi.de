@@ -90,7 +90,14 @@ let previousSection = "";
                             {versionNote(medleyEntry) && <small>{versionNote(medleyEntry)}</small>}
                             {medleyEntry.notes && <small class="setlist-entry-note">{medleyEntry.notes}</small>}
                           </div>
-                          {medleyEntry.release_titles && <small>{medleyEntry.release_titles}</small>}
+                          {medleyEntry.release_titles && (
+                            <span
+                              class="setlist-entry-release"
+                              data-full-title={medleyEntry.release_titles}
+                              title={medleyEntry.release_titles}
+                              tabindex="0"
+                            ><span>{medleyEntry.release_titles}</span></span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -103,7 +110,14 @@ let previousSection = "";
                       {versionNote(entry) && <small>{versionNote(entry)}</small>}
                       {entry.notes && <small class="setlist-entry-note">{entry.notes}</small>}
                     </div>
-                    {entry.release_titles && <small>{entry.release_titles}</small>}
+                    {entry.release_titles && (
+                      <span
+                        class="setlist-entry-release"
+                        data-full-title={entry.release_titles}
+                        title={entry.release_titles}
+                        tabindex="0"
+                      ><span>{entry.release_titles}</span></span>
+                    )}
                   </article>
                 )}
               </>

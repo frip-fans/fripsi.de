@@ -1,5 +1,5 @@
 ---
-import { listReleases, type ReleaseType } from "@frip-fan/core";
+import { listReleases, type ReleaseSummary, type ReleaseType } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
@@ -8,41 +8,228 @@ import { formatMusicDate, releaseTypeLabels } from "../../../lib/music";
 import { getLocale, t } from "../../../lib/i18n";
 import "../../../styles/music.css";
 
-const query = Astro.url.searchParams.get("q")?.trim() ?? "";
 const locale = getLocale(Astro.request);
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
 const requestedType = Astro.url.searchParams.get("type") as ReleaseType | null;
 const type = requestedType && requestedType in releaseTypeLabels ? requestedType : undefined;
-const releases = await listReleases(getEnv().DB, { query: query || undefined, type, limit: 500 });
+const releaseSortOptions = [
+  { value: "date-desc", label: t(locale, "music.releaseNewest") },
+  { value: "date-asc", label: t(locale, "music.releaseOldest") },
+  { value: "title-asc", label: t(locale, "music.titleAZ") },
+  { value: "title-desc", label: t(locale, "music.titleZA") },
+] as const;
+type ReleaseSort = (typeof releaseSortOptions)[number]["value"];
+const requestedSort = Astro.url.searchParams.get("sort") ?? "";
+const sort: ReleaseSort = releaseSortOptions.some((option) => option.value === requestedSort)
+  ? requestedSort as ReleaseSort
+  : "date-desc";
+const PAGE_SIZE = 12;
+const requestedPageValue = Astro.url.searchParams.get("page") ?? "1";
+const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
+const allReleases = await listReleases(getEnv().DB, { limit: 500 });
+
+const compareDate = (left: ReleaseSummary, right: ReleaseSummary, direction: 1 | -1) => {
+  if (!left.release_date && !right.release_date) return left.title.localeCompare(right.title);
+  if (!left.release_date) return 1;
+  if (!right.release_date) return -1;
+  const comparison = left.release_date.localeCompare(right.release_date);
+  return comparison === 0 ? left.title.localeCompare(right.title) : comparison * direction;
+};
+const compareReleases = (left: ReleaseSummary, right: ReleaseSummary) => {
+  if (sort === "date-asc") return compareDate(left, right, 1);
+  if (sort === "title-asc") return left.title.localeCompare(right.title);
+  if (sort === "title-desc") return right.title.localeCompare(left.title);
+  return compareDate(left, right, -1);
+};
+const normalizedQuery = query.toLocaleLowerCase(locale);
+const filteredReleases = allReleases
+  .filter((release) => !type || release.release_type === type)
+  .filter((release) => !normalizedQuery || [release.title, release.catalog_number, release.edition]
+    .filter(Boolean).join(" ").toLocaleLowerCase(locale).includes(normalizedQuery))
+  .sort(compareReleases);
+const totalPages = Math.max(1, Math.ceil(filteredReleases.length / PAGE_SIZE));
+const page = Math.min(requestedPage, totalPages);
+const releases = filteredReleases.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+const makeHref = (values: { type?: ReleaseType; sort?: ReleaseSort }) => {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (values.type) params.set("type", values.type);
+  if (values.sort && values.sort !== "date-desc") params.set("sort", values.sort);
+  return `/music/releases${params.size ? `?${params}` : ""}`;
+};
+const browserPayload = {
+  locale,
+  pageSize: PAGE_SIZE,
+  query,
+  type: type ?? "",
+  sort,
+  page,
+  releases: allReleases,
+  typeLabels: releaseTypeLabels,
+  labels: {
+    tracks: t(locale, "music.tracksCount", { count: "{count}" }),
+    performed: t(locale, "music.performedSongs", { count: "{count}" }),
+    datePending: t(locale, "common.datePending"),
+    summary: t(locale, "music.visibleReleases", { visible: "{visible}", total: "{total}" }),
+    pagination: t(locale, "pagination.summary", { total: "{total}", item: t(locale, "music.nav.releases"), current: "{current}", pages: "{pages}" }),
+    previous: t(locale, "pagination.previous"),
+    next: t(locale, "pagination.next"),
+  },
+};
+const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
 ---
 <SiteLayout title={t(locale, "music.nav.releases")}>
-  <div class="music-page">
+  <div class="music-page" data-release-browser>
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, "music.nav.releases")}>
-      <form class="music-toolbar release-toolbar" method="get">
+      <form class="music-toolbar" method="get" data-catalog-search-form>
+        {type && <input type="hidden" name="type" value={type} />}
+        {sort !== "date-desc" && <input type="hidden" name="sort" value={sort} />}
         <label class="music-search">
           <span class="visually-hidden">{t(locale, "music.searchRelease")}</span>
           <Icon name="search" />
-          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchReleasePlaceholder")} />
+          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchReleasePlaceholder")} data-catalog-search />
         </label>
-        <select class="music-filter" name="type" aria-label={t(locale, "music.releaseType")}>
-          <option value="">{t(locale, "music.allTypes")}</option>
-          {Object.entries(releaseTypeLabels).map(([value, label]) => <option value={value} selected={type === value}>{label}</option>)}
-        </select>
-        <button type="submit" class="secondary">{t(locale, "common.filter")}</button>
+        <button type="submit" class="secondary">{t(locale, "common.search")}</button>
       </form>
 
-      {releases.length ? (
-        <div class="music-grid">
-          {releases.map((release) => (
-            <a class="music-card" href={`/music/releases/${encodeURIComponent(release.slug)}`}>
-              <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
-              <h3>{release.title}</h3>
-              <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
-              <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span><span>{t(locale, "music.performedSongs", { count: release.performed_song_count })}</span></div>
-            </a>
-          ))}
+      <div class="music-filter-stack" aria-label={t(locale, "common.filter")}>
+        <div class="music-filter-row">
+          <span class="music-filter-label"><Icon name="disc" />{t(locale, "music.releaseType")}</span>
+          <div class="music-chips" data-catalog-filters>
+            <a class:list={{ active: !type }} href={makeHref({ sort })} data-catalog-filter="">{t(locale, "music.allTypes")}</a>
+            {Object.entries(releaseTypeLabels).map(([value, label]) => (
+              <a class:list={{ active: type === value }} href={makeHref({ type: value as ReleaseType, sort })} data-catalog-filter={value}>{label}</a>
+            ))}
+          </div>
         </div>
-      ) : <div class="music-empty panel">{t(locale, "music.noReleases")}</div>}
+        <div class="music-filter-row">
+          <span class="music-filter-label"><Icon name="arrow-down-up" />{t(locale, "music.sortOrder")}</span>
+          <div class="music-chips" data-catalog-sorts>
+            {releaseSortOptions.map((option) => (
+              <a class:list={{ active: sort === option.value }} href={makeHref({ type, sort: option.value })} data-catalog-sort={option.value}>{option.label}</a>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div class="music-list-feedback" aria-live="polite">
+        <span data-catalog-summary>{t(locale, "music.visibleReleases", { visible: filteredReleases.length, total: allReleases.length })}</span>
+      </div>
+      <div class="music-grid" data-catalog-grid>
+        {releases.map((release) => (
+          <a class="music-card" href={`/music/releases/${encodeURIComponent(release.slug)}`}>
+            <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
+            <h3>{release.title}</h3>
+            <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
+            <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span><span>{t(locale, "music.performedSongs", { count: release.performed_song_count })}</span></div>
+          </a>
+        ))}
+      </div>
+      <div class="music-empty panel" data-catalog-empty hidden={releases.length > 0}>{t(locale, "music.noReleases")}</div>
+      <nav class="music-client-pagination" aria-label={t(locale, "pagination.label")} data-catalog-pagination hidden={totalPages <= 1}>
+        <p data-catalog-pagination-summary>{t(locale, "pagination.summary", { total: filteredReleases.length, item: t(locale, "music.nav.releases"), current: page, pages: totalPages })}</p>
+        <div class="music-client-pages" data-catalog-pages></div>
+      </nav>
     </section>
+    <script is:inline type="application/json" data-release-browser-data set:html={browserJson}></script>
   </div>
 </SiteLayout>
+
+<script>
+  import { setupPagedCatalog } from "../../../scripts/paged-catalog";
+
+  interface ReleaseItem {
+    slug: string;
+    title: string;
+    release_type: string;
+    release_date: string | null;
+    catalog_number: string | null;
+    edition: string | null;
+    track_count: number;
+    performed_song_count: number;
+  }
+
+  interface ReleasePayload {
+    locale: string;
+    pageSize: number;
+    query: string;
+    type: string;
+    sort: string;
+    page: number;
+    releases: ReleaseItem[];
+    typeLabels: Record<string, string>;
+    labels: Record<string, string>;
+  }
+
+  const root = document.querySelector<HTMLElement>("[data-release-browser]");
+  const data = root?.querySelector<HTMLScriptElement>("[data-release-browser-data]");
+  if (root && data) {
+    const payload = JSON.parse(data.textContent ?? "{}") as ReleasePayload;
+    const fill = (template: string, count: number) => template.replaceAll("{count}", String(count));
+    const formatDate = (value: string | null) => value
+      ? new Intl.DateTimeFormat(payload.locale, { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`))
+      : payload.labels.datePending;
+    const compareDate = (left: ReleaseItem, right: ReleaseItem, direction: 1 | -1) => {
+      if (!left.release_date && !right.release_date) return left.title.localeCompare(right.title);
+      if (!left.release_date) return 1;
+      if (!right.release_date) return -1;
+      const comparison = left.release_date.localeCompare(right.release_date);
+      return comparison === 0 ? left.title.localeCompare(right.title) : comparison * direction;
+    };
+    setupPagedCatalog({
+      root,
+      items: payload.releases,
+      pageSize: payload.pageSize,
+      initialState: { query: payload.query, filter: payload.type, sort: payload.sort, page: payload.page },
+      filterParam: "type",
+      matches: (release, state) => {
+        if (state.filter && release.release_type !== state.filter) return false;
+        const query = state.query.trim().toLocaleLowerCase(payload.locale);
+        return !query || [release.title, release.catalog_number, release.edition]
+          .filter(Boolean).join(" ").toLocaleLowerCase(payload.locale).includes(query);
+      },
+      compare: (left, right, sort) => {
+        if (sort === "date-asc") return compareDate(left, right, 1);
+        if (sort === "title-asc") return left.title.localeCompare(right.title);
+        if (sort === "title-desc") return right.title.localeCompare(left.title);
+        return compareDate(left, right, -1);
+      },
+      renderCard: (release) => {
+        const card = document.createElement("a");
+        card.className = "music-card";
+        card.href = `/music/releases/${encodeURIComponent(release.slug)}`;
+        const meta = document.createElement("span");
+        meta.className = "music-release-meta";
+        meta.textContent = `${payload.typeLabels[release.release_type] ?? release.release_type} · ${formatDate(release.release_date)}`;
+        const title = document.createElement("h3");
+        title.textContent = release.title;
+        const details = document.createElement("div");
+        details.className = "music-card-meta";
+        for (const value of [release.catalog_number, release.edition].filter(Boolean)) {
+          const span = document.createElement("span");
+          span.textContent = value;
+          details.appendChild(span);
+        }
+        const stats = document.createElement("div");
+        stats.className = "music-card-stats";
+        for (const value of [fill(payload.labels.tracks, release.track_count), fill(payload.labels.performed, release.performed_song_count)]) {
+          const span = document.createElement("span");
+          span.textContent = value;
+          stats.appendChild(span);
+        }
+        card.appendChild(meta);
+        card.appendChild(title);
+        card.appendChild(details);
+        card.appendChild(stats);
+        return card;
+      },
+      labels: {
+        summary: payload.labels.summary,
+        pagination: payload.labels.pagination,
+        previous: payload.labels.previous,
+        next: payload.labels.next,
+      },
+    });
+  }
+</script>

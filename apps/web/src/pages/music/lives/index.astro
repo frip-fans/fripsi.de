@@ -179,7 +179,10 @@ const browseJson = JSON.stringify(browsePayload).replaceAll("<", "\\u003c");
           <a class="music-card" href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
             <div class="music-card-top">
               <time class="music-card-date" datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
-              <span class="music-event-type">{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
+              <span class:list={["music-event-type", {
+                "is-solo": setlist.event_classification === "专场",
+                "is-festival": setlist.event_classification === "拼盘",
+              }]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
             </div>
             <h3>{setlistDisplayTitle(setlist)}</h3>
             <div class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span>·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></div>
@@ -310,6 +313,8 @@ const browseJson = JSON.stringify(browsePayload).replaceAll("<", "\\u003c");
       date.textContent = formatDate(item.start_date);
       const type = document.createElement("span");
       type.className = "music-event-type";
+      type.classList.toggle("is-solo", item.event_classification === "专场");
+      type.classList.toggle("is-festival", item.event_classification === "拼盘");
       type.textContent = eventTypeLabel(item.event_classification);
       top.appendChild(date);
       top.appendChild(type);

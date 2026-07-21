@@ -1,47 +1,114 @@
-# fripSide Fan Site
+# fripSi.de
 
-一个独立的 fripSide 粉丝活动日历。公开网站、站内管理后台和 Remote MCP 共用 Cloudflare D1，内容维护不依赖 Notion，也不需要每次更新都重新构建网站。
+[fripSi.de](https://fripsi.de) 是一个由粉丝维护的非官方 fripSide 活动日历与 Live 歌单资料库。
 
-当前状态：MVP 已实现，可在本地完整运行；正式域名、Cloudflare D1 ID、Access 应用和历史 CSV 尚待接入。
+项目用于整理公开发布的活动、发行物、歌曲版本与演唱记录。内容保存在 Cloudflare D1 中，通过站内后台维护；更新资料不需要重新构建网站。
 
-## 已实现
+> 本站并非 fripSide 官方网站，也不代表或隶属于 fripSide 及其相关机构。官方信息请以 [fripside.net](https://fripside.net) 为准。
 
-- Astro SSR 公开站：首页、月历、年份归档、活动详情、歌单库、About、sitemap。
-- 公开 UI 支持简体中文、繁体中文、日语和英语；语言选择写入 Cookie，并在当前筛选 URL 上切换。
-- Bootstrap Icons 本地 SVG 图标系统，不依赖 CDN、React 或 Bootstrap CSS。
-- 完整公开 iCalendar 订阅源：`/calendar.ics`，支持活动更新、延期和取消同步。
-- D1 migrations：活动、来源、变更提案、审计、幂等回执和导入任务。
-- 站内管理后台：活动直接保存、Setlist/专辑编辑、AI 提案审核、归档、审计和 CSV 导出。
-- Remote MCP Worker：13 个受控工具、OAuth resource metadata、Bearer JWT 校验和 scope 校验。
-- AI 提案工作流：重复检查 → propose → preview → 明确确认 → publish。
-- 人工维护工作流：表单保存 → D1 条件写入 → audit log；关闭“公开显示”即可暂存在后台，不再额外创建人工草稿。
-- Notion CSV 一次性离线转换与可复现 SQL 生成。
-- 歌曲/版本/发行物/Live 歌单数据模型、交叉查询与幂等 CSV 导入。
+## 功能
 
-## 本地启动
+- 按月份浏览活动，并通过公开的 iCalendar 地址订阅日历。
+- 按年份、类型和关键词查询历史活动。
+- 浏览 Live 歌单、专辑曲目、歌曲版本及相互之间的关联。
+- 支持简体中文、繁体中文、日语和英语界面。
+- 通过 `/admin` 管理活动、歌曲、专辑和歌单。
+- 记录资料来源和管理操作，方便核查与修正。
+- 提供独立的 Remote MCP Worker，用于查询资料和提交待审核的内容变更。
 
-需要 Node.js 24。
+## 技术栈
+
+- [Astro](https://astro.build/) SSR
+- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
+- [Cloudflare D1](https://developers.cloudflare.com/d1/)
+- TypeScript、Vitest、Playwright
+- Bootstrap Icons（构建时作为本地 SVG 引入）
+
+项目不依赖 React，也不把 Notion 或其他第三方服务作为在线数据源。
+
+## 仓库结构
+
+```text
+apps/
+├── web/          Astro 网站、管理后台和 Web API
+└── mcp/          Remote MCP Worker
+packages/
+└── core/         数据访问、校验、权限和共享业务逻辑
+migrations/       D1 数据库迁移
+scripts/          数据抓取、清洗和导入脚本
+data/             导入模板与研究数据
+docs/             架构、数据模型和部署文档
+```
+
+## 本地开发
+
+需要 Node.js 24 和 npm。
 
 ```bash
+git clone https://github.com/frip-fans/fripsi.de.git
+cd fripsi.de
 npm install
+
 cp apps/web/.dev.vars.example apps/web/.dev.vars
 cp apps/mcp/.dev.vars.example apps/mcp/.dev.vars
+
 npm run db:migrate:local
 npm run db:seed:local
 npm run dev:web
 ```
 
-网站默认位于 `http://localhost:4321`，后台位于 `http://localhost:4321/admin`。复制得到的 `.dev.vars` 被 Git 忽略，仅用于开启本地测试身份；生产环境绝不能配置 `DEV_AUTH_BYPASS=true`。
+默认情况下，网站运行在 `http://localhost:4321`，管理后台位于 `http://localhost:4321/admin`。本地示例配置通过 `DEV_AUTH_BYPASS` 提供测试身份；生产环境不得启用该选项。
 
-另开终端启动 MCP：
+如需调试 MCP Worker，可另开一个终端运行：
 
 ```bash
 npm run dev:mcp
 ```
 
-MCP endpoint 为 `http://localhost:8787/mcp`，健康检查为 `/health`。本地 Web 与 MCP 共享同一份 Wrangler D1 持久化目录。
+MCP endpoint 默认为 `http://localhost:8787/mcp`，健康检查位于 `/health`。
 
-## 验证
+## 常用命令
+
+| 命令 | 用途 |
+|---|---|
+| `npm run dev:web` | 启动网站开发服务器 |
+| `npm run dev:mcp` | 启动 MCP Worker 开发服务器 |
+| `npm run typecheck` | 检查所有 workspace 和数据脚本的类型 |
+| `npm test` | 运行测试 |
+| `npm run build` | 构建全部 workspace |
+| `npm run build:web` | 只构建网站 |
+| `npm run visual:check` | 使用 Playwright 检查首页视觉状态 |
+| `npm run db:migrate:local` | 将 migrations 应用到本地 D1 |
+| `npm run db:seed:local` | 写入本地示例数据 |
+
+## 数据维护
+
+活动、歌曲、发行物和歌单均以 D1 为准。批量资料先整理成仓库约定的 CSV，再通过导入脚本生成或写入结构化数据。提交资料修正时，请同时提供可公开访问的来源链接。
+
+- [歌单库的数据结构与导入格式](./docs/music-library.md)
+- [数据库模型](./docs/data-model.md)
+- [管理后台与 MCP](./docs/admin-and-mcp.md)
+
+从 Notion 迁移旧活动数据时，可使用：
+
+```bash
+npm run import:notion -- data/raw/export.csv
+npm run import:sql
+```
+
+原始导出文件放在被 Git 忽略的 `data/raw/`。执行导入前，请先检查生成的核验报告和 SQL。
+
+## 部署
+
+Web 与 MCP 是两个独立的 Cloudflare Worker，共用同一个 D1 数据库。仓库中的 `wrangler.jsonc` 保存 Worker、binding 和公开环境变量配置；令牌、Access 凭据等敏感值应使用 Cloudflare Secrets 或构建环境变量管理。
+
+生产数据库迁移需要单独执行，不会随网站构建自动应用。部署流程和 Cloudflare Access 配置见 [部署文档](./docs/deployment.md)。
+
+## 参与项目
+
+欢迎通过 [Issues](https://github.com/frip-fans/fripsi.de/issues) 提交功能建议、资料纠错或问题报告，也可以直接发起 Pull Request。
+
+提交代码前请运行：
 
 ```bash
 npm run typecheck
@@ -49,17 +116,10 @@ npm test
 npm run build
 ```
 
-## 迁移 Notion 历史数据
+修改界面文字时，请同步维护四种语言；修改活动或音乐资料时，请附上来源并避免提交未经授权的图片、音频或大段受版权保护的文本。
 
-先从 Notion 导出 CSV，把原文件放到被 Git 忽略的 `data/raw/`：
+## 许可与权利说明
 
-```bash
-npm run import:notion -- data/raw/export.csv
-npm run import:sql
-```
+本仓库中的代码以 [GNU General Public License v3.0](./LICENSE) 发布。
 
-第一条命令输出规范化 JSON 和核验报告，第二条生成可重复执行的 `data/normalized/import.sql`。先阅读 `data/reports/notion-import.json`，确认数量、日期范围、分类和排除项，再导入本地或 dev D1。
-
-详细方案和部署步骤见 [docs/README.md](./docs/README.md) 与 [docs/deployment.md](./docs/deployment.md)。
-
-歌单库的数据准备与导入方式见 [docs/music-library.md](./docs/music-library.md)。
+fripSide 的名称、标识、作品以及其他相关素材的权利归各自权利人所有。GPL 仅适用于本仓库中可授权的代码，不对第三方名称、作品、数据来源或媒体素材授予额外许可。

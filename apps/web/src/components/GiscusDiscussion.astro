@@ -1,0 +1,45 @@
+---
+import type { Locale } from "../lib/i18n";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+---
+<div class="giscus-frame">
+  <script
+    is:inline
+    src="https://giscus.app/client.js"
+    data-repo="frip-fans/fripsi.de"
+    data-repo-id="R_kgDOTcXMzQ"
+    data-category="General"
+    data-category-id="DIC_kwDOTcXMzc4DBq9t"
+    data-mapping="specific"
+    data-term="fripsi.de community discussion"
+    data-strict="1"
+    data-reactions-enabled="1"
+    data-emit-metadata="0"
+    data-input-position="top"
+    data-theme="dark"
+    data-lang={locale}
+    data-loading="lazy"
+    crossorigin="anonymous"
+    async
+  ></script>
+</div>
+
+<style>
+  .giscus-frame {
+    min-height: 14rem;
+    padding: clamp(1rem, 3vw, 1.5rem);
+    background: rgba(6, 14, 25, .76);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .2);
+    backdrop-filter: blur(18px);
+  }
+
+  .giscus-frame :global(.giscus),
+  .giscus-frame :global(.giscus-frame) { width: 100%; }
+</style>

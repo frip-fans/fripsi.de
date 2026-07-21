@@ -45,7 +45,10 @@ let previousSection = "";
     <header class="music-detail-head">
       <p class="music-detail-date">
         <time datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
-        <span>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
+        <span class:list={["music-event-type", {
+          "is-solo": setlist.event_classification === "专场",
+          "is-festival": setlist.event_classification === "拼盘",
+        }]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
         {setlist.performance_label !== "本公演" && <span>{setlist.performance_label}</span>}
       </p>
       <h1>{setlistDisplayTitle(setlist)}</h1>

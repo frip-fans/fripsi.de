@@ -3,13 +3,14 @@ import { defineMiddleware } from "astro:middleware";
 import { getEnv } from "./lib/env";
 import { getLocale, type Locale } from "./lib/i18n";
 
-function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale): Response {
+function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale, allowGiscus = false): Response {
   const headers = new Headers(response.headers);
   headers.set("x-content-type-options", "nosniff");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("x-frame-options", "DENY");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
-  headers.set("content-security-policy", "default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'");
+  const giscusOrigin = allowGiscus ? " https://giscus.app" : "";
+  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}; connect-src 'self'; frame-src 'self'${giscusOrigin}`);
   if (locale && headers.get("content-type")?.includes("text/html")) {
     headers.set("content-language", locale);
     headers.append("vary", "Cookie");
@@ -24,7 +25,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const privateRoute = path.startsWith("/admin") || path.startsWith("/api/admin");
   if (!privateRoute) {
     const cacheControl = path === "/archive" ? "private, max-age=60, stale-while-revalidate=30" : undefined;
-    return secure(await next(), false, cacheControl, getLocale(context.request));
+    return secure(await next(), false, cacheControl, getLocale(context.request), path === "/" || path === "/discuss");
   }
 
   try {

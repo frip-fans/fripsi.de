@@ -13,6 +13,7 @@ import type {
   SetlistSearchOptions,
   SetlistSummary,
   SongDetail,
+  SongBrowseSummary,
   SongPerformance,
   SongReleaseAppearance,
   SongSummary,
@@ -154,6 +155,38 @@ export async function listSongs(db: D1Database, options: MusicSearchOptions = {}
     ORDER BY performance_count DESC, s.first_release_date DESC, s.title COLLATE NOCASE ASC
     LIMIT ? OFFSET ?
   `).bind(...bindings, safeLimit(options.limit), safeOffset(options.offset)).all<SongSummary>();
+  return result.results;
+}
+
+export async function listSongCatalog(db: D1Database, limit = 500): Promise<SongBrowseSummary[]> {
+  const result = await db.prepare(`
+    SELECT s.id, s.slug, s.title, s.original_artist, s.first_release_date, s.notes,
+      (SELECT COUNT(*) FROM song_versions sv WHERE sv.song_id = s.id AND sv.published = 1) AS version_count,
+      (SELECT COUNT(DISTINCT rt.release_id)
+        FROM song_versions sv
+        JOIN release_tracks rt ON rt.song_version_id = sv.id
+        JOIN releases r ON r.id = rt.release_id AND r.published = 1
+        WHERE sv.song_id = s.id AND sv.published = 1) AS release_count,
+      (SELECT COUNT(DISTINCT se.setlist_id)
+        FROM setlist_entries se
+        JOIN setlists sl ON sl.id = se.setlist_id AND sl.published = 1
+        JOIN events e ON e.id = sl.event_id AND e.published = 1 AND e.archived_at IS NULL
+        WHERE se.song_id = s.id) AS show_count,
+      (SELECT COUNT(*)
+        FROM setlist_entries se
+        JOIN setlists sl ON sl.id = se.setlist_id AND sl.published = 1
+        JOIN events e ON e.id = sl.event_id AND e.published = 1 AND e.archived_at IS NULL
+        WHERE se.song_id = s.id) AS performance_count,
+      TRIM(s.title || ' ' || s.original_artist || ' ' || COALESCE((
+        SELECT GROUP_CONCAT(sa.alias, ' ')
+        FROM song_aliases sa
+        WHERE sa.song_id = s.id
+      ), '')) AS search_text
+    FROM songs s
+    WHERE s.published = 1
+    ORDER BY performance_count DESC, s.first_release_date DESC, s.title COLLATE NOCASE ASC
+    LIMIT ?
+  `).bind(safeLimit(limit, 500, 500)).all<SongBrowseSummary>();
   return result.results;
 }
 

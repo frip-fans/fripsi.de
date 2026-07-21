@@ -86,14 +86,20 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
           </>
         )}
       </nav>
-      {!admin && <div class="locale-control"><LanguageSwitcher /></div>}
+      {!admin && <a class:list={["nav-community", { active: current.startsWith("/discuss") }]} href="/discuss"><Icon name="chat-dots" />{t(locale, "nav.community")}</a>}
       </div>
     </header>
     {!admin && <OfficialSiteGate autoOpen={autoOpenOfficialSiteGate} />}
     <main><slot /></main>
     <footer>
       <span>{admin ? "fripSide 名称、标识、作品及其他相关内容的权利归各自权利人所有。" : t(locale, "footer.rights")}</span>
-      {admin ? <span>本站并非 fripSide 官方网站</span> : <button class="footer-notice" type="button" data-open-site-notice>{t(locale, "footer.unofficial")}</button>}
+      {admin ? <span>本站并非 fripSide 官方网站</span> : (
+        <div class="footer-links">
+          <a class="footer-github" href="https://github.com/frip-fans/fripsi.de" target="_blank" rel="external noopener noreferrer"><Icon name="github" />{t(locale, "footer.github")}</a>
+          <button class="footer-notice" type="button" data-open-site-notice>{t(locale, "footer.unofficial")}</button>
+          <div class="footer-language"><LanguageSwitcher /></div>
+        </div>
+      )}
     </footer>
   </body>
 </html>
@@ -182,7 +188,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .ambient { position: fixed; width: 28rem; height: 28rem; border-radius: 50%; filter: blur(110px); opacity: .12; pointer-events: none; z-index: -1; }
   .ambient-a { background: var(--accent); left: -16rem; top: 12rem; }
   .ambient-b { background: var(--purple); right: -18rem; top: 35rem; }
-  .site-header { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; min-height: 88px; display: flex; align-items: center; justify-content: space-between; gap: 2rem; border-bottom: 1px solid var(--line); }
+  .site-header { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; min-height: 88px; display: flex; align-items: center; justify-content: flex-start; gap: .75rem; border-bottom: 1px solid var(--line); }
   .brand { display: flex; align-items: center; gap: .8rem; text-decoration: none; letter-spacing: -.02em; }
   .brand-logo { display: block; width: 3rem; height: 3rem; object-fit: contain; }
   .brand-mark { display: grid; place-items: center; width: 2.55rem; height: 2.55rem; border: 1px solid rgba(var(--accent-rgb), .5); border-radius: 12px; background: linear-gradient(145deg, rgba(var(--accent-rgb), .16), rgba(156,134,255,.2)); color: var(--accent); font-weight: 900; font-size: 1.25rem; }
@@ -190,13 +196,18 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .brand-tld { position: relative; top: .035em; color: var(--accent); }
   .brand small { color: var(--muted); font-size: .67rem; margin-top: .15rem; text-transform: uppercase; letter-spacing: .15em; }
   nav { display: flex; align-items: center; gap: .2rem; flex-wrap: wrap; }
-  .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: .55rem; min-width: 0; }
-  .locale-control { flex: 0 0 auto; }
+  .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: .55rem; min-width: 0; margin-left: auto; }
   nav a { text-decoration: none; color: var(--muted); padding: .6rem .72rem; border-radius: 9px; font-size: .92rem; }
   nav a:hover, nav a.active { color: var(--text); background: rgba(255,255,255,.06); }
   nav a.active { box-shadow: inset 0 -1px var(--accent); }
+  .nav-community { display: inline-flex; align-items: center; justify-content: center; gap: .38rem; flex: 0 0 auto; min-height: 38px; padding: .55rem .72rem; color: #08111d; background: var(--accent); border-radius: 9px; box-shadow: 0 8px 22px rgba(var(--accent-rgb), .14); font-size: .84rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
+  .nav-community:hover, .nav-community.active { color: #050b12; background: rgb(244, 145, 80); box-shadow: 0 10px 28px rgba(var(--accent-rgb), .22), inset 0 -1px rgba(255,255,255,.34); }
   main { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; min-height: calc(100vh - 180px); }
   footer { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; border-top: 1px solid var(--line); padding: 1.5rem 0 2.5rem; display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .78rem; }
+  .footer-links { display: flex; align-items: center; justify-content: flex-end; gap: .9rem 1.15rem; flex-wrap: wrap; }
+  .footer-language { flex: 0 0 auto; }
+  .footer-github { display: inline-flex; align-items: center; gap: .38rem; color: inherit; text-decoration: none; }
+  .footer-github:hover { color: var(--text); }
   .footer-notice { min-height: 0; padding: 0; color: inherit; background: none; border: 0; border-radius: 0; font: inherit; font-weight: inherit; text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), .5); text-underline-offset: .25em; cursor: pointer; }
   .footer-notice:hover { color: var(--text); filter: none; transform: none; }
   h1, h2, h3, p { margin-top: 0; }
@@ -237,15 +248,16 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   pre { overflow: auto; color: #cde5f5; background: #050c15; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }
   @media (max-width: 760px) {
     .site-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 1rem 0; gap: .8rem; }
-    .brand { grid-column: 1; grid-row: 1; min-width: 0; }
+    .brand { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
     .header-actions { display: contents; }
-    .header-actions nav { grid-column: 1 / -1; grid-row: 2; width: 100%; min-width: 0; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; overscroll-behavior-inline: contain; }
+    .header-actions nav { grid-column: 1; grid-row: 2; width: 100%; min-width: 0; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; overscroll-behavior-inline: contain; }
     .header-actions nav::-webkit-scrollbar { display: none; }
-    .locale-control { grid-column: 2; grid-row: 1; }
+    .nav-community { grid-column: 2; grid-row: 2; justify-self: end; font-size: .78rem; }
     nav a { white-space: nowrap; }
     main { padding-top: 2rem; }
     .form-grid { grid-template-columns: 1fr; }
     footer { flex-direction: column; }
+    .footer-links { justify-content: flex-start; }
   }
   @media (max-width: 380px) {
     .site-header { gap: .55rem; }
@@ -253,9 +265,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     .brand-logo { width: 2.65rem; height: 2.65rem; }
     .brand b { font-size: .9rem; }
     .brand small { font-size: .56rem; letter-spacing: .1em; }
-    .locale-control select[data-language-switcher] { padding-left: 1.65rem; padding-right: 1.15rem; font-size: .7rem; }
-    .locale-control select[data-current-locale="ja"], .locale-control select[data-current-locale="en"] { width: 6.5rem; min-width: 6.5rem; }
-    .locale-control select[data-current-locale^="zh-"] { width: 6.8rem; min-width: 6.8rem; }
+    .footer-language select[data-language-switcher] { padding-left: 1.65rem; padding-right: 1.15rem; font-size: .7rem; }
   }
   @media (prefers-reduced-motion: reduce) {
     .space-backdrop { transition: none; transform: none; }

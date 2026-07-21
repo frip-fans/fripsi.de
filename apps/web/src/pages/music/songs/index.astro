@@ -1,48 +1,205 @@
 ---
-import { countSongs, listSongs } from "@frip-fan/core";
+import { listSongCatalog, type SongBrowseSummary } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicNav from "../../../components/MusicNav.astro";
-import Pagination from "../../../components/Pagination.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { getLocale, t } from "../../../lib/i18n";
 import "../../../styles/music.css";
 
-const query = Astro.url.searchParams.get("q")?.trim() ?? "";
 const locale = getLocale(Astro.request);
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const songSortOptions = [
+  { value: "live-desc", label: t(locale, "music.mostPerformed") },
+  { value: "live-asc", label: t(locale, "music.leastPerformed") },
+  { value: "title-asc", label: t(locale, "music.titleAZ") },
+  { value: "title-desc", label: t(locale, "music.titleZA") },
+  { value: "release-desc", label: t(locale, "music.firstReleaseNewest") },
+  { value: "release-asc", label: t(locale, "music.firstReleaseOldest") },
+] as const;
+type SongSort = (typeof songSortOptions)[number]["value"];
+const requestedSort = Astro.url.searchParams.get("sort") ?? "";
+const sort: SongSort = songSortOptions.some((option) => option.value === requestedSort)
+  ? requestedSort as SongSort
+  : "live-desc";
 const PAGE_SIZE = 20;
 const requestedPageValue = Astro.url.searchParams.get("page") ?? "1";
 const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
-const filters = { query: query || undefined };
-const totalItems = await countSongs(getEnv().DB, filters);
-const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+const allSongs = await listSongCatalog(getEnv().DB);
+
+const compareReleaseDate = (left: SongBrowseSummary, right: SongBrowseSummary, direction: 1 | -1) => {
+  if (!left.first_release_date && !right.first_release_date) return left.title.localeCompare(right.title);
+  if (!left.first_release_date) return 1;
+  if (!right.first_release_date) return -1;
+  const comparison = left.first_release_date.localeCompare(right.first_release_date);
+  return comparison === 0 ? left.title.localeCompare(right.title) : comparison * direction;
+};
+const compareSongs = (left: SongBrowseSummary, right: SongBrowseSummary) => {
+  if (sort === "live-asc") return left.show_count - right.show_count || left.title.localeCompare(right.title);
+  if (sort === "title-asc") return left.title.localeCompare(right.title);
+  if (sort === "title-desc") return right.title.localeCompare(left.title);
+  if (sort === "release-desc") return compareReleaseDate(left, right, -1);
+  if (sort === "release-asc") return compareReleaseDate(left, right, 1);
+  return right.show_count - left.show_count || left.title.localeCompare(right.title);
+};
+const normalizedQuery = query.toLocaleLowerCase(locale);
+const filteredSongs = allSongs
+  .filter((song) => !normalizedQuery || song.search_text.toLocaleLowerCase(locale).includes(normalizedQuery))
+  .sort(compareSongs);
+const totalPages = Math.max(1, Math.ceil(filteredSongs.length / PAGE_SIZE));
 const page = Math.min(requestedPage, totalPages);
-const songs = await listSongs(getEnv().DB, { ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+const songs = filteredSongs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+const makeSortHref = (value: SongSort) => {
+  const params = new URLSearchParams();
+  if (query) params.set("q", query);
+  if (value !== "live-desc") params.set("sort", value);
+  return `/music/songs${params.size ? `?${params}` : ""}`;
+};
+const browserPayload = {
+  locale,
+  pageSize: PAGE_SIZE,
+  query,
+  sort,
+  page,
+  songs: allSongs,
+  labels: {
+    versions: t(locale, "music.versionsCount", { count: "{count}" }),
+    releases: t(locale, "music.releasesCount", { count: "{count}" }),
+    shows: t(locale, "music.showsCount", { count: "{count}" }),
+    summary: t(locale, "music.visibleSongs", { visible: "{visible}", total: "{total}" }),
+    pagination: t(locale, "pagination.summary", { total: "{total}", item: t(locale, "music.songItem"), current: "{current}", pages: "{pages}" }),
+    previous: t(locale, "pagination.previous"),
+    next: t(locale, "pagination.next"),
+  },
+};
+const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
 ---
 <SiteLayout title={t(locale, "music.nav.songs")}>
-  <div class="music-page">
+  <div class="music-page" data-song-browser>
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, "music.nav.songs")}>
-      <form class="music-toolbar" method="get">
+      <form class="music-toolbar" method="get" data-catalog-search-form>
+        {sort !== "live-desc" && <input type="hidden" name="sort" value={sort} />}
         <label class="music-search">
           <span class="visually-hidden">{t(locale, "music.searchSong")}</span>
           <Icon name="search" />
-          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchSongPlaceholder")} />
+          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchSongPlaceholder")} data-catalog-search />
         </label>
         <button type="submit" class="secondary">{t(locale, "common.search")}</button>
       </form>
-      {songs.length ? (
-        <div class="music-grid">
-          {songs.map((song) => (
-            <a class="music-card" href={`/music/songs/${encodeURIComponent(song.slug)}`}>
-              <span class="music-artist">{song.original_artist}</span>
-              <h3>{song.title}</h3>
-              <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
-            </a>
-          ))}
+      <div class="music-filter-stack" aria-label={t(locale, "music.sortOrder")}>
+        <div class="music-filter-row">
+          <span class="music-filter-label"><Icon name="arrow-down-up" />{t(locale, "music.sortOrder")}</span>
+          <div class="music-chips" data-catalog-sorts>
+            {songSortOptions.map((option) => (
+              <a class:list={{ active: sort === option.value }} href={makeSortHref(option.value)} data-catalog-sort={option.value}>{option.label}</a>
+            ))}
+          </div>
         </div>
-      ) : <div class="music-empty panel">{t(locale, "music.noSongs")}</div>}
-      <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} itemLabel={t(locale, "music.songItem")} />
+      </div>
+
+      <div class="music-list-feedback" aria-live="polite">
+        <span data-catalog-summary>{t(locale, "music.visibleSongs", { visible: filteredSongs.length, total: allSongs.length })}</span>
+      </div>
+      <div class="music-grid" data-catalog-grid>
+        {songs.map((song) => (
+          <a class="music-card" href={`/music/songs/${encodeURIComponent(song.slug)}`}>
+            <span class="music-artist">{song.original_artist}</span>
+            <h3>{song.title}</h3>
+            <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
+          </a>
+        ))}
+      </div>
+      <div class="music-empty panel" data-catalog-empty hidden={songs.length > 0}>{t(locale, "music.noSongs")}</div>
+      <nav class="music-client-pagination" aria-label={t(locale, "pagination.label")} data-catalog-pagination hidden={totalPages <= 1}>
+        <p data-catalog-pagination-summary>{t(locale, "pagination.summary", { total: filteredSongs.length, item: t(locale, "music.songItem"), current: page, pages: totalPages })}</p>
+        <div class="music-client-pages" data-catalog-pages></div>
+      </nav>
     </section>
+    <script is:inline type="application/json" data-song-browser-data set:html={browserJson}></script>
   </div>
 </SiteLayout>
+
+<script>
+  import { setupPagedCatalog } from "../../../scripts/paged-catalog";
+
+  interface SongItem {
+    slug: string;
+    title: string;
+    original_artist: string;
+    first_release_date: string | null;
+    version_count: number;
+    release_count: number;
+    show_count: number;
+    search_text: string;
+  }
+
+  interface SongPayload {
+    locale: string;
+    pageSize: number;
+    query: string;
+    sort: string;
+    page: number;
+    songs: SongItem[];
+    labels: Record<string, string>;
+  }
+
+  const root = document.querySelector<HTMLElement>("[data-song-browser]");
+  const data = root?.querySelector<HTMLScriptElement>("[data-song-browser-data]");
+  if (root && data) {
+    const payload = JSON.parse(data.textContent ?? "{}") as SongPayload;
+    const fill = (template: string, count: number) => template.replaceAll("{count}", String(count));
+    const compareReleaseDate = (left: SongItem, right: SongItem, direction: 1 | -1) => {
+      if (!left.first_release_date && !right.first_release_date) return left.title.localeCompare(right.title);
+      if (!left.first_release_date) return 1;
+      if (!right.first_release_date) return -1;
+      const comparison = left.first_release_date.localeCompare(right.first_release_date);
+      return comparison === 0 ? left.title.localeCompare(right.title) : comparison * direction;
+    };
+    setupPagedCatalog({
+      root,
+      items: payload.songs,
+      pageSize: payload.pageSize,
+      initialState: { query: payload.query, filter: "", sort: payload.sort, page: payload.page },
+      matches: (song, state) => {
+        const query = state.query.trim().toLocaleLowerCase(payload.locale);
+        return !query || song.search_text.toLocaleLowerCase(payload.locale).includes(query);
+      },
+      compare: (left, right, sort) => {
+        if (sort === "live-asc") return left.show_count - right.show_count || left.title.localeCompare(right.title);
+        if (sort === "title-asc") return left.title.localeCompare(right.title);
+        if (sort === "title-desc") return right.title.localeCompare(left.title);
+        if (sort === "release-desc") return compareReleaseDate(left, right, -1);
+        if (sort === "release-asc") return compareReleaseDate(left, right, 1);
+        return right.show_count - left.show_count || left.title.localeCompare(right.title);
+      },
+      renderCard: (song) => {
+        const card = document.createElement("a");
+        card.className = "music-card";
+        card.href = `/music/songs/${encodeURIComponent(song.slug)}`;
+        const artist = document.createElement("span");
+        artist.className = "music-artist";
+        artist.textContent = song.original_artist;
+        const title = document.createElement("h3");
+        title.textContent = song.title;
+        const stats = document.createElement("div");
+        stats.className = "music-card-stats";
+        for (const value of [fill(payload.labels.versions, song.version_count), fill(payload.labels.releases, song.release_count), fill(payload.labels.shows, song.show_count)]) {
+          const span = document.createElement("span");
+          span.textContent = value;
+          stats.appendChild(span);
+        }
+        card.appendChild(artist);
+        card.appendChild(title);
+        card.appendChild(stats);
+        return card;
+      },
+      labels: {
+        summary: payload.labels.summary,
+        pagination: payload.labels.pagination,
+        previous: payload.labels.previous,
+        next: payload.labels.next,
+      },
+    });
+  }
+</script>

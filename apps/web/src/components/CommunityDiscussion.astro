@@ -1,0 +1,55 @@
+---
+import type { Locale } from "../lib/i18n";
+import { t } from "../lib/i18n";
+import GiscusDiscussion from "./GiscusDiscussion.astro";
+import Icon from "./Icon.astro";
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+---
+<section class="community-discussion" aria-labelledby="community-discussion-title">
+  <div class="section-heading">
+    <div>
+      <h2 id="community-discussion-title">{t(locale, "community.discussionTitle")}</h2>
+    </div>
+    <p>{t(locale, "community.discussionCopy")}</p>
+  </div>
+  <GiscusDiscussion locale={locale} />
+  <aside class="guidelines" aria-labelledby="community-guidelines-title">
+    <span class="guidelines-icon"><Icon name="shield-check" /></span>
+    <div>
+      <h3 id="community-guidelines-title">{t(locale, "community.guidelinesTitle")}</h3>
+      <p>{t(locale, "community.guidelines")}</p>
+    </div>
+  </aside>
+</section>
+
+<style>
+  .community-discussion { margin-top: 4.5rem; }
+  .community-discussion .section-heading { align-items: end; }
+  .community-discussion .section-heading > div { flex: 0 0 auto; }
+  .community-discussion .section-heading > p { max-width: 34rem; margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.65; text-align: right; }
+  .guidelines {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: 1rem 1.15rem;
+    background: linear-gradient(110deg, rgba(var(--accent-rgb), .1), rgba(10, 22, 38, .8) 48%);
+    border: 1px solid rgba(var(--accent-rgb), .28);
+    border-radius: 14px;
+    backdrop-filter: blur(14px);
+  }
+  .guidelines-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; color: var(--accent); background: rgba(var(--accent-rgb), .1); border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 10px; }
+  .guidelines h3 { margin: .05rem 0 .3rem; font-size: .94rem; }
+  .guidelines p { max-width: 54rem; margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.7; }
+
+  @media (max-width: 680px) {
+    .community-discussion { margin-top: 3.5rem; }
+    .community-discussion .section-heading { display: grid; align-items: start; }
+    .community-discussion .section-heading > p { text-align: left; }
+  }
+</style>

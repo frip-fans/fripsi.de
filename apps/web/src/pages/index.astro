@@ -1,6 +1,7 @@
 ---
 import { dateInTimeZone, searchEvents } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
+import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
@@ -10,9 +11,9 @@ const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const upcoming = await searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 8 }, true);
+const upcoming = await searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 3 }, true);
 const next = upcoming[0];
-const latest = upcoming.slice(0, 6);
+const latest = upcoming;
 ---
 <SiteLayout>
   <section class="hero">
@@ -50,6 +51,13 @@ const latest = upcoming.slice(0, 6);
     {latest.map((event) => <EventCard event={event} />)}
     {!latest.length && <div class="empty panel">{t(locale, "home.empty")}</div>}
   </section>
+  {latest.length > 0 && (
+    <div class="event-list-more">
+      <a href="/archive">{t(locale, "home.viewMore")} <Icon name="arrow-right" /></a>
+    </div>
+  )}
+
+  <CommunityDiscussion locale={locale} />
 
 </SiteLayout>
 
@@ -159,6 +167,9 @@ const latest = upcoming.slice(0, 6);
   .setlist-button :global(.icon) { color: var(--accent); }
   .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
   .hero + .section-heading { margin-top: 1.5rem; }
+  .event-list-more { display: flex; justify-content: flex-end; margin-top: 1rem; }
+  .event-list-more a { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .1rem; color: var(--muted); font-size: .82rem; text-decoration: none; }
+  .event-list-more a:hover { color: var(--text); }
   .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
   .signal::before { content: ""; position: absolute; inset: -20% -40% 35%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 17px, rgba(var(--accent-rgb),.12) 18px 19px); transform: rotate(-10deg); }
   .signal-top { position: absolute; left: 1.6rem; right: 1.6rem; top: 1.5rem; display: flex; justify-content: space-between; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }

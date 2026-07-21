@@ -45,6 +45,10 @@ export interface SongSummary {
   performance_count: number;
 }
 
+export interface SongBrowseSummary extends SongSummary {
+  search_text: string;
+}
+
 export interface SongVersionRecord {
   id: string;
   song_id: string;

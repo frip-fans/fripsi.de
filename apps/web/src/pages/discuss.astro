@@ -1,0 +1,35 @@
+---
+import CommunityDiscussion from "../components/CommunityDiscussion.astro";
+import Icon from "../components/Icon.astro";
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { getLocale, t } from "../lib/i18n";
+
+const locale = getLocale(Astro.request);
+const repositoryUrl = "https://github.com/frip-fans/fripsi.de";
+---
+<SiteLayout title={t(locale, "community.pageTitle")} description={t(locale, "community.lede")}>
+  <section class="contribution-intro">
+    <div class="contribution-copy">
+      <h1>{t(locale, "community.title")}</h1>
+      <p>{t(locale, "community.lede")}</p>
+      <a class="button repository-button" href={repositoryUrl} target="_blank" rel="external noopener noreferrer"><Icon name="github" />{t(locale, "community.github")}<Icon name="box-arrow-up-right" /></a>
+    </div>
+  </section>
+
+  <CommunityDiscussion locale={locale} />
+</SiteLayout>
+
+<style>
+  .contribution-intro {
+    max-width: 52rem;
+    margin: clamp(.5rem, 4vw, 2.5rem) 0 4.5rem;
+  }
+  .contribution-copy h1 { max-width: 42rem; margin-bottom: .8rem; font-size: clamp(1.65rem, 4vw, 2.55rem); line-height: 1.08; letter-spacing: -.04em; }
+  .contribution-copy p { max-width: 43rem; margin-bottom: 1.35rem; color: var(--muted); font-size: .94rem; line-height: 1.8; }
+  .repository-button { min-height: 48px; box-shadow: 0 12px 30px rgba(var(--accent-rgb), .16); }
+
+  @media (max-width: 680px) {
+    .contribution-intro { margin-bottom: 3.5rem; }
+    .repository-button { width: 100%; }
+  }
+</style>

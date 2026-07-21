@@ -1,6 +1,7 @@
 ---
 import type { AdminSetlistDetail, MusicEditorOptions } from "@frip-fan/core";
 import Icon from "./Icon.astro";
+import SearchSelect from "./SearchSelect.astro";
 
 interface Props {
   setlist?: AdminSetlistDetail;
@@ -11,6 +12,22 @@ interface Props {
 const { setlist, options, canWrite } = Astro.props;
 const sources = setlist?.sources.map((source) => `${source.url} | ${source.label ?? ""} | ${source.source_type ?? "official"}`).join("\n") ?? "";
 const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double encore", opening: "Opening", other: "其他" } as const;
+const eventChoices = options.events.map((event) => {
+  const label = `${event.start_date} · ${event.title}${event.classification ? ` · ${event.classification}` : ""}`;
+  return {
+    value: event.id,
+    label,
+    searchText: `${label} ${event.slug}`,
+    muted: event.setlist_count > 0,
+    note: event.setlist_count > 0 ? "已有 Setlist" : undefined,
+  };
+});
+const songChoices = options.songs.map((song) => ({
+  value: song.id,
+  label: song.title,
+  searchText: `${song.title} ${song.slug}`,
+  title: song.title,
+}));
 ---
 <form class="panel catalog-form" method="post" action="/api/admin/music/setlists/save" data-setlist-editor>
   {setlist && <input type="hidden" name="id" value={setlist.id} />}
@@ -18,12 +35,19 @@ const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double
   <input type="hidden" name="idempotency_key" value={`admin-setlist-${setlist?.id ?? "new"}-${crypto.randomUUID()}`} />
 
   <div class="form-grid">
-    <label class="wide">关联活动 *
-      <select name="event_id" required>
-        <option value="">选择活动…</option>
-        {options.events.map((event) => <option value={event.id} selected={setlist?.event_id === event.id}>{event.start_date} · {event.title}{event.classification ? ` · ${event.classification}` : ""}</option>)}
-      </select>
-    </label>
+    <div class="form-field wide">
+      <span class="field-label">关联活动 *</span>
+      <SearchSelect
+        name="event_id"
+        choices={eventChoices}
+        value={setlist?.event_id}
+        placeholder="选择活动…"
+        searchPlaceholder="搜索日期、活动名或分类"
+        emptyText="没有匹配的活动"
+        ariaLabel="关联活动"
+        required
+      />
+    </div>
     <label>演出标签 *<input name="performance_label" required maxlength="160" value={setlist?.performance_label ?? "本公演"} placeholder="本公演 / fripSide出演枠" /></label>
     <label>显示标题<input name="title" maxlength="240" value={setlist?.title ?? ""} placeholder="留空时使用活动标题" /></label>
     <label>完整度
@@ -54,12 +78,19 @@ const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double
       {setlist?.entries.map((entry, index) => (
         <div class="editor-row entry-row" data-entry-row>
           <span class="row-index" data-row-index>{String(index + 1).padStart(2, "0")}</span>
-          <label class="row-song">歌曲 *
-            <select name="entry_song_id" required>
-              <option value="">选择歌曲…</option>
-              {options.songs.map((song) => <option value={song.id} data-title={song.title} selected={entry.song_id === song.id}>{song.title}</option>)}
-            </select>
-          </label>
+          <div class="form-field row-song">
+            <span class="field-label">歌曲 *</span>
+            <SearchSelect
+              name="entry_song_id"
+              choices={songChoices}
+              value={entry.song_id}
+              placeholder="选择歌曲…"
+              searchPlaceholder="搜索歌曲名"
+              emptyText="没有匹配的歌曲"
+              ariaLabel={`第 ${index + 1} 首歌曲`}
+              required
+            />
+          </div>
           <label class="row-version">演唱版本
             <select name="entry_version_id">
               <option value="">未指定具体版本</option>
@@ -83,6 +114,9 @@ const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double
       ))}
     </div>
     <div class="empty editor-empty" data-entry-empty hidden={Boolean(setlist?.entries.length)}>还没有歌曲，请点击“添加歌曲”。</div>
+    <div class="editor-tail">
+      <button type="button" class="secondary" data-add-entry><Icon name="plus" />添加歌曲</button>
+    </div>
   </section>
 
   <div class="actions form-actions">
@@ -94,12 +128,18 @@ const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double
   <template data-entry-template>
     <div class="editor-row entry-row" data-entry-row>
       <span class="row-index" data-row-index>01</span>
-      <label class="row-song">歌曲 *
-        <select name="entry_song_id" required>
-          <option value="">选择歌曲…</option>
-          {options.songs.map((song) => <option value={song.id} data-title={song.title}>{song.title}</option>)}
-        </select>
-      </label>
+      <div class="form-field row-song">
+        <span class="field-label">歌曲 *</span>
+        <SearchSelect
+          name="entry_song_id"
+          choices={songChoices}
+          placeholder="选择歌曲…"
+          searchPlaceholder="搜索歌曲名"
+          emptyText="没有匹配的歌曲"
+          ariaLabel="新增歌曲"
+          required
+        />
+      </div>
       <label class="row-version">演唱版本
         <select name="entry_version_id">
           <option value="">未指定具体版本</option>
@@ -152,10 +192,16 @@ const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double
     if (target.closest("[data-add-entry]") && entryRows && entryTemplate) {
       const clone = entryTemplate.content.firstElementChild?.cloneNode(true);
       if (!(clone instanceof HTMLElement)) return;
+      const pickerPanel = clone.querySelector<HTMLElement>("[data-search-select-panel]");
+      const pickerTrigger = clone.querySelector<HTMLElement>("[data-search-select-trigger]");
+      if (pickerPanel && pickerTrigger) {
+        pickerPanel.id = `search-select-${crypto.randomUUID()}-panel`;
+        pickerTrigger.setAttribute("aria-controls", pickerPanel.id);
+      }
       entryRows.insertAdjacentElement("beforeend", clone);
       refreshEntries();
-      const songSelect = clone.querySelector("[name=entry_song_id]");
-      if (songSelect instanceof HTMLElement) songSelect.focus();
+      const songPicker = clone.querySelector<HTMLElement>("[data-search-select-trigger]");
+      songPicker?.focus();
       return;
     }
     const row = target.closest<HTMLElement>("[data-entry-row]");
@@ -175,7 +221,7 @@ const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double
     if (target.name === "entry_song_id") {
       filterVersions(row);
       const songTitle = target.selectedOptions[0]?.dataset.title;
-      if (title && songTitle && !title.value.trim()) title.value = songTitle;
+      if (title) title.value = songTitle ?? "";
     }
     if (target.name === "entry_version_id") {
       const versionTitle = target.selectedOptions[0]?.dataset.title;
@@ -187,6 +233,8 @@ const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double
 
 <style>
   .catalog-form { display: grid; gap: 2rem; }
+  .form-field { display: grid; min-width: 0; gap: .4rem; }
+  .field-label { color: var(--muted); font-size: .82rem; }
   .publish-check { display: flex; align-items: center; gap: .55rem; }
   .publish-check input { width: auto; }
   .editor-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
@@ -199,6 +247,7 @@ const sectionLabels = { main: "本篇", encore: "Encore", double_encore: "Double
   .row-actions { display: flex; gap: .25rem; grid-column: 6; grid-row: 1; }
   .icon-button { width: 2.25rem; min-height: 2.25rem; padding: 0; }
   .editor-empty { padding: 2rem 1rem; }
+  .editor-tail { display: flex; justify-content: flex-end; margin-top: .8rem; padding-top: .8rem; border-top: 1px dashed var(--line); }
   .form-actions { border-top: 1px solid var(--line); padding-top: 1.25rem; }
   @media (max-width: 1050px) {
     .editor-row { grid-template-columns: 46px 1fr 1fr auto; }

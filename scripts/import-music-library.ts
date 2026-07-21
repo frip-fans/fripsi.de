@@ -165,9 +165,10 @@ function mergeUnique<T>(map: Map<string, T>, key: string, input: T, fields: Arra
 const releaseCsvPath = process.argv[2];
 const setlistCsvPath = process.argv[3];
 const outputSqlPath = resolve(process.argv[4] || "data/normalized/music-library-import.sql");
+const wrapTransaction = !process.argv.includes("--no-transaction");
 
 if (!releaseCsvPath || !setlistCsvPath) {
-  console.error("用法：npm run import:music -- <release-tracks.csv> <setlists.csv> [output.sql]");
+  console.error("用法：npm run import:music -- <release-tracks.csv> <setlists.csv> [output.sql] [--no-transaction]");
   process.exit(1);
 }
 
@@ -391,7 +392,8 @@ if (rejected.length) {
 }
 
 const now = new Date().toISOString();
-const statements: string[] = ["PRAGMA foreign_keys = ON;", "BEGIN TRANSACTION;"];
+const statements: string[] = ["PRAGMA foreign_keys = ON;"];
+if (wrapTransaction) statements.push("BEGIN TRANSACTION;");
 
 for (const song of songs.values()) {
   const id = stableId(song.slug, "mus_song");
@@ -494,6 +496,7 @@ const report = {
   tracks: tracks.length,
   setlists: setlists.size,
   setlist_entries: entries.length,
+  transaction_wrapper: wrapTransaction,
   note: "event_slug 必须已存在于 events；否则 SQL 会因外键前置校验失败并回滚。",
 };
 
@@ -503,7 +506,7 @@ VALUES (${[
   `${basename(releaseCsvPath)} + ${basename(setlistCsvPath)}`, "imported", releaseRows.length + setlistRows.length,
   tracks.length + entries.length, 0, JSON.stringify(report), "music-import", now, now,
 ].map(sql).join(", ")});`);
-statements.push("COMMIT;");
+if (wrapTransaction) statements.push("COMMIT;");
 
 await mkdir(resolve("data/normalized"), { recursive: true });
 await mkdir(resolve("data/reports"), { recursive: true });

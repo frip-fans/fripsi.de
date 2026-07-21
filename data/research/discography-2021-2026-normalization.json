@@ -1,0 +1,416 @@
+{
+  "scope": {
+    "from": "2021-01-01",
+    "to": "2026-12-31",
+    "official_source": "https://fripside.net/discography",
+    "research_input": "data/research/discography-2021-2026.json",
+    "comparison_input": "data/normalized/fripside-phase3-album-tracks.csv"
+  },
+  "conventions": {
+    "release_types": {
+      "ALBUM": "album unless the content is explicitly a compilation or a bundle of previously released albums",
+      "SINGLE": "single",
+      "DIGITAL_ONE_TRACK": "single",
+      "DIGITAL_MULTI_TRACK_SELECTION": "ep"
+    },
+    "edition_rule": "Merge physical editions into one normalized release when their audio discs and sequence are identical. Split editions into separate normalized releases when the audio content differs.",
+    "song_rule": "Instrumentals and named re-recordings remain versions of the same canonical song. Different vocal editions of Secret Operation remain versions of the same song.",
+    "slug_rule": "ASCII lowercase kebab-case; punctuation, full-width forms, vocal credits and media labels are omitted from slugs.",
+    "action_values": {
+      "create_song_and_version": "Neither the canonical song nor version appears in the comparison CSV.",
+      "create_version": "The canonical song or parent version is already known, but this version is new.",
+      "reuse_existing_version": "Use the exact normalized version already represented by the comparison CSV.",
+      "reuse_planned_version": "Use a version created by another release in this normalization plan.",
+      "reuse_or_create_outside_comparison": "The version predates or lies outside the comparison CSV's Phase 3 album scope; reuse it if the wider catalog import already created it, otherwise create it with the supplied identity."
+    }
+  },
+  "releases": [
+    {
+      "source_url": "https://fripside.net/musics/13485",
+      "official_type": "SINGLE",
+      "title": "Leap of faith",
+      "normalized_release_type": "single",
+      "release_slug": "leap-of-faith",
+      "release_status": "new_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤（CD＋Blu-ray）", "通常盤（CD）"],
+            "catalog_numbers": ["GNCA-0656", "GNCA-0657"],
+            "normalized_edition": "初回限定盤／通常盤共通CD"
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "Leap of faith", "action": "create_song_and_version", "canonical_song_title": "Leap of faith", "song_slug": "leap-of-faith", "version_title": "Leap of faith", "version_slug": "leap-of-faith-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 2, "source_title": "passage", "action": "create_song_and_version", "canonical_song_title": "passage", "song_slug": "passage", "version_title": "passage", "version_slug": "passage-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 3, "source_title": "Leap of faith＜instrumental＞", "action": "create_version", "canonical_song_title": "Leap of faith", "song_slug": "leap-of-faith", "version_title": "Leap of faith [instrumental]", "version_slug": "leap-of-faith-instrumental", "version_label": "instrumental", "parent_version": { "version_slug": "leap-of-faith-original", "version_title": "Leap of faith" }, "relation_type": "instrumental_of", "notes": null },
+        { "disc_number": 1, "track_number": 4, "source_title": "passage＜instrumental＞", "action": "create_version", "canonical_song_title": "passage", "song_slug": "passage", "version_title": "passage [instrumental]", "version_slug": "passage-instrumental", "version_label": "instrumental", "parent_version": { "version_slug": "passage-original", "version_title": "passage" }, "relation_type": "instrumental_of", "notes": null }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11823",
+      "official_type": "ALBUM",
+      "title": "infinite synthesis 6",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-synthesis-6",
+      "release_status": "new_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤（CD＋Blu-ray）", "初回限定盤（CD＋DVD）", "通常盤（CD）"],
+            "catalog_numbers": ["GNCA-1610", "GNCA-1611", "GNCA-1612"],
+            "normalized_edition": "初回限定盤Blu-ray／初回限定盤DVD／通常盤共通CD"
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "stay with you -ver.2022-", "action": "create_version", "canonical_song_title": "stay with you", "song_slug": "stay-with-you", "version_title": "stay with you -version 2022-", "version_slug": "stay-with-you-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "stay-with-you-original", "version_title": "stay with you" }, "relation_type": null, "notes": "The parent identity is clear from the title, but the official page does not state whether the 2022 recording is a re-recording, rearrangement, or both. Leave the relation unset until supported by another source." },
+        { "disc_number": 1, "track_number": 2, "source_title": "Leap of faith", "action": "reuse_planned_version", "canonical_song_title": "Leap of faith", "song_slug": "leap-of-faith", "version_title": "Leap of faith", "version_slug": "leap-of-faith-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "First released on the 2022-02-02 single." },
+        { "disc_number": 1, "track_number": 3, "source_title": "endless voyage", "action": "create_song_and_version", "canonical_song_title": "endless voyage", "song_slug": "endless-voyage", "version_title": "endless voyage", "version_slug": "endless-voyage-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 4, "source_title": "legendary future", "action": "reuse_or_create_outside_comparison", "canonical_song_title": "legendary future", "song_slug": "legendary-future", "version_title": "legendary future", "version_slug": "legendary-future-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "Originally released before this research window; expected to be supplied by the older-discography normalization." },
+        { "disc_number": 1, "track_number": 5, "source_title": "Your breeze", "action": "create_song_and_version", "canonical_song_title": "Your breeze", "song_slug": "your-breeze", "version_title": "Your breeze", "version_slug": "your-breeze-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 6, "source_title": "for Seasons", "action": "create_song_and_version", "canonical_song_title": "for Seasons", "song_slug": "for-seasons", "version_title": "for Seasons", "version_slug": "for-seasons-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 7, "source_title": "worlds collide", "action": "create_song_and_version", "canonical_song_title": "worlds collide", "song_slug": "worlds-collide", "version_title": "worlds collide", "version_slug": "worlds-collide-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 8, "source_title": "The wind in your heart", "action": "create_song_and_version", "canonical_song_title": "The wind in your heart", "song_slug": "the-wind-in-your-heart", "version_title": "The wind in your heart", "version_slug": "the-wind-in-your-heart-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 9, "source_title": "faraway sky", "action": "create_song_and_version", "canonical_song_title": "faraway sky", "song_slug": "faraway-sky", "version_title": "faraway sky", "version_slug": "faraway-sky-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 10, "source_title": "With falling snow", "action": "create_song_and_version", "canonical_song_title": "With falling snow", "song_slug": "with-falling-snow", "version_title": "With falling snow", "version_slug": "with-falling-snow-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 11, "source_title": "preparedness star", "action": "create_song_and_version", "canonical_song_title": "preparedness star", "song_slug": "preparedness-star", "version_title": "preparedness star", "version_slug": "preparedness-star-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 12, "source_title": "on this night", "action": "create_song_and_version", "canonical_song_title": "on this night", "song_slug": "on-this-night", "version_title": "on this night", "version_slug": "on-this-night-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 13, "source_title": "regret", "action": "create_song_and_version", "canonical_song_title": "regret", "song_slug": "regret", "version_title": "regret", "version_slug": "regret-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 14, "source_title": "Dear All", "action": "create_song_and_version", "canonical_song_title": "Dear All", "song_slug": "dear-all", "version_title": "Dear All", "version_slug": "dear-all-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11821",
+      "official_type": "SINGLE",
+      "title": "dawn of infinity",
+      "normalized_release_type": "single",
+      "release_slug": "dawn-of-infinity",
+      "release_status": "new_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤（CD＋Blu-ray）", "通常盤"],
+            "catalog_numbers": ["GNCA-0667", "GNCA-0668"],
+            "normalized_edition": "初回限定盤／通常盤共通CD"
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "dawn of infinity", "action": "reuse_existing_version", "canonical_song_title": "dawn of infinity", "song_slug": "dawn-of-infinity", "version_title": "dawn of infinity", "version_slug": "dawn-of-infinity-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "Already represented on infinite Resonance, with first_release_date 2022-05-18." },
+        { "disc_number": 1, "track_number": 2, "source_title": "Regeneration", "action": "create_song_and_version", "canonical_song_title": "Regeneration", "song_slug": "regeneration", "version_title": "Regeneration", "version_slug": "regeneration-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 3, "source_title": "dawn of infinity <instrumental>", "action": "create_version", "canonical_song_title": "dawn of infinity", "song_slug": "dawn-of-infinity", "version_title": "dawn of infinity [instrumental]", "version_slug": "dawn-of-infinity-instrumental", "version_label": "instrumental", "parent_version": { "version_slug": "dawn-of-infinity-original", "version_title": "dawn of infinity" }, "relation_type": "instrumental_of", "notes": null },
+        { "disc_number": 1, "track_number": 4, "source_title": "Regeneration <instrumental>", "action": "create_version", "canonical_song_title": "Regeneration", "song_slug": "regeneration", "version_title": "Regeneration [instrumental]", "version_slug": "regeneration-instrumental", "version_label": "instrumental", "parent_version": { "version_slug": "regeneration-original", "version_title": "Regeneration" }, "relation_type": "instrumental_of", "notes": null }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/12522",
+      "official_type": "ALBUM",
+      "title": "double Decades",
+      "normalized_release_type": "album",
+      "release_slug": "double-decades",
+      "release_status": "existing_release_metadata_change",
+      "edition_normalization": {
+        "merge_same_audio_editions": [],
+        "split_different_audio_editions": [],
+        "existing_csv_change": "Change edition from '通常盤CD／初回限定盤Disc 1共通' to '通常盤（CD）'. GNCA-1626 is a separately cataloged bundle release, not an edition of GNCA-1627."
+      },
+      "track_changes": []
+    },
+    {
+      "source_url": "https://fripside.net/musics/12523",
+      "official_type": "ALBUM",
+      "title": "infinite Resonance",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-resonance",
+      "release_status": "existing_release_metadata_change",
+      "edition_normalization": {
+        "merge_same_audio_editions": [],
+        "split_different_audio_editions": [],
+        "existing_csv_change": "Change edition from '通常盤CD／初回限定盤Disc 2共通' to '通常盤（CD）'. GNCA-1626 is a separately cataloged bundle release, not an edition of GNCA-1628."
+      },
+      "track_changes": []
+    },
+    {
+      "source_url": "https://fripside.net/musics/12524",
+      "official_type": "ALBUM",
+      "title": "double Decades＋infinite Resonance",
+      "normalized_release_type": "compilation",
+      "release_slug": "double-decades-infinite-resonance",
+      "release_status": "new_bundle_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [],
+        "split_different_audio_editions": [],
+        "normalized_edition": "初回限定盤（2CD＋Blu-ray）",
+        "notes": "Keep as a distinct release because it has its own title, catalog number GNCA-1626 and two-disc sequence. Reuse the existing song versions; do not create duplicate versions."
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "double Decades", "action": "reuse_existing_version", "canonical_song_title": "double Decades", "song_slug": "double-decades", "version_title": "double Decades", "version_slug": "double-decades-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 2, "source_title": "magicaride -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "magicaride", "song_slug": "magicaride", "version_title": "magicaride -version 2022-", "version_slug": "magicaride-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "magicaride-original", "version_title": "magicaride" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 3, "source_title": "BLACKFOX -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "BLACKFOX", "song_slug": "blackfox", "version_title": "BLACKFOX -version 2022-", "version_slug": "blackfox-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "blackfox-original", "version_title": "BLACKFOX" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 4, "source_title": "trusty snow -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "trusty snow", "song_slug": "trusty-snow", "version_title": "trusty snow -version 2022-", "version_slug": "trusty-snow-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "trusty-snow-original", "version_title": "trusty snow" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 5, "source_title": "fermata～Akkord:fortissimo～-version 2022-", "action": "reuse_existing_version", "canonical_song_title": "fermata～Akkord:fortissimo～", "song_slug": "fermata-akkord-fortissimo", "version_title": "fermata～Akkord:fortissimo～ -version 2022-", "version_slug": "fermata-akkord-fortissimo-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "fermata-akkord-fortissimo-original", "version_title": "fermata～Akkord:fortissimo～" }, "relation_type": "cover_of", "notes": "Normalize spacing before the version suffix to the existing CSV identity." },
+        { "disc_number": 1, "track_number": 6, "source_title": "transitory orbit -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "transitory orbit", "song_slug": "transitory-orbit", "version_title": "transitory orbit -version 2022-", "version_slug": "transitory-orbit-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "transitory-orbit-original", "version_title": "transitory orbit" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 7, "source_title": "LEVEL5-judgelight- -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "LEVEL5-judgelight-", "song_slug": "level5-judgelight", "version_title": "LEVEL5-judgelight- -version 2022-", "version_slug": "level5-judgelight-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "level5-judgelight-original", "version_title": "LEVEL5-judgelight-" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 8, "source_title": "come to mind -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "come to mind", "song_slug": "come-to-mind", "version_title": "come to mind -version 2022-", "version_slug": "come-to-mind-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "come-to-mind-original", "version_title": "come to mind" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 9, "source_title": "crescendo -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "crescendo", "song_slug": "crescendo", "version_title": "crescendo -version 2022-", "version_slug": "crescendo-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "crescendo-original", "version_title": "crescendo" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 10, "source_title": "sister’s noise -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "sister's noise", "song_slug": "sisters-noise", "version_title": "sister's noise -version 2022-", "version_slug": "sisters-noise-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "sisters-noise-original", "version_title": "sister's noise" }, "relation_type": "cover_of", "notes": "Normalize the source curly apostrophe to the existing ASCII canonical title." },
+        { "disc_number": 1, "track_number": 11, "source_title": "before dawn daybreak -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "before dawn daybreak", "song_slug": "before-dawn-daybreak", "version_title": "before dawn daybreak -version 2022-", "version_slug": "before-dawn-daybreak-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "before-dawn-daybreak-original", "version_title": "before dawn daybreak" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 2, "track_number": 1, "source_title": "infinite Resonance", "action": "reuse_existing_version", "canonical_song_title": "infinite Resonance", "song_slug": "infinite-resonance", "version_title": "infinite Resonance", "version_slug": "infinite-resonance-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 2, "track_number": 2, "source_title": "dawn of infinity", "action": "reuse_existing_version", "canonical_song_title": "dawn of infinity", "song_slug": "dawn-of-infinity", "version_title": "dawn of infinity", "version_slug": "dawn-of-infinity-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 2, "track_number": 3, "source_title": "Flames", "action": "reuse_existing_version", "canonical_song_title": "Flames", "song_slug": "flames", "version_title": "Flames", "version_slug": "flames-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "Hisayo Abe vocal credit remains artist metadata, not part of canonical/version identity." },
+        { "disc_number": 2, "track_number": 4, "source_title": "Insoluble Snow", "action": "reuse_existing_version", "canonical_song_title": "Insoluble Snow", "song_slug": "insoluble-snow", "version_title": "Insoluble Snow", "version_slug": "insoluble-snow-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 2, "track_number": 5, "source_title": "trust in you -version 2022-", "action": "reuse_existing_version", "canonical_song_title": "trust in you", "song_slug": "trust-in-you", "version_title": "trust in you -version 2022-", "version_slug": "trust-in-you-version-2022", "version_label": "version 2022", "parent_version": { "version_slug": "trust-in-you-original", "version_title": "trust in you" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 2, "track_number": 6, "source_title": "with a smile", "action": "reuse_existing_version", "canonical_song_title": "with a smile", "song_slug": "with-a-smile", "version_title": "with a smile", "version_slug": "with-a-smile-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "Hisayo Abe vocal credit remains artist metadata." },
+        { "disc_number": 2, "track_number": 7, "source_title": "Your Way", "action": "reuse_existing_version", "canonical_song_title": "Your Way", "song_slug": "your-way", "version_title": "Your Way", "version_slug": "your-way-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 2, "track_number": 8, "source_title": "Distance", "action": "reuse_existing_version", "canonical_song_title": "Distance", "song_slug": "distance", "version_title": "Distance", "version_slug": "distance-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "Mao Uesugi vocal credit remains artist metadata." },
+        { "disc_number": 2, "track_number": 9, "source_title": "Reach for the light", "action": "reuse_existing_version", "canonical_song_title": "Reach for the light", "song_slug": "reach-for-the-light", "version_title": "Reach for the light", "version_slug": "reach-for-the-light-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "Mao Uesugi vocal credit remains artist metadata." },
+        { "disc_number": 2, "track_number": 10, "source_title": "Forget-me-not", "action": "reuse_existing_version", "canonical_song_title": "Forget-me-not", "song_slug": "forget-me-not", "version_title": "Forget-me-not", "version_slug": "forget-me-not-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 2, "track_number": 11, "source_title": "an Effect of Fate", "action": "reuse_existing_version", "canonical_song_title": "an Effect of Fate", "song_slug": "an-effect-of-fate", "version_title": "an Effect of Fate", "version_slug": "an-effect-of-fate-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 2, "track_number": 12, "source_title": "New World", "action": "reuse_existing_version", "canonical_song_title": "New World", "song_slug": "new-world", "version_title": "New World", "version_slug": "new-world-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 2, "track_number": 13, "source_title": "Shape of Delight", "action": "reuse_existing_version", "canonical_song_title": "Shape of Delight", "song_slug": "shape-of-delight", "version_title": "Shape of Delight", "version_slug": "shape-of-delight-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/13820",
+      "official_type": "SINGLE",
+      "title": "Red Liberation",
+      "normalized_release_type": "single",
+      "release_slug": "red-liberation",
+      "release_status": "new_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤（CD+Blu-ray）", "通常盤（CD）"],
+            "catalog_numbers": ["GNCA-0700", "GNCA-0701"],
+            "normalized_edition": "初回限定盤／通常盤共通CD"
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "Red Liberation", "action": "reuse_existing_version", "canonical_song_title": "Red Liberation", "song_slug": "red-liberation", "version_title": "Red Liberation", "version_slug": "red-liberation-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "Already represented on infinite Resonance 2, with first_release_date 2023-10-11." },
+        { "disc_number": 1, "track_number": 2, "source_title": "more than you know", "action": "create_song_and_version", "canonical_song_title": "more than you know", "song_slug": "more-than-you-know", "version_title": "more than you know", "version_slug": "more-than-you-know-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": null },
+        { "disc_number": 1, "track_number": 3, "source_title": "Red Liberation <instrumental>", "action": "create_version", "canonical_song_title": "Red Liberation", "song_slug": "red-liberation", "version_title": "Red Liberation [instrumental]", "version_slug": "red-liberation-instrumental", "version_label": "instrumental", "parent_version": { "version_slug": "red-liberation-original", "version_title": "Red Liberation" }, "relation_type": "instrumental_of", "notes": null },
+        { "disc_number": 1, "track_number": 4, "source_title": "more than you know <instrumental>", "action": "create_version", "canonical_song_title": "more than you know", "song_slug": "more-than-you-know", "version_title": "more than you know [instrumental]", "version_slug": "more-than-you-know-instrumental", "version_label": "instrumental", "parent_version": { "version_slug": "more-than-you-know-original", "version_title": "more than you know" }, "relation_type": "instrumental_of", "notes": null }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/13906",
+      "official_type": "ALBUM",
+      "title": "infinite Resonance 2",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-resonance-2",
+      "release_status": "existing_release_matches",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤（CD＋Blu-ray）", "通常盤（CD）", "あにばーさる盤"],
+            "catalog_numbers": ["GNCA-1654", "GNCA-1655", null],
+            "normalized_edition": "初回限定盤／通常盤共通CD",
+            "notes": "The Aniversal product is the limited edition plus merchandise and has no distinct audio or catalog number."
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": []
+    },
+    {
+      "source_url": "https://fripside.net/musics/15355",
+      "official_type": "SINGLE",
+      "title": "Secret Operation",
+      "normalized_release_type": "single",
+      "release_slug": "secret-operation",
+      "release_status": "new_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤（CD＋特典Blu-ray）", "通常盤（CD）"],
+            "catalog_numbers": ["GNCA-0711", "GNCA-0712"],
+            "normalized_edition": "初回限定盤／通常盤共通CD"
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "Secret Operation", "action": "reuse_existing_version", "canonical_song_title": "Secret Operation", "song_slug": "secret-operation", "version_title": "Secret Operation", "version_slug": "secret-operation-single-version", "version_label": "single version", "parent_version": null, "relation_type": null, "notes": "This parent version is already declared indirectly by the infinite Resonance 3 CSV row for the fripSide Edition." },
+        { "disc_number": 1, "track_number": 2, "source_title": "Secret Operation -fripSide Edition-", "action": "reuse_existing_version", "canonical_song_title": "Secret Operation", "song_slug": "secret-operation", "version_title": "Secret Operation -fripSide Edition-", "version_slug": "secret-operation-fripside-edition", "version_label": "fripSide Edition", "parent_version": { "version_slug": "secret-operation-single-version", "version_title": "Secret Operation" }, "relation_type": "re-recording_of", "notes": null },
+        { "disc_number": 1, "track_number": 3, "source_title": "Secret Operation -Yoshino Nanjo Edition-", "action": "create_version", "canonical_song_title": "Secret Operation", "song_slug": "secret-operation", "version_title": "Secret Operation -Yoshino Nanjo Edition-", "version_slug": "secret-operation-yoshino-nanjo-edition", "version_label": "Yoshino Nanjo Edition", "parent_version": { "version_slug": "secret-operation-single-version", "version_title": "Secret Operation" }, "relation_type": "re-recording_of", "notes": "Uses the same relation convention as the already-normalized fripSide Edition."
+        },
+        { "disc_number": 1, "track_number": 4, "source_title": "Secret Operation (instrumental)", "action": "create_version", "canonical_song_title": "Secret Operation", "song_slug": "secret-operation", "version_title": "Secret Operation [instrumental]", "version_slug": "secret-operation-instrumental", "version_label": "single version instrumental", "parent_version": { "version_slug": "secret-operation-single-version", "version_title": "Secret Operation" }, "relation_type": "instrumental_of", "notes": null }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/15538",
+      "official_type": "ALBUM",
+      "title": "infinite Resonance 3",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-resonance-3",
+      "release_status": "existing_release_matches",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤", "通常盤"],
+            "catalog_numbers": ["GNCA-1675", "GNCA-1676"],
+            "normalized_edition": "初回限定盤／通常盤共通CD"
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": []
+    },
+    {
+      "source_url": "https://fripside.net/musics/15742",
+      "official_type": "SINGLE",
+      "title": "only my railgun -version 2024-",
+      "normalized_release_type": "single",
+      "release_slug": "only-my-railgun-version-2024",
+      "release_status": "new_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤A", "初回限定盤B", "通常盤"],
+            "catalog_numbers": ["GNCA-0716", "GNCA-0717", "GNCA-0718"],
+            "normalized_edition": "初回限定盤A／初回限定盤B／通常盤共通CD"
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "only my railgun -version 2024-［Phase3］", "action": "reuse_existing_version", "canonical_song_title": "only my railgun", "song_slug": "only-my-railgun", "version_title": "only my railgun -version2024-", "version_slug": "only-my-railgun-version-2024", "version_label": "version 2024", "parent_version": { "version_slug": "only-my-railgun-original", "version_title": "only my railgun" }, "relation_type": "cover_of", "notes": "Reuse the Music Chronicles normalized identity and its release date 2024-12-18." },
+        { "disc_number": 1, "track_number": 2, "source_title": "only my railgun -15th Anniversary version-［Phase2＆Phase3］", "action": "reuse_existing_version", "canonical_song_title": "only my railgun", "song_slug": "only-my-railgun", "version_title": "only my railgun -15th Anniversary version-", "version_slug": "only-my-railgun-15th-anniversary-version", "version_label": "15th Anniversary version", "parent_version": { "version_slug": "only-my-railgun-original", "version_title": "only my railgun" }, "relation_type": "re-recording_of", "notes": null },
+        { "disc_number": 1, "track_number": 3, "source_title": "only my railgun -version 2020-［Phase2］", "action": "reuse_existing_version", "canonical_song_title": "only my railgun", "song_slug": "only-my-railgun", "version_title": "only my railgun -version2020-", "version_slug": "only-my-railgun-version-2020", "version_label": "version 2020", "parent_version": { "version_slug": "only-my-railgun-original", "version_title": "only my railgun" }, "relation_type": "re-recording_of", "notes": null }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/19111",
+      "official_type": "DIGITAL",
+      "title": "Ｗandering Traveler",
+      "normalized_release_type": "single",
+      "release_slug": "wandering-traveler",
+      "release_status": "new_digital_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [],
+        "split_different_audio_editions": [],
+        "normalized_edition": "Digital"
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "Ｗandering Traveler", "action": "reuse_existing_version", "canonical_song_title": "Wandering Traveler", "song_slug": "wandering-traveler", "version_title": "Wandering Traveler", "version_slug": "wandering-traveler-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "Normalize the official page's full-width initial Ｗ to ASCII W. The existing infinite Resonance 4 row already records first release date 2025-06-15." }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/19112",
+      "official_type": "DIGITAL",
+      "title": "Echoes of the Stars",
+      "normalized_release_type": "single",
+      "release_slug": "echoes-of-the-stars",
+      "release_status": "new_digital_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [],
+        "split_different_audio_editions": [],
+        "normalized_edition": "Digital"
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "Echoes of the Stars", "action": "create_song_and_version", "canonical_song_title": "Echoes of the Stars", "song_slug": "echoes-of-the-stars", "version_title": "Echoes of the Stars", "version_slug": "echoes-of-the-stars-original", "version_label": "original", "parent_version": null, "relation_type": null, "notes": "This song does not appear on infinite Resonance 4 and is absent from the comparison CSV." }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/19309",
+      "official_type": "DIGITAL",
+      "title": "eternal reality -version2025-",
+      "normalized_release_type": "single",
+      "release_slug": "eternal-reality-version-2025",
+      "release_status": "new_digital_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [],
+        "split_different_audio_editions": [],
+        "normalized_edition": "Digital"
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "eternal reality -version2025-", "action": "reuse_existing_version", "canonical_song_title": "eternal reality", "song_slug": "eternal-reality", "version_title": "eternal reality -version2025-", "version_slug": "eternal-reality-version-2025", "version_label": "version 2025", "parent_version": { "version_slug": "eternal-reality-original", "version_title": "eternal reality" }, "relation_type": "cover_of", "notes": "The comparison CSV already uses this digital date as the version release date." }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/19132",
+      "official_type": "ALBUM",
+      "title": "とある科学の超音楽集 −A Certain Scientific Railgun：Music Chronicles−",
+      "normalized_release_type": "compilation",
+      "release_slug": "a-certain-scientific-railgun-music-chronicles",
+      "release_status": "existing_release_requires_edition_split",
+      "edition_normalization": {
+        "merge_same_audio_editions": [],
+        "split_different_audio_editions": [
+          {
+            "edition_name": "初回生産限定盤",
+            "catalog_number": "WPZL-32229/32",
+            "release_slug": "a-certain-scientific-railgun-music-chronicles",
+            "audio_content": "Three fully enumerated studio CDs; matches the existing CSV."
+          },
+          {
+            "edition_name": "WMS専売商品",
+            "catalog_number": "WPZL-60066/9",
+            "release_slug": "a-certain-scientific-railgun-music-chronicles-wms-edition",
+            "audio_content": "The same three studio CDs plus a separately described six-track live-sound bonus CD.",
+            "blocked": true,
+            "blocked_reason": "The official discography page does not enumerate the six live tracks, so a complete release_tracks import cannot yet be produced."
+          }
+        ],
+        "existing_csv_change": "Keep the current compilation release for WPZL-32229/32. Do not merge WPZL-60066/9 into it because the WMS product has extra audio."
+      },
+      "track_changes": []
+    },
+    {
+      "source_url": "https://fripside.net/musics/19455",
+      "official_type": "DIGITAL",
+      "title": "とある科学の超音楽集 -Ａ Certain Scientific Railgun:Music Chronicles- (Selected Edition)",
+      "normalized_release_type": "ep",
+      "release_slug": "a-certain-scientific-railgun-music-chronicles-selected-edition",
+      "release_status": "new_digital_release",
+      "edition_normalization": {
+        "merge_same_audio_editions": [],
+        "split_different_audio_editions": [],
+        "normalized_edition": "Selected Edition (Digital)",
+        "notes": "Normalize as an EP because it is a separately published four-track digital selection. Keep it distinct from the full compilation while reusing all four versions."
+      },
+      "track_changes": [
+        { "disc_number": 1, "track_number": 1, "source_title": "eternal reality -version2025-", "action": "reuse_existing_version", "canonical_song_title": "eternal reality", "song_slug": "eternal-reality", "version_title": "eternal reality -version2025-", "version_slug": "eternal-reality-version-2025", "version_label": "version 2025", "parent_version": { "version_slug": "eternal-reality-original", "version_title": "eternal reality" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 2, "source_title": "way to answer -version2025-", "action": "reuse_existing_version", "canonical_song_title": "way to answer", "song_slug": "way-to-answer", "version_title": "way to answer -version2025-", "version_slug": "way-to-answer-version-2025", "version_label": "version 2025", "parent_version": { "version_slug": "way-to-answer-original", "version_title": "way to answer" }, "relation_type": "cover_of", "notes": null },
+        { "disc_number": 1, "track_number": 3, "source_title": "eternal reality -version2025- [instrumental]", "action": "reuse_existing_version", "canonical_song_title": "eternal reality", "song_slug": "eternal-reality", "version_title": "eternal reality -version2025- [instrumental]", "version_slug": "eternal-reality-version-2025-instrumental", "version_label": "version 2025 instrumental", "parent_version": { "version_slug": "eternal-reality-version-2025", "version_title": "eternal reality -version2025-" }, "relation_type": "instrumental_of", "notes": null },
+        { "disc_number": 1, "track_number": 4, "source_title": "way to answer -version2025- [instrumental]", "action": "reuse_existing_version", "canonical_song_title": "way to answer", "song_slug": "way-to-answer", "version_title": "way to answer -version2025- [instrumental]", "version_slug": "way-to-answer-version-2025-instrumental", "version_label": "version 2025 instrumental", "parent_version": { "version_slug": "way-to-answer-version-2025", "version_title": "way to answer -version2025-" }, "relation_type": "instrumental_of", "notes": null }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/20902",
+      "official_type": "ALBUM",
+      "title": "infinite Resonance 4",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-resonance-4",
+      "release_status": "existing_release_matches",
+      "edition_normalization": {
+        "merge_same_audio_editions": [
+          {
+            "edition_names": ["初回限定盤", "通常盤"],
+            "catalog_numbers": ["WPZL-32314～5", "WPCL-13787"],
+            "normalized_edition": "初回限定盤／通常盤共通CD"
+          }
+        ],
+        "split_different_audio_editions": []
+      },
+      "track_changes": []
+    }
+  ],
+  "unresolved": [
+    {
+      "release_slug": "a-certain-scientific-railgun-music-chronicles-wms-edition",
+      "issue": "The six-track live bonus CD is official audio content, but its track order is absent from the official Discography page. Keep the split release blocked until an official track list is located."
+    },
+    {
+      "version_slug": "stay-with-you-version-2022",
+      "issue": "The official title proves a 2022 version but does not state whether it is re-recorded, rearranged, or both. The parent is identified, but relation_type is intentionally null pending a supporting source."
+    }
+  ]
+}

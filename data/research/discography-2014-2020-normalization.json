@@ -1,0 +1,3981 @@
+{
+  "scope": "Normalization audit for official fripSide audio discography released from 2014-01-01 through 2020-12-31.",
+  "source_file": "data/research/discography-2014-2020.json",
+  "policy": {
+    "releases": "Best albums, the PC game compilation, and the hybrid 15th-anniversary special album crossroads normalize to compilation. Editions with identical normalized audio sequences merge; editions with different audio sequences split. Video-only bonuses are ignored.",
+    "songs": "Tie-in annotations and typography variants are removed from canonical titles. Repeated compilation appearances reuse the same version slug. Instrumental/off-vocal, TV-size, vocal-part, year, IS, and crossroads variants are modeled as song versions.",
+    "uncertainty": "A null parent/relation with a non-null uncertainty_reason means the official discography wording is insufficient to assert the relationship safely."
+  },
+  "releases": [
+    {
+      "source_url": "https://fripside.net/musics/11796",
+      "source_title": "the very best of fripSide 2009-2020",
+      "release_date": "2020-11-04",
+      "normalized_release_type": "compilation",
+      "release_slug": "the-very-best-of-fripside-2009-2020",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:506f2186421be8f9fec35e2e4231e9493da327022861105c1f9eb4ebc0a0b095",
+          "suggested_release_slug": "the-very-best-of-fripside-2009-2020",
+          "edition_names": [
+            "初回限定盤（2CD＋Blu-ray）",
+            "初回限定盤（2CD＋DVD）",
+            "通常盤（2CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-1580",
+            "GNCA-1581",
+            "GNCA-1582"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "dual-existence-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "we-rise-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "final-phase-original"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "blackfox-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "when-chance-strikes-original"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "love-with-you-original"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "edge-of-the-universe-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "under-a-starlit-sky-original"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "divine-criminal-original"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "killing-bites-original"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "crossroads-original"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "sky-crossroads-version"
+                },
+                {
+                  "track_number": 13,
+                  "version_slug": "clockwork-planet-original"
+                },
+                {
+                  "track_number": 14,
+                  "version_slug": "the-end-of-escape-fripside-edition"
+                },
+                {
+                  "track_number": 15,
+                  "version_slug": "white-forces-is3-edition"
+                }
+              ]
+            },
+            {
+              "disc_number": 2,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "1983-schwarzesmarken-is3-version"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "two-souls-toward-the-truth-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "magicaride-version-2016"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "luminize-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "infinite-synthesis-original"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "black-bullet-original"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "eternal-reality-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "sisters-noise-original"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "decade-original"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "hesitation-snow-original"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "way-to-answer-original"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "heaven-is-a-place-on-earth-original"
+                },
+                {
+                  "track_number": 13,
+                  "version_slug": "future-gazer-original"
+                },
+                {
+                  "track_number": 14,
+                  "version_slug": "level5-judgelight-original"
+                },
+                {
+                  "track_number": 15,
+                  "version_slug": "only-my-railgun-original"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11791",
+      "source_title": "the very best of fripSide -moving ballads-",
+      "release_date": "2020-11-04",
+      "normalized_release_type": "compilation",
+      "release_slug": "the-very-best-of-fripside-moving-ballads",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:805239ef86af2a37b2ee0ec4efcb658724feb8f75f7792c4cc7818eebf790ccb",
+          "suggested_release_slug": "the-very-best-of-fripside-moving-ballads",
+          "edition_names": [
+            "初回限定盤（2CD＋Blu-ray）",
+            "初回限定盤（2CD＋DVD）",
+            "通常盤（2CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-1583",
+            "GNCA-1584",
+            "GNCA-1585"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "late-in-autumn-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "colorless-fate-version-2018"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "memory-of-snow-original"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "fuyu-no-kakera-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "promenade-original"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "rain-of-blossoms-original"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "secret-of-my-heart-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "the-end-of-summer-original"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "answer-original"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "beyond-the-horizon-original"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "message-version-2"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "prismatic-fate-original"
+                },
+                {
+                  "track_number": 13,
+                  "version_slug": "one-dream-original"
+                },
+                {
+                  "track_number": 14,
+                  "version_slug": "only-me-and-the-moon-original"
+                }
+              ]
+            },
+            {
+              "disc_number": 2,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "everlasting-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "an-evening-calm-crossroads-version"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "frosty-breeze-original"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "whitebird-version-2020"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "my-own-way-original"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "snow-blind-crossroads-version"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "kanashii-seiza-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "im-believing-you-original"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "split-tears-crossroads-version"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "white-relation-is4-version"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "three-count-original"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "a-silent-voice-original"
+                },
+                {
+                  "track_number": 13,
+                  "version_slug": "brave-new-world-crossroads-version-fripside-only"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11790",
+      "source_title": "legendary future",
+      "release_date": "2020-11-04",
+      "normalized_release_type": "single",
+      "release_slug": "legendary-future",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:dff8ec6acb831153c9b2e0216bd4873a66516b51a6a4efff0c0fe6f39830dc67",
+          "suggested_release_slug": "legendary-future",
+          "edition_names": [
+            "初回限定盤（CD＋DVD）",
+            "通常盤"
+          ],
+          "catalog_numbers": [
+            "GNCA-0616",
+            "GNCA-0617"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "legendary-future-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "a-new-day-will-come-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "legendary-future-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "a-new-day-will-come-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11788",
+      "source_title": "dual existence",
+      "release_date": "2020-08-19",
+      "normalized_release_type": "single",
+      "release_slug": "dual-existence",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:19a0f9a4381fc1f17bc7424a09583a71ccc36fd177b4937a5875c2918e259c38",
+          "suggested_release_slug": "dual-existence",
+          "edition_names": [
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0608",
+            "GNCA-0609"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "dual-existence-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "reason-to-be-here-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "dual-existence-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "reason-to-be-here-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11785",
+      "source_title": "final phase",
+      "release_date": "2020-02-26",
+      "normalized_release_type": "single",
+      "release_slug": "final-phase",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:fea10b09852469579b6afad6ccd3d0c7451cb1833a3a63fb3ea021539d2cd1bb",
+          "suggested_release_slug": "final-phase",
+          "edition_names": [
+            "初回限定盤 (CD+DVD)",
+            "通常盤 (CD)"
+          ],
+          "catalog_numbers": [
+            "GNCA-0603",
+            "GNCA-0604"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "final-phase-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "promenade-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "final-phase-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "promenade-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11782",
+      "source_title": "infinite synthesis 5",
+      "release_date": "2019-10-30",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-synthesis-5",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:250ccb5690941f1ade882a7b981e2f13c9fde9bed693ae0023fa68f392f1942e",
+          "suggested_release_slug": "infinite-synthesis-5",
+          "edition_names": [
+            "（初回限定盤 Blu-ray版）",
+            "（初回限定盤 DVD版）",
+            "通常盤（CD Only）"
+          ],
+          "catalog_numbers": [
+            "GNCA-1558",
+            "GNCA-1559",
+            "GNCA-1560"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "when-chance-strikes-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "love-with-you-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "perpetual-wishes-original"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "rain-of-blossoms-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "lighting-of-my-heart-original"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "as-before-original"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "light-at-the-end-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "frosty-breeze-original"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "change-your-core-self-original"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "brand-new-world-original"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "endless-entropy-original"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "glorious-wind-original"
+                },
+                {
+                  "track_number": 13,
+                  "version_slug": "believe-in-your-future-original"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11779",
+      "source_title": "Love with You",
+      "release_date": "2018-11-07",
+      "normalized_release_type": "single",
+      "release_slug": "love-with-you",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:2cf17fb1add2b2b483879121c404e07938d3cea46ee74fa163dd6c059264b5e4",
+          "suggested_release_slug": "love-with-you",
+          "edition_names": [
+            "初回限定盤（CD+Blu-ray）",
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0537",
+            "GNCA-0538",
+            "GNCA-0539"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "love-with-you-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "blue-moon-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "love-with-you-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "blue-moon-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11776",
+      "source_title": "infinite synthesis 4",
+      "release_date": "2018-10-10",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-synthesis-4",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:e345f44e876494e8979fc300fe19402e09ab4bdec7c10974e8b4a3b859e91a71",
+          "suggested_release_slug": "infinite-synthesis-4",
+          "edition_names": [
+            "初回限定盤（CD+Blu-ray）",
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD only)"
+          ],
+          "catalog_numbers": [
+            "GNCA-1542",
+            "GNCA-1543",
+            "GNCA-1544"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "edge-of-the-universe-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "killing-bites-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "divine-criminal-original"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "snow-of-silence-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "white-relation-is4-version"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "colorless-fate-version-2018"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "under-a-starlit-sky-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "breaking-dawn-original"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "one-dream-original"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "adverse-wind-original"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "beyond-the-horizon-original"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "you-only-live-once-original"
+                },
+                {
+                  "track_number": 13,
+                  "version_slug": "close-to-you-original"
+                },
+                {
+                  "track_number": 14,
+                  "version_slug": "like-a-blink-a-short-night-original"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11774",
+      "source_title": "divine criminal",
+      "release_date": "2018-05-16",
+      "normalized_release_type": "single",
+      "release_slug": "divine-criminal",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:dc1efd2f19df5d7fee272a5ef4ba4aa585115a1ee4982a16133e61bb31ec47ae",
+          "suggested_release_slug": "divine-criminal",
+          "edition_names": [
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0505",
+            "GNCA-0506"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "divine-criminal-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "i-believe-in-my-heart-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "brave-new-world-crossroads-version-fripside-only"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "divine-criminal-instrumental"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "i-believe-in-my-heart-instrumental"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "brave-new-world-crossroads-version-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11772",
+      "source_title": "killing bites",
+      "release_date": "2018-02-28",
+      "normalized_release_type": "single",
+      "release_slug": "killing-bites",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:15f0b64e5d627a04f46c9a120b9413c07b84e719dbe78996ed1821b2b910a46a",
+          "suggested_release_slug": "killing-bites",
+          "edition_names": [
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0512",
+            "GNCA-0513"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "killing-bites-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "three-count-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "killing-bites-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "three-count-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11768",
+      "source_title": "crossroads",
+      "release_date": "2017-10-04",
+      "normalized_release_type": "compilation",
+      "release_slug": "crossroads",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:3020c02c131039b8ad6351a9e419b25573282fb51c49210497102bdcba5598b0",
+          "suggested_release_slug": "crossroads",
+          "edition_names": [
+            "初回限定盤（2CD＋Blu-ray）",
+            "初回限定盤（2CD＋DVD）",
+            "通常盤（2CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-1511",
+            "GNCA-1512",
+            "GNCA-1513"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "sky-crossroads-version"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "red-reduction-division-crossroads-version"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "hurting-heart-crossroads-version"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "an-evening-calm-crossroads-version"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "split-tears-crossroads-version"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "the-chaostic-world-crossroads-version"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "prominence-crossroads-version"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "distant-moon-crossroads-version"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "escape-crossroads-version"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "before-dawn-daybreak-crossroads-version"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "snow-blind-crossroads-version"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "brave-new-world-crossroads-version-feat-nao-kotoko-and-maon-kurosaki"
+                }
+              ]
+            },
+            {
+              "disc_number": 2,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "clockwork-planet-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "the-end-of-escape-fripside-edition"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "crossroads-original"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "a-gleam-of-prologue-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "pico-scope-sacla-original"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "only-me-and-the-moon-original"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11763",
+      "source_title": "clockwork planet",
+      "release_date": "2017-05-03",
+      "normalized_release_type": "single",
+      "release_slug": "clockwork-planet",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:1e32f0ddeebef4a224d1529fd9939daf2ba0c6f6cc0d72a2cdcf1519393a3a0f",
+          "suggested_release_slug": "clockwork-planet",
+          "edition_names": [
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0495",
+            "GNCA-0496"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "clockwork-planet-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "break-our-limit-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "clockwork-planet-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "break-our-limit-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11761",
+      "source_title": "fripSide×angela／The end of escape",
+      "release_date": "2016-12-07",
+      "normalized_release_type": "single",
+      "release_slug": "fripside-angela-the-end-of-escape",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:dbf05daa49e0bb14d6a9e8c032c93042dbbd7cfc218c7af3919e545808c99854",
+          "suggested_release_slug": "fripside-angela-the-end-of-escape-limited",
+          "edition_names": [
+            "初回限定盤（CD+DVD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0461"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "the-end-of-escape-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "the-end-of-escape-tv-size"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "the-end-of-escape-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "split",
+          "reason": "The normalized audio track sequence differs from the other edition group, so it should be a separate release record rather than packaging metadata on one record."
+        },
+        {
+          "audio_fingerprint": "sha256:4916d850836ab7f91734997686b03b9eb7e307c220a0c08ae111e0d0245e166f",
+          "suggested_release_slug": "fripside-angela-the-end-of-escape-regular",
+          "edition_names": [
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0462"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "the-end-of-escape-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "the-end-of-escape-part-of-yoshino-nanjo"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "the-end-of-escape-part-of-atsuko"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "the-end-of-escape-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "split",
+          "reason": "The normalized audio track sequence differs from the other edition group, so it should be a separate release record rather than packaging metadata on one record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11759",
+      "source_title": "angela×fripSide／僕は僕であって",
+      "release_date": "2016-10-19",
+      "normalized_release_type": "single",
+      "release_slug": "angela-fripside-boku-wa-boku-de-atte",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:5892d5d7868905da1e6d03e36eb11067cac888d5219b63eddb68a8097a4dcb61",
+          "suggested_release_slug": "angela-fripside-boku-wa-boku-de-atte-limited",
+          "edition_names": [
+            "期間限定盤（CD＋Blu-ray）"
+          ],
+          "catalog_numbers": [
+            "KICM-91710"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "boku-wa-boku-de-atte-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "boku-wa-boku-de-atte-tv-size"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "boku-wa-boku-de-atte-off-vocal"
+                }
+              ]
+            }
+          ],
+          "action": "split",
+          "reason": "The normalized audio track sequence differs from the other edition group, so it should be a separate release record rather than packaging metadata on one record."
+        },
+        {
+          "audio_fingerprint": "sha256:9a67af5f86a0c4de6d12c173de160de0481473d03c718a954ff77a142d95d0b6",
+          "suggested_release_slug": "angela-fripside-boku-wa-boku-de-atte-regular",
+          "edition_names": [
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "KICM-1711"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "boku-wa-boku-de-atte-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "boku-wa-boku-de-atte-part-of-atsuko"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "boku-wa-boku-de-atte-part-of-yoshino-nanjo"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "boku-wa-boku-de-atte-off-vocal"
+                }
+              ]
+            }
+          ],
+          "action": "split",
+          "reason": "The normalized audio track sequence differs from the other edition group, so it should be a separate release record rather than packaging metadata on one record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11756",
+      "source_title": "infinite synthesis 3",
+      "release_date": "2016-10-05",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-synthesis-3",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:094ca85ad96b3cc5cd180ebbd10b34ecd9264c958ad4189e77eeeae0ca1ef5c2",
+          "suggested_release_slug": "infinite-synthesis-3",
+          "edition_names": [
+            "初回限定盤（CD＋Blu-ray×2）",
+            "初回限定盤（CD＋DVD×2）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-1490",
+            "GNCA-1491",
+            "GNCA-1492"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "2016-third-cosmic-velocity-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "luminize-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "1983-schwarzesmarken-is3-version"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "determination-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "magicaride-version-2016"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "answer-original"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "two-souls-toward-the-truth-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "white-forces-is3-edition"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "crescendo-version-2016"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "run-into-the-light-original"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "dry-your-tears-original"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "unlimited-destiny-original"
+                },
+                {
+                  "track_number": 13,
+                  "version_slug": "one-and-only-original"
+                },
+                {
+                  "track_number": 14,
+                  "version_slug": "side-by-side-original"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11755",
+      "source_title": "white forces",
+      "release_date": "2016-02-10",
+      "normalized_release_type": "single",
+      "release_slug": "white-forces",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:82fdf8ede78f289db6a1675860c31bbb1583855ffe5a37a7363175f9978fa649",
+          "suggested_release_slug": "white-forces",
+          "edition_names": [
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "EYCA-10774/B",
+            "EYCA-10775"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "white-forces-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "1983-schwarzesmarken-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "white-forces-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "1983-schwarzesmarken-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11753",
+      "source_title": "Two souls -toward the truth-",
+      "release_date": "2015-12-02",
+      "normalized_release_type": "single",
+      "release_slug": "two-souls-toward-the-truth",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:20645b4e3e6f57e09ec87494fcc9637424b6e9aa61a6eb9ddd5aba16d3e1a18c",
+          "suggested_release_slug": "two-souls-toward-the-truth",
+          "edition_names": [
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0398",
+            "GNCA-0399"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "two-souls-toward-the-truth-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "fuyu-no-kakera-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "two-souls-toward-the-truth-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "fuyu-no-kakera-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11747",
+      "source_title": "fripSide PC game compilation vol.2",
+      "release_date": "2015-08-26",
+      "normalized_release_type": "compilation",
+      "release_slug": "fripside-pc-game-compilation-vol-2",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:ec7e70d786631ad039070767bf2ce926b6a26bcf2a833cd2abed92b9e3fcb2f9",
+          "suggested_release_slug": "fripside-pc-game-compilation-vol-2",
+          "edition_names": [
+            "収録内容"
+          ],
+          "catalog_numbers": [
+            "SCFS-1501"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "hesitation-snow-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "before-dawn-daybreak-version-2015"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "sword-of-virgin-original"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "fortuna-on-the-sixteenth-night-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "glow-in-the-darkness-original"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "blaze-of-reunion-original"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "keep-your-promise-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "absolute-wish-original"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "precious-time-original"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "join-forces-original"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "with-the-light-original"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11746",
+      "source_title": "Luminize",
+      "release_date": "2015-05-20",
+      "normalized_release_type": "single",
+      "release_slug": "luminize",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:ecbf7499c9bea7d0c1d301984adb63590aab8c965220e14f5cdadf81f9f65a7b",
+          "suggested_release_slug": "luminize",
+          "edition_names": [
+            "初回限定盤A（CD+DVD）",
+            "初回限定盤B（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0384",
+            "GNCA-0385",
+            "GNCA-0386"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "luminize-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "unlimited-destiny-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "luminize-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "unlimited-destiny-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11743",
+      "source_title": "infinite synthesis 2",
+      "release_date": "2014-09-10",
+      "normalized_release_type": "album",
+      "release_slug": "infinite-synthesis-2",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:ecf8d0ae5005658280b0579c1e044d228adb1292702545714fb096fe2475c59b",
+          "suggested_release_slug": "infinite-synthesis-2",
+          "edition_names": [
+            "初回限定盤（CD＋Blu-ray）",
+            "初回限定盤（CD＋DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-1415",
+            "GNCA-1416",
+            "GNCA-1417"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "sisters-noise-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "infinite-synthesis-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "fermata-akkord-fortissimo-original"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "lost-dimension-original"
+                },
+                {
+                  "track_number": 5,
+                  "version_slug": "im-believing-you-original"
+                },
+                {
+                  "track_number": 6,
+                  "version_slug": "secret-of-my-heart-original"
+                },
+                {
+                  "track_number": 7,
+                  "version_slug": "eternal-reality-original"
+                },
+                {
+                  "track_number": 8,
+                  "version_slug": "black-bullet-original"
+                },
+                {
+                  "track_number": 9,
+                  "version_slug": "rain-of-tears-original"
+                },
+                {
+                  "track_number": 10,
+                  "version_slug": "scorching-heart-original"
+                },
+                {
+                  "track_number": 11,
+                  "version_slug": "waiting-for-the-moment-original"
+                },
+                {
+                  "track_number": 12,
+                  "version_slug": "always-be-with-you-original"
+                },
+                {
+                  "track_number": 13,
+                  "version_slug": "true-resonance-original"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    },
+    {
+      "source_url": "https://fripside.net/musics/11740",
+      "source_title": "black bullet",
+      "release_date": "2014-05-14",
+      "normalized_release_type": "single",
+      "release_slug": "black-bullet",
+      "edition_groups": [
+        {
+          "audio_fingerprint": "sha256:31cca1d33949d350409b75c0c5b970cab03b571ce3d1734b0e713daa1b732610",
+          "suggested_release_slug": "black-bullet",
+          "edition_names": [
+            "初回限定盤（CD+DVD）",
+            "通常盤（CD）"
+          ],
+          "catalog_numbers": [
+            "GNCA-0333",
+            "GNCA-0334"
+          ],
+          "normalized_discs": [
+            {
+              "disc_number": 1,
+              "tracks": [
+                {
+                  "track_number": 1,
+                  "version_slug": "black-bullet-original"
+                },
+                {
+                  "track_number": 2,
+                  "version_slug": "pico-scope-sacla-original"
+                },
+                {
+                  "track_number": 3,
+                  "version_slug": "black-bullet-instrumental"
+                },
+                {
+                  "track_number": 4,
+                  "version_slug": "pico-scope-sacla-instrumental"
+                }
+              ]
+            }
+          ],
+          "action": "merge",
+          "reason": "These editions have the same normalized audio disc and track sequence; video bonuses and packaging do not create a separate audio release record."
+        }
+      ]
+    }
+  ],
+  "songs": [
+    {
+      "source_title": "dual existence（TVアニメ「とある科学の超電磁砲T」新オープニングテーマ）",
+      "canonical_song_title": "dual existence",
+      "song_slug": "dual-existence",
+      "version_title": "dual existence",
+      "version_slug": "dual-existence-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "We Rise（アズールレーン中国版三周年主題歌）",
+      "canonical_song_title": "We Rise",
+      "song_slug": "we-rise",
+      "version_title": "We Rise",
+      "version_slug": "we-rise-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "final phase（TVアニメ「とある科学の超電磁砲T」オープニングテーマ）",
+      "canonical_song_title": "final phase",
+      "song_slug": "final-phase",
+      "version_title": "final phase",
+      "version_slug": "final-phase-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "BLACKFOX（劇場アニメ「BLACKFOX」主題歌）",
+      "canonical_song_title": "BLACKFOX",
+      "song_slug": "blackfox",
+      "version_title": "BLACKFOX",
+      "version_slug": "blackfox-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "when chance strikes",
+      "canonical_song_title": "when chance strikes",
+      "song_slug": "when-chance-strikes",
+      "version_title": "when chance strikes",
+      "version_slug": "when-chance-strikes-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "Love with You（TVアニメ「寄宿学校のジュリエット」オープニングテーマ）",
+      "canonical_song_title": "Love with You",
+      "song_slug": "love-with-you",
+      "version_title": "Love with You",
+      "version_slug": "love-with-you-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "Edge of the Universe",
+      "canonical_song_title": "Edge of the Universe",
+      "song_slug": "edge-of-the-universe",
+      "version_title": "Edge of the Universe",
+      "version_slug": "edge-of-the-universe-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "under a starlit sky",
+      "canonical_song_title": "under a starlit sky",
+      "song_slug": "under-a-starlit-sky",
+      "version_title": "under a starlit sky",
+      "version_slug": "under-a-starlit-sky-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "divine criminal（TVアニメ「されど罪人は竜と踊る」オープニングテーマ）",
+      "canonical_song_title": "divine criminal",
+      "song_slug": "divine-criminal",
+      "version_title": "divine criminal",
+      "version_slug": "divine-criminal-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "killing bites（TVアニメ「キリングバイツ」オープニングテーマ）",
+      "canonical_song_title": "killing bites",
+      "song_slug": "killing-bites",
+      "version_title": "killing bites",
+      "version_slug": "killing-bites-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "crossroads",
+      "canonical_song_title": "crossroads",
+      "song_slug": "crossroads",
+      "version_title": "crossroads",
+      "version_slug": "crossroads-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "sky -crossroads version-",
+      "canonical_song_title": "sky",
+      "song_slug": "sky",
+      "version_title": "sky -crossroads version-",
+      "version_slug": "sky-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "sky-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "clockwork planet（TVアニメ「クロックワーク・プラネット」オープニングテーマ）",
+      "canonical_song_title": "clockwork planet",
+      "song_slug": "clockwork-planet",
+      "version_title": "clockwork planet",
+      "version_slug": "clockwork-planet-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "The end of escape -fripSide edition-",
+      "canonical_song_title": "The end of escape",
+      "song_slug": "the-end-of-escape",
+      "version_title": "The end of escape -fripSide edition-",
+      "version_slug": "the-end-of-escape-fripside-edition",
+      "version_label": "fripSide edition",
+      "parent_version_slug": "the-end-of-escape-original",
+      "relation_type": "rearrangement_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "white forces -IS3 edition-",
+      "canonical_song_title": "white forces",
+      "song_slug": "white-forces",
+      "version_title": "white forces -IS3 edition-",
+      "version_slug": "white-forces-is3-edition",
+      "version_label": "IS3 edition",
+      "parent_version_slug": "white-forces-original",
+      "relation_type": "rearrangement_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "1983-schwarzesmarken-(IS3 version)",
+      "canonical_song_title": "1983-schwarzesmarken-",
+      "song_slug": "1983-schwarzesmarken",
+      "version_title": "1983-schwarzesmarken- -IS3 version-",
+      "version_slug": "1983-schwarzesmarken-is3-version",
+      "version_label": "IS3 version",
+      "parent_version_slug": "1983-schwarzesmarken-original",
+      "relation_type": "rearrangement_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "Two souls -toward the truth-（TVアニメ「終わりのセラフ」名古屋決戦編オープニングテーマ）",
+      "canonical_song_title": "Two souls -toward the truth-",
+      "song_slug": "two-souls-toward-the-truth",
+      "version_title": "Two souls -toward the truth-",
+      "version_slug": "two-souls-toward-the-truth-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "magicaride -version2016-",
+      "canonical_song_title": "magicaride",
+      "song_slug": "magicaride",
+      "version_title": "magicaride -version 2016-",
+      "version_slug": "magicaride-version-2016",
+      "version_label": "version 2016",
+      "parent_version_slug": "magicaride-original",
+      "relation_type": "re-recording_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "Luminize（TVアニメ「フューチャーカード バディファイトハンドレッド」オープニングテーマ）",
+      "canonical_song_title": "Luminize",
+      "song_slug": "luminize",
+      "version_title": "Luminize",
+      "version_slug": "luminize-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "infinite synthesis",
+      "canonical_song_title": "infinite synthesis",
+      "song_slug": "infinite-synthesis",
+      "version_title": "infinite synthesis",
+      "version_slug": "infinite-synthesis-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020",
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "black bullet（TVアニメ「ブラック・ブレット」オープニングテーマ）",
+      "canonical_song_title": "black bullet",
+      "song_slug": "black-bullet",
+      "version_title": "black bullet",
+      "version_slug": "black-bullet-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "eternal reality（TVアニメ「とある科学の超電磁砲S」新オープニングテーマ）",
+      "canonical_song_title": "eternal reality",
+      "song_slug": "eternal-reality",
+      "version_title": "eternal reality",
+      "version_slug": "eternal-reality-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "sister’s noise（TVアニメ「とある科学の超電磁砲S」オープニングテーマ）",
+      "canonical_song_title": "sister's noise",
+      "song_slug": "sisters-noise",
+      "version_title": "sister's noise",
+      "version_slug": "sisters-noise-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "Decade",
+      "canonical_song_title": "Decade",
+      "song_slug": "decade",
+      "version_title": "Decade",
+      "version_slug": "decade-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "Hesitation Snow（PCゲーム「はつゆきさくら」オープニングテーマ）",
+      "canonical_song_title": "Hesitation Snow",
+      "song_slug": "hesitation-snow",
+      "version_title": "Hesitation Snow",
+      "version_slug": "hesitation-snow-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "way to answer（PSP専用ソフト「とある科学の超電磁砲」オープニングテーマ）",
+      "canonical_song_title": "way to answer",
+      "song_slug": "way-to-answer",
+      "version_title": "way to answer",
+      "version_slug": "way-to-answer-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "Heaven is a Place on Earth（劇場版 ハヤテのごとく！ HEAVEN IS A PLACE ON EARTH 主題歌）",
+      "canonical_song_title": "Heaven is a Place on Earth",
+      "song_slug": "heaven-is-a-place-on-earth",
+      "version_title": "Heaven is a Place on Earth",
+      "version_slug": "heaven-is-a-place-on-earth-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "future gazer（OVA「とある科学の超電磁砲」オープニングテーマ）",
+      "canonical_song_title": "future gazer",
+      "song_slug": "future-gazer",
+      "version_title": "future gazer",
+      "version_slug": "future-gazer-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "LEVEL5 -judgelight-（TVアニメ「とある科学の超電磁砲」新オープニングテーマ）",
+      "canonical_song_title": "LEVEL5 -judgelight-",
+      "song_slug": "level5-judgelight",
+      "version_title": "LEVEL5 -judgelight-",
+      "version_slug": "level5-judgelight-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "only my railgun（TVアニメ「とある科学の超電磁砲」オープニングテーマ）",
+      "canonical_song_title": "only my railgun",
+      "song_slug": "only-my-railgun",
+      "version_title": "only my railgun",
+      "version_slug": "only-my-railgun-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide 2009-2020"
+      ]
+    },
+    {
+      "source_title": "late in autumn",
+      "canonical_song_title": "late in autumn",
+      "song_slug": "late-in-autumn",
+      "version_title": "late in autumn",
+      "version_slug": "late-in-autumn-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "colorless fate -version 2018-",
+      "canonical_song_title": "colorless fate",
+      "song_slug": "colorless-fate",
+      "version_title": "colorless fate -version 2018-",
+      "version_slug": "colorless-fate-version-2018",
+      "version_label": "version 2018",
+      "parent_version_slug": "colorless-fate-original",
+      "relation_type": "re-recording_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "memory of snow",
+      "canonical_song_title": "memory of snow",
+      "song_slug": "memory-of-snow",
+      "version_title": "memory of snow",
+      "version_slug": "memory-of-snow-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "冬のかけら",
+      "canonical_song_title": "冬のかけら",
+      "song_slug": "fuyu-no-kakera",
+      "version_title": "冬のかけら",
+      "version_slug": "fuyu-no-kakera-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "Two souls -toward the truth-"
+      ]
+    },
+    {
+      "source_title": "promenade",
+      "canonical_song_title": "promenade",
+      "song_slug": "promenade",
+      "version_title": "promenade",
+      "version_slug": "promenade-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "final phase"
+      ]
+    },
+    {
+      "source_title": "rain of blossoms",
+      "canonical_song_title": "rain of blossoms",
+      "song_slug": "rain-of-blossoms",
+      "version_title": "rain of blossoms",
+      "version_slug": "rain-of-blossoms-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "Secret of my heart",
+      "canonical_song_title": "Secret of my heart",
+      "song_slug": "secret-of-my-heart",
+      "version_title": "Secret of my heart",
+      "version_slug": "secret-of-my-heart-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "The end of summer",
+      "canonical_song_title": "The end of summer",
+      "song_slug": "the-end-of-summer",
+      "version_title": "The end of summer",
+      "version_slug": "the-end-of-summer-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "Answer",
+      "canonical_song_title": "Answer",
+      "song_slug": "answer",
+      "version_title": "Answer",
+      "version_slug": "answer-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "beyond the horizon",
+      "canonical_song_title": "beyond the horizon",
+      "song_slug": "beyond-the-horizon",
+      "version_title": "beyond the horizon",
+      "version_slug": "beyond-the-horizon-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "message (version2)",
+      "canonical_song_title": "message",
+      "song_slug": "message",
+      "version_title": "message (version 2)",
+      "version_slug": "message-version-2",
+      "version_label": "version 2",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": "The official discography labels this as version2 but does not say whether it is a re-recording, rearrangement, remix, or edit; no parent relation is asserted.",
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "prismatic fate（PCゲーム「プリズム☆ま?じカル」エンディングテーマ）",
+      "canonical_song_title": "prismatic fate",
+      "song_slug": "prismatic-fate",
+      "version_title": "prismatic fate",
+      "version_slug": "prismatic-fate-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "one dream",
+      "canonical_song_title": "one dream",
+      "song_slug": "one-dream",
+      "version_title": "one dream",
+      "version_slug": "one-dream-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "only me and the moon",
+      "canonical_song_title": "only me and the moon",
+      "song_slug": "only-me-and-the-moon",
+      "version_title": "only me and the moon",
+      "version_slug": "only-me-and-the-moon-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "everlasting（「ああっ女神さまっ 第42巻 限定版」OAD主題歌）",
+      "canonical_song_title": "everlasting",
+      "song_slug": "everlasting",
+      "version_title": "everlasting",
+      "version_slug": "everlasting-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "an evening calm -crossroads version-",
+      "canonical_song_title": "an evening calm",
+      "song_slug": "an-evening-calm",
+      "version_title": "an evening calm -crossroads version-",
+      "version_slug": "an-evening-calm-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "an-evening-calm-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "frosty breeze",
+      "canonical_song_title": "frosty breeze",
+      "song_slug": "frosty-breeze",
+      "version_title": "frosty breeze",
+      "version_slug": "frosty-breeze-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "whitebird -version 2020-",
+      "canonical_song_title": "whitebird",
+      "song_slug": "whitebird",
+      "version_title": "whitebird -version 2020-",
+      "version_slug": "whitebird-version-2020",
+      "version_label": "version 2020",
+      "parent_version_slug": "whitebird-original",
+      "relation_type": "re-recording_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "My Own Way（特撮アクション時代劇「BLACKFOX:AGE OF THE NINJA」主題歌）",
+      "canonical_song_title": "My Own Way",
+      "song_slug": "my-own-way",
+      "version_title": "My Own Way",
+      "version_slug": "my-own-way-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "snow blind -crossroads version-",
+      "canonical_song_title": "snow blind",
+      "song_slug": "snow-blind",
+      "version_title": "snow blind -crossroads version-",
+      "version_slug": "snow-blind-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "snow-blind-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "悲しい星座",
+      "canonical_song_title": "悲しい星座",
+      "song_slug": "kanashii-seiza",
+      "version_title": "悲しい星座",
+      "version_slug": "kanashii-seiza-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "I'm believing you",
+      "canonical_song_title": "I'm believing you",
+      "song_slug": "im-believing-you",
+      "version_title": "I'm believing you",
+      "version_slug": "im-believing-you-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "split tears -crossroads version-",
+      "canonical_song_title": "split tears",
+      "song_slug": "split-tears",
+      "version_title": "split tears -crossroads version-",
+      "version_slug": "split-tears-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "split-tears-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "white relation(IS4 version)",
+      "canonical_song_title": "white relation",
+      "song_slug": "white-relation",
+      "version_title": "white relation -IS4 version-",
+      "version_slug": "white-relation-is4-version",
+      "version_label": "IS4 version",
+      "parent_version_slug": "white-relation-original",
+      "relation_type": "rearrangement_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "three count",
+      "canonical_song_title": "three count",
+      "song_slug": "three-count",
+      "version_title": "three count",
+      "version_slug": "three-count-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-",
+        "killing bites"
+      ]
+    },
+    {
+      "source_title": "a silent voice",
+      "canonical_song_title": "a silent voice",
+      "song_slug": "a-silent-voice",
+      "version_title": "a silent voice",
+      "version_slug": "a-silent-voice-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "brave new world -crossroads version-(fripSide Only)",
+      "canonical_song_title": "brave new world",
+      "song_slug": "brave-new-world",
+      "version_title": "brave new world -crossroads version- (fripSide Only)",
+      "version_slug": "brave-new-world-crossroads-version-fripside-only",
+      "version_label": "crossroads version (fripSide Only)",
+      "parent_version_slug": "brave-new-world-crossroads-version",
+      "relation_type": "edit_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "the very best of fripSide -moving ballads-"
+      ]
+    },
+    {
+      "source_title": "legendary future",
+      "canonical_song_title": "legendary future",
+      "song_slug": "legendary-future",
+      "version_title": "legendary future",
+      "version_slug": "legendary-future-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "legendary future"
+      ]
+    },
+    {
+      "source_title": "a new day will come",
+      "canonical_song_title": "a new day will come",
+      "song_slug": "a-new-day-will-come",
+      "version_title": "a new day will come",
+      "version_slug": "a-new-day-will-come-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "legendary future"
+      ]
+    },
+    {
+      "source_title": "legendary future(instrumental)",
+      "canonical_song_title": "legendary future",
+      "song_slug": "legendary-future",
+      "version_title": "legendary future (instrumental)",
+      "version_slug": "legendary-future-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "legendary-future-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "legendary future"
+      ]
+    },
+    {
+      "source_title": "a new day will come（instrumental)",
+      "canonical_song_title": "a new day will come",
+      "song_slug": "a-new-day-will-come",
+      "version_title": "a new day will come (instrumental)",
+      "version_slug": "a-new-day-will-come-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "a-new-day-will-come-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "legendary future"
+      ]
+    },
+    {
+      "source_title": "dual existence",
+      "canonical_song_title": "dual existence",
+      "song_slug": "dual-existence",
+      "version_title": "dual existence",
+      "version_slug": "dual-existence-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "dual existence"
+      ]
+    },
+    {
+      "source_title": "Reason to be here",
+      "canonical_song_title": "Reason to be here",
+      "song_slug": "reason-to-be-here",
+      "version_title": "Reason to be here",
+      "version_slug": "reason-to-be-here-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "dual existence"
+      ]
+    },
+    {
+      "source_title": "dual existence＜instrumental＞",
+      "canonical_song_title": "dual existence",
+      "song_slug": "dual-existence",
+      "version_title": "dual existence (instrumental)",
+      "version_slug": "dual-existence-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "dual-existence-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "dual existence"
+      ]
+    },
+    {
+      "source_title": "Reason to be here＜instrumental＞",
+      "canonical_song_title": "Reason to be here",
+      "song_slug": "reason-to-be-here",
+      "version_title": "Reason to be here (instrumental)",
+      "version_slug": "reason-to-be-here-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "reason-to-be-here-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "dual existence"
+      ]
+    },
+    {
+      "source_title": "final phase＊TVアニメ『とある科学の超電磁砲Ｔ』OPテーマ",
+      "canonical_song_title": "final phase",
+      "song_slug": "final-phase",
+      "version_title": "final phase",
+      "version_slug": "final-phase-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "final phase"
+      ]
+    },
+    {
+      "source_title": "final phase＜instrumental＞",
+      "canonical_song_title": "final phase",
+      "song_slug": "final-phase",
+      "version_title": "final phase (instrumental)",
+      "version_slug": "final-phase-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "final-phase-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "final phase"
+      ]
+    },
+    {
+      "source_title": "promenade＜instrumental＞",
+      "canonical_song_title": "promenade",
+      "song_slug": "promenade",
+      "version_title": "promenade (instrumental)",
+      "version_slug": "promenade-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "promenade-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "final phase"
+      ]
+    },
+    {
+      "source_title": "Love with You　TVアニメ『寄宿学校のジュリエット』オープニングテーマ",
+      "canonical_song_title": "Love with You",
+      "song_slug": "love-with-you",
+      "version_title": "Love with You",
+      "version_slug": "love-with-you-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "perpetual wishes　中国ゲーム「ラグナロクオンライン」新エピソードEP3.5「櫻之花嫁」テーマソング",
+      "canonical_song_title": "perpetual wishes",
+      "song_slug": "perpetual-wishes",
+      "version_title": "perpetual wishes",
+      "version_slug": "perpetual-wishes-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "lighting of my heart　中国ゲーム《封印者M》主題歌",
+      "canonical_song_title": "lighting of my heart",
+      "song_slug": "lighting-of-my-heart",
+      "version_title": "lighting of my heart",
+      "version_slug": "lighting-of-my-heart-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "as before",
+      "canonical_song_title": "as before",
+      "song_slug": "as-before",
+      "version_title": "as before",
+      "version_slug": "as-before-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "light at the end",
+      "canonical_song_title": "light at the end",
+      "song_slug": "light-at-the-end",
+      "version_title": "light at the end",
+      "version_slug": "light-at-the-end-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "change your core self",
+      "canonical_song_title": "change your core self",
+      "song_slug": "change-your-core-self",
+      "version_title": "change your core self",
+      "version_slug": "change-your-core-self-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "brand new world",
+      "canonical_song_title": "brand new world",
+      "song_slug": "brand-new-world",
+      "version_title": "brand new world",
+      "version_slug": "brand-new-world-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "endless entropy",
+      "canonical_song_title": "endless entropy",
+      "song_slug": "endless-entropy",
+      "version_title": "endless entropy",
+      "version_slug": "endless-entropy-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "glorious wind",
+      "canonical_song_title": "glorious wind",
+      "song_slug": "glorious-wind",
+      "version_title": "glorious wind",
+      "version_slug": "glorious-wind-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "believe in your future",
+      "canonical_song_title": "believe in your future",
+      "song_slug": "believe-in-your-future",
+      "version_title": "believe in your future",
+      "version_slug": "believe-in-your-future-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 5"
+      ]
+    },
+    {
+      "source_title": "Love with You＊TVアニメ『寄宿学校のジュリエット』OPテーマ",
+      "canonical_song_title": "Love with You",
+      "song_slug": "love-with-you",
+      "version_title": "Love with You",
+      "version_slug": "love-with-you-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Love with You"
+      ]
+    },
+    {
+      "source_title": "Blue Moon",
+      "canonical_song_title": "Blue Moon",
+      "song_slug": "blue-moon",
+      "version_title": "Blue Moon",
+      "version_slug": "blue-moon-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Love with You"
+      ]
+    },
+    {
+      "source_title": "Love with You＜instrumental＞",
+      "canonical_song_title": "Love with You",
+      "song_slug": "love-with-you",
+      "version_title": "Love with You (instrumental)",
+      "version_slug": "love-with-you-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "love-with-you-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Love with You"
+      ]
+    },
+    {
+      "source_title": "Blue Moon＜instrumental＞",
+      "canonical_song_title": "Blue Moon",
+      "song_slug": "blue-moon",
+      "version_title": "Blue Moon (instrumental)",
+      "version_slug": "blue-moon-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "blue-moon-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Love with You"
+      ]
+    },
+    {
+      "source_title": "killing bites（TVアニメ『キリングバイツ』オープニングテーマ）",
+      "canonical_song_title": "killing bites",
+      "song_slug": "killing-bites",
+      "version_title": "killing bites",
+      "version_slug": "killing-bites-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "divine criminal（TVアニメ『されど罪人は竜と踊る』オープニングテーマ）",
+      "canonical_song_title": "divine criminal",
+      "song_slug": "divine-criminal",
+      "version_title": "divine criminal",
+      "version_slug": "divine-criminal-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "snow of silence",
+      "canonical_song_title": "snow of silence",
+      "song_slug": "snow-of-silence",
+      "version_title": "snow of silence",
+      "version_slug": "snow-of-silence-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "breaking dawn",
+      "canonical_song_title": "breaking dawn",
+      "song_slug": "breaking-dawn",
+      "version_title": "breaking dawn",
+      "version_slug": "breaking-dawn-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "adverse wind（中国スマホゲーム『とある魔術の禁書目録』主題歌）",
+      "canonical_song_title": "adverse wind",
+      "song_slug": "adverse-wind",
+      "version_title": "adverse wind",
+      "version_slug": "adverse-wind-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "you only live once",
+      "canonical_song_title": "you only live once",
+      "song_slug": "you-only-live-once",
+      "version_title": "you only live once",
+      "version_slug": "you-only-live-once-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "close to you",
+      "canonical_song_title": "close to you",
+      "song_slug": "close-to-you",
+      "version_title": "close to you",
+      "version_slug": "close-to-you-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "Like a blink, a short night.",
+      "canonical_song_title": "Like a blink, a short night.",
+      "song_slug": "like-a-blink-a-short-night",
+      "version_title": "Like a blink, a short night.",
+      "version_slug": "like-a-blink-a-short-night-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 4"
+      ]
+    },
+    {
+      "source_title": "divine criminal",
+      "canonical_song_title": "divine criminal",
+      "song_slug": "divine-criminal",
+      "version_title": "divine criminal",
+      "version_slug": "divine-criminal-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "divine criminal"
+      ]
+    },
+    {
+      "source_title": "I believe in my heart",
+      "canonical_song_title": "I believe in my heart",
+      "song_slug": "i-believe-in-my-heart",
+      "version_title": "I believe in my heart",
+      "version_slug": "i-believe-in-my-heart-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "divine criminal"
+      ]
+    },
+    {
+      "source_title": "brave new world -crossroads version- (fripSide Only)",
+      "canonical_song_title": "brave new world",
+      "song_slug": "brave-new-world",
+      "version_title": "brave new world -crossroads version- (fripSide Only)",
+      "version_slug": "brave-new-world-crossroads-version-fripside-only",
+      "version_label": "crossroads version (fripSide Only)",
+      "parent_version_slug": "brave-new-world-crossroads-version",
+      "relation_type": "edit_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "divine criminal"
+      ]
+    },
+    {
+      "source_title": "divine criminal ＜instrumental＞",
+      "canonical_song_title": "divine criminal",
+      "song_slug": "divine-criminal",
+      "version_title": "divine criminal (instrumental)",
+      "version_slug": "divine-criminal-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "divine-criminal-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "divine criminal"
+      ]
+    },
+    {
+      "source_title": "I believe in my heart ＜instrumental＞",
+      "canonical_song_title": "I believe in my heart",
+      "song_slug": "i-believe-in-my-heart",
+      "version_title": "I believe in my heart (instrumental)",
+      "version_slug": "i-believe-in-my-heart-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "i-believe-in-my-heart-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "divine criminal"
+      ]
+    },
+    {
+      "source_title": "brave new world -crossroads version- ＜instrumental＞",
+      "canonical_song_title": "brave new world",
+      "song_slug": "brave-new-world",
+      "version_title": "brave new world -crossroads version- (instrumental)",
+      "version_slug": "brave-new-world-crossroads-version-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "brave-new-world-crossroads-version",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "divine criminal"
+      ]
+    },
+    {
+      "source_title": "killing bites",
+      "canonical_song_title": "killing bites",
+      "song_slug": "killing-bites",
+      "version_title": "killing bites",
+      "version_slug": "killing-bites-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "killing bites"
+      ]
+    },
+    {
+      "source_title": "killing bites ＜instrumental＞",
+      "canonical_song_title": "killing bites",
+      "song_slug": "killing-bites",
+      "version_title": "killing bites (instrumental)",
+      "version_slug": "killing-bites-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "killing-bites-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "killing bites"
+      ]
+    },
+    {
+      "source_title": "three count ＜instrumental＞",
+      "canonical_song_title": "three count",
+      "song_slug": "three-count",
+      "version_title": "three count (instrumental)",
+      "version_slug": "three-count-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "three-count-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "killing bites"
+      ]
+    },
+    {
+      "source_title": "sky",
+      "canonical_song_title": "sky",
+      "song_slug": "sky",
+      "version_title": "sky -crossroads version-",
+      "version_slug": "sky-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "sky-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "Red “reduction division”",
+      "canonical_song_title": "Red \"reduction division\"",
+      "song_slug": "red-reduction-division",
+      "version_title": "Red \"reduction division\" -crossroads version-",
+      "version_slug": "red-reduction-division-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "red-reduction-division-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "hurting heart",
+      "canonical_song_title": "hurting heart",
+      "song_slug": "hurting-heart",
+      "version_title": "hurting heart -crossroads version-",
+      "version_slug": "hurting-heart-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "hurting-heart-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "an evening calm",
+      "canonical_song_title": "an evening calm",
+      "song_slug": "an-evening-calm",
+      "version_title": "an evening calm -crossroads version-",
+      "version_slug": "an-evening-calm-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "an-evening-calm-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "split tears",
+      "canonical_song_title": "split tears",
+      "song_slug": "split-tears",
+      "version_title": "split tears -crossroads version-",
+      "version_slug": "split-tears-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "split-tears-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "the chaostic world",
+      "canonical_song_title": "the chaostic world",
+      "song_slug": "the-chaostic-world",
+      "version_title": "the chaostic world -crossroads version-",
+      "version_slug": "the-chaostic-world-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "the-chaostic-world-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "prominence",
+      "canonical_song_title": "prominence",
+      "song_slug": "prominence",
+      "version_title": "prominence -crossroads version-",
+      "version_slug": "prominence-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "prominence-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "distant moon",
+      "canonical_song_title": "distant moon",
+      "song_slug": "distant-moon",
+      "version_title": "distant moon -crossroads version-",
+      "version_slug": "distant-moon-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "distant-moon-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "escape",
+      "canonical_song_title": "escape",
+      "song_slug": "escape",
+      "version_title": "escape -crossroads version-",
+      "version_slug": "escape-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "escape-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "before dawn daybreak",
+      "canonical_song_title": "before dawn daybreak",
+      "song_slug": "before-dawn-daybreak",
+      "version_title": "before dawn daybreak -crossroads version-",
+      "version_slug": "before-dawn-daybreak-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "before-dawn-daybreak-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "snow blind",
+      "canonical_song_title": "snow blind",
+      "song_slug": "snow-blind",
+      "version_title": "snow blind -crossroads version-",
+      "version_slug": "snow-blind-crossroads-version",
+      "version_label": "crossroads version",
+      "parent_version_slug": "snow-blind-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "brave new world (ゲストVo：nao、KOTOKO、黒崎真音)",
+      "canonical_song_title": "brave new world",
+      "song_slug": "brave-new-world",
+      "version_title": "brave new world -crossroads version- (feat. nao, KOTOKO & Maon Kurosaki)",
+      "version_slug": "brave-new-world-crossroads-version-feat-nao-kotoko-and-maon-kurosaki",
+      "version_label": "crossroads version (guest vocals)",
+      "parent_version_slug": "brave-new-world-original",
+      "relation_type": "cover_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "clockwork planet　(TVアニメ「クロックワーク・プラネット」オープニングテーマ)",
+      "canonical_song_title": "clockwork planet",
+      "song_slug": "clockwork-planet",
+      "version_title": "clockwork planet",
+      "version_slug": "clockwork-planet-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "a gleam of prologue",
+      "canonical_song_title": "a gleam of prologue",
+      "song_slug": "a-gleam-of-prologue",
+      "version_title": "a gleam of prologue",
+      "version_slug": "a-gleam-of-prologue-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "pico scope -SACLA- (理化学研究所 世界一小さいものが見えるX線レーザー「SACLA」 PRムービー「未来光子 播磨サクラ」テーマ曲)",
+      "canonical_song_title": "pico scope -SACLA-",
+      "song_slug": "pico-scope-sacla",
+      "version_title": "pico scope -SACLA-",
+      "version_slug": "pico-scope-sacla-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "crossroads"
+      ]
+    },
+    {
+      "source_title": "clockwork planet（TVアニメ「クロックワーク・プラネット」OPテーマ）",
+      "canonical_song_title": "clockwork planet",
+      "song_slug": "clockwork-planet",
+      "version_title": "clockwork planet",
+      "version_slug": "clockwork-planet-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "clockwork planet"
+      ]
+    },
+    {
+      "source_title": "Break Our Limit（ゲーム「少女珈琲枪」(Girl Cafe Gun）[制作:中国]OPテーマ）",
+      "canonical_song_title": "Break Our Limit",
+      "song_slug": "break-our-limit",
+      "version_title": "Break Our Limit",
+      "version_slug": "break-our-limit-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "clockwork planet"
+      ]
+    },
+    {
+      "source_title": "clockwork planet＜instrumental＞",
+      "canonical_song_title": "clockwork planet",
+      "song_slug": "clockwork-planet",
+      "version_title": "clockwork planet (instrumental)",
+      "version_slug": "clockwork-planet-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "clockwork-planet-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "clockwork planet"
+      ]
+    },
+    {
+      "source_title": "Break Our Limit＜instrumental＞",
+      "canonical_song_title": "Break Our Limit",
+      "song_slug": "break-our-limit",
+      "version_title": "Break Our Limit (instrumental)",
+      "version_slug": "break-our-limit-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "break-our-limit-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "clockwork planet"
+      ]
+    },
+    {
+      "source_title": "The end of escape（TVシリーズ「亜人」第2クール後期オープニングテーマ）",
+      "canonical_song_title": "The end of escape",
+      "song_slug": "the-end-of-escape",
+      "version_title": "The end of escape",
+      "version_slug": "the-end-of-escape-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide×angela／The end of escape"
+      ]
+    },
+    {
+      "source_title": "The end of escape TV size",
+      "canonical_song_title": "The end of escape",
+      "song_slug": "the-end-of-escape",
+      "version_title": "The end of escape (TV size)",
+      "version_slug": "the-end-of-escape-tv-size",
+      "version_label": "TV size",
+      "parent_version_slug": "the-end-of-escape-original",
+      "relation_type": "edit_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide×angela／The end of escape"
+      ]
+    },
+    {
+      "source_title": "The end of escape ＜instrumental＞",
+      "canonical_song_title": "The end of escape",
+      "song_slug": "the-end-of-escape",
+      "version_title": "The end of escape (instrumental)",
+      "version_slug": "the-end-of-escape-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "the-end-of-escape-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide×angela／The end of escape"
+      ]
+    },
+    {
+      "source_title": "The end of escape　part of yoshino nanjo",
+      "canonical_song_title": "The end of escape",
+      "song_slug": "the-end-of-escape",
+      "version_title": "The end of escape (part of yoshino nanjo)",
+      "version_slug": "the-end-of-escape-part-of-yoshino-nanjo",
+      "version_label": "part of yoshino nanjo",
+      "parent_version_slug": "the-end-of-escape-original",
+      "relation_type": "edit_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide×angela／The end of escape"
+      ]
+    },
+    {
+      "source_title": "The end of escape　part of atsuko",
+      "canonical_song_title": "The end of escape",
+      "song_slug": "the-end-of-escape",
+      "version_title": "The end of escape (part of atsuko)",
+      "version_slug": "the-end-of-escape-part-of-atsuko",
+      "version_label": "part of atsuko",
+      "parent_version_slug": "the-end-of-escape-original",
+      "relation_type": "edit_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide×angela／The end of escape"
+      ]
+    },
+    {
+      "source_title": "僕は僕であって",
+      "canonical_song_title": "僕は僕であって",
+      "song_slug": "boku-wa-boku-de-atte",
+      "version_title": "僕は僕であって",
+      "version_slug": "boku-wa-boku-de-atte-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "angela×fripSide／僕は僕であって"
+      ]
+    },
+    {
+      "source_title": "僕は僕であって TV size",
+      "canonical_song_title": "僕は僕であって",
+      "song_slug": "boku-wa-boku-de-atte",
+      "version_title": "僕は僕であって (TV size)",
+      "version_slug": "boku-wa-boku-de-atte-tv-size",
+      "version_label": "TV size",
+      "parent_version_slug": "boku-wa-boku-de-atte-original",
+      "relation_type": "edit_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "angela×fripSide／僕は僕であって"
+      ]
+    },
+    {
+      "source_title": "僕は僕であって off vocal version",
+      "canonical_song_title": "僕は僕であって",
+      "song_slug": "boku-wa-boku-de-atte",
+      "version_title": "僕は僕であって (off vocal)",
+      "version_slug": "boku-wa-boku-de-atte-off-vocal",
+      "version_label": "off vocal",
+      "parent_version_slug": "boku-wa-boku-de-atte-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "angela×fripSide／僕は僕であって"
+      ]
+    },
+    {
+      "source_title": "僕は僕であって（TVシリーズ「亜人」第2クール前期オープニングテーマ）",
+      "canonical_song_title": "僕は僕であって",
+      "song_slug": "boku-wa-boku-de-atte",
+      "version_title": "僕は僕であって",
+      "version_slug": "boku-wa-boku-de-atte-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "angela×fripSide／僕は僕であって"
+      ]
+    },
+    {
+      "source_title": "僕は僕であって part of atsuko",
+      "canonical_song_title": "僕は僕であって",
+      "song_slug": "boku-wa-boku-de-atte",
+      "version_title": "僕は僕であって (part of atsuko)",
+      "version_slug": "boku-wa-boku-de-atte-part-of-atsuko",
+      "version_label": "part of atsuko",
+      "parent_version_slug": "boku-wa-boku-de-atte-original",
+      "relation_type": "edit_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "angela×fripSide／僕は僕であって"
+      ]
+    },
+    {
+      "source_title": "僕は僕であって part of yoshino nanjo",
+      "canonical_song_title": "僕は僕であって",
+      "song_slug": "boku-wa-boku-de-atte",
+      "version_title": "僕は僕であって (part of yoshino nanjo)",
+      "version_slug": "boku-wa-boku-de-atte-part-of-yoshino-nanjo",
+      "version_label": "part of yoshino nanjo",
+      "parent_version_slug": "boku-wa-boku-de-atte-original",
+      "relation_type": "edit_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "angela×fripSide／僕は僕であって"
+      ]
+    },
+    {
+      "source_title": "2016 -Third cosmic velocity-",
+      "canonical_song_title": "2016 -Third cosmic velocity-",
+      "song_slug": "2016-third-cosmic-velocity",
+      "version_title": "2016 -Third cosmic velocity-",
+      "version_slug": "2016-third-cosmic-velocity-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "Luminize (TVアニメ「フューチャーカード バディファイト ハンドレッド」OPテーマ)",
+      "canonical_song_title": "Luminize",
+      "song_slug": "luminize",
+      "version_title": "Luminize",
+      "version_slug": "luminize-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "determination",
+      "canonical_song_title": "determination",
+      "song_slug": "determination",
+      "version_title": "determination",
+      "version_slug": "determination-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "Two souls -toward the truth- (TVアニメ「終わりのセラフ」名古屋決戦編OPテーマ)",
+      "canonical_song_title": "Two souls -toward the truth-",
+      "song_slug": "two-souls-toward-the-truth",
+      "version_title": "Two souls -toward the truth-",
+      "version_slug": "two-souls-toward-the-truth-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "crescendo -version2016-",
+      "canonical_song_title": "crescendo",
+      "song_slug": "crescendo",
+      "version_title": "crescendo -version 2016-",
+      "version_slug": "crescendo-version-2016",
+      "version_label": "version 2016",
+      "parent_version_slug": "crescendo-original",
+      "relation_type": "re-recording_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "Run into the light",
+      "canonical_song_title": "Run into the light",
+      "song_slug": "run-into-the-light",
+      "version_title": "Run into the light",
+      "version_slug": "run-into-the-light-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "Dry your tears",
+      "canonical_song_title": "Dry your tears",
+      "song_slug": "dry-your-tears",
+      "version_title": "Dry your tears",
+      "version_slug": "dry-your-tears-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "unlimited destiny",
+      "canonical_song_title": "unlimited destiny",
+      "song_slug": "unlimited-destiny",
+      "version_title": "unlimited destiny",
+      "version_slug": "unlimited-destiny-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "One and Only",
+      "canonical_song_title": "One and Only",
+      "song_slug": "one-and-only",
+      "version_title": "One and Only",
+      "version_slug": "one-and-only-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "Side by Side",
+      "canonical_song_title": "Side by Side",
+      "song_slug": "side-by-side",
+      "version_title": "Side by Side",
+      "version_slug": "side-by-side-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 3"
+      ]
+    },
+    {
+      "source_title": "white forces",
+      "canonical_song_title": "white forces",
+      "song_slug": "white-forces",
+      "version_title": "white forces",
+      "version_slug": "white-forces-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "white forces"
+      ]
+    },
+    {
+      "source_title": "1983-schwarzesmarken-（PCゲーム「シュヴァルツェスマーケン 紅血の紋章」OPテーマ）",
+      "canonical_song_title": "1983-schwarzesmarken-",
+      "song_slug": "1983-schwarzesmarken",
+      "version_title": "1983-schwarzesmarken-",
+      "version_slug": "1983-schwarzesmarken-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "white forces"
+      ]
+    },
+    {
+      "source_title": "white forces Instrumental",
+      "canonical_song_title": "white forces",
+      "song_slug": "white-forces",
+      "version_title": "white forces (instrumental)",
+      "version_slug": "white-forces-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "white-forces-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "white forces"
+      ]
+    },
+    {
+      "source_title": "1983-schwarzesmarken- Instrumental",
+      "canonical_song_title": "1983-schwarzesmarken-",
+      "song_slug": "1983-schwarzesmarken",
+      "version_title": "1983-schwarzesmarken- (instrumental)",
+      "version_slug": "1983-schwarzesmarken-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "1983-schwarzesmarken-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "white forces"
+      ]
+    },
+    {
+      "source_title": "Two souls -toward the truth-",
+      "canonical_song_title": "Two souls -toward the truth-",
+      "song_slug": "two-souls-toward-the-truth",
+      "version_title": "Two souls -toward the truth-",
+      "version_slug": "two-souls-toward-the-truth-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Two souls -toward the truth-"
+      ]
+    },
+    {
+      "source_title": "Two souls -toward the truth-〈instrumental〉",
+      "canonical_song_title": "Two souls -toward the truth-",
+      "song_slug": "two-souls-toward-the-truth",
+      "version_title": "Two souls -toward the truth- (instrumental)",
+      "version_slug": "two-souls-toward-the-truth-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "two-souls-toward-the-truth-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Two souls -toward the truth-"
+      ]
+    },
+    {
+      "source_title": "冬のかけら〈instrumental〉",
+      "canonical_song_title": "冬のかけら",
+      "song_slug": "fuyu-no-kakera",
+      "version_title": "冬のかけら (instrumental)",
+      "version_slug": "fuyu-no-kakera-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "fuyu-no-kakera-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Two souls -toward the truth-"
+      ]
+    },
+    {
+      "source_title": "Hesitation Snow",
+      "canonical_song_title": "Hesitation Snow",
+      "song_slug": "hesitation-snow",
+      "version_title": "Hesitation Snow",
+      "version_slug": "hesitation-snow-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "before dawn daybreak -version 2015-",
+      "canonical_song_title": "before dawn daybreak",
+      "song_slug": "before-dawn-daybreak",
+      "version_title": "before dawn daybreak -version 2015-",
+      "version_slug": "before-dawn-daybreak-version-2015",
+      "version_label": "version 2015",
+      "parent_version_slug": "before-dawn-daybreak-original",
+      "relation_type": "re-recording_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "sword of virgin",
+      "canonical_song_title": "sword of virgin",
+      "song_slug": "sword-of-virgin",
+      "version_title": "sword of virgin",
+      "version_slug": "sword-of-virgin-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "fortuna on the Sixteenth night",
+      "canonical_song_title": "fortuna on the Sixteenth night",
+      "song_slug": "fortuna-on-the-sixteenth-night",
+      "version_title": "fortuna on the Sixteenth night",
+      "version_slug": "fortuna-on-the-sixteenth-night-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "glow in the darkness",
+      "canonical_song_title": "glow in the darkness",
+      "song_slug": "glow-in-the-darkness",
+      "version_title": "glow in the darkness",
+      "version_slug": "glow-in-the-darkness-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "Blaze of Reunion",
+      "canonical_song_title": "Blaze of Reunion",
+      "song_slug": "blaze-of-reunion",
+      "version_title": "Blaze of Reunion",
+      "version_slug": "blaze-of-reunion-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "keep your promise",
+      "canonical_song_title": "keep your promise",
+      "song_slug": "keep-your-promise",
+      "version_title": "keep your promise",
+      "version_slug": "keep-your-promise-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "absolute wish",
+      "canonical_song_title": "absolute wish",
+      "song_slug": "absolute-wish",
+      "version_title": "absolute wish",
+      "version_slug": "absolute-wish-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "precious time",
+      "canonical_song_title": "precious time",
+      "song_slug": "precious-time",
+      "version_title": "precious time",
+      "version_slug": "precious-time-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "join forces",
+      "canonical_song_title": "join forces",
+      "song_slug": "join-forces",
+      "version_title": "join forces",
+      "version_slug": "join-forces-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "with the light",
+      "canonical_song_title": "with the light",
+      "song_slug": "with-the-light",
+      "version_title": "with the light",
+      "version_slug": "with-the-light-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "fripSide PC game compilation vol.2"
+      ]
+    },
+    {
+      "source_title": "Luminize TVアニメ「フューチャーカード バディファイト ハンドレッド」OPテーマ",
+      "canonical_song_title": "Luminize",
+      "song_slug": "luminize",
+      "version_title": "Luminize",
+      "version_slug": "luminize-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Luminize"
+      ]
+    },
+    {
+      "source_title": "unlimited destiny PCブラウザゲーム「超銀河船団」主題歌",
+      "canonical_song_title": "unlimited destiny",
+      "song_slug": "unlimited-destiny",
+      "version_title": "unlimited destiny",
+      "version_slug": "unlimited-destiny-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Luminize"
+      ]
+    },
+    {
+      "source_title": "Luminize〈instrumental〉",
+      "canonical_song_title": "Luminize",
+      "song_slug": "luminize",
+      "version_title": "Luminize (instrumental)",
+      "version_slug": "luminize-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "luminize-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Luminize"
+      ]
+    },
+    {
+      "source_title": "unlimited destiny〈instrumental〉",
+      "canonical_song_title": "unlimited destiny",
+      "song_slug": "unlimited-destiny",
+      "version_title": "unlimited destiny (instrumental)",
+      "version_slug": "unlimited-destiny-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "unlimited-destiny-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "Luminize"
+      ]
+    },
+    {
+      "source_title": "sister's noise",
+      "canonical_song_title": "sister's noise",
+      "song_slug": "sisters-noise",
+      "version_title": "sister's noise",
+      "version_slug": "sisters-noise-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "fermata~Akkord:fortissimo~ (PS Vita用ソフト「カデンツァ フェルマータ アコルト：フォルテシモ」テーマソング)",
+      "canonical_song_title": "fermata~Akkord:fortissimo~",
+      "song_slug": "fermata-akkord-fortissimo",
+      "version_title": "fermata~Akkord:fortissimo~",
+      "version_slug": "fermata-akkord-fortissimo-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "lost dimension (PS3(R) / PS Vita専用ソフト「ロストディメンション」主題歌)",
+      "canonical_song_title": "lost dimension",
+      "song_slug": "lost-dimension",
+      "version_title": "lost dimension",
+      "version_slug": "lost-dimension-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "eternal reality (TVアニメ「とある科学の超電磁砲S」新オープニングテーマ)",
+      "canonical_song_title": "eternal reality",
+      "song_slug": "eternal-reality",
+      "version_title": "eternal reality",
+      "version_slug": "eternal-reality-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "black bullet (TVアニメ「ブラック・ブレット」オープニングテーマ)",
+      "canonical_song_title": "black bullet",
+      "song_slug": "black-bullet",
+      "version_title": "black bullet",
+      "version_slug": "black-bullet-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "rain of tears",
+      "canonical_song_title": "rain of tears",
+      "song_slug": "rain-of-tears",
+      "version_title": "rain of tears",
+      "version_slug": "rain-of-tears-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "scorching heart",
+      "canonical_song_title": "scorching heart",
+      "song_slug": "scorching-heart",
+      "version_title": "scorching heart",
+      "version_slug": "scorching-heart-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "waiting for the moment",
+      "canonical_song_title": "waiting for the moment",
+      "song_slug": "waiting-for-the-moment",
+      "version_title": "waiting for the moment",
+      "version_slug": "waiting-for-the-moment-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "always be with you",
+      "canonical_song_title": "always be with you",
+      "song_slug": "always-be-with-you",
+      "version_title": "always be with you",
+      "version_slug": "always-be-with-you-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "true resonance",
+      "canonical_song_title": "true resonance",
+      "song_slug": "true-resonance",
+      "version_title": "true resonance",
+      "version_slug": "true-resonance-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "infinite synthesis 2"
+      ]
+    },
+    {
+      "source_title": "black bullet",
+      "canonical_song_title": "black bullet",
+      "song_slug": "black-bullet",
+      "version_title": "black bullet",
+      "version_slug": "black-bullet-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "black bullet"
+      ]
+    },
+    {
+      "source_title": "pico scope -SACLA-",
+      "canonical_song_title": "pico scope -SACLA-",
+      "song_slug": "pico-scope-sacla",
+      "version_title": "pico scope -SACLA-",
+      "version_slug": "pico-scope-sacla-original",
+      "version_label": "original",
+      "parent_version_slug": null,
+      "relation_type": null,
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "black bullet"
+      ]
+    },
+    {
+      "source_title": "black bullet(instrumental)",
+      "canonical_song_title": "black bullet",
+      "song_slug": "black-bullet",
+      "version_title": "black bullet (instrumental)",
+      "version_slug": "black-bullet-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "black-bullet-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "black bullet"
+      ]
+    },
+    {
+      "source_title": "pico scope -SACLA-(instrumental)",
+      "canonical_song_title": "pico scope -SACLA-",
+      "song_slug": "pico-scope-sacla",
+      "version_title": "pico scope -SACLA- (instrumental)",
+      "version_slug": "pico-scope-sacla-instrumental",
+      "version_label": "instrumental",
+      "parent_version_slug": "pico-scope-sacla-original",
+      "relation_type": "instrumental_of",
+      "uncertainty_reason": null,
+      "seen_in_releases": [
+        "black bullet"
+      ]
+    }
+  ]
+}

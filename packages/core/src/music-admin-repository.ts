@@ -215,10 +215,11 @@ export async function getMusicEditorOptions(db: D1Database): Promise<MusicEditor
       ORDER BY title COLLATE NOCASE ASC
     `).all<MusicEditorOptions["versions"][number]>(),
     db.prepare(`
-      SELECT id, slug, title, start_date, classification
-      FROM events
-      WHERE archived_at IS NULL
-      ORDER BY start_date DESC, title COLLATE NOCASE ASC
+      SELECT e.id, e.slug, e.title, e.start_date, e.classification,
+        (SELECT COUNT(*) FROM setlists sl WHERE sl.event_id = e.id) AS setlist_count
+      FROM events e
+      WHERE e.archived_at IS NULL
+      ORDER BY e.start_date DESC, e.title COLLATE NOCASE ASC
     `).all<MusicEditorOptions["events"][number]>(),
   ]);
   return { songs: songs.results, versions: versions.results, events: events.results };

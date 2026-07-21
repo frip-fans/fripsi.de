@@ -248,6 +248,7 @@ export interface MusicEventOption {
   title: string;
   start_date: string;
   classification: string | null;
+  setlist_count: number;
 }
 
 export interface MusicEditorOptions {

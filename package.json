@@ -27,11 +27,14 @@
     "import:sql": "tsx scripts/build-import-sql.ts",
     "import:music": "tsx scripts/import-music-library.ts",
     "scrape:discography": "node scripts/scrape-official-discography.mjs",
+    "build:complete-discography": "node scripts/build-complete-discography-import.mjs",
     "build:phase3-albums": "node scripts/build-phase3-album-import.mjs",
     "build:liberation-setlists": "node scripts/build-liberation-protocol-setlists.mjs",
     "build:anisama-setlists": "node scripts/build-anisama-setlists.mjs",
     "build:asia-festival-setlists": "node scripts/build-asia-festival-setlists.mjs",
-    "build:dawn-final-setlist": "node scripts/build-dawn-of-resonance-final-setlist.mjs"
+    "build:dawn-final-setlist": "node scripts/build-dawn-of-resonance-final-setlist.mjs",
+    "scrape:phase3-setlists": "node scripts/scrape-livefans-fripside-setlists.mjs",
+    "build:phase3-setlists": "node scripts/build-phase3-livefans-setlists.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",

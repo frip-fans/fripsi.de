@@ -1,5 +1,12 @@
 ---
-import { countSetlists, listSetlists, listSetlistYears } from "@frip-fan/core";
+import {
+  countSetlists,
+  listSetlists,
+  listSetlistsForYear,
+  listSetlistYears,
+  type SetlistBrowseSummary,
+  type SetlistSummary,
+} from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import Pagination from "../../../components/Pagination.astro";
@@ -14,10 +21,9 @@ import {
 import { getLocale, t } from "../../../lib/i18n";
 import "../../../styles/music.css";
 
-const query = Astro.url.searchParams.get("q")?.trim() ?? "";
 const locale = getLocale(Astro.request);
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
 const requestedYear = Astro.url.searchParams.get("year") ?? "";
-const year = /^\d{4}$/.test(requestedYear) ? requestedYear : undefined;
 const classificationOptions = [
   { value: "专场", label: t(locale, "music.solo") },
   { value: "拼盘", label: t(locale, "music.festival") },
@@ -26,83 +32,475 @@ const requestedClassification = Astro.url.searchParams.get("classification") ?? 
 const classification = classificationOptions.some((option) => option.value === requestedClassification)
   ? requestedClassification
   : undefined;
-const PAGE_SIZE = 20;
+const order: "asc" | "desc" = Astro.url.searchParams.get("sort") === "asc" ? "asc" : "desc";
+const PAGE_SIZE = 12;
 const requestedPageValue = Astro.url.searchParams.get("page") ?? "1";
 const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
-const filters = { query: query || undefined, year, classification };
-const totalItems = await countSetlists(getEnv().DB, filters);
-const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
-const page = Math.min(requestedPage, totalPages);
-const [setlists, years] = await Promise.all([
-  listSetlists(getEnv().DB, { ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE }),
-  listSetlistYears(getEnv().DB, { query: query || undefined, classification }),
-]);
-const makeYearHref = (value?: string) => {
+const db = getEnv().DB;
+const years = await listSetlistYears(db);
+const currentYear = String(new Date().getUTCFullYear());
+const defaultYear = years.find((item) => item.year === currentYear)?.year ?? years[0]?.year ?? currentYear;
+const year = requestedYear === "all"
+  ? undefined
+  : /^\d{4}$/.test(requestedYear)
+    ? requestedYear
+    : defaultYear;
+const annualMode = Boolean(year);
+
+let allYearSetlists: SetlistBrowseSummary[] = [];
+let setlists: SetlistSummary[] = [];
+let totalItems = 0;
+let totalPages = 1;
+let page = requestedPage;
+
+if (annualMode) {
+  allYearSetlists = await listSetlistsForYear(db, year!);
+  const normalizedQuery = query.toLocaleLowerCase(locale);
+  const filtered = allYearSetlists
+    .filter((setlist) => !classification || setlist.event_classification === classification)
+    .filter((setlist) => {
+      if (!normalizedQuery) return true;
+      const searchable = [
+        setlist.title,
+        setlist.event_title,
+        setlist.performance_label,
+        setlist.venue,
+        setlist.region,
+        setlist.search_text,
+      ].filter(Boolean).join(" ").toLocaleLowerCase(locale);
+      return searchable.includes(normalizedQuery);
+    })
+    .sort((left, right) => {
+      const dateComparison = `${left.start_date} ${left.start_time ?? ""}`
+        .localeCompare(`${right.start_date} ${right.start_time ?? ""}`);
+      if (dateComparison !== 0) return order === "asc" ? dateComparison : -dateComparison;
+      return left.performance_label.localeCompare(right.performance_label);
+    });
+  totalItems = filtered.length;
+  totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  page = Math.min(requestedPage, totalPages);
+  setlists = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+} else {
+  const filters = { query: query || undefined, classification, order };
+  totalItems = await countSetlists(db, filters);
+  totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+  page = Math.min(requestedPage, totalPages);
+  setlists = await listSetlists(db, { ...filters, limit: PAGE_SIZE, offset: (page - 1) * PAGE_SIZE });
+}
+
+const makeHref = (values: { year?: string; classification?: string; order?: "asc" | "desc" }) => {
   const params = new URLSearchParams();
-  if (value) params.set("year", value);
+  params.set("year", values.year ?? "all");
   if (query) params.set("q", query);
-  if (classification) params.set("classification", classification);
-  return `/music/lives${params.size ? `?${params}` : ""}`;
+  if (values.classification) params.set("classification", values.classification);
+  if (values.order === "asc") params.set("sort", "asc");
+  return `/music/lives?${params}`;
 };
-const makeClassificationHref = (value?: string) => {
-  const params = new URLSearchParams();
-  if (value) params.set("classification", value);
-  if (year) params.set("year", year);
-  if (query) params.set("q", query);
-  return `/music/lives${params.size ? `?${params}` : ""}`;
+const browsePayload = {
+  locale,
+  pageSize: PAGE_SIZE,
+  year,
+  query,
+  classification: classification ?? "",
+  order,
+  page,
+  setlists: allYearSetlists,
+  labels: {
+    solo: t(locale, "music.solo"),
+    festival: t(locale, "music.festival"),
+    unclassified: t(locale, "music.unclassified"),
+    complete: t(locale, "music.complete"),
+    partial: t(locale, "music.partial"),
+    unknown: t(locale, "music.unknownCompleteness"),
+    songsCount: t(locale, "music.songsCount", { count: "{count}" }),
+    venuePending: t(locale, "common.venuePending"),
+    regionPending: t(locale, "common.regionPending"),
+    noLives: t(locale, "music.noLives"),
+    visibleLives: t(locale, "music.visibleLives", { visible: "{visible}", total: "{total}" }),
+    previous: t(locale, "pagination.previous"),
+    next: t(locale, "pagination.next"),
+    pagination: t(locale, "pagination.summary", { total: "{total}", item: t(locale, "music.liveItem"), current: "{current}", pages: "{pages}" }),
+    loadingYear: t(locale, "music.loadingYear", { year: "{year}" }),
+    loadYearFailed: t(locale, "music.loadYearFailed"),
+  },
 };
+const browseJson = JSON.stringify(browsePayload).replaceAll("<", "\\u003c");
 ---
 <SiteLayout title={t(locale, "music.nav.lives")}>
-  <div class="music-page">
+  <div class="music-page" data-live-browser data-annual-mode={annualMode ? "true" : "false"}>
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, "music.nav.lives")}>
-      <form class="music-toolbar" method="get">
-        {year && <input type="hidden" name="year" value={year} />}
-        {classification && <input type="hidden" name="classification" value={classification} />}
+      <form class="music-toolbar" method="get" data-live-search-form>
+        <input type="hidden" name="year" value={year ?? "all"} data-live-year-input />
+        {classification && <input type="hidden" name="classification" value={classification} data-live-classification-input />}
+        {order === "asc" && <input type="hidden" name="sort" value="asc" data-live-sort-input />}
         <label class="music-search">
           <span class="visually-hidden">{t(locale, "music.searchLive")}</span>
           <Icon name="search" />
-          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchLivePlaceholder")} />
+          <input type="search" name="q" value={query} placeholder={t(locale, "music.searchLivePlaceholder")} data-live-search />
         </label>
         <button type="submit" class="secondary">{t(locale, "common.search")}</button>
       </form>
       <div class="music-filter-stack" aria-label={t(locale, "common.filter")}>
         <div class="music-filter-row">
           <span class="music-filter-label"><Icon name="funnel" />{t(locale, "music.performanceType")}</span>
-          <div class="music-chips">
-            <a class:list={{ active: !classification }} href={makeClassificationHref()}>{t(locale, "music.allTypes")}</a>
+          <div class="music-chips" data-live-classifications>
+            <a class:list={{ active: !classification }} href={makeHref({ year, order })} data-classification="">{t(locale, "music.allTypes")}</a>
             {classificationOptions.map((option) => (
-              <a class:list={{ active: classification === option.value }} href={makeClassificationHref(option.value)}>{option.label}</a>
+              <a class:list={{ active: classification === option.value }} href={makeHref({ year, classification: option.value, order })} data-classification={option.value}>{option.label}</a>
             ))}
           </div>
         </div>
         {years.length > 0 && (
           <div class="music-filter-row">
             <span class="music-filter-label"><Icon name="calendar3" />{t(locale, "music.year")}</span>
-            <div class="music-chips">
-              <a class:list={{ active: !year }} href={makeYearHref()}>{t(locale, "music.allYears")}</a>
-              {years.map((item) => <a class:list={{ active: year === item.year }} href={makeYearHref(item.year)}>{item.year}<span> · {item.count}</span></a>)}
+            <div class="music-chips music-year-chips" data-live-years>
+              <a class:list={{ active: !year }} href={makeHref({ classification, order })} data-year="all">{t(locale, "music.allYears")}</a>
+              {years.map((item) => <a class:list={{ active: year === item.year }} href={makeHref({ year: item.year, classification, order })} data-year={item.year}>{item.year}<span> · {item.count}</span></a>)}
             </div>
           </div>
         )}
+        <div class="music-filter-row">
+          <span class="music-filter-label"><Icon name="arrow-down-up" />{t(locale, "music.sortOrder")}</span>
+          <div class="music-chips" data-live-sort>
+            <a class:list={{ active: order === "desc" }} href={makeHref({ year, classification, order: "desc" })} data-sort="desc">{t(locale, "music.newestFirst")}</a>
+            <a class:list={{ active: order === "asc" }} href={makeHref({ year, classification, order: "asc" })} data-sort="asc">{t(locale, "music.oldestFirst")}</a>
+          </div>
+        </div>
       </div>
 
-      {setlists.length ? (
-        <div class="music-grid">
-          {setlists.map((setlist) => (
-            <a class="music-card" href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
-              <div class="music-card-top">
-                <time class="music-card-date" datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
-                <span class="music-event-type">{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
-              </div>
-              <h3>{setlistDisplayTitle(setlist)}</h3>
-              <div class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span>·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></div>
-              <div class="music-card-stats"><span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span><span>{setlistCompletenessLabel(setlist.completeness, locale)}</span></div>
-            </a>
-          ))}
-        </div>
-      ) : <div class="music-empty panel">{t(locale, "music.noLives")}</div>}
-      <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} itemLabel={t(locale, "music.liveItem")} />
+      <div class="music-list-feedback" aria-live="polite">
+        <span data-live-summary>{annualMode ? t(locale, "music.visibleLives", { visible: totalItems, total: allYearSetlists.length }) : t(locale, "archive.total", { count: totalItems })}</span>
+        <span class="music-loading-status" data-live-status hidden></span>
+      </div>
+
+      <div class="music-grid" data-live-grid aria-busy="false">
+        {setlists.map((setlist) => (
+          <a class="music-card" href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
+            <div class="music-card-top">
+              <time class="music-card-date" datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
+              <span class="music-event-type">{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
+            </div>
+            <h3>{setlistDisplayTitle(setlist)}</h3>
+            <div class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span>·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></div>
+            <div class="music-card-stats"><span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span><span>{setlistCompletenessLabel(setlist.completeness, locale)}</span></div>
+          </a>
+        ))}
+      </div>
+      <div class="music-empty panel" data-live-empty hidden={setlists.length > 0}>{t(locale, "music.noLives")}</div>
+      {annualMode ? (
+        <nav class="music-client-pagination" aria-label={t(locale, "pagination.label")} data-live-pagination hidden={totalPages <= 1}>
+          <p data-live-pagination-summary>{t(locale, "pagination.summary", { total: totalItems, item: t(locale, "music.liveItem"), current: page, pages: totalPages })}</p>
+          <div class="music-client-pages" data-live-pages></div>
+        </nav>
+      ) : (
+        <Pagination currentPage={page} totalPages={totalPages} totalItems={totalItems} itemLabel={t(locale, "music.liveItem")} />
+      )}
     </section>
+    {annualMode && <script is:inline type="application/json" data-live-browser-data set:html={browseJson}></script>}
   </div>
 </SiteLayout>
+
+<script>
+  interface SetlistItem {
+    id: string;
+    performance_label: string;
+    title: string | null;
+    completeness: "complete" | "partial" | "unknown";
+    event_title: string;
+    event_classification: string | null;
+    start_date: string;
+    start_time: string | null;
+    venue: string | null;
+    region: string | null;
+    entry_count: number;
+    search_text: string;
+  }
+
+  interface BrowserPayload {
+    locale: string;
+    pageSize: number;
+    year: string;
+    query: string;
+    classification: string;
+    order: "asc" | "desc";
+    page: number;
+    setlists: SetlistItem[];
+    labels: Record<string, string>;
+  }
+
+  const fillTemplate = (template: string, values: Record<string, string | number>) => Object.entries(values)
+    .reduce((text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), template);
+
+  const setupLiveBrowser = () => {
+    const root = document.querySelector<HTMLElement>("[data-live-browser][data-annual-mode='true']");
+    const payloadElement = root?.querySelector<HTMLScriptElement>("[data-live-browser-data]");
+    if (!root || !payloadElement || root.dataset.browserReady === "true") return;
+    root.dataset.browserReady = "true";
+
+    const payload = JSON.parse(payloadElement.textContent ?? "{}") as BrowserPayload;
+    const grid = root.querySelector<HTMLElement>("[data-live-grid]");
+    const empty = root.querySelector<HTMLElement>("[data-live-empty]");
+    const summary = root.querySelector<HTMLElement>("[data-live-summary]");
+    const status = root.querySelector<HTMLElement>("[data-live-status]");
+    const pagination = root.querySelector<HTMLElement>("[data-live-pagination]");
+    const paginationSummary = root.querySelector<HTMLElement>("[data-live-pagination-summary]");
+    const pages = root.querySelector<HTMLElement>("[data-live-pages]");
+    const searchForm = root.querySelector<HTMLFormElement>("[data-live-search-form]");
+    const searchInput = root.querySelector<HTMLInputElement>("[data-live-search]");
+    const yearInput = root.querySelector<HTMLInputElement>("[data-live-year-input]");
+    if (!grid || !empty || !summary || !status || !pagination || !paginationSummary || !pages || !searchForm || !searchInput || !yearInput) return;
+
+    const state = {
+      year: payload.year,
+      query: payload.query,
+      classification: payload.classification,
+      order: payload.order,
+      page: payload.page,
+    };
+    const cache = new Map<string, SetlistItem[]>([[payload.year, payload.setlists]]);
+    const CACHE_TTL = 5 * 60 * 1000;
+    let activeRequest = 0;
+
+    const sessionKey = (year: string) => `frip-fan:setlists:${year}:v1`;
+    const readSession = (year: string): SetlistItem[] | undefined => {
+      try {
+        const cached = JSON.parse(sessionStorage.getItem(sessionKey(year)) ?? "null") as { savedAt: number; setlists: SetlistItem[] } | null;
+        if (cached && Date.now() - cached.savedAt < CACHE_TTL && Array.isArray(cached.setlists)) return cached.setlists;
+        sessionStorage.removeItem(sessionKey(year));
+      } catch { /* storage can be unavailable */ }
+      return undefined;
+    };
+    const saveSession = (year: string, setlists: SetlistItem[]) => {
+      try { sessionStorage.setItem(sessionKey(year), JSON.stringify({ savedAt: Date.now(), setlists })); } catch { /* storage can be unavailable */ }
+    };
+
+    const eventTypeLabel = (value: string | null) => value === "专场"
+      ? payload.labels.solo
+      : value === "拼盘"
+        ? payload.labels.festival
+        : value || payload.labels.unclassified;
+    const completenessLabel = (value: SetlistItem["completeness"]) => payload.labels[value] ?? payload.labels.unknown;
+    const displayTitle = (item: SetlistItem) => item.title || `${item.event_title} · ${item.performance_label}`;
+    const formatDate = (value: string) => new Intl.DateTimeFormat(payload.locale, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(new Date(`${value}T00:00:00Z`));
+    const searchableText = (item: SetlistItem) => [
+      item.title,
+      item.event_title,
+      item.performance_label,
+      item.venue,
+      item.region,
+      item.search_text,
+    ].filter(Boolean).join(" ").toLocaleLowerCase(payload.locale);
+
+    const makeCard = (item: SetlistItem) => {
+      const card = document.createElement("a");
+      card.className = "music-card";
+      card.href = `/music/lives/${encodeURIComponent(item.id)}`;
+
+      const top = document.createElement("div");
+      top.className = "music-card-top";
+      const date = document.createElement("time");
+      date.className = "music-card-date";
+      date.dateTime = item.start_date;
+      date.textContent = formatDate(item.start_date);
+      const type = document.createElement("span");
+      type.className = "music-event-type";
+      type.textContent = eventTypeLabel(item.event_classification);
+      top.appendChild(date);
+      top.appendChild(type);
+
+      const title = document.createElement("h3");
+      title.textContent = displayTitle(item);
+      const meta = document.createElement("div");
+      meta.className = "music-card-meta";
+      for (const text of [item.venue || payload.labels.venuePending, "·", item.region || payload.labels.regionPending]) {
+        const span = document.createElement("span");
+        span.textContent = text;
+        meta.appendChild(span);
+      }
+      const stats = document.createElement("div");
+      stats.className = "music-card-stats";
+      const songCount = document.createElement("span");
+      songCount.textContent = fillTemplate(payload.labels.songsCount, { count: item.entry_count });
+      const completeness = document.createElement("span");
+      completeness.textContent = completenessLabel(item.completeness);
+      stats.appendChild(songCount);
+      stats.appendChild(completeness);
+      card.appendChild(top);
+      card.appendChild(title);
+      card.appendChild(meta);
+      card.appendChild(stats);
+      return card;
+    };
+
+    const updateUrl = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set("year", state.year);
+      if (state.query) url.searchParams.set("q", state.query); else url.searchParams.delete("q");
+      if (state.classification) url.searchParams.set("classification", state.classification); else url.searchParams.delete("classification");
+      if (state.order === "asc") url.searchParams.set("sort", "asc"); else url.searchParams.delete("sort");
+      if (state.page > 1) url.searchParams.set("page", String(state.page)); else url.searchParams.delete("page");
+      window.history.replaceState(null, "", url);
+    };
+
+    const updateControls = () => {
+      root.querySelectorAll<HTMLElement>("[data-year]").forEach((control) => control.classList.toggle("active", control.dataset.year === state.year));
+      root.querySelectorAll<HTMLElement>("[data-classification]").forEach((control) => control.classList.toggle("active", (control.dataset.classification ?? "") === state.classification));
+      root.querySelectorAll<HTMLElement>("[data-sort]").forEach((control) => control.classList.toggle("active", control.dataset.sort === state.order));
+      yearInput.value = state.year;
+      const classificationInput = root.querySelector<HTMLInputElement>("[data-live-classification-input]");
+      if (classificationInput) classificationInput.value = state.classification;
+      const sortInput = root.querySelector<HTMLInputElement>("[data-live-sort-input]");
+      if (sortInput) sortInput.value = state.order === "asc" ? "asc" : "";
+    };
+
+    const renderPagination = (totalItems: number, totalPages: number) => {
+      pagination.hidden = totalPages <= 1;
+      paginationSummary.textContent = fillTemplate(payload.labels.pagination, {
+        total: totalItems,
+        current: state.page,
+        pages: totalPages,
+      });
+      pages.replaceChildren();
+      const addButton = (label: string, targetPage: number, className: string, disabled = false, current = false) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = className;
+        button.textContent = label;
+        button.disabled = disabled;
+        button.dataset.page = String(targetPage);
+        if (current) button.setAttribute("aria-current", "page");
+        pages.appendChild(button);
+      };
+      addButton(payload.labels.previous, state.page - 1, "music-page-step", state.page <= 1);
+      for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+        addButton(String(pageNumber), pageNumber, "music-page-number", false, pageNumber === state.page);
+      }
+      addButton(payload.labels.next, state.page + 1, "music-page-step", state.page >= totalPages);
+    };
+
+    const render = (updateHistory = true) => {
+      const items = cache.get(state.year) ?? [];
+      const normalizedQuery = state.query.trim().toLocaleLowerCase(payload.locale);
+      const filtered = items
+        .filter((item) => !state.classification || item.event_classification === state.classification)
+        .filter((item) => !normalizedQuery || searchableText(item).includes(normalizedQuery))
+        .sort((left, right) => {
+          const dateComparison = `${left.start_date} ${left.start_time ?? ""}`
+            .localeCompare(`${right.start_date} ${right.start_time ?? ""}`);
+          if (dateComparison !== 0) return state.order === "asc" ? dateComparison : -dateComparison;
+          return left.performance_label.localeCompare(right.performance_label);
+        });
+      const totalPages = Math.max(1, Math.ceil(filtered.length / payload.pageSize));
+      state.page = Math.min(Math.max(1, state.page), totalPages);
+      const visible = filtered.slice((state.page - 1) * payload.pageSize, state.page * payload.pageSize);
+      grid.replaceChildren(...visible.map(makeCard));
+      empty.hidden = visible.length > 0;
+      summary.textContent = fillTemplate(payload.labels.visibleLives, { visible: filtered.length, total: items.length });
+      renderPagination(filtered.length, totalPages);
+      updateControls();
+      if (updateHistory) updateUrl();
+    };
+
+    const loadYear = async (year: string) => {
+      const inMemory = cache.get(year);
+      if (inMemory) {
+        state.year = year;
+        state.page = 1;
+        render();
+        return;
+      }
+      const inSession = readSession(year);
+      if (inSession) {
+        cache.set(year, inSession);
+        state.year = year;
+        state.page = 1;
+        render();
+        return;
+      }
+
+      const requestId = ++activeRequest;
+      grid.setAttribute("aria-busy", "true");
+      status.hidden = false;
+      status.textContent = fillTemplate(payload.labels.loadingYear, { year });
+      root.querySelectorAll<HTMLElement>("[data-year]").forEach((control) => control.classList.toggle("is-loading", control.dataset.year === year));
+      try {
+        const response = await fetch(`/api/music/setlists?year=${encodeURIComponent(year)}`, { headers: { accept: "application/json" } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const result = await response.json() as { setlists?: SetlistItem[] };
+        if (requestId !== activeRequest) return;
+        const setlists = Array.isArray(result.setlists) ? result.setlists : [];
+        cache.set(year, setlists);
+        saveSession(year, setlists);
+        state.year = year;
+        state.page = 1;
+        status.hidden = true;
+        render();
+      } catch {
+        if (requestId !== activeRequest) return;
+        status.hidden = false;
+        status.textContent = payload.labels.loadYearFailed;
+      } finally {
+        if (requestId === activeRequest) {
+          grid.setAttribute("aria-busy", "false");
+          root.querySelectorAll<HTMLElement>("[data-year]").forEach((control) => control.classList.remove("is-loading"));
+        }
+      }
+    };
+
+    root.querySelector("[data-live-years]")?.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const control = event.target.closest<HTMLAnchorElement>("[data-year]");
+      if (!control || control.dataset.year === "all") return;
+      event.preventDefault();
+      void loadYear(control.dataset.year!);
+    });
+    root.querySelector("[data-live-classifications]")?.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const control = event.target.closest<HTMLAnchorElement>("[data-classification]");
+      if (!control) return;
+      event.preventDefault();
+      state.classification = control.dataset.classification ?? "";
+      state.page = 1;
+      render();
+    });
+    root.querySelector("[data-live-sort]")?.addEventListener("click", (event) => {
+      if (!(event.target instanceof Element)) return;
+      const control = event.target.closest<HTMLAnchorElement>("[data-sort]");
+      if (!control) return;
+      event.preventDefault();
+      state.order = control.dataset.sort === "asc" ? "asc" : "desc";
+      state.page = 1;
+      render();
+    });
+    searchForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      state.query = searchInput.value.trim();
+      state.page = 1;
+      render();
+    });
+    searchInput.addEventListener("input", () => {
+      state.query = searchInput.value.trim();
+      state.page = 1;
+      render();
+    });
+    pages.addEventListener("click", (event) => {
+      if (!(event.target instanceof HTMLButtonElement) || event.target.disabled) return;
+      const targetPage = Number(event.target.dataset.page);
+      if (!Number.isFinite(targetPage)) return;
+      state.page = targetPage;
+      render();
+      grid.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    });
+
+    saveSession(payload.year, payload.setlists);
+    render(false);
+  };
+
+  setupLiveBrowser();
+</script>

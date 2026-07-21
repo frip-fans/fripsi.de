@@ -38,6 +38,19 @@
 .music-chips { display: flex; gap: .45rem; margin: 0; padding: .08rem 0; overflow-x: auto; }
 .music-chips a { padding: .45rem .7rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; text-decoration: none; font-size: .72rem; white-space: nowrap; }
 .music-chips a.active { color: var(--accent); border-color: rgba(var(--accent-rgb),.4); background: rgba(var(--accent-rgb),.07); }
+.music-chips a.is-loading { color: var(--accent); border-color: rgba(var(--accent-rgb),.45); animation: music-chip-pulse .75s ease-in-out infinite alternate; }
+.music-list-feedback { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 1.8rem; margin: -.35rem 0 .75rem; color: var(--muted); font-size: .7rem; }
+.music-loading-status { color: var(--accent); }
+.music-grid[aria-busy="true"] { opacity: .5; pointer-events: none; }
+.music-client-pagination { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.5rem; padding: .75rem; border: 1px solid var(--line); border-radius: 14px; background: rgba(5,13,23,.66); backdrop-filter: blur(18px); }
+.music-client-pagination[hidden] { display: none; }
+.music-client-pagination p { margin: 0 0 0 .35rem; color: var(--muted); font-size: .72rem; white-space: nowrap; }
+.music-client-pages { display: flex; align-items: center; gap: .3rem; }
+.music-client-pages button { display: inline-flex; align-items: center; justify-content: center; min-height: 2.25rem; padding: 0 .7rem; color: var(--muted); background: transparent; border: 0; border-radius: 9px; font-size: .75rem; font-weight: 650; }
+.music-client-pages button:hover:not(:disabled) { color: var(--text); background: rgba(255,255,255,.055); filter: none; transform: none; }
+.music-client-pages button[aria-current="page"] { min-width: 2.25rem; color: #08111d; background: var(--accent); }
+.music-client-pages button:disabled { opacity: .35; cursor: default; }
+@keyframes music-chip-pulse { to { opacity: .55; } }
 .music-empty { padding: 4rem 1rem; text-align: center; color: var(--muted); }
 .music-detail-head { max-width: 920px; padding-top: 1rem; }
 .music-detail-date { display: flex; align-items: center; flex-wrap: wrap; gap: .45rem; margin: 0; color: var(--accent); font-size: .76rem; font-weight: 700; letter-spacing: .015em; }
@@ -105,4 +118,11 @@
   .setlist-medley-tracks { padding-left: .55rem; }
   .version-node { grid-template-columns: 1fr; }
   .version-relation { justify-items: start; }
+  .music-list-feedback { align-items: flex-start; flex-direction: column; gap: .25rem; }
+  .music-client-pagination { align-items: stretch; flex-direction: column; }
+  .music-client-pagination p { margin: 0; text-align: center; }
+  .music-client-pages { justify-content: center; overflow-x: auto; }
+  .music-client-pages .music-page-step { padding: 0 .55rem; font-size: 0; }
+  .music-client-pages .music-page-step:first-child::before { content: "‹"; font-size: 1.15rem; }
+  .music-client-pages .music-page-step:last-child::before { content: "›"; font-size: 1.15rem; }
 }

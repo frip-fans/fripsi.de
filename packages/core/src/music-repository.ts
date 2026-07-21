@@ -8,6 +8,7 @@ import type {
   ReleaseSummary,
   ReleaseTrackRecord,
   SetlistDetail,
+  SetlistBrowseSummary,
   SetlistEntryRecord,
   SetlistSearchOptions,
   SetlistSummary,
@@ -116,8 +117,9 @@ function buildSetlistFilter(options: SetlistSearchOptions): { where: string; bin
     bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
   }
   if (options.year?.match(/^\d{4}$/)) {
-    clauses.push("substr(e.start_date, 1, 4) = ?");
-    bindings.push(options.year);
+    const nextYear = String(Number(options.year) + 1).padStart(4, "0");
+    clauses.push("e.start_date >= ? AND e.start_date < ?");
+    bindings.push(`${options.year}-01-01`, `${nextYear}-01-01`);
   }
   if (options.classification?.trim()) {
     clauses.push("e.classification = ?");
@@ -274,12 +276,41 @@ export async function getReleaseBySlug(db: D1Database, slug: string): Promise<Re
 
 export async function listSetlists(db: D1Database, options: SetlistSearchOptions = {}): Promise<SetlistSummary[]> {
   const { where, bindings } = buildSetlistFilter(options);
+  const direction = options.order === "asc" ? "ASC" : "DESC";
 
   const result = await db.prepare(`${setlistSummarySelect}
     ${where}
-    ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label ASC
+    ORDER BY e.start_date ${direction}, e.start_time ${direction}, sl.performance_label ASC
     LIMIT ? OFFSET ?
   `).bind(...bindings, safeLimit(options.limit), safeOffset(options.offset)).all<SetlistSummary>();
+  return result.results;
+}
+
+export async function listSetlistsForYear(
+  db: D1Database,
+  year: string,
+  limit = 100,
+): Promise<SetlistBrowseSummary[]> {
+  if (!/^\d{4}$/.test(year)) return [];
+  const nextYear = String(Number(year) + 1).padStart(4, "0");
+  const result = await db.prepare(`
+    SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes,
+      e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
+      e.classification AS event_classification, e.start_date, e.start_time, e.venue, e.region,
+      (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count,
+    COALESCE((
+      SELECT GROUP_CONCAT(COALESCE(NULLIF(se.display_title, ''), s.title), ' ')
+      FROM setlist_entries se
+      JOIN songs s ON s.id = se.song_id
+      WHERE se.setlist_id = sl.id
+    ), '') AS search_text
+    FROM setlists sl
+    JOIN events e ON e.id = sl.event_id
+    WHERE sl.published = 1 AND e.published = 1 AND e.archived_at IS NULL
+      AND e.start_date >= ? AND e.start_date < ?
+    ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label ASC
+    LIMIT ?
+  `).bind(`${year}-01-01`, `${nextYear}-01-01`, safeLimit(limit, 100, 100)).all<SetlistBrowseSummary>();
   return result.results;
 }
 

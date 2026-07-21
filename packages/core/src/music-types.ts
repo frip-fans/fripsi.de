@@ -194,6 +194,10 @@ export interface SetlistSummary {
   entry_count: number;
 }
 
+export interface SetlistBrowseSummary extends SetlistSummary {
+  search_text: string;
+}
+
 export interface SetlistEntryRecord {
   id: string;
   position: number;
@@ -277,4 +281,5 @@ export interface ReleaseSearchOptions extends MusicSearchOptions {
 export interface SetlistSearchOptions extends MusicSearchOptions {
   year?: string;
   classification?: string;
+  order?: "asc" | "desc";
 }

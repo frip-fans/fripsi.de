@@ -84,4 +84,23 @@ describe("direct admin schemas", () => {
       entries: [],
     })).toThrow(/并发校验值/);
   });
+
+  it("allows a setlist entry display title to be omitted", () => {
+    const result = setlistSaveSchema.parse({
+      idempotency_key: "setlist-save-optional-title",
+      event_id: "event-1",
+      performance_label: "本公演",
+      completeness: "complete",
+      confidence: "official",
+      published: true,
+      sources: [],
+      entries: [{
+        song_id: "song-1",
+        performed_version_id: "version-1",
+        section: "main",
+        display_title: "",
+      }],
+    });
+    expect(result.entries[0].display_title).toBeNull();
+  });
 });

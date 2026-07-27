@@ -5,6 +5,7 @@ import type {
   SetlistSection,
   VersionRelationType,
 } from "@frip-fan/core";
+import { normalizeForDuplicate } from "@frip-fan/core";
 import { t, type Locale } from "./i18n";
 
 export const releaseTypeLabels: Record<ReleaseType, string> = {
@@ -91,4 +92,11 @@ export function versionRelationLabel(value: VersionRelationType, locale: Locale)
 
 export function setlistDisplayTitle(setlist: { title: string | null; event_title: string; performance_label: string }): string {
   return setlist.title || `${setlist.event_title} · ${setlist.performance_label}`;
+}
+
+export function shouldShowPerformedVersion(displayTitle: string, performedVersionTitle: string | null): boolean {
+  return Boolean(
+    performedVersionTitle
+    && normalizeForDuplicate(displayTitle) !== normalizeForDuplicate(performedVersionTitle),
+  );
 }

@@ -103,7 +103,7 @@ const songChoices = options.songs.map((song) => ({
             </select>
           </label>
           <label>Medley 组<input name="entry_medley" maxlength="40" value={entry.medley_group ?? ""} placeholder="例如 01" /></label>
-          <label class="row-title">显示标题 *<input name="entry_title" required maxlength="240" value={entry.display_title} /></label>
+          <label class="row-title">显示标题（可选）<input name="entry_title" maxlength="240" value={entry.display_title} placeholder="留空时使用演唱版本名或歌曲名" /></label>
           <label class="row-note">备注<input name="entry_notes" maxlength="1000" value={entry.notes ?? ""} /></label>
           <div class="row-actions">
             <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
@@ -148,7 +148,7 @@ const songChoices = options.songs.map((song) => ({
       </label>
       <label>段落<select name="entry_section">{Object.entries(sectionLabels).map(([value, label]) => <option value={value}>{label}</option>)}</select></label>
       <label>Medley 组<input name="entry_medley" maxlength="40" placeholder="例如 01" /></label>
-      <label class="row-title">显示标题 *<input name="entry_title" required maxlength="240" /></label>
+      <label class="row-title">显示标题（可选）<input name="entry_title" maxlength="240" placeholder="留空时使用演唱版本名或歌曲名" /></label>
       <label class="row-note">备注<input name="entry_notes" maxlength="1000" /></label>
       <div class="row-actions">
         <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
@@ -217,15 +217,8 @@ const songChoices = options.songs.map((song) => ({
     if (!(target instanceof HTMLSelectElement)) return;
     const row = target.closest<HTMLElement>("[data-entry-row]");
     if (!row) return;
-    const title = row.querySelector<HTMLInputElement>("[name=entry_title]");
     if (target.name === "entry_song_id") {
       filterVersions(row);
-      const songTitle = target.selectedOptions[0]?.dataset.title;
-      if (title) title.value = songTitle ?? "";
-    }
-    if (target.name === "entry_version_id") {
-      const versionTitle = target.selectedOptions[0]?.dataset.title;
-      if (title && versionTitle && !title.value.trim()) title.value = versionTitle;
     }
   });
   refreshEntries();

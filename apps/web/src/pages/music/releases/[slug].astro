@@ -1,6 +1,7 @@
 ---
 import { getReleaseBySlug } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
+import MusicBackLink from "../../../components/MusicBackLink.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
@@ -16,7 +17,7 @@ let previousDisc = 0;
 <SiteLayout title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
   <div class="music-page">
     <MusicNav />
-    <a class="music-back" href="/music/releases"><Icon name="arrow-left" />{t(locale, "music.backReleases")}</a>
+    <MusicBackLink href="/music/releases" storageKey="music:list:releases" label={t(locale, "music.backReleases")} />
     <header class="music-detail-head">
       <p class="eyebrow">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</p>
       <h1>{release.title}</h1>

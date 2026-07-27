@@ -1,0 +1,42 @@
+---
+interface Props {
+  storageKey: string;
+  detailPrefix: string;
+}
+
+const { storageKey, detailPrefix } = Astro.props;
+---
+<span hidden data-music-list-state data-storage-key={storageKey} data-detail-prefix={detailPrefix}></span>
+
+<script>
+  const rememberMusicListState = (marker: HTMLElement) => {
+    try {
+      sessionStorage.setItem(marker.dataset.storageKey ?? "", `${location.pathname}${location.search}${location.hash}`);
+    } catch {
+      // Storage may be unavailable in privacy-restricted browsers.
+    }
+  };
+
+  const markers = () => [...document.querySelectorAll<HTMLElement>("[data-music-list-state]")];
+  markers().forEach(rememberMusicListState);
+
+  const rememberBeforeOpeningDetail = (event: Event) => {
+    const anchor = (event.target as Element | null)?.closest<HTMLAnchorElement>("a[href]");
+    if (!anchor) return;
+    let target: URL;
+    try {
+      target = new URL(anchor.href, location.href);
+    } catch {
+      return;
+    }
+    for (const marker of markers()) {
+      const prefix = marker.dataset.detailPrefix;
+      if (target.origin === location.origin && prefix && target.pathname.startsWith(prefix)) {
+        rememberMusicListState(marker);
+      }
+    }
+  };
+
+  document.addEventListener("pointerdown", rememberBeforeOpeningDetail, { capture: true });
+  document.addEventListener("click", rememberBeforeOpeningDetail, { capture: true });
+</script>

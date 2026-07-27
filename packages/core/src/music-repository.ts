@@ -382,7 +382,9 @@ export async function getSetlistById(db: D1Database, id: string): Promise<Setlis
 
   const [entriesResult, sources] = await Promise.all([
     db.prepare(`
-      SELECT se.id, se.position, se.section, se.display_title, se.medley_group, se.notes,
+      SELECT se.id, se.position, se.section,
+        COALESCE(NULLIF(TRIM(se.display_title), ''), pv.title, s.title) AS display_title,
+        se.medley_group, se.notes,
         s.id AS song_id, s.slug AS song_slug, s.title AS song_title,
         pv.id AS performed_version_id, pv.slug AS performed_version_slug,
         pv.title AS performed_version_title, pv.version_label AS performed_version_label,

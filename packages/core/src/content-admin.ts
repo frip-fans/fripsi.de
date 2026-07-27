@@ -126,7 +126,7 @@ const setlistEntrySchema = z.object({
   song_id: z.string().trim().min(1).max(160),
   performed_version_id: optionalText(160),
   section: z.enum(["main", "encore", "double_encore", "opening", "other"]),
-  display_title: z.string().trim().min(1).max(240),
+  display_title: optionalText(240),
   medley_group: optionalText(40),
   notes: optionalText(1000),
 });
@@ -513,7 +513,7 @@ export class ContentAdminService {
     const before = input.id ? await getAdminSetlistById(this.db, input.id) : null;
     if (input.id && !before) throw new ServiceError("not_found", "没有找到 Setlist", 404);
     if (before && before.updated_at !== input.expected_updated_at) throw new ServiceError("version_conflict", "Setlist 已经被修改，请刷新页面", 409);
-    await this.validateSetlistVersions(input);
+    const entries = await this.resolveSetlistEntries(input);
     const id = before?.id ?? makeId("mus_set");
     const now = nextUpdatedAt(before?.updated_at);
     const conditionSql = "EXISTS (SELECT 1 FROM setlists WHERE id = ? AND updated_at = ?)";
@@ -533,14 +533,14 @@ export class ContentAdminService {
       this.db.prepare(`DELETE FROM setlist_entries WHERE setlist_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),
       this.db.prepare(`DELETE FROM catalog_sources WHERE subject_type = 'setlist' AND subject_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),
     );
-    for (const [index, entry] of input.entries.entries()) {
+    for (const [index, entry] of entries.entries()) {
       statements.push(this.db.prepare(`INSERT INTO setlist_entries (
         id, setlist_id, position, section, song_id, performed_version_id, display_title, medley_group, notes, created_at
       ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${conditionSql}`)
         .bind(makeId("mus_entry"), id, index + 1, entry.section, entry.song_id, entry.performed_version_id, entry.display_title, entry.medley_group, entry.notes, now, ...conditionBindings));
     }
     for (const source of input.sources) statements.push(sourceInsertStatement(this.db, "setlist", id, source, actor, now, conditionSql, conditionBindings));
-    const after = { ...input, id, updated_at: now };
+    const after = { ...input, entries, id, updated_at: now };
     statements.push(
       auditStatement(this.db, actor, requestId, before ? "content.setlist.update" : "content.setlist.create", "setlist", id, before, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.setlist.save", id, now, conditionSql, conditionBindings),
@@ -552,22 +552,38 @@ export class ContentAdminService {
     return saved;
   }
 
-  private async validateSetlistVersions(input: SetlistSaveInput): Promise<void> {
+  private async resolveSetlistEntries(input: SetlistSaveInput): Promise<Array<SetlistSaveInput["entries"][number] & { display_title: string }>> {
+    const songs = [...new Set(input.entries.map((entry) => entry.song_id))];
     const versions = [...new Set(input.entries.map((entry) => entry.performed_version_id).filter((id): id is string => Boolean(id)))];
-    const versionSongs = new Map<string, string>();
+    const songTitles = new Map<string, string>();
+    const versionDetails = new Map<string, { song_id: string; title: string }>();
+    for (let index = 0; index < songs.length; index += 40) {
+      const chunk = songs.slice(index, index + 40);
+      const result = await this.db.prepare(`SELECT id, title FROM songs WHERE id IN (${chunk.map(() => "?").join(",")})`)
+        .bind(...chunk)
+        .all<{ id: string; title: string }>();
+      for (const row of result.results) songTitles.set(row.id, row.title);
+    }
     for (let index = 0; index < versions.length; index += 40) {
       const chunk = versions.slice(index, index + 40);
-      const result = await this.db.prepare(`SELECT id, song_id FROM song_versions WHERE id IN (${chunk.map(() => "?").join(",")})`)
+      const result = await this.db.prepare(`SELECT id, song_id, title FROM song_versions WHERE id IN (${chunk.map(() => "?").join(",")})`)
         .bind(...chunk)
-        .all<{ id: string; song_id: string }>();
-      for (const row of result.results) versionSongs.set(row.id, row.song_id);
+        .all<{ id: string; song_id: string; title: string }>();
+      for (const row of result.results) versionDetails.set(row.id, { song_id: row.song_id, title: row.title });
     }
-    for (const [index, entry] of input.entries.entries()) {
-      if (!entry.performed_version_id) continue;
-      if (versionSongs.get(entry.performed_version_id) !== entry.song_id) {
+
+    return input.entries.map((entry, index) => {
+      const songTitle = songTitles.get(entry.song_id);
+      if (!songTitle) throw new ServiceError("invalid_song", `第 ${index + 1} 首的歌曲不存在`, 400);
+      const version = entry.performed_version_id ? versionDetails.get(entry.performed_version_id) : null;
+      if (entry.performed_version_id && version?.song_id !== entry.song_id) {
         throw new ServiceError("invalid_version", `第 ${index + 1} 首的歌曲版本不属于所选歌曲`, 400);
       }
-    }
+      return {
+        ...entry,
+        display_title: entry.display_title || version?.title || songTitle,
+      };
+    });
   }
 }
 

@@ -371,7 +371,7 @@ for (const [index, row] of setlistRows.entries()) {
     section,
     songSlug,
     versionSlug,
-    displayTitle: data.display_title || songTitle,
+    displayTitle: data.display_title || data.version_title || songTitle,
     medleyGroup: nullable(data.medley_group),
     notes: nullable(data.entry_notes),
   });

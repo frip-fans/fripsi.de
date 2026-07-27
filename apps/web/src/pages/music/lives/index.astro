@@ -8,6 +8,7 @@ import {
   type SetlistSummary,
 } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
+import MusicListState from "../../../components/MusicListState.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import Pagination from "../../../components/Pagination.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
@@ -128,6 +129,7 @@ const browseJson = JSON.stringify(browsePayload).replaceAll("<", "\\u003c");
 ---
 <SiteLayout title={t(locale, "music.nav.lives")}>
   <div class="music-page" data-live-browser data-annual-mode={annualMode ? "true" : "false"}>
+    <MusicListState storageKey="music:list:lives" detailPrefix="/music/lives/" />
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, "music.nav.lives")}>
       <form class="music-toolbar" method="get" data-live-search-form>

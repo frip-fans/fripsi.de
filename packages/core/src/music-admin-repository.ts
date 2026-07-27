@@ -187,14 +187,20 @@ export async function getAdminSetlistById(db: D1Database, id: string): Promise<A
   const setlist = mapSetlist(row);
   const [entriesResult, sources] = await Promise.all([
     db.prepare(`
-      SELECT se.id, se.position, se.section, se.display_title, se.medley_group, se.notes,
+      SELECT se.id, se.position, se.section,
+        COALESCE(NULLIF(TRIM(se.display_title), ''), pv.title, s.title) AS display_title,
+        se.medley_group, se.notes,
         s.id AS song_id, s.slug AS song_slug, s.title AS song_title,
         pv.id AS performed_version_id, pv.slug AS performed_version_slug,
         pv.title AS performed_version_title, pv.version_label AS performed_version_label,
         (SELECT COUNT(*) FROM song_versions sv WHERE sv.song_id = s.id) AS song_version_count,
-        (SELECT group_concat(DISTINCT r.title)
-          FROM release_tracks rt JOIN releases r ON r.id = rt.release_id
-          WHERE rt.song_version_id = se.performed_version_id) AS release_titles
+        (SELECT r.title
+          FROM release_tracks rt
+          JOIN releases r ON r.id = rt.release_id
+          WHERE rt.song_version_id = se.performed_version_id
+          ORDER BY r.release_date IS NULL ASC, r.release_date ASC,
+            rt.disc_number ASC, rt.track_number ASC, r.title COLLATE NOCASE ASC
+          LIMIT 1) AS release_titles
       FROM setlist_entries se
       JOIN songs s ON s.id = se.song_id
       LEFT JOIN song_versions pv ON pv.id = se.performed_version_id

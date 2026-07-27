@@ -1,6 +1,7 @@
 ---
 import { getSetlistById } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
+import MusicBackLink from "../../../components/MusicBackLink.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
@@ -11,6 +12,7 @@ import {
   setlistDisplayTitle,
   setlistEventTypeLabel,
   setlistSectionLabels,
+  shouldShowPerformedVersion,
 } from "../../../lib/music";
 import { getLocale, t } from "../../../lib/i18n";
 import "../../../styles/music.css";
@@ -33,15 +35,20 @@ for (const entry of setlist.entries) {
     entryGroups.push({ section: entry.section, medleyGroup: entry.medley_group, entries: [entry] });
   }
 }
-const versionNote = (entry: SetlistEntry) => entry.performed_version_title
-  ? t(locale, "music.version", { title: entry.performed_version_title })
-  : entry.song_version_count > 1 ? t(locale, "music.versionPending") : null;
+const versionNote = (entry: SetlistEntry) => {
+  if (entry.performed_version_title) {
+    return shouldShowPerformedVersion(entry.display_title, entry.performed_version_title)
+      ? t(locale, "music.version", { title: entry.performed_version_title })
+      : null;
+  }
+  return entry.song_version_count > 1 ? t(locale, "music.versionPending") : null;
+};
 let previousSection = "";
 ---
 <SiteLayout title={t(locale, "music.setlistPageTitle", { title: setlistDisplayTitle(setlist) })} description={t(locale, "music.setlistDescription", { title: setlist.event_title, count: setlist.entry_count })}>
   <div class="music-page">
     <MusicNav />
-    <a class="music-back" href="/music/lives"><Icon name="arrow-left" />{t(locale, "music.backLives")}</a>
+    <MusicBackLink href="/music/lives" storageKey="music:list:lives" label={t(locale, "music.backLives")} />
     <header class="music-detail-head">
       <p class="music-detail-date">
         <time datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>

@@ -1,6 +1,7 @@
 ---
 import { listReleases, type ReleaseSummary, type ReleaseType } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
+import MusicListState from "../../../components/MusicListState.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
@@ -80,6 +81,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
 ---
 <SiteLayout title={t(locale, "music.nav.releases")}>
   <div class="music-page" data-release-browser>
+    <MusicListState storageKey="music:list:releases" detailPrefix="/music/releases/" />
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, "music.nav.releases")}>
       <form class="music-toolbar" method="get" data-catalog-search-form>

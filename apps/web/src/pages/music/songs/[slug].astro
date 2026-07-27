@@ -1,6 +1,7 @@
 ---
 import { getSongBySlug } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
+import MusicBackLink from "../../../components/MusicBackLink.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
@@ -15,7 +16,7 @@ if (!song) return Astro.redirect("/404", 302);
 <SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
   <div class="music-page">
     <MusicNav />
-    <a class="music-back" href="/music/songs"><Icon name="arrow-left" />{t(locale, "music.backSongs")}</a>
+    <MusicBackLink href="/music/songs" storageKey="music:list:songs" label={t(locale, "music.backSongs")} />
     <header class="music-detail-head">
       <p class="eyebrow">Song · {song.original_artist}</p>
       <h1>{song.title}</h1>

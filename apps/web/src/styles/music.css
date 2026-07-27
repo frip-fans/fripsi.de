@@ -80,7 +80,7 @@
 .music-track-stats strong { display: block; color: var(--text); font-size: .9rem; }
 .setlist-entries { display: grid; gap: .45rem; counter-reset: setlist; }
 .setlist-section { margin: 1.8rem 0 .6rem; color: var(--accent); font: 700 .66rem/1 ui-monospace, monospace; letter-spacing: .15em; text-transform: uppercase; }
-.setlist-entry { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) minmax(8rem, min(28vw, 24rem)); align-items: center; gap: .85rem; padding: .82rem 1rem; border: 1px solid var(--line); border-radius: 13px; background: var(--music-panel); }
+.setlist-entry { display: grid; grid-template-columns: 2.6rem minmax(0, 1fr) minmax(8rem, min(28vw, 24rem)); align-items: center; gap: .9rem; min-height: 4.35rem; padding: 1rem 1.15rem; border: 1px solid var(--line); border-radius: 13px; background: var(--music-panel); }
 .setlist-entry > b { color: var(--accent); font: 700 .75rem/1 ui-monospace, monospace; }
 .setlist-entry-main { display: grid; gap: .2rem; min-width: 0; }
 .setlist-entry-main a { color: inherit; text-decoration: none; font-weight: 700; }
@@ -95,7 +95,7 @@
 .setlist-medley-head span { color: var(--accent); font: 700 .67rem/1 ui-monospace, monospace; letter-spacing: .13em; }
 .setlist-medley-head small { color: var(--muted); font-size: .68rem; }
 .setlist-medley-tracks { display: grid; padding: .3rem .55rem .55rem 1rem; }
-.setlist-entry-child { position: relative; border: 0; border-radius: 0; background: transparent; }
+.setlist-entry-child { position: relative; min-height: 0; padding: .78rem 1rem; border: 0; border-radius: 0; background: transparent; }
 .setlist-entry-child + .setlist-entry-child { border-top: 1px solid rgba(159, 180, 211, .12); }
 .setlist-entry-child::before { content: ""; position: absolute; left: .18rem; top: 0; bottom: 0; width: 1px; background: rgba(var(--accent-rgb), .32); }
 .setlist-entry-child:first-child::before { top: 50%; }

@@ -1,17 +1,26 @@
 ---
-import { dateInTimeZone, searchEvents } from "@frip-fan/core";
+import { dateInTimeZone, listSetlists, searchEvents } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
+import {
+  formatMusicDate,
+  setlistCompletenessLabel,
+  setlistDisplayTitle,
+  setlistEventTypeLabel,
+} from "../lib/music";
 
 const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const upcoming = await searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 3 }, true);
+const [upcoming, recentSetlists] = await Promise.all([
+  searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 3 }, true),
+  listSetlists(db, { order: "desc", limit: 3 }),
+]);
 const next = upcoming[0];
 const latest = upcoming;
 ---
@@ -56,6 +65,42 @@ const latest = upcoming;
       <a href="/archive">{t(locale, "home.viewMore")} <Icon name="arrow-right" /></a>
     </div>
   )}
+
+  <section class="recent-setlists" aria-labelledby="recent-setlists-title">
+    <div class="section-heading">
+      <div><p class="eyebrow">Live Setlists</p><h2 id="recent-setlists-title">{t(locale, "home.latestSetlists")}</h2></div>
+      <a class="muted recent-setlists-all" href="/music/lives">{t(locale, "home.allSetlists")} <Icon name="arrow-right" /></a>
+    </div>
+    {recentSetlists.length > 0 ? (
+      <div class="recent-setlist-grid">
+        {recentSetlists.map((setlist) => (
+          <a class="recent-setlist-card" href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
+            <div class="recent-setlist-top">
+              <time datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
+              {setlist.event_classification && (
+                <span class:list={[
+                  "recent-setlist-type",
+                  {
+                    "is-solo": setlist.event_classification === "专场",
+                    "is-festival": setlist.event_classification === "拼盘",
+                  },
+                ]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
+              )}
+            </div>
+            <h3>{setlistDisplayTitle(setlist)}</h3>
+            <p>{[setlist.venue, setlist.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending")}</p>
+            <div class="recent-setlist-meta">
+              <span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span>
+              <span>{setlistCompletenessLabel(setlist.completeness, locale)}</span>
+              <Icon name="arrow-up-right" />
+            </div>
+          </a>
+        ))}
+      </div>
+    ) : (
+      <div class="empty panel">{t(locale, "home.noSetlists")}</div>
+    )}
+  </section>
 
   <CommunityDiscussion locale={locale} />
 
@@ -170,6 +215,37 @@ const latest = upcoming;
   .event-list-more { display: flex; justify-content: flex-end; margin-top: 1rem; }
   .event-list-more a { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .1rem; color: var(--muted); font-size: .82rem; text-decoration: none; }
   .event-list-more a:hover { color: var(--text); }
+  .recent-setlists { margin-top: 4.5rem; }
+  .recent-setlists .section-heading { margin-top: 0; }
+  .recent-setlists-all { display: inline-flex; align-items: center; gap: .35rem; font-size: .82rem; text-decoration: none; }
+  .recent-setlists-all:hover { color: var(--text); }
+  .recent-setlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
+  .recent-setlist-card {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    gap: .7rem;
+    min-width: 0;
+    min-height: 13.5rem;
+    padding: 1.15rem;
+    color: inherit;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: rgba(10, 22, 39, .76);
+    text-decoration: none;
+    backdrop-filter: blur(18px);
+    transition: border-color .18s, transform .18s, background .18s;
+  }
+  .recent-setlist-card:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); background: rgba(14, 29, 49, .88); }
+  .recent-setlist-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+  .recent-setlist-top time { color: var(--accent); font-size: .73rem; font-weight: 720; }
+  .recent-setlist-type { display: inline-flex; align-items: center; gap: .35rem; padding: .27rem .5rem; color: var(--muted); border: 1px solid rgba(159, 180, 211, .17); border-radius: 999px; font-size: .64rem; line-height: 1; }
+  .recent-setlist-type:is(.is-solo, .is-festival)::before { content: ""; width: .42rem; height: .42rem; border: 1px solid var(--accent); border-radius: 50%; box-sizing: border-box; }
+  .recent-setlist-type.is-solo::before { background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), .34); }
+  .recent-setlist-card h3 { margin: 0; font-size: 1rem; line-height: 1.42; }
+  .recent-setlist-card > p { margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.55; }
+  .recent-setlist-meta { display: flex; align-items: center; gap: .65rem; padding-top: .75rem; color: var(--muted); border-top: 1px solid rgba(159, 180, 211, .12); font-size: .7rem; }
+  .recent-setlist-meta :global(.icon) { margin-left: auto; color: var(--accent); }
   .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
   .signal::before { content: ""; position: absolute; inset: -20% -40% 35%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 17px, rgba(var(--accent-rgb),.12) 18px 19px); transform: rotate(-10deg); }
   .signal-top { position: absolute; left: 1.6rem; right: 1.6rem; top: 1.5rem; display: flex; justify-content: space-between; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
@@ -193,6 +269,8 @@ const latest = upcoming;
   @media (max-width: 800px) {
     .hero { grid-template-columns: 1fr; min-height: 0; }
     .signal { min-height: 290px; }
+    .recent-setlist-grid { grid-template-columns: 1fr; }
+    .recent-setlist-card { min-height: 0; }
     @supports (-webkit-text-stroke: 1px currentColor) {
       .hero-title[data-variant^="japanese"] .title-solid {
         color: rgba(239, 248, 255, .92);

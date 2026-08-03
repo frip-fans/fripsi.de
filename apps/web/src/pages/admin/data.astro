@@ -9,4 +9,4 @@ import Icon from "../../components/Icon.astro";
     <section class="panel"><h2>Notion 一次性迁移</h2><p class="muted">把 Notion 导出的 CSV 放入 <code>data/raw/</code>，运行仓库脚本先生成核验报告；不会把 Notion 设为运行时依赖。</p><pre>npm run import:notion -- data/raw/export.csv</pre></section>
   </div>
 </SiteLayout>
-<style>.page-title{font-size:clamp(2.5rem,6vw,4.5rem);margin-bottom:2rem}.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.panel h2{font-size:1.2rem}@media(max-width:760px){.data-grid{grid-template-columns:1fr}}</style>
+<style>.page-title{font-size:var(--heading-1-size);margin-bottom:2rem}.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.panel h2{font-size:1.2rem}@media(max-width:760px){.data-grid{grid-template-columns:1fr}}</style>

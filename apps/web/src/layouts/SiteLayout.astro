@@ -150,6 +150,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     --danger: #ff8498;
     --warning: #ffc56c;
     --radius: 20px;
+    --heading-1-size: clamp(2rem, 5vw, 4rem);
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg);
     color: var(--text);
@@ -211,7 +212,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .footer-notice { min-height: 0; padding: 0; color: inherit; background: none; border: 0; border-radius: 0; font: inherit; font-weight: inherit; text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), .5); text-underline-offset: .25em; cursor: pointer; }
   .footer-notice:hover { color: var(--text); filter: none; transform: none; }
   h1, h2, h3, p { margin-top: 0; }
-  h1 { font-size: clamp(2.4rem, 7vw, 5.5rem); line-height: .98; letter-spacing: -.055em; }
+  h1 { font-size: var(--heading-1-size); line-height: 1.04; letter-spacing: -.045em; }
   h2 { font-size: clamp(1.4rem, 3vw, 2rem); letter-spacing: -.025em; }
   .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .18em; font-weight: 700; font-size: .72rem; }
   .lede { color: var(--muted); font-size: clamp(1rem, 2vw, 1.22rem); line-height: 1.75; max-width: 43rem; }

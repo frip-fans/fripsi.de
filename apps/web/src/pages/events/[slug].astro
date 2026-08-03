@@ -58,7 +58,7 @@ const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
   .meta { display: flex; gap: .4rem; flex-wrap: wrap; }
   h1 { margin: 1.2rem 0; max-width: 1000px; }
   .date { color: var(--accent); font-size: 1.1rem; }
-  .detail-grid { display: grid; grid-template-columns: .72fr 1.28fr; gap: clamp(2rem, 7vw, 6rem); margin-top: 4rem; }
+  .detail-grid { display: grid; grid-template-columns: .72fr 1.28fr; align-items: start; gap: clamp(2rem, 7vw, 6rem); margin-top: 4rem; }
   .facts { display: grid; gap: 1.4rem; }
   .facts div { display: grid; gap: .3rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
   .facts div:last-child { border-bottom: 0; }

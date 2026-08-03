@@ -40,7 +40,7 @@ const actor = Astro.locals.actor!;
 
 <style>
   .admin-head { display: flex; justify-content: space-between; align-items: end; gap: 2rem; }
-  .admin-head h1 { font-size: clamp(2.5rem, 6vw, 4.7rem); margin-bottom: .6rem; }
+  .admin-head h1 { font-size: var(--heading-1-size); margin-bottom: .6rem; }
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 2.5rem 0; }
   .stats .panel { display: grid; gap: .2rem; }
   .stats small { color: var(--muted); font: .65rem/1 ui-monospace; letter-spacing: .1em; }

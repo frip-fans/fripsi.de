@@ -56,7 +56,7 @@ const events = await searchEvents(db, {
 </SiteLayout>
 <style>
   .list-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 2rem; }
-  .list-head h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin: 0; }
+  .list-head h1 { font-size: var(--heading-1-size); margin: 0; }
   .filters { display: grid; grid-template-columns: 1fr 180px auto auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
   .check { display: flex; align-items: center; padding-bottom: .8rem; white-space: nowrap; }
   .check input { width: auto; }

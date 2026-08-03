@@ -39,7 +39,7 @@ const canWrite = Astro.locals.actor!.scopes.includes("music:write");
 </SiteLayout>
 <style>
   .list-head { display: flex; justify-content: space-between; align-items: end; gap: 2rem; margin-bottom: 2rem; }
-  .list-head h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); margin-bottom: .5rem; }
+  .list-head h1 { font-size: var(--heading-1-size); margin-bottom: .5rem; }
   .filters { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
   td small { display: block; color: var(--muted); margin-top: .2rem; }
   .button.disabled { opacity: .45; pointer-events: none; }

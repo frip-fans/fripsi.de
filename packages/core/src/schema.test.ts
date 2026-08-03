@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { directEventSaveSchema, releaseSaveSchema, setlistSaveSchema } from "./content-admin";
-import { eventDraftSchema } from "./schema";
+import { eventDraftSchema, searchInputSchema } from "./schema";
 import { createEventSlug, dateInTimeZone, normalizeForDuplicate } from "./utils";
 
 const baseEvent = {
@@ -23,6 +23,16 @@ describe("event schema", () => {
 
   it("requires an HTTPS source", () => {
     expect(() => eventDraftSchema.parse({ ...baseEvent, sources: [{ url: "http://example.com" }] })).toThrow();
+  });
+});
+
+describe("event search schema", () => {
+  it("accepts a non-negative pagination offset", () => {
+    expect(searchInputSchema.parse({ limit: 50, offset: 100 })).toMatchObject({ limit: 50, offset: 100 });
+  });
+
+  it("rejects a negative pagination offset", () => {
+    expect(() => searchInputSchema.parse({ offset: -1 })).toThrow();
   });
 });
 

@@ -1,17 +1,31 @@
 ---
-import { searchEvents } from "@frip-fan/core";
+import { categorySchema, countEvents, searchEvents } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
+import Pagination from "../../../components/Pagination.astro";
 import { categoryLabels, statusLabels } from "../../../lib/format";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 
-const query = Astro.url.searchParams.get("q") ?? undefined;
-const category = Astro.url.searchParams.get("category") ?? undefined;
-const events = await searchEvents(getEnv().DB, {
+const PAGE_SIZE = 50;
+const query = Astro.url.searchParams.get("q")?.trim() || undefined;
+const categoryResult = categorySchema.safeParse(Astro.url.searchParams.get("category"));
+const category = categoryResult.success ? categoryResult.data : undefined;
+const includeArchived = Astro.url.searchParams.get("archived") === "1";
+const requestedPageValue = Astro.url.searchParams.get("page") ?? "1";
+const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
+const filters = {
   query,
-  categories: category ? [category as "LIVE"] : undefined,
-  include_archived: Astro.url.searchParams.get("archived") === "1",
-  limit: 100
+  categories: category ? [category] : undefined,
+  include_archived: includeArchived,
+};
+const db = getEnv().DB;
+const totalItems = await countEvents(db, filters);
+const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+const currentPage = Math.min(requestedPage, totalPages);
+const events = await searchEvents(db, {
+  ...filters,
+  limit: PAGE_SIZE,
+  offset: (currentPage - 1) * PAGE_SIZE,
 });
 ---
 <SiteLayout title="活动管理" admin>
@@ -19,7 +33,7 @@ const events = await searchEvents(getEnv().DB, {
   <form class="filters panel" method="get">
     <label>搜索<input type="search" name="q" value={query} placeholder="标题、场地、来源 URL" /></label>
     <label>分类<select name="category"><option value="">全部</option>{Object.keys(categoryLabels).map((value) => <option value={value} selected={category === value}>{value}</option>)}</select></label>
-    <label class="check"><input type="checkbox" name="archived" value="1" checked={Astro.url.searchParams.get("archived") === "1"} /> 包含归档</label>
+    <label class="check"><input type="checkbox" name="archived" value="1" checked={includeArchived} /> 包含归档</label>
     <button type="submit"><Icon name="funnel" />筛选</button>
   </form>
   <div class="panel table-wrap">
@@ -38,6 +52,7 @@ const events = await searchEvents(getEnv().DB, {
     </table>
     {!events.length && <div class="empty">没有符合条件的活动。</div>}
   </div>
+  <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} itemLabel="条活动" />
 </SiteLayout>
 <style>
   .list-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 2rem; }

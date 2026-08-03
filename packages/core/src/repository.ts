@@ -6,33 +6,7 @@ interface EventRow extends Omit<EventRecord, "published" | "sources"> {
   published: number;
 }
 
-function mapEvent(row: EventRow): EventRecord {
-  return { ...row, published: row.published === 1 };
-}
-
-export async function getSources(db: D1Database, eventId: string): Promise<EventSource[]> {
-  const result = await db.prepare("SELECT * FROM event_sources WHERE event_id = ? ORDER BY created_at ASC").bind(eventId).all<EventSource>();
-  return result.results;
-}
-
-export async function getEventById(db: D1Database, id: string, includeSources = true): Promise<EventRecord | null> {
-  const row = await db.prepare("SELECT * FROM events WHERE id = ?").bind(id).first<EventRow>();
-  if (!row) return null;
-  const event = mapEvent(row);
-  if (includeSources) event.sources = await getSources(db, id);
-  return event;
-}
-
-export async function getPublicEventBySlug(db: D1Database, slug: string): Promise<EventRecord | null> {
-  const row = await db.prepare("SELECT * FROM events WHERE slug = ? AND published = 1 AND archived_at IS NULL").bind(slug).first<EventRow>();
-  if (!row) return null;
-  const event = mapEvent(row);
-  event.sources = await getSources(db, event.id);
-  return event;
-}
-
-export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false): Promise<EventRecord[]> {
-  const input = searchInputSchema.parse(raw);
+function eventSearchWhere(input: SearchInput, publicOnly: boolean): { where: string; bindings: unknown[] } {
   const clauses: string[] = [];
   const bindings: unknown[] = [];
 
@@ -66,10 +40,50 @@ export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {
     bindings.push(...input.statuses);
   }
 
-  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
-  const statement = db.prepare(`SELECT * FROM events ${where} ORDER BY start_date ASC, start_time ASC, title ASC LIMIT ?`);
-  const result = await statement.bind(...bindings, input.limit).all<EventRow>();
+  return {
+    where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "",
+    bindings,
+  };
+}
+
+function mapEvent(row: EventRow): EventRecord {
+  return { ...row, published: row.published === 1 };
+}
+
+export async function getSources(db: D1Database, eventId: string): Promise<EventSource[]> {
+  const result = await db.prepare("SELECT * FROM event_sources WHERE event_id = ? ORDER BY created_at ASC").bind(eventId).all<EventSource>();
+  return result.results;
+}
+
+export async function getEventById(db: D1Database, id: string, includeSources = true): Promise<EventRecord | null> {
+  const row = await db.prepare("SELECT * FROM events WHERE id = ?").bind(id).first<EventRow>();
+  if (!row) return null;
+  const event = mapEvent(row);
+  if (includeSources) event.sources = await getSources(db, id);
+  return event;
+}
+
+export async function getPublicEventBySlug(db: D1Database, slug: string): Promise<EventRecord | null> {
+  const row = await db.prepare("SELECT * FROM events WHERE slug = ? AND published = 1 AND archived_at IS NULL").bind(slug).first<EventRow>();
+  if (!row) return null;
+  const event = mapEvent(row);
+  event.sources = await getSources(db, event.id);
+  return event;
+}
+
+export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false): Promise<EventRecord[]> {
+  const input = searchInputSchema.parse(raw);
+  const { where, bindings } = eventSearchWhere(input, publicOnly);
+  const statement = db.prepare(`SELECT * FROM events ${where} ORDER BY start_date ASC, start_time ASC, title ASC LIMIT ? OFFSET ?`);
+  const result = await statement.bind(...bindings, input.limit, input.offset).all<EventRow>();
   return result.results.map(mapEvent);
+}
+
+export async function countEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false): Promise<number> {
+  const input = searchInputSchema.parse(raw);
+  const { where, bindings } = eventSearchWhere(input, publicOnly);
+  const row = await db.prepare(`SELECT COUNT(*) AS count FROM events ${where}`).bind(...bindings).first<{ count: number }>();
+  return row?.count ?? 0;
 }
 
 export async function listPublicCalendarEvents(db: D1Database): Promise<EventRecord[]> {

@@ -1,0 +1,7650 @@
+{
+  "generatedAt": "2026-07-21T19:34:28.325Z",
+  "source": "https://www.livefans.jp/search/artist/5610?sort=e1&year=before",
+  "range": {
+    "start": "2017-01-01",
+    "end": "2022-04-24"
+  },
+  "disclaimer": "LiveFans 的公演与歌单内容由用户投稿；活动事实需尽量与官方资料交叉核对，歌单按 reported 处理。",
+  "discoveredEventCount": 156,
+  "matchedEventCount": 46,
+  "matchedSetlistCount": 41,
+  "events": [
+    {
+      "eventId": "632489",
+      "date": "2017-01-07",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "concert tour 2016-2017 -infinite synthesis 3-",
+      "venue": "名古屋国際会議場 センチュリーホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/632489",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "determination",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "The end of escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "2016 -Third cosmic velocity-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "Run into the light",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "Dry your tears",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "white forces -IS3 edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "before dawn daybreak -version 2015-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "everlasting",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Side by Side",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "679640",
+      "date": "2017-01-14",
+      "startTime": "14:00",
+      "openTime": "",
+      "title": "ANIMAX MUSIX 2016 2017 OSAKA",
+      "tour": "ANIMAX MUSIX 2016 2017 OSAKA",
+      "venue": "大阪城ホール",
+      "prefecture": "",
+      "artists": [
+        "i☆Ris",
+        "every♥ing!",
+        "大橋彩香",
+        "OxT",
+        "GARNiDELiA",
+        "KOTOKO",
+        "鈴木このみ",
+        "May'n",
+        "fripSide",
+        "Minami",
+        "鈴村健一",
+        "茅原実里",
+        "西沢幸奏",
+        "ミルキィホームズ",
+        "Wake Up, Girls!",
+        "下地紫野",
+        "水瀬いのり"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/679640",
+      "tracks": []
+    },
+    {
+      "eventId": "632485",
+      "date": "2017-01-21",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "concert tour 2016-2017 -infinite synthesis 3-",
+      "venue": "倉敷市民会館",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/632485",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "The end of escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "Run into the light",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "white forces -IS3 edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "2016 -Third cosmic velocity-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "determination",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "Dry your tears",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "fortissimo -from insanity affection-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "endless memory ～refrain as Da Capo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "before dawn daybreak -version 2015-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "632486",
+      "date": "2017-02-19",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "concert tour 2016-2017 -infinite synthesis 3-",
+      "venue": "南相馬市民文化会館 ゆめはっと 大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/632486",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "Dry your tears",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "determination",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "The end of escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "Run into the light",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "2016 -Third cosmic velocity-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "white forces -IS3 edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "before dawn daybreak -version 2015-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "endless memory ～refrain as Da Capo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "everlasting",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "632487",
+      "date": "2017-02-26",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "concert tour 2016-2017 -infinite synthesis 3-",
+      "venue": "新潟県民会館 大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/632487",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "white forces -IS3 edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "The end of escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "determination",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "Run into the light",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "Dry your tears",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "2016 -Third cosmic velocity-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "whitebird",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "endless memory ～refrain as Da Capo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "fortissimo -from insanity affection-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "632488",
+      "date": "2017-03-05",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "concert tour 2016-2017 -infinite synthesis 3-",
+      "venue": "本多の森ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/632488",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "determination",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "The end of escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "2016 -Third cosmic velocity-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "Run into the light",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "Dry your tears",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "white forces -IS3 edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "Hesitation Snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "trusty snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Side by Side",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "698620",
+      "date": "2017-03-18",
+      "startTime": "16:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide concert tour 2016-2017 FINAL in Saitama Super Arena -Run for the 15th Anniversary-supported by animelo mix",
+      "venue": "さいたまスーパーアリーナ",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/698620",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "fermata～Akkord:fortissimo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "Secret of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "unlimited destiny",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "white relation",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "2016 -Third cosmic velocity-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "→unfinished→",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "SHOOT!",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "The end of escape",
+          "memo": "",
+          "artistCredit": "fripSide x angela",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "僕は僕であって",
+          "memo": "",
+          "artistCredit": "angela x fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "everlasting",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "endless memory ～refrain as Da Capo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "determination",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "meditations",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "whitebird",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "last fortune",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "introduction",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "あっせんぶる☆LOVE さんぶる",
+          "memo": "",
+          "artistCredit": "fripSide NAO project!",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "split tears",
+          "memo": "",
+          "artistCredit": "fripSide feat. nao",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "Decade",
+          "memo": "",
+          "artistCredit": "fripSide feat. nao",
+          "sectionNote": ""
+        },
+        {
+          "position": 26,
+          "title": "an evening calm",
+          "memo": "",
+          "artistCredit": "fripSide(南條愛乃)",
+          "sectionNote": ""
+        },
+        {
+          "position": 27,
+          "title": "white forces -IS3 edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 28,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 29,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 30,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 31,
+          "title": "Hesitation Snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 32,
+          "title": "Side by Side",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 33,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 34,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 35,
+          "title": "Heaven is a Place on Earth",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 36,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 37,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "793394",
+      "date": "2017-08-26",
+      "startTime": "16:00",
+      "openTime": "",
+      "title": "Animelo Summer Live 2017 -THE CARD-",
+      "tour": "Animelo Summer Live 2017 -THE CARD-",
+      "venue": "さいたまスーパーアリーナ",
+      "prefecture": "",
+      "artists": [
+        "THE IDOLM@STER MILLION STARS",
+        "i☆Ris",
+        "蒼井翔太",
+        "angela",
+        "スフィア",
+        "中島愛",
+        "fhána",
+        "fripSide",
+        "三森すずこ",
+        "キラキラ☆プリキュアアラモード サマーセッション",
+        "羽多野渉",
+        "鈴村健一",
+        "KING OF PRISM",
+        "Luce Twinkle Wink☆",
+        "東山奈央"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/793394",
+      "tracks": []
+    },
+    {
+      "eventId": "861176",
+      "date": "2017-09-16",
+      "startTime": "17:50",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "エモ☆ハピ vol.5",
+      "venue": "心斎橋HOT LIP",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/861176",
+      "tracks": []
+    },
+    {
+      "eventId": "822830",
+      "date": "2017-11-18",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "15th Anniversary Tour 2017-2018 \"crossroads\"",
+      "venue": "さっぽろ芸術文化の館 ニトリ文化ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/822830",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "a gleam of prologue",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "The end of escape -fripSide edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "an evening calm -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "split tears -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "distant moon -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "before dawn daybreak -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "hurting heart -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "snow blind -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "escape -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "sky -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "Red \"reduction division\" -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "the chaostic world -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "prominence -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "crossroads",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "brave new world -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "865258",
+      "date": "2017-11-23",
+      "startTime": "14:00",
+      "openTime": "",
+      "title": "ANIMAX MUSIX 2017 YOKOHAMA",
+      "tour": "ANIMAX MUSIX 2017 YOKOHAMA",
+      "venue": "横浜アリーナ",
+      "prefecture": "",
+      "artists": [
+        "やなぎなぎ",
+        "ミルキィホームズ",
+        "井口裕香",
+        "東山奈央",
+        "羽多野渉",
+        "茅原実里",
+        "angela",
+        "ClariS",
+        "Fo'xTails",
+        "fripSide",
+        "GARNiDELiA",
+        "JUNNA",
+        "TRUE",
+        "Wake Up, Girls!",
+        "Luce Twinkle Wink☆",
+        "every♥ing!",
+        "三森すずこ"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/865258",
+      "tracks": []
+    },
+    {
+      "eventId": "833163",
+      "date": "2017-12-02",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "15th Anniversary Tour 2017-2018 \"crossroads\"",
+      "venue": "幕張メッセ 国際展示場 7～8ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/833163",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "everlasting",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "Heaven is a Place on Earth",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": "OP:2016 -Third cosmic velocity-"
+        },
+        {
+          "position": 7,
+          "title": "fortissimo -from insanity affection-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "late in autumn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "endless memory ～refrain as Da Capo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "fortuna on the Sixteenth night",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Hesitation Snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "white forces -IS3 edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "white relation",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "whitebird",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "ひだまりバスケット",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "833164",
+      "date": "2017-12-03",
+      "startTime": "17:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "15th Anniversary Tour 2017-2018 \"crossroads\"",
+      "venue": "幕張メッセ 国際展示場 7～8ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/833164",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "snow blind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "split tears",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "pico scope -SACLA-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "before dawn daybreak",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "an evening calm",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "a gleam of prologue",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "only me and the moon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "trusty snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "hurting heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "come to mind (version3)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "distant moon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "The end of escape -fripSide edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "the chaostic world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "Red -reduction division-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "prominence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "brave new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "crossroads",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "833165",
+      "date": "2017-12-08",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "15th Anniversary Tour 2017-2018 \"crossroads\"",
+      "venue": "福岡サンパレス",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/833165",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "split tears",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "before dawn daybreak",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "endless memory ～refrain as Da Capo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "hurting heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "an evening calm",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "The end of escape -fripSide edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "a gleam of prologue",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "distant moon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "white forces",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "Red -reduction division-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "the chaostic world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "prominence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "crossroads",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "brave new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "829270",
+      "date": "2017-12-16",
+      "startTime": "17:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "15th Anniversary Tour 2017-2018 \"crossroads\"",
+      "venue": "ワールド記念ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/829270",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "a gleam of prologue",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "split tears",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "distant moon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "an evening calm",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "hurting heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "before dawn daybreak",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "The end of escape -fripSide edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "pico scope -SACLA-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "Secret of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "Red -reduction division-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "the chaostic world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "prominence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "crossroads",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "brave new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "870245",
+      "date": "2017-12-28",
+      "startTime": "13:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "COUNTDOWN JAPAN 17/18",
+      "venue": "幕張メッセ",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/870245",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "magicaride",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "833166",
+      "date": "2018-01-07",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "15th Anniversary Tour 2017-2018 \"crossroads\"",
+      "venue": "名古屋国際会議場 センチュリーホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/833166",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "late in autumn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "fortissimo -from insanity affection-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "Heaven is a Place on Earth",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "everlasting",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "killing bites",
+          "memo": "新曲",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "2016 -Third cosmic velocity-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "endless memory ～refrain as Da Capo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "fortuna on the Sixteenth night",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Hesitation Snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "white forces -IS3 edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "white relation",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "whitebird",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "ひだまりバスケット",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": "波紋の会"
+        },
+        {
+          "position": 26,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "833167",
+      "date": "2018-01-08",
+      "startTime": "17:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "15th Anniversary Tour 2017-2018 \"crossroads\"",
+      "venue": "名古屋国際会議場 センチュリーホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/833167",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "killing bites",
+          "memo": "新曲",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "before dawn daybreak -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "only me and the moon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "an evening calm -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "split tears -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "hurting heart -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "pico scope -SACLA-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "a gleam of prologue",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "trusty snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "snow blind -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "come to mind (version3)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "escape -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "distant moon -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "The end of escape -fripSide edition-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "the chaostic world -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "Red \"reduction division\" -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "prominence -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sky -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "brave new world -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": "波紋の会"
+        },
+        {
+          "position": 25,
+          "title": "crossroads",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "869638",
+      "date": "2018-01-28",
+      "startTime": "",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "リスアニ!LIVE 2018",
+      "venue": "日本武道館",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/869638",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "The end of escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "Burst The Gravity",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "879409",
+      "date": "2018-02-03",
+      "startTime": "15:30",
+      "openTime": "",
+      "title": "NBCUniversal ANIME×MUSIC FESTIVAL ～25th ANNIVERSARY～",
+      "tour": "NBCUniversal ANIME×MUSIC FESTIVAL ～25th ANNIVERSARY～",
+      "venue": "さいたまスーパーアリーナ",
+      "prefecture": "",
+      "artists": [
+        "After the Rain",
+        "浦島坂田船",
+        "黒崎真音",
+        "Gero",
+        "KOTOKO",
+        "南條愛乃",
+        "流田Project",
+        "fripSide",
+        "やなぎなぎ",
+        "Luce Twinkle Wink☆",
+        "川田まみ"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/879409",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "X-encounter",
+          "memo": "",
+          "artistCredit": "黒崎真音",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "刹那の果実",
+          "memo": "",
+          "artistCredit": "黒崎真音",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "楽園の翼",
+          "memo": "",
+          "artistCredit": "黒崎真音",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "UNDER/SHAFT",
+          "memo": "",
+          "artistCredit": "黒崎真音",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "メモリーズ・ラスト",
+          "memo": "",
+          "artistCredit": "黒崎真音",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "ユキトキ",
+          "memo": "",
+          "artistCredit": "やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "アクアテラリウム",
+          "memo": "",
+          "artistCredit": "やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "三つ葉の結びめ",
+          "memo": "",
+          "artistCredit": "やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "間遠い未来",
+          "memo": "",
+          "artistCredit": "やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Over and Over",
+          "memo": "",
+          "artistCredit": "やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Fight on!",
+          "memo": "",
+          "artistCredit": "Luce Twinkle Wink☆",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "1st Love Story",
+          "memo": "",
+          "artistCredit": "Luce Twinkle Wink☆",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "天地無用!魎皇鬼のテーマ",
+          "memo": "",
+          "artistCredit": "流田Project",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "ぼくはもっとパイオニア",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "euphonic field feat. ELISA",
+          "memo": "",
+          "artistCredit": "KOTOKO,やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "輪廻の果てに…",
+          "memo": "",
+          "artistCredit": "やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 26,
+          "title": "遠い叫び",
+          "memo": "",
+          "artistCredit": "Gero",
+          "sectionNote": ""
+        },
+        {
+          "position": 27,
+          "title": "HIGHSCHOOL OF THE DEAD",
+          "memo": "",
+          "artistCredit": "流田Project",
+          "sectionNote": ""
+        },
+        {
+          "position": 28,
+          "title": "インフェルノ",
+          "memo": "",
+          "artistCredit": "流田Project",
+          "sectionNote": ""
+        },
+        {
+          "position": 29,
+          "title": "はっぴい にゅう にゃあ",
+          "memo": "",
+          "artistCredit": "宇佐美幸乃,錦織めぐみ,板山紗織",
+          "sectionNote": ""
+        },
+        {
+          "position": 30,
+          "title": "いちごコンプリート",
+          "memo": "",
+          "artistCredit": "やなぎなぎ,Gero",
+          "sectionNote": ""
+        },
+        {
+          "position": 31,
+          "title": "まほろDEまんぼー",
+          "memo": "",
+          "artistCredit": "流田豊,深沢紗希,桧垣果穂",
+          "sectionNote": ""
+        },
+        {
+          "position": 32,
+          "title": "Over the Future",
+          "memo": "",
+          "artistCredit": "黒崎真音,南條愛乃,KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 33,
+          "title": "撲殺天使ドクロちゃん",
+          "memo": "",
+          "artistCredit": "桃井はるこ",
+          "sectionNote": ""
+        },
+        {
+          "position": 34,
+          "title": "大魔法峠",
+          "memo": "",
+          "artistCredit": "桃井はるこ",
+          "sectionNote": ""
+        },
+        {
+          "position": 35,
+          "title": "愛のメディスン",
+          "memo": "",
+          "artistCredit": "桃井はるこ",
+          "sectionNote": ""
+        },
+        {
+          "position": 36,
+          "title": "ふ・れ・ん・ど・し・た・い",
+          "memo": "",
+          "artistCredit": "水瀬いのり,小澤亜李,板山紗織,宇佐美幸乃",
+          "sectionNote": ""
+        },
+        {
+          "position": 37,
+          "title": "夢路らびりんす",
+          "memo": "",
+          "artistCredit": "原田彩楓,本渡楓,桧垣果穂,錦織めぐみ",
+          "sectionNote": ""
+        },
+        {
+          "position": 38,
+          "title": "ぽっぴんジャンプ♪",
+          "memo": "",
+          "artistCredit": "水瀬いのり,板山紗織,深沢紗希",
+          "sectionNote": ""
+        },
+        {
+          "position": 39,
+          "title": "ときめきポポロン♪",
+          "memo": "",
+          "artistCredit": "水瀬いのり,板山紗織,深沢紗希",
+          "sectionNote": ""
+        },
+        {
+          "position": 40,
+          "title": "Daydream café",
+          "memo": "",
+          "artistCredit": "水瀬いのり,小澤亜李,原田彩楓,本渡楓,Luce Twinkle Wink☆",
+          "sectionNote": ""
+        },
+        {
+          "position": 41,
+          "title": "CYBER CYBER",
+          "memo": "",
+          "artistCredit": "ALTIMA",
+          "sectionNote": ""
+        },
+        {
+          "position": 42,
+          "title": "天地無用!",
+          "memo": "",
+          "artistCredit": "ALTIMA,KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 43,
+          "title": "SHOW MUST GO ON!!",
+          "memo": "",
+          "artistCredit": "浦島坂田船",
+          "sectionNote": ""
+        },
+        {
+          "position": 44,
+          "title": "解読不能",
+          "memo": "",
+          "artistCredit": "After the Rain",
+          "sectionNote": ""
+        },
+        {
+          "position": 45,
+          "title": "アンチクロックワイズ",
+          "memo": "",
+          "artistCredit": "After the Rain",
+          "sectionNote": ""
+        },
+        {
+          "position": 46,
+          "title": "君氏危うくも近うよれ",
+          "memo": "",
+          "artistCredit": "After the Rain,浦島坂田船",
+          "sectionNote": ""
+        },
+        {
+          "position": 47,
+          "title": "BELOVED×SURVIVAL",
+          "memo": "",
+          "artistCredit": "Gero",
+          "sectionNote": ""
+        },
+        {
+          "position": 48,
+          "title": "～Outgrow～",
+          "memo": "",
+          "artistCredit": "Gero",
+          "sectionNote": ""
+        },
+        {
+          "position": 49,
+          "title": "僕ら、駆け行く空へ",
+          "memo": "",
+          "artistCredit": "山崎はるか",
+          "sectionNote": ""
+        },
+        {
+          "position": 50,
+          "title": "GAMERS!",
+          "memo": "",
+          "artistCredit": "飯田里穂",
+          "sectionNote": ""
+        },
+        {
+          "position": 51,
+          "title": "OPEN YOUR MIND～小さな羽根ひろげて～",
+          "memo": "",
+          "artistCredit": "石田燿子",
+          "sectionNote": ""
+        },
+        {
+          "position": 52,
+          "title": "永遠の花",
+          "memo": "",
+          "artistCredit": "石田燿子",
+          "sectionNote": ""
+        },
+        {
+          "position": 53,
+          "title": "disillusion",
+          "memo": "",
+          "artistCredit": "タイナカサチ",
+          "sectionNote": ""
+        },
+        {
+          "position": 54,
+          "title": "きらめく涙は星に",
+          "memo": "",
+          "artistCredit": "タイナカサチ",
+          "sectionNote": ""
+        },
+        {
+          "position": 55,
+          "title": "Red fraction",
+          "memo": "",
+          "artistCredit": "IKU",
+          "sectionNote": ""
+        },
+        {
+          "position": 56,
+          "title": "sign",
+          "memo": "",
+          "artistCredit": "IKU",
+          "sectionNote": ""
+        },
+        {
+          "position": 57,
+          "title": "ビードロ模様",
+          "memo": "",
+          "artistCredit": "やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 58,
+          "title": "ひぐらしのなく頃に",
+          "memo": "",
+          "artistCredit": "やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 59,
+          "title": "Magic∞world",
+          "memo": "",
+          "artistCredit": "黒崎真音",
+          "sectionNote": ""
+        },
+        {
+          "position": 60,
+          "title": "楽園PROJECT",
+          "memo": "",
+          "artistCredit": "Luce Twinkle Wink☆",
+          "sectionNote": ""
+        },
+        {
+          "position": 61,
+          "title": "14 to 1",
+          "memo": "",
+          "artistCredit": "Gero",
+          "sectionNote": ""
+        },
+        {
+          "position": 62,
+          "title": "Rimless ～フチナシノセカイ～",
+          "memo": "",
+          "artistCredit": "IKU",
+          "sectionNote": ""
+        },
+        {
+          "position": 63,
+          "title": "Shining star bless☆",
+          "memo": "",
+          "artistCredit": "IKU",
+          "sectionNote": ""
+        },
+        {
+          "position": 64,
+          "title": "さくらんぼキッス～爆発だも～ん～",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 65,
+          "title": "Suppuration-core-",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 66,
+          "title": "JOINT",
+          "memo": "",
+          "artistCredit": "川田まみ",
+          "sectionNote": ""
+        },
+        {
+          "position": 67,
+          "title": "PSI-missing",
+          "memo": "",
+          "artistCredit": "川田まみ",
+          "sectionNote": ""
+        },
+        {
+          "position": 68,
+          "title": "masterpiecs",
+          "memo": "",
+          "artistCredit": "川田まみ",
+          "sectionNote": ""
+        },
+        {
+          "position": 69,
+          "title": "See visionS",
+          "memo": "",
+          "artistCredit": "川田まみ",
+          "sectionNote": ""
+        },
+        {
+          "position": 70,
+          "title": "Borderland",
+          "memo": "",
+          "artistCredit": "川田まみ",
+          "sectionNote": ""
+        },
+        {
+          "position": 71,
+          "title": "No buts!",
+          "memo": "",
+          "artistCredit": "川田まみ",
+          "sectionNote": ""
+        },
+        {
+          "position": 72,
+          "title": "あなたの愛した世界",
+          "memo": "",
+          "artistCredit": "南條愛乃",
+          "sectionNote": ""
+        },
+        {
+          "position": 73,
+          "title": "黄昏のスタアライト",
+          "memo": "",
+          "artistCredit": "南條愛乃",
+          "sectionNote": ""
+        },
+        {
+          "position": 74,
+          "title": "きみを探しに",
+          "memo": "",
+          "artistCredit": "南條愛乃",
+          "sectionNote": ""
+        },
+        {
+          "position": 75,
+          "title": "一切は物語",
+          "memo": "",
+          "artistCredit": "南條愛乃,やなぎなぎ",
+          "sectionNote": ""
+        },
+        {
+          "position": 76,
+          "title": "光のはじまり",
+          "memo": "",
+          "artistCredit": "南條愛乃,After the Rain",
+          "sectionNote": ""
+        },
+        {
+          "position": 77,
+          "title": "ゼロイチキセキ",
+          "memo": "",
+          "artistCredit": "南條愛乃",
+          "sectionNote": ""
+        },
+        {
+          "position": 78,
+          "title": "Re-sublimity",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 79,
+          "title": "きれいな旋律",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 80,
+          "title": "Chercher～シャルシェ～",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 81,
+          "title": "覚えてていいよ",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 82,
+          "title": "ハヤテのごとく!",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 83,
+          "title": "七転八起☆至上主義!",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 84,
+          "title": "daily-daily Dream!!",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 85,
+          "title": "Being",
+          "memo": "",
+          "artistCredit": "KOTOKO",
+          "sectionNote": ""
+        },
+        {
+          "position": 86,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "出演者全員",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "949440",
+      "date": "2018-07-15",
+      "startTime": "16:20",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "JOIN ALIVE 2018",
+      "venue": "JOIN ALIVE 2018会場 [いわみざわ公園野外音楽堂キタオン / 北海道グリーンランド遊園地]",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/949440",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "crossroads",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "white forces",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "966596",
+      "date": "2018-09-17",
+      "startTime": "",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "でんぱ組.inc コスモツアー 2018 ～未知との遭遇～",
+      "venue": "Zepp Sapporo",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/966596",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "white forces",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "trusty snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "whitebird",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "divine crimimal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "fripSide, でんぱ組.inc",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "983807",
+      "date": "2018-12-24",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Concert Tour 2018-2019 -infinite synthesis 4-",
+      "venue": "わくわくホリデーホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/983807",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "beyond the horizon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "snow of silence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "one dream",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "colorless fate -version 2018-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "white relation(IS4 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "breaking dawn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "late in autumn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "close to you",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "adverse wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "you only live once",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "Like a blink, a short night.",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sky -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1049450",
+      "date": "2018-12-28",
+      "startTime": "17:30",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "COUNTDOWN JAPAN 18/19",
+      "venue": "幕張メッセ",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1049450",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "983808",
+      "date": "2019-01-12",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Concert Tour 2018-2019 -infinite synthesis 4-",
+      "venue": "グランキューブ大阪 メインホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/983808",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "white relation(IS4 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "one dream",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "colorless fate -version 2018-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "Secret of my heart",
+          "memo": "日替わり曲",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "beyond the horizon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "snow of silence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "breaking dawn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "late in autumn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "close to you",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "adverse wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "you only live once",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "white forces",
+          "memo": "日替わり曲",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "Like a blink, a short night.",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sky -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "983809",
+      "date": "2019-01-14",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Concert Tour 2018-2019 -infinite synthesis 4-",
+      "venue": "福岡市民会館 大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/983809",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "beyond the horizon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "snow of silence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "one dream",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "colorless fate -version 2018-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "endless memory ～refrain as Da Capo～",
+          "memo": "日替わり",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "white relation(IS4 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "breaking dawn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "late in autumn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "close to you",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "adverse wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "you only live once",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "escape -crossroads version-",
+          "memo": "日替わり",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "Like a blink, a short night.",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sky -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "999181",
+      "date": "2019-01-19",
+      "startTime": "14:00",
+      "openTime": "",
+      "title": "ANIMAX MUSIX 2019 OSAKA",
+      "tour": "ANIMAX MUSIX 2019 OSAKA",
+      "venue": "大阪城ホール",
+      "prefecture": "",
+      "artists": [
+        "伊藤美来",
+        "大橋彩香",
+        "SCREEN mode",
+        "鈴木みのり",
+        "寺島拓篤",
+        "Poppin'Party",
+        "Machico",
+        "三森すずこ",
+        "山崎はるか",
+        "Run Girls, Run!",
+        "i☆Ris",
+        "小倉唯",
+        "GARNiDELiA",
+        "TRUE",
+        "ナノ",
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/999181",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "No pain, No game",
+          "memo": "ANIMAX MUSIX FAN SELECTION!",
+          "artistCredit": "ナノ, 三森すずこ",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "Reason Living",
+          "memo": "",
+          "artistCredit": "SCREEN mode",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "only my railgun",
+          "memo": "平成アニメSELECTION",
+          "artistCredit": "Poppin'Party, fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "Time Lapse",
+          "memo": "",
+          "artistCredit": "Poppin'Party",
+          "sectionNote": "=== 第1部 ==="
+        },
+        {
+          "position": 5,
+          "title": "FEELING AROUND",
+          "memo": "",
+          "artistCredit": "鈴木みのり",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "リワインド",
+          "memo": "",
+          "artistCredit": "鈴木みのり",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "GIFTED",
+          "memo": "",
+          "artistCredit": "SCREEN mode",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "キズナミュージック♪",
+          "memo": "",
+          "artistCredit": "Poppin'Party",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "謎",
+          "memo": "平成アニメSELECTION",
+          "artistCredit": "伊藤美来, 山崎はるか, Machico",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "カノン",
+          "memo": "ANIMAX MUSIX FAN SELECTION!",
+          "artistCredit": "寺島拓篤",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "キラッとスタート",
+          "memo": "",
+          "artistCredit": "Run Girls, Run!",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Break the Blue!!",
+          "memo": "",
+          "artistCredit": "Run Girls, Run!",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Nameless Story",
+          "memo": "",
+          "artistCredit": "寺島拓篤",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "メグルモノ",
+          "memo": "",
+          "artistCredit": "寺島拓篤",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "ウツシヨノユメ",
+          "memo": "",
+          "artistCredit": "ナノ",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "KEMURIKUSA",
+          "memo": "",
+          "artistCredit": "ナノ",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "コネクト",
+          "memo": "魔法アニメSELECTION",
+          "artistCredit": "三森すずこ",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "Clattanoia",
+          "memo": "魔法アニメSELECTION",
+          "artistCredit": "TRUE, GARNiDELiA",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Starry Wish",
+          "memo": "魔法アニメSELECTION",
+          "artistCredit": "小倉唯",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "ゼンゼントモダチ",
+          "memo": "",
+          "artistCredit": "山崎はるか",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "僕ら、駆け行く空へ",
+          "memo": "",
+          "artistCredit": "山崎はるか",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "Changing point",
+          "memo": "",
+          "artistCredit": "i☆Ris",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "Shining Star",
+          "memo": "",
+          "artistCredit": "i☆Ris",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "コレカラ",
+          "memo": "",
+          "artistCredit": "Machico",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "TOMORROW",
+          "memo": "",
+          "artistCredit": "Machico",
+          "sectionNote": ""
+        },
+        {
+          "position": 26,
+          "title": "Shocking Blue",
+          "memo": "",
+          "artistCredit": "伊藤未来",
+          "sectionNote": ""
+        },
+        {
+          "position": 27,
+          "title": "閃きハートビート",
+          "memo": "",
+          "artistCredit": "伊藤美来",
+          "sectionNote": ""
+        },
+        {
+          "position": 28,
+          "title": "INVOKE",
+          "memo": "ガンダムSELECTION",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 29,
+          "title": "Raise your flag",
+          "memo": "ガンダムSELECTION",
+          "artistCredit": "ナノ",
+          "sectionNote": ""
+        },
+        {
+          "position": 30,
+          "title": "DREAMS",
+          "memo": "ガンダムSELECTION",
+          "artistCredit": "GARNiDELiA",
+          "sectionNote": ""
+        },
+        {
+          "position": 31,
+          "title": "merry-go-round",
+          "memo": "ガンダムSELECTION",
+          "artistCredit": "SCREEN mode, 寺島拓篤",
+          "sectionNote": ""
+        },
+        {
+          "position": 32,
+          "title": "Another colony",
+          "memo": "",
+          "artistCredit": "TRUE",
+          "sectionNote": ""
+        },
+        {
+          "position": 33,
+          "title": "Sincerely",
+          "memo": "",
+          "artistCredit": "TRUE",
+          "sectionNote": ""
+        },
+        {
+          "position": 34,
+          "title": "ハイライト",
+          "memo": "",
+          "artistCredit": "大橋彩香",
+          "sectionNote": ""
+        },
+        {
+          "position": 35,
+          "title": "NOISY LOVE POWER☆",
+          "memo": "",
+          "artistCredit": "大橋彩香",
+          "sectionNote": ""
+        },
+        {
+          "position": 36,
+          "title": "最高速 Fall in Love",
+          "memo": "ANIMAX MUSIX FAN SELECTION!",
+          "artistCredit": "山崎はるか",
+          "sectionNote": ""
+        },
+        {
+          "position": 37,
+          "title": "プリティー☆チャンネル",
+          "memo": "ANIMAX MUSIX FAN SELECTION!",
+          "artistCredit": "Run Girls, Run!, i☆Ris",
+          "sectionNote": ""
+        },
+        {
+          "position": 38,
+          "title": "Error",
+          "memo": "",
+          "artistCredit": "GARNiDELiA",
+          "sectionNote": ""
+        },
+        {
+          "position": 39,
+          "title": "REBEL FLAG",
+          "memo": "",
+          "artistCredit": "GARNiDELiA",
+          "sectionNote": ""
+        },
+        {
+          "position": 40,
+          "title": "アイコトバ",
+          "memo": "",
+          "artistCredit": "GARNiDELiA",
+          "sectionNote": ""
+        },
+        {
+          "position": 41,
+          "title": "ハイタッチ☆メモリー",
+          "memo": "",
+          "artistCredit": "小倉唯",
+          "sectionNote": ""
+        },
+        {
+          "position": 42,
+          "title": "永遠少年",
+          "memo": "",
+          "artistCredit": "小倉唯",
+          "sectionNote": ""
+        },
+        {
+          "position": 43,
+          "title": "Future Strike",
+          "memo": "",
+          "artistCredit": "小倉唯",
+          "sectionNote": ""
+        },
+        {
+          "position": 44,
+          "title": "創聖のアクエリオン",
+          "memo": "平成アニメSELECTION",
+          "artistCredit": "鈴木みのり, TRUE",
+          "sectionNote": ""
+        },
+        {
+          "position": 45,
+          "title": "うまぴょい伝説",
+          "memo": "平成アニメSELECTION シークレットゲスト",
+          "artistCredit": "Machico, 大橋彩香, ダイワスカーレット(木村千咲), ハルウララ(首藤志奈), オグリキャップ(高柳知葉), グラスワンダー(前田玲奈)",
+          "sectionNote": ""
+        },
+        {
+          "position": 46,
+          "title": "Make debut!",
+          "memo": "平成アニメSELECTION シークレットゲスト",
+          "artistCredit": "Machico, 大橋彩香, ダイワスカーレット(木村千咲), ハルウララ(首藤志奈), オグリキャップ(高柳知葉), グラスワンダー(前田玲奈)",
+          "sectionNote": ""
+        },
+        {
+          "position": 47,
+          "title": "エガオノキミへ",
+          "memo": "",
+          "artistCredit": "三森すずこ",
+          "sectionNote": ""
+        },
+        {
+          "position": 48,
+          "title": "Star Divine",
+          "memo": "",
+          "artistCredit": "三森すずこ",
+          "sectionNote": ""
+        },
+        {
+          "position": 49,
+          "title": "ユニバーページ",
+          "memo": "",
+          "artistCredit": "三森すずこ",
+          "sectionNote": ""
+        },
+        {
+          "position": 50,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 51,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 52,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 53,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "fripSide",
+          "sectionNote": ""
+        },
+        {
+          "position": 54,
+          "title": "おジャ魔女カーニバル!!",
+          "memo": "",
+          "artistCredit": "出演者全員",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "983810",
+      "date": "2019-02-11",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Concert Tour 2018-2019 -infinite synthesis 4-",
+      "venue": "一宮市民会館 ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/983810",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "beyond the horizon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "I'm believing you",
+          "memo": "日替わり",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "colorless fate -version 2018-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "one dream",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "snow of silence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "white relation(IS4 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "breaking dawn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "late in autumn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "close to you",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "adverse wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "you only live once",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Hesitation Snow",
+          "memo": "日替わり",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "Like a blink, a short night.",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sky -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "983811",
+      "date": "2019-03-08",
+      "startTime": "18:30",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Concert Tour 2018-2019 -infinite synthesis 4-",
+      "venue": "パシフィコ横浜 国立大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/983811",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "snow of silence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "colorless fate -version 2018-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "one dream",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "日替わり曲 イントロから歌唱",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "beyond the horizon",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "white relation(IS4 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "breaking dawn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "late in autumn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "close to you",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "adverse wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "you only live once",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "white forces",
+          "memo": "日替わり曲",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "Like a blink, a short night.",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sky -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "983812",
+      "date": "2019-03-09",
+      "startTime": "17:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Concert Tour 2018-2019 -infinite synthesis 4-",
+      "venue": "パシフィコ横浜 国立大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/983812",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "last fortune",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "Hesitation Snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "come to mind (version3)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "fermata～Akkord:fortissimo～",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "fortissimo -from insanity affection-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "Secret of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "crescendo -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Heaven is a Place on Earth",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "whitebird",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "prominence -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "fortuna on the Sixteenth night",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 26,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1130548",
+      "date": "2019-11-04",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis5-",
+      "venue": "神戸国際会館こくさいホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1130548",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "as before",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "light at the end",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "brand new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "My Own way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "believe in your future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1130549",
+      "date": "2019-11-17",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis5-",
+      "venue": "サンポートホール高松 大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1130549",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "light at the end",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "as before",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "white forces",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "brand new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "My Own way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "believe in your future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1195031",
+      "date": "2019-11-23",
+      "startTime": "14:00",
+      "openTime": "",
+      "title": "ANIMAX MUSIX 2019 YOKOHAMA",
+      "tour": "ANIMAX MUSIX 2019 YOKOHAMA",
+      "venue": "横浜アリーナ",
+      "prefecture": "",
+      "artists": [
+        "スタァライト九九組",
+        "三森すずこ",
+        "中島愛",
+        "大橋彩香",
+        "安野希世乃",
+        "寺島拓篤",
+        "田所あずさ",
+        "畠中祐",
+        "黒崎真音",
+        "BEST FRIENDS!",
+        "fhána",
+        "fripSide",
+        "GRANRODEO",
+        "halca",
+        "i☆Ris",
+        "OxT"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1195031",
+      "tracks": []
+    },
+    {
+      "eventId": "1130550",
+      "date": "2019-12-21",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis5-",
+      "venue": "アルモニーサンク 北九州ソレイユホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1130550",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "brand new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "as before",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "light at the end",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "My Own way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "believe in your future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1130551",
+      "date": "2020-01-11",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis5-",
+      "venue": "新潟県民会館 大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1130551",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "brand new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "as before",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "light at the end",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "My Own way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "believe in your future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1130552",
+      "date": "2020-01-13",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis5-",
+      "venue": "金沢歌劇座",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1130552",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "as before",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "light at the end",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "brand new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "My Own way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "believe in your future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1130553",
+      "date": "2020-01-24",
+      "startTime": "18:30",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis5-",
+      "venue": "名古屋市公会堂 大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1130553",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "light at the end",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "as before",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "white forces",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "brand new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "My Own way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "believe in your future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1130554",
+      "date": "2020-02-02",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis5-",
+      "venue": "札幌市教育文化会館 大ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1130554",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "light at the end",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "as before",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "brand new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "My Own way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "believe in your future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1215552",
+      "date": "2020-02-08",
+      "startTime": "",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "リスアニ!LIVE 2020",
+      "venue": "幕張メッセ イベントホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1215552",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "final phase",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1130555",
+      "date": "2020-02-23",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis5-",
+      "venue": "仙台サンプラザ ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1130555",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "light at the end",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "as before",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "brand new world",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "My Own Way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "believe in your future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "final phase",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1286976",
+      "date": "2021-01-03",
+      "startTime": "18:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary Tour 2019-2020 -infinite synthesis 5- [Re:]",
+      "venue": "オリックス劇場",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1286976",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "change your core self",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "glorious wind",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "rain of blossoms",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "lighting of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "perpetual wishes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "frosty breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "My Own Way",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "endless entropy",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Black Fox",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "LwY",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "final phase",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1288503",
+      "date": "2021-02-11",
+      "startTime": "",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase 2 : 10th Anniversary FINAL in YOKOHAMA ARENA",
+      "venue": "横浜アリーナ",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1288503",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "last fortune",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "1983-schwarzesmarken-(IS3 version)",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "fortissimo -from insanity affection-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "sky -crossroads version-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "final phase",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "memory of snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "legendary future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "dual existence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "fortuna on the Sixteenth night",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "We Rise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1376411",
+      "date": "2022-04-02",
+      "startTime": "16:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase2 Final Arena Tour 2022 -infinite synthesis:endless voyage-",
+      "venue": "Aichi Sky Expo ホールA",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1376411",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "legendary future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "endless voyage",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "dual existence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "stay with you",
+          "memo": "OP映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "worlds collide",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "stay with you -ver.2022-",
+          "memo": "OP映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "for Seasons",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "The wind in your heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Your breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "on this night",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "passage",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "With falling snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "white forces",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "faraway sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Dear All",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "We Rise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "Leap of faith",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "final phase",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 26,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 27,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1376412",
+      "date": "2022-04-09",
+      "startTime": "16:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase2 Final Arena Tour 2022 -infinite synthesis:endless voyage-",
+      "venue": "ワールド記念ホール",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1376412",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "stay with you -ver.2022-",
+          "memo": "OP映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "dual existence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "legendary future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "endless voyage",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "worlds collide",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "stay with you",
+          "memo": "OP映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "for Seasons",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "The wind in your heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "Your breeze",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "closest love",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "fortuna on the Sixteenth night",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "passage",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "With falling snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "white forces",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Dear All",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "We Rise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "Leap of faith",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "final phase",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 26,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 27,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1376413",
+      "date": "2022-04-23",
+      "startTime": "17:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase2 Final Arena Tour 2022 -infinite synthesis:endless voyage-",
+      "venue": "さいたまスーパーアリーナ",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1376413",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "everlasting",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "way to answer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "future gazer",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "stay with you",
+          "memo": "OP映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "trusty snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "Heaven is a Place on Earth",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "stay with you -ver.2022-",
+          "memo": "OP映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "last fortune",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "fortissimo -from insanity affection-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "whitebird",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "colorless fate -version 2018-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "Dear All",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "sister's noise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "eternal reality",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "Secret of my heart",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "Luminize",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Two souls –toward the truth-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "white forces",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "1983-schwarzesmarken-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "magicaride -version2016-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "Hesitation Snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 26,
+          "title": "fortuna on the Sixteenth night",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 27,
+          "title": "Leap of faith",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 28,
+          "title": "We Rise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 29,
+          "title": "final phase",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    },
+    {
+      "eventId": "1376414",
+      "date": "2022-04-24",
+      "startTime": "16:00",
+      "openTime": "",
+      "title": "fripSide",
+      "tour": "fripSide Phase2 Final Arena Tour 2022 -infinite synthesis:endless voyage-",
+      "venue": "さいたまスーパーアリーナ",
+      "prefecture": "",
+      "artists": [
+        "fripSide"
+      ],
+      "sourceUrl": "https://www.livefans.jp/events/1376414",
+      "tracks": [
+        {
+          "position": 1,
+          "title": "pico scope -SACLA-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 2,
+          "title": "Edge of the Universe",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 3,
+          "title": "The end of escape",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 4,
+          "title": "clockwork planet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 5,
+          "title": "crossroads",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 6,
+          "title": "stay with you",
+          "memo": "OP映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 7,
+          "title": "killing bites",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 8,
+          "title": "divine criminal",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 9,
+          "title": "stay with you -ver.2022-",
+          "memo": "OP映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 10,
+          "title": "under a starlit sky",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 11,
+          "title": "BLACKFOX",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 12,
+          "title": "Love with You",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 13,
+          "title": "final phase",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 14,
+          "title": "dual existence",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 15,
+          "title": "legendary future",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 16,
+          "title": "worlds collide",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 17,
+          "title": "endless voyage",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 18,
+          "title": "memory of snow",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 19,
+          "title": "passage",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 20,
+          "title": "late in autumn",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 21,
+          "title": "Dear All",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 22,
+          "title": "We Rise",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 23,
+          "title": "Leap of faith",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 24,
+          "title": "infinite synthesis",
+          "memo": "",
+          "artistCredit": "八木沼悟志, 南條愛乃, 上杉真央, 阿部寿世",
+          "sectionNote": ""
+        },
+        {
+          "position": 25,
+          "title": "dawn of infinity",
+          "memo": "",
+          "artistCredit": "八木沼悟志, 上杉真央, 阿部寿世",
+          "sectionNote": ""
+        },
+        {
+          "position": 26,
+          "title": "prism",
+          "memo": "fripSide Phase2 ライブ振り返り映像",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 27,
+          "title": "black bullet",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 28,
+          "title": "when chance strikes",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 29,
+          "title": "Heaven is a Place on Earth",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 30,
+          "title": "LEVEL5-judgelight-",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        },
+        {
+          "position": 31,
+          "title": "only my railgun",
+          "memo": "",
+          "artistCredit": "",
+          "sectionNote": ""
+        }
+      ]
+    }
+  ],
+  "failures": []
+}

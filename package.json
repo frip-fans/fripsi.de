@@ -35,7 +35,11 @@
     "build:asia-festival-setlists": "node scripts/build-asia-festival-setlists.mjs",
     "build:dawn-final-setlist": "node scripts/build-dawn-of-resonance-final-setlist.mjs",
     "scrape:phase3-setlists": "node scripts/scrape-livefans-fripside-setlists.mjs",
-    "build:phase3-setlists": "node scripts/build-phase3-livefans-setlists.mjs"
+    "build:phase3-setlists": "node scripts/build-phase3-livefans-setlists.mjs",
+    "scrape:phase2-archive": "node scripts/scrape-livefans-phase2-archive.mjs",
+    "scrape:phase2-early-archive": "node scripts/scrape-livefans-phase2-archive.mjs 2014-01-01 2018-12-31 data/research/livefans-fripside-phase2-early-archive.json",
+    "build:phase2-archive": "node scripts/build-phase2-archive-import.mjs",
+    "build:phase2-early-archive": "node scripts/build-phase2-archive-import.mjs --early"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",

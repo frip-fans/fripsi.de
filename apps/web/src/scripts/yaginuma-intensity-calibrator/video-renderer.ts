@@ -117,23 +117,62 @@ export function createVideoRenderer(
   let seekFrame = 0;
   let pendingTargetTime: number | null = null;
   let seekInFlight = false;
+  let renderGeneration = 0;
+  let videoDrawGeneration = -1;
+  const fallbackFrames = new Map<number, Promise<HTMLImageElement>>();
 
-  const drawVideo = (): void => {
-    if (videoReady && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+  const drawVideo = (generation = renderGeneration): void => {
+    if (
+      generation === renderGeneration &&
+      videoReady &&
+      video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+    ) {
       drawSource(canvas, video);
+      videoDrawGeneration = generation;
       canvas.dataset.frame = String(scoreToVideoFrame(displayedScore)).padStart(3, "0");
     }
   };
 
-  const drawDecodedFrame = (): void => {
-    drawVideo();
+  const drawDecodedFrame = (generation: number): void => {
     if (typeof video.requestVideoFrameCallback === "function") {
       video.requestVideoFrameCallback(() => {
-        if (!seekInFlight && pendingTargetTime === null) {
-          drawVideo();
+        if (
+          generation === renderGeneration &&
+          !seekInFlight &&
+          pendingTargetTime === null
+        ) {
+          drawVideo(generation);
         }
       });
     }
+  };
+
+  const loadFallbackFrame = (score: number): Promise<HTMLImageElement> => {
+    const { frameIndex } = describeScore(score);
+    const cached = fallbackFrames.get(frameIndex);
+    if (cached) return cached;
+
+    const frame = new Image();
+    frame.src = getPosterPath(score, baseUrl);
+    const loaded = frame.decode().then(() => frame);
+    fallbackFrames.set(frameIndex, loaded);
+    return loaded;
+  };
+
+  const drawFallbackFrame = (score: number, generation: number): void => {
+    void loadFallbackFrame(score)
+      .then((frame) => {
+        // A decoded video frame is preferable, but the WebP frame guarantees
+        // visible feedback in browsers with unreliable video seeking.
+        if (
+          generation === renderGeneration &&
+          videoDrawGeneration < generation
+        ) {
+          drawSource(canvas, frame);
+          canvas.dataset.frame = String(scoreToVideoFrame(score)).padStart(3, "0");
+        }
+      })
+      .catch(() => undefined);
   };
 
   const scheduleLatestSeek = (): void => {
@@ -150,7 +189,7 @@ export function createVideoRenderer(
 
       if (Math.abs(video.currentTime - pendingTargetTime) < 0.001) {
         pendingTargetTime = null;
-        drawDecodedFrame();
+        drawDecodedFrame(renderGeneration);
         return;
       }
 
@@ -166,7 +205,7 @@ export function createVideoRenderer(
       Math.abs(video.currentTime - pendingTargetTime) < 0.001
     ) {
       pendingTargetTime = null;
-      drawDecodedFrame();
+      drawDecodedFrame(renderGeneration);
       return;
     }
     scheduleLatestSeek();
@@ -200,6 +239,8 @@ export function createVideoRenderer(
     },
     render(score) {
       displayedScore = score;
+      const generation = ++renderGeneration;
+      drawFallbackFrame(score, generation);
       canvas.dataset.frame = String(scoreToVideoFrame(score)).padStart(3, "0");
       if (!videoReady || !Number.isFinite(video.duration)) return;
 
@@ -208,6 +249,8 @@ export function createVideoRenderer(
       pendingTargetTime = Math.min(targetTime, lastFrameTime);
       scheduleLatestSeek();
     },
-    redraw: drawVideo,
+    redraw() {
+      drawVideo(renderGeneration);
+    },
   };
 }

@@ -1,14 +1,15 @@
 ---
 import type { EventRecord } from "@frip-fan/core";
-import { categoryLabels, formatDate, formatTime, statusLabel } from "../lib/format";
+import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../lib/format";
 import { getLocale, t } from "../lib/i18n";
 import Icon from "./Icon.astro";
 
 interface Props { event: EventRecord; compact?: boolean }
 const { event, compact = false } = Astro.props;
 const locale = getLocale(Astro.request);
+const displayStatus = displayEventStatus(event);
 ---
-<article class:list={["event-card", { compact, dimmed: event.status === "completed" }]}>
+<article class:list={["event-card", { compact, dimmed: displayStatus === "completed" }]}>
   <div class="event-date">
     <span>{event.start_date.slice(0, 4)}</span>
     <strong>{event.start_date.slice(5).replace("-", ".")}</strong>
@@ -16,7 +17,7 @@ const locale = getLocale(Astro.request);
   <div class="event-main">
     <div class="meta">
       <span class:list={["tag", event.category.toLowerCase()]}>{categoryLabels[event.category]}</span>
-      {event.status !== "scheduled" && <span class:list={["tag", event.status]}>{statusLabel(locale, event.status)}</span>}
+      {displayStatus !== "scheduled" && <span class:list={["tag", displayStatus]}>{statusLabel(locale, displayStatus)}</span>}
       {event.classification && <span class="tag">{event.classification}</span>}
     </div>
     <h3><a href={`/events/${event.slug}`}>{event.title}</a></h3>

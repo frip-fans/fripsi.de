@@ -1,4 +1,4 @@
-import type { EventRecord } from "@frip-fan/core";
+import { dateInTimeZone, type EventRecord } from "@frip-fan/core";
 import { t, type Locale } from "./i18n";
 
 export const categoryLabels: Record<EventRecord["category"], string> = {
@@ -25,6 +25,14 @@ const statusKeys: Record<EventRecord["status"], "status.scheduled" | "status.com
 
 export function statusLabel(locale: Locale, status: EventRecord["status"]): string {
   return t(locale, statusKeys[status]);
+}
+
+export function displayEventStatus(
+  event: Pick<EventRecord, "start_date" | "end_date" | "status">,
+  today = dateInTimeZone()
+): EventRecord["status"] {
+  if (event.status !== "scheduled") return event.status;
+  return (event.end_date ?? event.start_date) < today ? "completed" : "scheduled";
 }
 
 export function formatDate(date: string, endDate?: string | null, locale: Locale = "zh-CN"): string {

@@ -1,7 +1,7 @@
 ---
 import { getPublicEventBySlug, listPublicSetlistsForEvent } from "@frip-fan/core";
 import Icon from "../../components/Icon.astro";
-import { categoryLabels, formatDate, formatTime, statusLabel } from "../../lib/format";
+import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../../lib/format";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { getEnv } from "../../lib/env";
 import { getLocale, t } from "../../lib/i18n";
@@ -10,6 +10,7 @@ const locale = getLocale(Astro.request);
 const event = await getPublicEventBySlug(getEnv().DB, Astro.params.slug!);
 if (!event) return Astro.redirect("/404", 302);
 const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
+const displayStatus = displayEventStatus(event);
 ---
 <SiteLayout title={event.title} description={`${formatDate(event.start_date, event.end_date, locale)} ${event.title}`}>
   <a class="back" href="/calendar"><Icon name="arrow-left" />{t(locale, "event.back")}</a>
@@ -17,7 +18,7 @@ const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
     <header>
       <div class="meta">
         <span class="tag live">{categoryLabels[event.category]}</span>
-        <span class:list={["tag", event.status]}>{statusLabel(locale, event.status)}</span>
+        <span class:list={["tag", displayStatus]}>{statusLabel(locale, displayStatus)}</span>
         {event.classification && <span class="tag">{event.classification}</span>}
       </div>
       <h1>{event.title}</h1>

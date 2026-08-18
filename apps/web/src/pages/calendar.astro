@@ -2,7 +2,7 @@
 import { dateInTimeZone, searchEvents, type EventRecord } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import Icon from "../components/Icon.astro";
-import { categoryLabels, monthBounds, parseMonth, shiftMonth, statusLabel } from "../lib/format";
+import { categoryLabels, displayEventStatus, monthBounds, parseMonth, shiftMonth, statusLabel } from "../lib/format";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { formatMonthLabel, formatMonthOption, formatYearLabel, getLocale, t } from "../lib/i18n";
@@ -106,12 +106,15 @@ const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
         {day >= 1 && day <= days && <>
           <span class="day-number">{day}</span>
           <div class="day-events">
-            {(byDay.get(day) ?? []).map((event) => (
-              <a class:list={["calendar-event", event.category.toLowerCase(), event.status]} href={`/events/${event.slug}`} title={event.title}>
-                <small>{event.start_time ?? "ALL"}</small>{event.title}
-                {event.status !== "scheduled" && <b>{statusLabel(locale, event.status)}</b>}
-              </a>
-            ))}
+            {(byDay.get(day) ?? []).map((event) => {
+              const displayStatus = displayEventStatus(event, today);
+              return (
+                <a class:list={["calendar-event", event.category.toLowerCase(), displayStatus]} href={`/events/${event.slug}`} title={event.title}>
+                  <small>{event.start_time ?? "ALL"}</small>{event.title}
+                  {displayStatus !== "scheduled" && <b>{statusLabel(locale, displayStatus)}</b>}
+                </a>
+              );
+            })}
           </div>
         </>}
       </div>

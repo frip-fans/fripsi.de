@@ -10,7 +10,7 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
   headers.set("x-frame-options", "DENY");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
   const giscusOrigin = allowGiscus ? " https://giscus.app" : "";
-  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}; connect-src 'self'; frame-src 'self'${giscusOrigin}`);
+  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: https://tile.openstreetmap.org; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}; connect-src 'self'; frame-src 'self'${giscusOrigin}`);
   if (locale && headers.get("content-type")?.includes("text/html")) {
     headers.set("content-language", locale);
     headers.append("vary", "Cookie");

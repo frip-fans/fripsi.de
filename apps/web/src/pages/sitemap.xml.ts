@@ -10,7 +10,7 @@ export const GET: APIRoute = async ({ request }) => {
     db.prepare("SELECT id, updated_at FROM setlists WHERE published = 1 ORDER BY updated_at DESC").all<{ id: string; updated_at: string }>(),
   ]);
   const site = getEnv().SITE_URL || new URL(request.url).origin;
-  const staticPaths = ["/", "/calendar", "/archive", "/music/lives", "/music/releases", "/music/songs", "/yaginuma-intensity-calibrator", "/about"];
+  const staticPaths = ["/", "/calendar", "/archive", "/journey", "/music/lives", "/music/releases", "/music/songs", "/yaginuma-intensity-calibrator", "/about"];
   const urls = [
     ...staticPaths.map((path) => `<url><loc>${new URL(path, site)}</loc></url>`),
     ...events.results.map((row) => `<url><loc>${new URL(`/events/${encodeURIComponent(row.slug)}`, site)}</loc><lastmod>${row.updated_at.slice(0, 10)}</lastmod></url>`),

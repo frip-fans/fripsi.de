@@ -10,6 +10,7 @@
 
 - 按月份浏览活动，并通过公开的 iCalendar 地址订阅日历。
 - 按年份、类型和关键词查询历史活动。
+- 在 Live Journey 世界地图上拖动时间轴，播放历年实体活动轨迹。
 - 浏览 Live 歌单、专辑曲目、歌曲版本及相互之间的关联。
 - 支持简体中文、繁体中文、日语和英语界面。
 - 通过 `/admin` 管理活动、歌曲、专辑和歌单。
@@ -23,6 +24,7 @@
 - [Cloudflare D1](https://developers.cloudflare.com/d1/)
 - TypeScript、Vitest、Playwright
 - Bootstrap Icons（构建时作为本地 SVG 引入）
+- Leaflet + OpenStreetMap（交互地图与底图）
 
 项目不依赖 React，也不把 Notion 或其他第三方服务作为在线数据源。
 
@@ -78,6 +80,7 @@ MCP endpoint 默认为 `http://localhost:8787/mcp`，健康检查位于 `/health
 | `npm run build` | 构建全部 workspace |
 | `npm run build:web` | 只构建网站 |
 | `npm run visual:check` | 使用 Playwright 检查首页视觉状态 |
+| `node scripts/visual-check-journey.mjs` | 检查Journey桌面/移动端地图与播放交互 |
 | `npm run db:migrate:local` | 将 migrations 应用到本地 D1 |
 | `npm run db:seed:local` | 写入本地示例数据 |
 

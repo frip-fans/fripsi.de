@@ -81,6 +81,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
             <a class:list={{ active: current === "/" }} href="/">{t(locale, "nav.home")}</a>
             <a class:list={{ active: current.startsWith("/calendar") }} href="/calendar">{t(locale, "nav.calendar")}</a>
             <a class:list={{ active: current.startsWith("/archive") }} href="/archive">{t(locale, "nav.events")}</a>
+            <a class:list={{ active: current.startsWith("/journey") }} href="/journey">{t(locale, "nav.journey")}</a>
             <a class:list={{ active: current.startsWith("/music") }} href="/music/lives">{t(locale, "nav.music")}</a>
             <a class:list={{ active: current.startsWith("/yaginuma-intensity-calibrator") }} href="/yaginuma-intensity-calibrator">{t(locale, "nav.yaginuma")}</a>
             <a class:list={{ active: current.startsWith("/about") }} href="/about">{t(locale, "nav.about")}</a>

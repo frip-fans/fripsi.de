@@ -23,6 +23,8 @@ describe("structured location migration", () => {
        'YouTube', '在线', 'scheduled', 1, 1, '2026-01-01', '2026-01-01')`);
 
     db.exec(migration("0004_structured_locations.sql"));
+    db.exec(migration("0005_journey_coordinates.sql"));
+    db.exec(migration("0006_journey_coordinate_data.sql"));
 
     expect(db.prepare("SELECT location_mode FROM events WHERE id = ?").get("evt_physical"))
       .toMatchObject({ location_mode: "physical" });
@@ -38,6 +40,8 @@ describe("structured location migration", () => {
       .toMatchObject({ channel_type: "streaming", name: "YouTube" });
     expect(db.prepare("PRAGMA table_info(events)").all().map((column: Record<string, unknown>) => column.name))
       .not.toContain("venue");
+    expect(db.prepare("PRAGMA table_info(administrative_areas)").all().map((column: Record<string, unknown>) => column.name))
+      .toContain("latitude");
     expect(db.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
     db.close();
   });

@@ -48,7 +48,7 @@ function migration(name: string): string {
 describe("content admin structured locations", () => {
   it("creates an event, canonical venue, relation, and hydrated location label", async () => {
     const sqlite = new DatabaseSync(":memory:");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql"]) {
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql"]) {
       sqlite.exec(migration(name));
     }
     const db = new TestD1(sqlite) as unknown as D1Database;
@@ -86,7 +86,7 @@ describe("content admin structured locations", () => {
 
   it("publishes an MCP change set with a structured online channel", async () => {
     const sqlite = new DatabaseSync(":memory:");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql"]) {
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql"]) {
       sqlite.exec(migration(name));
     }
     const db = new TestD1(sqlite) as unknown as D1Database;

@@ -143,6 +143,8 @@ location_migration_backlog    无法安全自动拆分的旧地点待办
 
 活动不会把 Google Place ID、OSM ID 或经纬度当成永久身份；`venues.id` 是站内稳定主键。日本行政区使用五位标准地域代码，国家使用 ISO 3166-1，一级行政区可同时登记 ISO 3166-2。
 
+`0005_journey_coordinates.sql` 为行政区增加中心点坐标，并为场馆/行政区坐标建立部分索引。Live Journey 查询优先使用场馆坐标；缺失时回退到行政区中心点，API 会通过 `coordinate_precision` 明确返回 `venue` 或 `area`，避免把近似位置伪装成精确地址。
+
 ### 3.2 `event_sources`
 
 ```sql

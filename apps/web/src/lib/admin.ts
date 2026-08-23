@@ -2,7 +2,9 @@ import { ServiceError } from "@frip-fan/core";
 import type {
   DirectEventSaveInput,
   EventDraft,
+  EventChannelInput,
   EventPatch,
+  EventVenueInput,
   ReleaseSaveInput,
   SetlistSaveInput,
   SongSaveInput,
@@ -22,6 +24,45 @@ export function parseSources(value: string): SourceInput[] {
 }
 
 export function readEventForm(form: FormData): EventDraft {
+  const venueIds = all(form, "venue_id");
+  const venueNames = all(form, "venue_name");
+  const venueAreas = all(form, "venue_area_id");
+  const venueRoles = all(form, "venue_role");
+  const venueSnapshots = all(form, "venue_snapshot");
+  const venueAddresses = all(form, "venue_address");
+  const venueLatitudes = all(form, "venue_latitude");
+  const venueLongitudes = all(form, "venue_longitude");
+  const venuePrecisions = all(form, "venue_precision");
+  const venueCount = Math.max(venueIds.length, venueNames.length);
+  const venues: EventVenueInput[] = Array.from({ length: venueCount }, (_, index) => {
+    const venue_id = venueIds[index] || undefined;
+    const canonical_name = venueNames[index] || undefined;
+    const latitude = venueLatitudes[index] ? Number(venueLatitudes[index]) : null;
+    const longitude = venueLongitudes[index] ? Number(venueLongitudes[index]) : null;
+    return {
+      venue_id,
+      canonical_name,
+      administrative_area_id: venueAreas[index] || null,
+      address_text: venueAddresses[index] || null,
+      latitude,
+      longitude,
+      coordinate_precision: (venuePrecisions[index] || null) as EventVenueInput["coordinate_precision"],
+      role: (venueRoles[index] || "primary") as EventVenueInput["role"],
+      position: index + 1,
+      display_name_snapshot: venueSnapshots[index] || canonical_name || null,
+    };
+  }).filter((venue) => Boolean(venue.venue_id || venue.canonical_name));
+
+  const channelTypes = all(form, "channel_type");
+  const channelNames = all(form, "channel_name");
+  const channelUrls = all(form, "channel_url");
+  const channels: EventChannelInput[] = channelNames.map((name, index) => ({
+    channel_type: (channelTypes[index] || "other") as EventChannelInput["channel_type"],
+    name,
+    url: channelUrls[index] || null,
+    position: index + 1,
+  })).filter((channel) => Boolean(channel.name));
+
   return {
     slug: optional(form, "slug") ?? undefined,
     title: String(form.get("title") ?? ""),
@@ -32,8 +73,10 @@ export function readEventForm(form: FormData): EventDraft {
     timezone: optional(form, "timezone") ?? "Asia/Tokyo",
     category: String(form.get("category") ?? "OTHER") as EventDraft["category"],
     classification: optional(form, "classification"),
-    venue: optional(form, "venue"),
-    region: optional(form, "region"),
+    location_mode: String(form.get("location_mode") ?? "none") as EventDraft["location_mode"],
+    location_note: optional(form, "location_note"),
+    venues,
+    channels,
     remark: optional(form, "remark"),
     status: String(form.get("status") ?? "scheduled") as EventDraft["status"],
     sources: parseSources(String(form.get("sources") ?? ""))

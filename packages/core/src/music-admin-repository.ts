@@ -32,6 +32,16 @@ function likePattern(value: string): string {
   return `%${value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
 }
 
+const adminEventVenueDisplay = `(SELECT GROUP_CONCAT(COALESCE(ev.display_name_snapshot, v.canonical_name), ' / ')
+  FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+  WHERE ev.event_id = e.id ORDER BY ev.position)`;
+const adminEventAreaDisplay = `(SELECT GROUP_CONCAT(area_name, ' / ') FROM (
+  SELECT DISTINCT a.name_local AS area_name
+  FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+  JOIN administrative_areas a ON a.id = v.administrative_area_id
+  WHERE ev.event_id = e.id ORDER BY ev.position
+))`;
+
 function mapRelease(row: AdminReleaseRow): AdminReleaseSummary {
   return { ...row, published: row.published === 1 };
 }
@@ -128,7 +138,8 @@ const adminReleaseSelect = `
 
 const adminSetlistSelect = `
   SELECT sl.*, e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
-    e.classification AS event_classification, e.start_date, e.start_time, e.venue, e.region,
+    e.classification AS event_classification, e.start_date, e.start_time,
+    ${adminEventVenueDisplay} AS venue, ${adminEventAreaDisplay} AS region,
     (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count
   FROM setlists sl
   JOIN events e ON e.id = sl.event_id
@@ -171,7 +182,10 @@ export async function getAdminReleaseById(db: D1Database, id: string): Promise<A
 export async function listAdminSetlists(db: D1Database, query?: string, limit = 500): Promise<AdminSetlistSummary[]> {
   const search = query?.trim();
   const pattern = search ? likePattern(search) : null;
-  const where = search ? "WHERE e.title LIKE ? ESCAPE '\\' OR sl.title LIKE ? ESCAPE '\\' OR e.venue LIKE ? ESCAPE '\\'" : "";
+  const where = search ? `WHERE e.title LIKE ? ESCAPE '\\' OR sl.title LIKE ? ESCAPE '\\' OR EXISTS (
+    SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+    WHERE ev.event_id = e.id AND v.canonical_name LIKE ? ESCAPE '\\'
+  )` : "";
   const bindings = pattern ? [pattern, pattern, pattern] : [];
   const result = await db.prepare(`${adminSetlistSelect}
     ${where}

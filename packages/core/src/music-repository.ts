@@ -33,6 +33,21 @@ function likePattern(value: string): string {
   return `%${value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
 }
 
+function eventVenueDisplay(eventAlias: string): string {
+  return `(SELECT GROUP_CONCAT(COALESCE(ev.display_name_snapshot, v.canonical_name), ' / ')
+    FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+    WHERE ev.event_id = ${eventAlias}.id ORDER BY ev.position)`;
+}
+
+function eventAreaDisplay(eventAlias: string): string {
+  return `(SELECT GROUP_CONCAT(area_name, ' / ') FROM (
+    SELECT DISTINCT a.name_local AS area_name
+    FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+    JOIN administrative_areas a ON a.id = v.administrative_area_id
+    WHERE ev.event_id = ${eventAlias}.id ORDER BY ev.position
+  ))`;
+}
+
 async function getCatalogSources(
   db: D1Database,
   subjectType: CatalogSource["subject_type"],
@@ -86,7 +101,8 @@ const releaseSummarySelect = `
 const setlistSummarySelect = `
   SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes,
     e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
-    e.classification AS event_classification, e.start_date, e.start_time, e.venue, e.region,
+    e.classification AS event_classification, e.start_date, e.start_time,
+    ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
     (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count
   FROM setlists sl
   JOIN events e ON e.id = sl.event_id
@@ -109,7 +125,11 @@ function buildSetlistFilter(options: SetlistSearchOptions): { where: string; bin
   const bindings: unknown[] = [];
   if (options.query?.trim()) {
     const pattern = likePattern(options.query.trim());
-    clauses.push(`(e.title LIKE ? ESCAPE '\\' OR e.venue LIKE ? ESCAPE '\\' OR e.region LIKE ? ESCAPE '\\'
+    clauses.push(`(e.title LIKE ? ESCAPE '\\' OR EXISTS (
+        SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+        LEFT JOIN administrative_areas a ON a.id = v.administrative_area_id
+        WHERE ev.event_id = e.id AND (v.canonical_name LIKE ? ESCAPE '\\' OR a.name_local LIKE ? ESCAPE '\\')
+      )
       OR sl.title LIKE ? ESCAPE '\\' OR EXISTS (
         SELECT 1 FROM setlist_entries se
         JOIN songs s ON s.id = se.song_id
@@ -231,7 +251,8 @@ export async function getSongBySlug(db: D1Database, slug: string): Promise<SongD
     `).bind(song.id).all<SongReleaseAppearance>(),
     db.prepare(`
       SELECT sl.id AS setlist_id, sl.performance_label, e.slug AS event_slug, e.title AS event_title,
-        e.start_date, e.venue, e.region, se.position, se.section, se.display_title,
+        e.start_date, ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
+        se.position, se.section, se.display_title,
         se.performed_version_id, pv.slug AS performed_version_slug, pv.title AS performed_version_title,
         se.medley_group
       FROM setlist_entries se
@@ -329,7 +350,8 @@ export async function listSetlistsForYear(
   const result = await db.prepare(`
     SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes,
       e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
-      e.classification AS event_classification, e.start_date, e.start_time, e.venue, e.region,
+      e.classification AS event_classification, e.start_date, e.start_time,
+      ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
       (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count,
     COALESCE((
       SELECT GROUP_CONCAT(COALESCE(NULLIF(se.display_title, ''), s.title), ' ')

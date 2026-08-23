@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 interface ImportEvent {
   id: string; slug: string; title: string; start_date: string; end_date: string | null;
   start_time: string | null; end_time: string | null; timezone: string; category: string;
-  classification: string | null; venue: string | null; region: string | null; remark: string | null;
+  classification: string | null; location_mode: string; location_note: string | null; remark: string | null;
   status: string; published: boolean; source_url: string | null; source_label: string | null;
 }
 
@@ -28,10 +28,10 @@ const statements = ["PRAGMA foreign_keys = ON;"];
 for (const event of events) {
   statements.push(`INSERT OR IGNORE INTO events (
   id, slug, title, start_date, end_date, start_time, end_time, timezone, category,
-  classification, venue, region, remark, status, published, version, created_at, updated_at, published_at, archived_at
+  classification, location_mode, location_note, remark, status, published, version, created_at, updated_at, published_at, archived_at
 ) VALUES (${[
     event.id, event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time,
-    event.timezone, event.category, event.classification, event.venue, event.region, event.remark, event.status,
+    event.timezone, event.category, event.classification, event.location_mode, event.location_note, event.remark, event.status,
     event.published ? 1 : 0, 1, now, now, event.published ? now : null, null
   ].map(sql).join(", ")});`);
   if (event.source_url) {

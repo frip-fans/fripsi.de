@@ -1,14 +1,17 @@
 ---
 import EventForm from "../../../components/EventForm.astro";
+import { listAdministrativeAreas, listVenues } from "@frip-fan/core";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
 const canWrite = Astro.locals.actor!.scopes.includes("events:publish");
+const [areas, venueOptions] = await Promise.all([listAdministrativeAreas(getEnv().DB), listVenues(getEnv().DB)]);
 ---
 <SiteLayout title="新增活动" admin>
   <p class="eyebrow">New event</p><h1 class="page-title">新增活动</h1>
   <p class="lede">人工后台保存会直接生效并写入审计日志；关闭公开显示可以先保存在后台。</p>
   <form class="panel event-form" method="post" action="/api/admin/events/save">
     <input type="hidden" name="idempotency_key" value={`admin-create-${crypto.randomUUID()}`} />
-    <EventForm canWrite={canWrite} submitLabel="创建活动" />
+    <EventForm {areas} {venueOptions} canWrite={canWrite} submitLabel="创建活动" />
   </form>
 </SiteLayout>
 <style>.page-title { font-size: var(--heading-1-size); margin-bottom: 1rem; }.event-form { max-width: 900px; margin-top: 2rem; }</style>

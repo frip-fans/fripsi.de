@@ -10,6 +10,7 @@ import type {
   SetlistSection,
 } from "./music-types";
 import { getEventById, requireEvent } from "./repository";
+import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { dateSchema, eventDraftSchema, sourceInputSchema, type EventDraft } from "./schema";
 import type { Actor, EventRecord } from "./types";
 import { assertScope, createEventSlug, makeId, normalizeForDuplicate, ServiceError, slugify } from "./utils";
@@ -177,8 +178,7 @@ function normalizedEvent(input: EventDraft, id: string, existing?: EventRecord |
     start_time: cleanNullable(input.start_time),
     end_time: cleanNullable(input.end_time),
     classification: cleanNullable(input.classification),
-    venue: cleanNullable(input.venue),
-    region: cleanNullable(input.region),
+    location_note: cleanNullable(input.location_note),
     remark: cleanNullable(input.remark),
   };
 }
@@ -269,6 +269,7 @@ export class ContentAdminService {
     }
     const id = existing?.id ?? makeId("evt");
     const event = normalizedEvent(input.event, id, existing);
+    const location = prepareEventLocation(event);
     const now = nextUpdatedAt(existing?.updated_at);
     const conditionSql = "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)";
     const conditionBindings = [id, now];
@@ -277,26 +278,28 @@ export class ContentAdminService {
     if (existing) {
       statements.push(this.db.prepare(`UPDATE events SET
         slug = ?, title = ?, start_date = ?, end_date = ?, start_time = ?, end_time = ?, timezone = ?,
-        category = ?, classification = ?, venue = ?, region = ?, remark = ?, status = ?, published = ?,
+        category = ?, classification = ?, location_mode = ?, location_note = ?, remark = ?, status = ?, published = ?,
         version = version + 1, updated_at = ?,
         published_at = CASE WHEN ? = 1 AND published_at IS NULL THEN ? ELSE published_at END
         WHERE id = ? AND version = ? AND updated_at = ?`)
         .bind(
           event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time, event.timezone,
-          event.category, event.classification, event.venue, event.region, event.remark, event.status,
+          event.category, event.classification, event.location_mode, event.location_note, event.remark, event.status,
           input.published ? 1 : 0, now, input.published ? 1 : 0, now, id, existing.version, existing.updated_at,
         ));
     } else {
       statements.push(this.db.prepare(`INSERT INTO events (
         id, slug, title, start_date, end_date, start_time, end_time, timezone, category,
-        classification, venue, region, remark, status, published, version, created_at, updated_at, published_at, archived_at
+        classification, location_mode, location_note, remark, status, published, version, created_at, updated_at, published_at, archived_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, NULL)`)
         .bind(
           id, event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time,
-          event.timezone, event.category, event.classification, event.venue, event.region, event.remark,
+          event.timezone, event.category, event.classification, event.location_mode, event.location_note, event.remark,
           event.status, input.published ? 1 : 0, now, now, input.published ? now : null,
         ));
     }
+
+    statements.push(...replaceEventLocationStatements(this.db, id, location, now, conditionSql, conditionBindings));
 
     statements.push(this.db.prepare(`DELETE FROM event_sources
       WHERE event_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings));

@@ -22,7 +22,7 @@ const displayStatus = displayEventStatus(event);
     </div>
     <h3><a href={`/events/${event.slug}`}>{event.title}</a></h3>
     <p>{formatDate(event.start_date, event.end_date, locale)} · {formatTime(event, locale)}</p>
-    {(event.venue || event.region) && <p class="venue">{[event.venue, event.region].filter(Boolean).join(" · ")}</p>}
+    {event.location_label && <p class="venue">{event.location_label}</p>}
   </div>
   <a class="arrow" href={`/events/${event.slug}`} aria-label={t(locale, "common.view", { title: event.title })}><Icon name="arrow-up-right" size="1.05rem" /></a>
 </article>

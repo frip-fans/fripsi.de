@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
+throw new Error("此一次性字段补全生成器使用已移除的 events.venue/region schema；0004 后请通过结构化 Admin/MCP 更新地点。");
+
 const VERIFIED_AT = "2026-07-19T03:30:00.000Z";
 const REVIEW_ROOT = process.argv[2] ? resolve(process.argv[2]) : "/tmp";
 const CURRENT_EVENTS_PATH = process.argv[3]

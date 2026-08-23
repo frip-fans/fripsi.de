@@ -1,8 +1,9 @@
 import { duplicateInputSchema, searchInputSchema, type SearchInput } from "./schema";
+import { hydrateEventLocations } from "./locations";
 import type { AuditLog, ChangeSet, DuplicateCandidate, EventRecord, EventSource } from "./types";
 import { normalizeForDuplicate, ServiceError } from "./utils";
 
-interface EventRow extends Omit<EventRecord, "published" | "sources"> {
+interface EventRow extends Omit<EventRecord, "published" | "sources" | "venues" | "channels" | "venue_label" | "area_label" | "location_label"> {
   published: number;
 }
 
@@ -19,9 +20,14 @@ function eventSearchWhere(input: SearchInput, publicOnly: boolean): { where: str
     }
   }
   if (input.query) {
-    clauses.push("(title LIKE ? OR venue LIKE ? OR region LIKE ? OR classification LIKE ? OR EXISTS (SELECT 1 FROM event_sources s WHERE s.event_id = events.id AND s.url LIKE ?))");
+    clauses.push(`(title LIKE ? OR classification LIKE ?
+      OR EXISTS (SELECT 1 FROM event_sources s WHERE s.event_id = events.id AND s.url LIKE ?)
+      OR EXISTS (SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+        LEFT JOIN administrative_areas a ON a.id = v.administrative_area_id
+        WHERE ev.event_id = events.id AND (v.canonical_name LIKE ? OR a.name_local LIKE ?))
+      OR EXISTS (SELECT 1 FROM event_channels ec WHERE ec.event_id = events.id AND ec.name LIKE ?))`);
     const pattern = `%${input.query.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-    bindings.push(pattern, pattern, pattern, pattern, pattern);
+    bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
   }
   if (input.date_from) {
     clauses.push("COALESCE(end_date, start_date) >= ?");
@@ -47,7 +53,15 @@ function eventSearchWhere(input: SearchInput, publicOnly: boolean): { where: str
 }
 
 function mapEvent(row: EventRow): EventRecord {
-  return { ...row, published: row.published === 1 };
+  return {
+    ...row,
+    published: row.published === 1,
+    venues: [],
+    channels: [],
+    venue_label: null,
+    area_label: null,
+    location_label: row.location_note,
+  };
 }
 
 export async function getSources(db: D1Database, eventId: string): Promise<EventSource[]> {
@@ -60,7 +74,7 @@ export async function getEventById(db: D1Database, id: string, includeSources = 
   if (!row) return null;
   const event = mapEvent(row);
   if (includeSources) event.sources = await getSources(db, id);
-  return event;
+  return (await hydrateEventLocations(db, [event]))[0];
 }
 
 export async function getPublicEventBySlug(db: D1Database, slug: string): Promise<EventRecord | null> {
@@ -68,7 +82,7 @@ export async function getPublicEventBySlug(db: D1Database, slug: string): Promis
   if (!row) return null;
   const event = mapEvent(row);
   event.sources = await getSources(db, event.id);
-  return event;
+  return (await hydrateEventLocations(db, [event]))[0];
 }
 
 export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false): Promise<EventRecord[]> {
@@ -76,7 +90,7 @@ export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {
   const { where, bindings } = eventSearchWhere(input, publicOnly);
   const statement = db.prepare(`SELECT * FROM events ${where} ORDER BY start_date ASC, start_time ASC, title ASC LIMIT ? OFFSET ?`);
   const result = await statement.bind(...bindings, input.limit, input.offset).all<EventRow>();
-  return result.results.map(mapEvent);
+  return hydrateEventLocations(db, result.results.map(mapEvent));
 }
 
 export async function countEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false): Promise<number> {
@@ -92,7 +106,7 @@ export async function listPublicCalendarEvents(db: D1Database): Promise<EventRec
     WHERE published = 1 AND archived_at IS NULL
     ORDER BY start_date ASC, start_time ASC, title ASC
   `).all<EventRow>();
-  return result.results.map(mapEvent);
+  return hydrateEventLocations(db, result.results.map(mapEvent));
 }
 
 export async function listLatestPublicEvents(db: D1Database, limit = 6): Promise<EventRecord[]> {
@@ -103,7 +117,7 @@ export async function listLatestPublicEvents(db: D1Database, limit = 6): Promise
     ORDER BY start_date DESC, start_time DESC, title ASC
     LIMIT ?
   `).bind(safeLimit).all<EventRow>();
-  return result.results.map(mapEvent);
+  return hydrateEventLocations(db, result.results.map(mapEvent));
 }
 
 export async function listArchiveYears(db: D1Database): Promise<Array<{ year: string; count: number }>> {
@@ -126,17 +140,19 @@ export async function findDuplicates(db: D1Database, raw: unknown): Promise<Dupl
     WHERE e.archived_at IS NULL
       AND COALESCE(e.end_date, e.start_date) >= ?
       AND e.start_date <= ?
-      AND (e.title = ? OR (? IS NOT NULL AND e.venue = ?) OR (? IS NOT NULL AND s.url = ?))
+      AND (e.title = ? OR (? IS NOT NULL AND EXISTS (
+        SELECT 1 FROM event_venues ev WHERE ev.event_id = e.id AND ev.venue_id = ?
+      )) OR (? IS NOT NULL AND s.url = ?))
     ORDER BY e.start_date ASC
     LIMIT 20
-  `).bind(input.start_date, end, input.title, input.venue ?? null, input.venue ?? null, input.source_url ?? null, input.source_url ?? null).all<EventRow>();
+  `).bind(input.start_date, end, input.title, input.venue_id ?? null, input.venue_id ?? null, input.source_url ?? null, input.source_url ?? null).all<EventRow>();
 
   const normalizedTitle = normalizeForDuplicate(input.title);
-  return result.results.map((row) => {
-    const event = mapEvent(row);
+  const events = await hydrateEventLocations(db, result.results.map(mapEvent));
+  return events.map((event) => {
     const reasons: string[] = [];
     if (normalizeForDuplicate(event.title) === normalizedTitle) reasons.push("标题相同或规范化后相同");
-    if (input.venue && event.venue === input.venue) reasons.push("日期重叠且场地相同");
+    if (input.venue_id && event.venues.some((venue) => venue.id === input.venue_id)) reasons.push("日期重叠且场地相同");
     if (input.source_url) reasons.push("可能使用了相同来源 URL");
     return { event, reasons };
   });

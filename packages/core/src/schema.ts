@@ -2,6 +2,9 @@ import { z } from "zod";
 
 export const categorySchema = z.enum(["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"]);
 export const eventStatusSchema = z.enum(["scheduled", "completed", "cancelled", "postponed"]);
+export const locationModeSchema = z.enum(["none", "physical", "online", "broadcast", "hybrid", "multiple", "undisclosed", "unknown"]);
+export const venueRoleSchema = z.enum(["primary", "secondary", "broadcast_origin"]);
+export const channelTypeSchema = z.enum(["streaming", "radio", "television", "digital_store", "download", "other"]);
 export const changeOperationSchema = z.enum([
   "create",
   "update",
@@ -30,6 +33,66 @@ export const sourceInputSchema = z.object({
   source_type: z.string().trim().max(50).optional()
 });
 
+export const eventVenueInputSchema = z.object({
+  venue_id: z.string().trim().min(1).max(160).optional(),
+  canonical_name: z.string().trim().min(1).max(240).optional(),
+  administrative_area_id: z.string().trim().min(1).max(160).nullish(),
+  address_text: z.string().trim().max(500).nullish(),
+  latitude: z.number().min(-90).max(90).nullish(),
+  longitude: z.number().min(-180).max(180).nullish(),
+  coordinate_precision: z.enum(["entrance", "building", "site", "approximate"]).nullish(),
+  coordinate_source: z.string().trim().max(120).nullish(),
+  role: venueRoleSchema.default("primary"),
+  position: z.number().int().min(1).max(100).default(1),
+  display_name_snapshot: z.string().trim().max(240).nullish(),
+}).superRefine((venue, context) => {
+  if (!venue.venue_id && !venue.canonical_name) {
+    context.addIssue({ code: "custom", path: ["canonical_name"], message: "新场馆必须填写名称" });
+  }
+  if ((venue.latitude == null) !== (venue.longitude == null)) {
+    context.addIssue({ code: "custom", path: ["latitude"], message: "纬度和经度必须同时填写" });
+  }
+});
+
+export const eventChannelInputSchema = z.object({
+  channel_type: channelTypeSchema,
+  name: z.string().trim().min(1).max(240),
+  url: sourceUrlSchema.nullish(),
+  position: z.number().int().min(1).max(100).default(1),
+});
+
+function validateLocation(event: {
+  location_mode: z.infer<typeof locationModeSchema>;
+  venues: z.infer<typeof eventVenueInputSchema>[];
+  channels: z.infer<typeof eventChannelInputSchema>[];
+}, context: z.RefinementCtx): void {
+  if (event.location_mode === "none" && (event.venues.length || event.channels.length)) {
+    context.addIssue({ code: "custom", path: ["location_mode"], message: "无地点活动不能关联场馆或渠道" });
+  }
+  if (event.location_mode === "physical" && event.venues.length !== 1) {
+    context.addIssue({ code: "custom", path: ["venues"], message: "实体活动必须关联一个场馆" });
+  }
+  if (event.location_mode === "multiple" && event.venues.length < 2) {
+    context.addIssue({ code: "custom", path: ["venues"], message: "多地点活动至少需要两个场馆" });
+  }
+  if (event.location_mode === "online" && !event.channels.length) {
+    context.addIssue({ code: "custom", path: ["channels"], message: "线上活动至少需要一个渠道" });
+  }
+  if (event.location_mode === "broadcast" && !event.channels.length) {
+    context.addIssue({ code: "custom", path: ["channels"], message: "广播活动至少需要一个渠道" });
+  }
+  if (event.location_mode === "hybrid" && (!event.venues.length || !event.channels.length)) {
+    context.addIssue({ code: "custom", path: ["location_mode"], message: "混合活动必须同时关联场馆和渠道" });
+  }
+}
+
+export const eventLocationSchema = z.object({
+  location_mode: locationModeSchema,
+  location_note: z.string().trim().max(1000).nullish().transform((value) => value || null),
+  venues: z.array(eventVenueInputSchema).max(20).default([]),
+  channels: z.array(eventChannelInputSchema).max(20).default([]),
+}).superRefine(validateLocation);
+
 export const eventDraftSchema = z.object({
   slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug 只能包含小写字母、数字和连字符").optional(),
   title: z.string().trim().min(1).max(240),
@@ -40,8 +103,10 @@ export const eventDraftSchema = z.object({
   timezone: z.string().trim().min(1).max(80).default("Asia/Tokyo"),
   category: categorySchema,
   classification: z.string().trim().max(120).nullish(),
-  venue: z.string().trim().max(240).nullish(),
-  region: z.string().trim().max(120).nullish(),
+  location_mode: locationModeSchema,
+  location_note: z.string().trim().max(1000).nullish(),
+  venues: z.array(eventVenueInputSchema).max(20).default([]),
+  channels: z.array(eventChannelInputSchema).max(20).default([]),
   remark: z.string().trim().max(4000).nullish(),
   status: eventStatusSchema.default("scheduled"),
   sources: z.array(sourceInputSchema).min(1, "至少需要一个官方来源").max(10)
@@ -55,6 +120,7 @@ export const eventDraftSchema = z.object({
   if (event.end_date && event.end_date === event.start_date && event.start_time && event.end_time && event.end_time < event.start_time) {
     context.addIssue({ code: "custom", path: ["end_time"], message: "同日活动的结束时间不能早于开始时间" });
   }
+  validateLocation(event, context);
 });
 
 export const eventPatchSchema = z.object({
@@ -67,8 +133,10 @@ export const eventPatchSchema = z.object({
   timezone: z.string().trim().min(1).max(80).optional(),
   category: categorySchema.optional(),
   classification: z.string().trim().max(120).nullish(),
-  venue: z.string().trim().max(240).nullish(),
-  region: z.string().trim().max(120).nullish(),
+  location_mode: locationModeSchema.optional(),
+  location_note: z.string().trim().max(1000).nullish(),
+  venues: z.array(eventVenueInputSchema).max(20).optional(),
+  channels: z.array(eventChannelInputSchema).max(20).optional(),
   remark: z.string().trim().max(4000).nullish(),
   sources: z.array(sourceInputSchema).max(10).optional()
 }).refine((patch) => Object.keys(patch).length > 0, "至少需要修改一个字段");
@@ -89,7 +157,7 @@ export const duplicateInputSchema = z.object({
   title: z.string().trim().min(1).max(240),
   start_date: dateSchema,
   end_date: dateSchema.nullish(),
-  venue: z.string().trim().max(240).nullish(),
+  venue_id: z.string().trim().min(1).max(160).nullish(),
   source_url: sourceUrlSchema.optional()
 });
 
@@ -127,6 +195,11 @@ export const proposeLifecycleSchema = z.object({
 
 export type Category = z.infer<typeof categorySchema>;
 export type EventStatus = z.infer<typeof eventStatusSchema>;
+export type LocationMode = z.infer<typeof locationModeSchema>;
+export type VenueRole = z.infer<typeof venueRoleSchema>;
+export type ChannelType = z.infer<typeof channelTypeSchema>;
+export type EventVenueInput = z.infer<typeof eventVenueInputSchema>;
+export type EventChannelInput = z.infer<typeof eventChannelInputSchema>;
 export type ChangeOperation = z.infer<typeof changeOperationSchema>;
 export type ChangeStatus = z.infer<typeof changeStatusSchema>;
 export type EventDraft = z.infer<typeof eventDraftSchema>;

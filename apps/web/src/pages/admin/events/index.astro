@@ -42,7 +42,7 @@ const events = await searchEvents(db, {
       <tbody>
         {events.map((event) => <tr>
           <td>{event.start_date}</td>
-          <td><a href={`/admin/events/${event.id}`}>{event.title}</a><small>{event.venue}</small></td>
+          <td><a href={`/admin/events/${event.id}`}>{event.title}</a><small>{event.location_label}</small></td>
           <td>{categoryLabels[event.category]}</td>
           <td><span class:list={["tag", event.status]}>{statusLabels[event.status]}</span></td>
           <td>{event.archived_at ? "归档" : event.published ? "是" : "否"}</td>

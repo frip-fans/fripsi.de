@@ -84,8 +84,11 @@ CREATE TABLE events (
     category IN ('LIVE', 'EVENT', 'RELEASE', 'MEDIA', 'OTHER')
   ),
   classification TEXT,
-  venue TEXT,
-  region TEXT,
+  location_mode TEXT NOT NULL CHECK (
+    location_mode IN ('none', 'physical', 'online', 'broadcast', 'hybrid',
+      'multiple', 'undisclosed', 'unknown')
+  ),
+  location_note TEXT,
   remark TEXT,
   status TEXT NOT NULL DEFAULT 'scheduled' CHECK (
     status IN ('scheduled', 'completed', 'cancelled', 'postponed')
@@ -119,6 +122,26 @@ CREATE INDEX idx_events_status_date
 - 日期无具体时间时 `start_time`、`end_time` 均为空。
 - `version` 每次成功更新加一，用于乐观锁。
 - 归档不删除数据；`archived_at` 非空时不出现在公开站点。
+- `location_mode` 表达地点形态；场馆、行政区和传播渠道不再保存为 `events` 自由文本列。
+- `location_note` 只用于未公开、待确认或无法完全结构化的例外说明。
+
+#### 3.1.1 结构化地点
+
+`0004_structured_locations.sql` 增加以下实体：
+
+```text
+administrative_areas          国家、都道府县、市区町村等行政层级
+administrative_area_codes     ISO 3166 与各国官方地区代码
+administrative_area_aliases   旧地区文本到标准行政区的迁移映射
+venues                        实体场馆、地址和经纬度
+venue_aliases                 场馆历史名称和其他写法
+venue_external_ids            Google、OSM、Wikidata 等外部引用
+event_venues                  活动与一个或多个实体场馆的关联
+event_channels                直播、广播、电视、数字商店等传播渠道
+location_migration_backlog    无法安全自动拆分的旧地点待办
+```
+
+活动不会把 Google Place ID、OSM ID 或经纬度当成永久身份；`venues.id` 是站内稳定主键。日本行政区使用五位标准地域代码，国家使用 ISO 3166-1，一级行政区可同时登记 ISO 3166-2。
 
 ### 3.2 `event_sources`
 
@@ -218,9 +241,10 @@ CREATE INDEX idx_audit_logs_actor
 4. 重新验证 `payload_json`。
 5. 对 create/update 执行重复检测。
 6. 写入或更新 `events`，版本号加一。
-7. 写入来源记录。
-8. 更新 change set 为 `published`。
-9. 写入包含 before/after 的 audit log。
+7. 原子替换 `event_venues`、`event_channels`，必要时创建新场馆。
+8. 写入来源记录。
+9. 更新 change set 为 `published`。
+10. 写入包含 before/after 的 audit log。
 
 如果版本不一致，返回冲突和当前记录，不自动覆盖。AI 或人工必须基于新版本重新生成 change set。
 
@@ -285,7 +309,8 @@ Tags, Date, Name, Remark, Classification, Text
 
 ```text
 id,slug,title,start_date,end_date,start_time,end_time,timezone,category,
-classification,venue,region,remark,status,published,source_url
+classification,location_mode,location_note,venue_ids,venue_names,area_names,
+area_codes,channels,remark,status,published,source_urls
 ```
 
 导入分为两步：验证预览和明确确认。验证失败不能部分写入。导出包含所有活动和来源，但不包含 audit log 中的内部元数据。

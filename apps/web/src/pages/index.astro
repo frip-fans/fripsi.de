@@ -43,7 +43,7 @@ const latest = upcoming;
         <>
           <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
           <h2>{next.title}</h2>
-          <p>{[next.venue, next.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending")}</p>
+          <p>{next.location_label || t(locale, "common.locationPending")}</p>
           <a href={`/events/${next.slug}`}>{t(locale, "home.details")} <Icon name="arrow-up-right" /></a>
         </>
       ) : (

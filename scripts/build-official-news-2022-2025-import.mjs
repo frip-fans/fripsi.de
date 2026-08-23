@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 
+throw new Error("此一次性生成器使用已移除的 events.venue/region schema；0004 后请通过结构化 Admin/MCP 导入活动。");
+
 const YEARS = [2022, 2023, 2024, 2025];
 const VERIFIED_AT = "2026-07-19T00:00:00.000Z";
 const REVIEW_ROOT = process.argv[2] ? resolve(process.argv[2]) : "/tmp";

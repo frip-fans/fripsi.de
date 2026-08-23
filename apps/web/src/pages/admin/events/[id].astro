@@ -1,5 +1,5 @@
 ---
-import { getEventById } from "@frip-fan/core";
+import { getEventById, listAdministrativeAreas, listVenues } from "@frip-fan/core";
 import EventForm from "../../../components/EventForm.astro";
 import Icon from "../../../components/Icon.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
@@ -7,6 +7,7 @@ import { getEnv } from "../../../lib/env";
 
 const event = await getEventById(getEnv().DB, Astro.params.id!);
 if (!event) return Astro.redirect("/admin/events", 302);
+const [areas, venueOptions] = await Promise.all([listAdministrativeAreas(getEnv().DB), listVenues(getEnv().DB)]);
 const actor = Astro.locals.actor!;
 const canWrite = actor.scopes.includes("events:publish");
 const saved = Astro.url.searchParams.get("saved") === "1";
@@ -20,7 +21,7 @@ const saved = Astro.url.searchParams.get("saved") === "1";
     <input type="hidden" name="id" value={event.id} />
     <input type="hidden" name="expected_version" value={event.version} />
     <input type="hidden" name="idempotency_key" value={`admin-save-${event.id}-${crypto.randomUUID()}`} />
-    <EventForm event={event} submitLabel="保存活动" canWrite={canWrite} />
+    <EventForm event={event} {areas} {venueOptions} submitLabel="保存活动" canWrite={canWrite} />
   </form>
   <section class="panel lifecycle">
     <div><h2>归档</h2><p class="muted">归档会立即从公开页面隐藏，同时保留数据和审计记录。</p></div>

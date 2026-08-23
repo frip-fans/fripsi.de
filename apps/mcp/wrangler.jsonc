@@ -26,14 +26,14 @@
         {
           "binding": "DB",
           "database_name": "frip-fan-prod",
-          "database_id": "00000000-0000-0000-0000-000000000000",
+          "database_id": "f35ee3c1-3f65-44ed-988b-e6cbf2c187f6",
           "migrations_dir": "../../migrations"
         }
       ],
       "vars": {
         "MCP_RESOURCE_URL": "https://mcp.example.com",
         "SITE_URL": "https://fripsi.de",
-        "MCP_AUTHORIZATION_SERVER": "https://your-team.cloudflareaccess.com"
+        "MCP_AUTHORIZATION_SERVER": "https://rklee.cloudflareaccess.com"
       }
     }
   }

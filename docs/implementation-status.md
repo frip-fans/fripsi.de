@@ -1,6 +1,6 @@
 # 实现状态
 
-最后更新：2026-07-19
+最后更新：2026-08-23
 
 ## 已完成
 
@@ -18,6 +18,8 @@
 - 重复候选、幂等 propose/publish、乐观锁和条件写入。
 - AI/MCP 的 create/update/status/unpublish/archive/restore 经过 change set；可信人工后台使用受控直接保存。
 - 人工活动、专辑与 Setlist 保存均使用乐观锁、幂等回执和 before/after 审计。
+- 活动地点已拆分为地点形态、标准行政区、实体场馆、多场馆关联和线上/广播渠道；旧 `events.venue/region` 契约已移除。
+- 日本行政区字典包含47都道府县及当前数据所需区级代码；海外活动保留 ISO 国家代码与可扩展的本地行政层级。
 
 ### 公开网站
 
@@ -36,7 +38,7 @@
 
 - Cloudflare Access JWT 服务端验证和本地开发身份开关。
 - editor/publisher scope 区分。
-- 活动搜索、筛选、创建和修改表单。
+- 活动搜索、筛选、创建和修改表单；地点编辑支持复用/新建场馆、多场馆、行政区、坐标及多个传播渠道。
 - 人工活动直接保存、公开/隐藏、归档和恢复；未公开记录可暂存在后台。
 - Setlist、专辑与歌曲的列表、搜索、新建和编辑；歌曲表单同时维护别名、来源及多个歌曲版本。
 - AI 变更预览、重复警告、发布和丢弃。
@@ -58,13 +60,14 @@
 - 数量、日期范围、分类、排除项和缺少来源报告。
 - 可重复执行的 D1 SQL 与逐项 import audit log。
 - 发行曲目与 Live 歌单双 CSV 模板、整批校验、稳定 ID、幂等 upsert 和事务 SQL。
+- `build-official-news-2022-2025-import.mjs` 与 `build-official-field-completion-import.mjs` 是已经执行完成的旧 schema 一次性生成器；0004 后会明确拒绝运行，后续地点修改统一走结构化 Admin/MCP。
 
 ## 已执行验证
 
 - 全部 workspace 类型检查通过。
-- 19 个 schema/utility/iCalendar/admin parser/i18n 测试通过。
+- 39 个 schema、结构迁移、真实 SQL 服务、utility、iCalendar、admin parser 与 i18n 测试通过。
 - Web SSR 与 MCP Worker 构建通过。
-- 三个 D1 migration 在本地 workerd 实际执行成功。
+- 四个 D1 migration 在空库和旧生产备份副本执行成功，结构化地点 migration 的 `foreign_key_check` 无异常。
 - 公开首页、月历和 `/admin` 均返回 HTTP 200。
 - `/calendar.ics` 实际返回公开 D1 活动，CRLF、MIME、ETag 和 304 缓存响应均已核验。
 - 实际完成一次后台“创建提案 → 预览 → 发布 → 公开详情”流程。

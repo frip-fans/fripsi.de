@@ -15,8 +15,8 @@ interface NormalizedLegacyEvent {
   timezone: "Asia/Tokyo";
   category: Category;
   classification: string | null;
-  venue: string | null;
-  region: string | null;
+  location_mode: "none" | "unknown";
+  location_note: string | null;
   remark: string | null;
   status: EventStatus;
   published: true;
@@ -146,8 +146,8 @@ dataRows.forEach((row, index) => {
     timezone: "Asia/Tokyo",
     category: mapCategory(tags, classification),
     classification: classification || null,
-    venue: null,
-    region: null,
+    location_mode: mapCategory(tags, classification) === "RELEASE" ? "none" : "unknown",
+    location_note: null,
     remark: remark || null,
     status: mapStatus(title, dates.start),
     published: true,

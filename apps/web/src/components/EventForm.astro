@@ -1,9 +1,11 @@
 ---
-import type { EventRecord } from "@frip-fan/core";
+import type { AdministrativeArea, EventRecord, VenueRecord } from "@frip-fan/core";
 
-interface Props { event?: EventRecord; submitLabel?: string; canWrite?: boolean }
-const { event, submitLabel = "保存活动", canWrite = true } = Astro.props;
+interface Props { event?: EventRecord; areas: AdministrativeArea[]; venueOptions: VenueRecord[]; submitLabel?: string; canWrite?: boolean }
+const { event, areas, venueOptions, submitLabel = "保存活动", canWrite = true } = Astro.props;
 const sources = event?.sources?.map((source) => `${source.url} | ${source.label ?? ""} | ${source.source_type ?? "official"}`).join("\n") ?? "";
+const venueRows = event?.venues.length ? event.venues : [null];
+const channelRows = event?.channels.length ? event.channels : [null];
 ---
 <div class="form-grid">
   <label class="wide">活动标题 *<input name="title" required maxlength="240" value={event?.title ?? ""} /></label>
@@ -23,18 +25,102 @@ const sources = event?.sources?.map((source) => `${source.url} | ${source.label 
   </label>
   <label>细分类<input name="classification" maxlength="120" value={event?.classification ?? ""} placeholder="Tour / Anniversary / Single…" /></label>
   <label>时区<input name="timezone" value={event?.timezone ?? "Asia/Tokyo"} /></label>
-  <label>场地<input name="venue" maxlength="240" value={event?.venue ?? ""} /></label>
-  <label>地区<input name="region" maxlength="120" value={event?.region ?? ""} /></label>
+  <label>地点形态 *
+    <select name="location_mode" required>
+      {(["none", "physical", "online", "broadcast", "hybrid", "multiple", "undisclosed", "unknown"] as const).map((value) =>
+        <option value={value} selected={(event?.location_mode ?? "none") === value}>{value}</option>)}
+    </select>
+  </label>
+  <label class="wide">地点说明<input name="location_note" maxlength="1000" value={event?.location_note ?? ""} placeholder="只用于未公开、待确认或无法完全结构化的补充说明" /></label>
+  <fieldset class="wide location-editor" data-location-list>
+    <legend>实体场馆</legend>
+    <div data-location-rows>
+      {venueRows.map((venue) => <div class="location-row" data-location-row>
+        <label>既有场馆
+          <select name="venue_id">
+            <option value="">新建场馆…</option>
+            {venueOptions.map((option) => <option value={option.id} selected={venue?.id === option.id}>{option.canonical_name}{option.area_name ? ` · ${option.area_name}` : ""}</option>)}
+          </select>
+        </label>
+        <label>新场馆名称<input name="venue_name" maxlength="240" value="" placeholder="选择既有场馆时留空" /></label>
+        <label>新场馆行政区
+          <select name="venue_area_id"><option value="">未确定</option>{areas.map((area) =>
+            <option value={area.id}>{area.country_code} · {area.name_local}{area.codes[0] ? ` (${area.codes[0].code})` : ""}</option>)}</select>
+        </label>
+        <label>角色<select name="venue_role">{(["primary", "secondary", "broadcast_origin"] as const).map((role) => <option value={role} selected={(venue?.role ?? "primary") === role}>{role}</option>)}</select></label>
+        <label>当时显示名<input name="venue_snapshot" maxlength="240" value={venue?.display_name_snapshot ?? ""} /></label>
+        <label>地址<input name="venue_address" maxlength="500" value="" /></label>
+        <label>纬度<input name="venue_latitude" inputmode="decimal" /></label>
+        <label>经度<input name="venue_longitude" inputmode="decimal" /></label>
+        <label>坐标精度<select name="venue_precision"><option value="">未填写</option>{(["entrance", "building", "site", "approximate"] as const).map((precision) => <option value={precision}>{precision}</option>)}</select></label>
+        <button type="button" class="secondary compact" data-remove-row>移除</button>
+      </div>)}
+    </div>
+    <button type="button" class="secondary" data-add-row>添加场馆</button>
+  </fieldset>
+  <fieldset class="wide location-editor" data-channel-list>
+    <legend>线上／广播渠道</legend>
+    <div data-channel-rows>
+      {channelRows.map((channel) => <div class="channel-row" data-channel-row>
+        <label>类型<select name="channel_type">{(["streaming", "radio", "television", "digital_store", "download", "other"] as const).map((type) => <option value={type} selected={(channel?.channel_type ?? "streaming") === type}>{type}</option>)}</select></label>
+        <label>名称<input name="channel_name" maxlength="240" value={channel?.name ?? ""} /></label>
+        <label>URL<input type="url" name="channel_url" maxlength="2048" value={channel?.url ?? ""} /></label>
+        <button type="button" class="secondary compact" data-remove-row>移除</button>
+      </div>)}
+    </div>
+    <button type="button" class="secondary" data-add-channel>添加渠道</button>
+  </fieldset>
   <label class="wide">Slug<input name="slug" maxlength="180" value={event?.slug ?? ""} placeholder="留空则自动生成" /></label>
   <label class="wide">说明<textarea name="remark" maxlength="4000">{event?.remark ?? ""}</textarea></label>
   <label class="wide">来源 *<textarea name="sources" required placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea><small>例如：<code>https://… | fripSide official | official</code></small></label>
   <label class="wide publish-check"><input type="checkbox" name="published" checked={event?.published ?? true} />在公开网站显示</label>
 </div>
+<template id="venue-row-template"><div class="location-row" data-location-row>
+  <label>既有场馆<select name="venue_id"><option value="">新建场馆…</option>{venueOptions.map((option) => <option value={option.id}>{option.canonical_name}{option.area_name ? ` · ${option.area_name}` : ""}</option>)}</select></label>
+  <label>新场馆名称<input name="venue_name" maxlength="240" /></label>
+  <label>新场馆行政区<select name="venue_area_id"><option value="">未确定</option>{areas.map((area) => <option value={area.id}>{area.country_code} · {area.name_local}</option>)}</select></label>
+  <label>角色<select name="venue_role"><option value="primary">primary</option><option value="secondary">secondary</option><option value="broadcast_origin">broadcast_origin</option></select></label>
+  <label>当时显示名<input name="venue_snapshot" maxlength="240" /></label><label>地址<input name="venue_address" maxlength="500" /></label>
+  <label>纬度<input name="venue_latitude" inputmode="decimal" /></label><label>经度<input name="venue_longitude" inputmode="decimal" /></label>
+  <label>坐标精度<select name="venue_precision"><option value="">未填写</option><option value="entrance">entrance</option><option value="building">building</option><option value="site">site</option><option value="approximate">approximate</option></select></label>
+  <button type="button" class="secondary compact" data-remove-row>移除</button>
+</div></template>
+<template id="channel-row-template"><div class="channel-row" data-channel-row>
+  <label>类型<select name="channel_type"><option value="streaming">streaming</option><option value="radio">radio</option><option value="television">television</option><option value="digital_store">digital_store</option><option value="download">download</option><option value="other">other</option></select></label>
+  <label>名称<input name="channel_name" maxlength="240" /></label><label>URL<input type="url" name="channel_url" maxlength="2048" /></label>
+  <button type="button" class="secondary compact" data-remove-row>移除</button>
+</div></template>
 <div class="actions form-actions"><button type="submit" disabled={!canWrite}>{submitLabel}</button><a class="button secondary" href={event ? "/admin/events" : "/admin"}>取消</a>{!canWrite && <span class="muted">当前账号没有 events:publish 权限。</span>}</div>
+<script is:inline>
+  const bindRemove = (root) => root.querySelectorAll("[data-remove-row]").forEach((button) => {
+    button.onclick = () => button.closest("[data-location-row], [data-channel-row]")?.remove();
+  });
+  document.querySelectorAll("[data-location-list]").forEach((editor) => {
+    editor.querySelector("[data-add-row]")?.addEventListener("click", () => {
+      const template = document.querySelector("#venue-row-template");
+      const rows = editor.querySelector("[data-location-rows]");
+      if (template && rows) { rows.append(template.content.cloneNode(true)); bindRemove(rows); }
+    });
+  });
+  document.querySelectorAll("[data-channel-list]").forEach((editor) => {
+    editor.querySelector("[data-add-channel]")?.addEventListener("click", () => {
+      const template = document.querySelector("#channel-row-template");
+      const rows = editor.querySelector("[data-channel-rows]");
+      if (template && rows) { rows.append(template.content.cloneNode(true)); bindRemove(rows); }
+    });
+  });
+  bindRemove(document);
+</script>
 <style>
   small { color: var(--muted); }
   .form-actions { margin-top: 1.5rem; }
   .publish-check { display: flex; align-items: center; gap: .55rem; }
   .publish-check input { width: auto; }
   button:disabled { opacity: .45; cursor: not-allowed; }
+  .location-editor { border: 1px solid var(--line); border-radius: .75rem; padding: 1rem; }
+  .location-editor legend { color: var(--muted); padding: 0 .4rem; }
+  .location-row, .channel-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; border-bottom: 1px solid var(--line); padding-bottom: 1rem; margin-bottom: 1rem; }
+  .channel-row { grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; }
+  .compact { align-self: end; padding: .65rem .8rem; }
+  @media (max-width: 720px) { .location-row, .channel-row { grid-template-columns: 1fr; } }
 </style>

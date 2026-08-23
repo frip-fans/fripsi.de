@@ -131,7 +131,7 @@ const categoryOptions = [
         data-event-index={index}
         data-event-category={event.category}
         data-event-sort={`${event.start_date}T${event.start_time ?? "00:00"}`}
-        data-search-text={[event.title, event.category, event.classification, event.venue, event.region, event.remark].filter(Boolean).join(" ").toLocaleLowerCase()}
+        data-search-text={[event.title, event.category, event.classification, event.location_label, event.remark].filter(Boolean).join(" ").toLocaleLowerCase()}
       >
         <EventCard event={event} />
       </div>

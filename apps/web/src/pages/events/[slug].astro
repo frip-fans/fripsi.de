@@ -27,8 +27,9 @@ const displayStatus = displayEventStatus(event);
     <div class="detail-grid">
       <section class="panel facts">
         <div><small>TIME</small><strong>{formatTime(event, locale)}</strong></div>
-        <div><small>VENUE</small><strong>{event.venue || t(locale, "common.pending")}</strong></div>
-        <div><small>REGION</small><strong>{event.region || "—"}</strong></div>
+        <div><small>LOCATION</small><strong>{event.location_label || t(locale, "common.pending")}</strong></div>
+        <div><small>REGION</small><strong>{event.area_label || "—"}</strong></div>
+        <div><small>MODE</small><strong>{event.location_mode}</strong></div>
         <div><small>TIMEZONE</small><strong>{event.timezone}</strong></div>
       </section>
       <section class="content">

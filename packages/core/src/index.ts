@@ -1,6 +1,7 @@
 export * from "./auth";
 export * from "./change-service";
 export * from "./ical";
+export * from "./locations";
 export * from "./music-repository";
 export * from "./music-admin-repository";
 export * from "./content-admin";

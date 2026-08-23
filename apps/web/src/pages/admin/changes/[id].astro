@@ -10,7 +10,7 @@ try { preview = await service.preview(Astro.params.id!, Astro.locals.actor!); }
 catch { return Astro.redirect("/admin/changes", 302); }
 const { change, before, after, warnings, duplicate_candidates } = preview;
 const actor = Astro.locals.actor!;
-const fields = ["title", "slug", "start_date", "end_date", "start_time", "end_time", "category", "classification", "venue", "region", "remark", "status", "published", "archived_at"] as const;
+const fields = ["title", "slug", "start_date", "end_date", "start_time", "end_time", "category", "classification", "location_mode", "location_note", "remark", "status", "published", "archived_at"] as const;
 const changedFields = fields.filter((field) => JSON.stringify(before?.[field] ?? null) !== JSON.stringify(after[field] ?? null));
 ---
 <SiteLayout title={`提案 ${change.id}`} admin>
@@ -22,6 +22,7 @@ const changedFields = fields.filter((field) => JSON.stringify(before?.[field] ??
     <div class="table-wrap"><table><thead><tr><th>字段</th><th>修改前</th><th>修改后</th></tr></thead><tbody>
       {changedFields.map((field) => <tr><td><code>{field}</code></td><td>{String(before?.[field] ?? "—")}</td><td>{String(after[field] ?? "—")}</td></tr>)}
     </tbody></table></div>
+    {after.location_input && <><h3>结构化地点</h3><pre>{JSON.stringify(after.location_input, null, 2)}</pre></>}
     {!changedFields.length && change.operation === "create" && <pre>{JSON.stringify(after, null, 2)}</pre>}
   </section>
   {duplicate_candidates.length > 0 && <section class="panel duplicates"><h2>可能重复</h2>{duplicate_candidates.map(({ event, reasons }) => <p><a href={`/admin/events/${event.id}`}>{event.start_date} · {event.title}</a><small>{reasons.join("；")}</small></p>)}</section>}

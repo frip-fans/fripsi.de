@@ -9,6 +9,9 @@ const baseEvent = {
   timezone: "Asia/Tokyo",
   category: "LIVE" as const,
   status: "scheduled" as const,
+  location_mode: "physical" as const,
+  venues: [{ canonical_name: "Tokyo Garden Theater", role: "primary" as const, position: 1 }],
+  channels: [],
   sources: [{ url: "https://fripside.net/news/1" }]
 };
 
@@ -23,6 +26,24 @@ describe("event schema", () => {
 
   it("requires an HTTPS source", () => {
     expect(() => eventDraftSchema.parse({ ...baseEvent, sources: [{ url: "http://example.com" }] })).toThrow();
+  });
+
+  it("requires both a venue and channel for hybrid events", () => {
+    expect(() => eventDraftSchema.parse({
+      ...baseEvent,
+      location_mode: "hybrid",
+      channels: [],
+    })).toThrow(/混合活动/);
+  });
+
+  it("accepts an online event with a structured channel", () => {
+    const parsed = eventDraftSchema.parse({
+      ...baseEvent,
+      location_mode: "online",
+      venues: [],
+      channels: [{ channel_type: "streaming", name: "YouTube" }],
+    });
+    expect(parsed.channels[0].name).toBe("YouTube");
   });
 });
 

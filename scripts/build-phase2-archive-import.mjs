@@ -842,17 +842,28 @@ const now = new Date().toISOString();
 const eventStatements = ["PRAGMA foreign_keys = ON;"];
 for (const event of eventRecords) {
   const id = stableId(event.slug, "evt_phase2");
-  eventStatements.push(`INSERT INTO events (id, slug, title, start_date, end_date, start_time, end_time, timezone, category, classification, venue, region, remark, status, published, version, created_at, updated_at, published_at, archived_at)
+  eventStatements.push(`INSERT INTO events (id, slug, title, start_date, end_date, start_time, end_time, timezone, category, classification, location_mode, location_note, remark, status, published, version, created_at, updated_at, published_at, archived_at)
 VALUES (${[
     id, event.slug, event.eventTitle, event.date, null, event.startTime || null, null, "Asia/Tokyo", "LIVE",
-    event.classification, event.venue, event.region || null, "fripSide Phase 2 演出归档补全。", "completed", 1, 1,
+    event.classification, "physical", null, "fripSide Phase 2 演出归档补全。", "completed", 1, 1,
     now, now, now, null,
   ].map(sql).join(", ")})
 ON CONFLICT(slug) DO UPDATE SET title = excluded.title, start_date = excluded.start_date,
   start_time = COALESCE(excluded.start_time, events.start_time), category = excluded.category,
-  classification = excluded.classification, venue = excluded.venue, region = excluded.region,
+  classification = excluded.classification, location_mode = excluded.location_mode, location_note = excluded.location_note,
   status = excluded.status, published = 1, updated_at = excluded.updated_at,
   published_at = COALESCE(events.published_at, excluded.published_at);`);
+
+  const venueId = stableId(`${event.region || ""}|${event.venue}`, "ven_phase2");
+  eventStatements.push(`INSERT OR IGNORE INTO venues (
+  id, canonical_name, administrative_area_id, status, created_at, updated_at
+) VALUES (${[
+    venueId, event.venue,
+  ].map(sql).join(", ")}, (SELECT administrative_area_id FROM administrative_area_aliases WHERE alias = ${sql(event.region || "")}), 'unknown', ${sql(now)}, ${sql(now)});`);
+  eventStatements.push(`INSERT OR IGNORE INTO venue_aliases (venue_id, alias) VALUES (${sql(venueId)}, ${sql(event.venue)});`);
+  eventStatements.push(`DELETE FROM event_venues WHERE event_id = (SELECT id FROM events WHERE slug = ${sql(event.slug)});`);
+  eventStatements.push(`INSERT INTO event_venues (event_id, venue_id, role, position, display_name_snapshot)
+VALUES ((SELECT id FROM events WHERE slug = ${sql(event.slug)}), ${sql(venueId)}, 'primary', 1, ${sql(event.venue)});`);
 
   const eventSourceUrl = event.eventSourceUrl || event.sourceUrl;
   const urls = new Set([eventSourceUrl]);

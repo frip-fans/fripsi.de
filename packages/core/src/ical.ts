@@ -1,3 +1,4 @@
+import { physicalLocationLabel } from "./locations";
 import type { EventRecord } from "./types";
 
 export interface CalendarOptions {
@@ -105,7 +106,7 @@ function eventStatus(event: EventRecord): "CONFIRMED" | "TENTATIVE" | "CANCELLED
 
 function eventLines(event: EventRecord, siteUrl: URL): string[] {
   const detailUrl = new URL(`/events/${encodeURIComponent(event.slug)}`, siteUrl).href;
-  const location = [event.venue, event.region].filter(Boolean).join(" · ");
+  const location = physicalLocationLabel(event);
   const description = [
     event.classification ? `分类：${event.classification}` : null,
     event.remark,

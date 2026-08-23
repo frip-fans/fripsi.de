@@ -1,5 +1,6 @@
 import {
   eventDraftSchema,
+  eventLocationSchema,
   eventPatchSchema,
   proposeCreateSchema,
   proposeLifecycleSchema,
@@ -10,19 +11,19 @@ import {
   type EventPatch,
   type SourceInput
 } from "./schema";
+import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { findDuplicates, getChangeSet, getChangeSetByKey, getEventById, requireEvent } from "./repository";
-import type { Actor, ChangePreview, ChangeSet, EventRecord, EventSource } from "./types";
+import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource } from "./types";
 import { assertScope, createEventSlug, makeId, nowIso, ServiceError } from "./utils";
 
-type NormalizedDraft = Omit<EventDraft, "slug" | "end_date" | "start_time" | "end_time" | "classification" | "venue" | "region" | "remark"> & {
+type NormalizedDraft = Omit<EventDraft, "slug" | "end_date" | "start_time" | "end_time" | "classification" | "location_note" | "remark"> & {
   id: string;
   slug: string;
   end_date: string | null;
   start_time: string | null;
   end_time: string | null;
   classification: string | null;
-  venue: string | null;
-  region: string | null;
+  location_note: string | null;
   remark: string | null;
 };
 type CreatePayload = { event: NormalizedDraft };
@@ -42,10 +43,38 @@ function normalizeDraft(input: EventDraft, id: string): CreatePayload["event"] {
     start_time: input.start_time ?? null,
     end_time: input.end_time ?? null,
     classification: cleanNullable(input.classification),
-    venue: cleanNullable(input.venue),
-    region: cleanNullable(input.region),
+    location_note: cleanNullable(input.location_note),
     remark: cleanNullable(input.remark)
   };
+}
+
+function locationInputFromRecord(event: EventRecord): EventLocationInput {
+  return {
+    location_mode: event.location_mode,
+    location_note: event.location_note,
+    venues: event.venues.map((venue) => ({
+      venue_id: venue.id,
+      role: venue.role,
+      position: venue.position,
+      display_name_snapshot: venue.display_name_snapshot,
+    })),
+    channels: event.channels.map((channel) => ({
+      channel_type: channel.channel_type,
+      name: channel.name,
+      url: channel.url,
+      position: channel.position,
+    })),
+  };
+}
+
+function mergedLocation(before: EventRecord, patch: EventPatch): EventLocationInput {
+  const current = locationInputFromRecord(before);
+  return eventLocationSchema.parse({
+    location_mode: patch.location_mode ?? current.location_mode,
+    location_note: patch.location_note === undefined ? current.location_note : patch.location_note,
+    venues: patch.venues ?? current.venues,
+    channels: patch.channels ?? current.channels,
+  });
 }
 
 function previewSources(sources: SourceInput[], eventId: string): EventSource[] {
@@ -134,19 +163,29 @@ export class ChangeService {
     const change = await getChangeSet(this.db, id);
     if (!change) throw new ServiceError("not_found", "没有找到变更提案", 404);
     let before: EventRecord | null = null;
-    let after: Partial<EventRecord>;
+    let after: ChangePreview["after"];
     const warnings: string[] = [];
 
     if (change.operation === "create") {
       const payload = JSON.parse(change.payload_json) as CreatePayload;
       const event = eventDraftSchema.parse(payload.event);
       const normalized = normalizeDraft(event, payload.event.id);
-      const { sources, ...fields } = normalized;
-      after = { ...fields, sources: previewSources(sources, normalized.id), published: true, version: 1 };
+      const { sources, venues, channels, ...fields } = normalized;
+      after = {
+        ...fields,
+        location_input: { location_mode: normalized.location_mode, location_note: normalized.location_note, venues, channels },
+        sources: previewSources(sources, normalized.id), published: true, version: 1,
+      };
     } else {
       before = await requireEvent(this.db, change.target_event_id!);
       if (before.version !== change.base_version) warnings.push(`版本已变化：提案基于 v${change.base_version}，当前为 v${before.version}`);
       after = this.applyPayload(before, change);
+      if (change.operation === "update") {
+        const patch = eventPatchSchema.parse((JSON.parse(change.payload_json) as UpdatePayload).patch);
+        if (patch.location_mode !== undefined || patch.location_note !== undefined || patch.venues !== undefined || patch.channels !== undefined) {
+          after.location_input = mergedLocation(before, patch);
+        }
+      }
     }
 
     const candidates = after.title && after.start_date
@@ -154,7 +193,7 @@ export class ChangeService {
           title: after.title,
           start_date: after.start_date,
           end_date: after.end_date,
-          venue: after.venue,
+          venue_id: after.location_input?.venues[0]?.venue_id ?? before?.venues[0]?.id,
           source_url: change.source_url ?? undefined
         })
       : [];
@@ -191,10 +230,16 @@ export class ChangeService {
     const payload = JSON.parse(change.payload_json) as CreatePayload;
     const parsed = eventDraftSchema.parse(payload.event);
     const event = normalizeDraft(parsed, payload.event.id);
+    const location = prepareEventLocation(event);
     const now = nowIso();
-    const { sources: inputSources, ...eventFields } = event;
+    const { sources: inputSources, venues: _venues, channels: _channels, ...eventFields } = event;
     const result: EventRecord = {
       ...eventFields,
+      venues: [],
+      channels: [],
+      venue_label: null,
+      area_label: null,
+      location_label: event.location_note,
       published: true,
       version: 1,
       created_at: now,
@@ -206,12 +251,14 @@ export class ChangeService {
     const statements: D1PreparedStatement[] = [
       this.db.prepare(`INSERT INTO events (
         id, slug, title, start_date, end_date, start_time, end_time, timezone, category,
-        classification, venue, region, remark, status, published, version, created_at,
+        classification, location_mode, location_note, remark, status, published, version, created_at,
         updated_at, published_at, archived_at
       ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?, NULL
         WHERE EXISTS (SELECT 1 FROM change_sets WHERE id = ? AND status = 'proposed')`)
-        .bind(event.id, event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time, event.timezone, event.category, event.classification, event.venue, event.region, event.remark, event.status, now, now, now, change.id)
+        .bind(event.id, event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time, event.timezone, event.category, event.classification, event.location_mode, event.location_note, event.remark, event.status, now, now, now, change.id)
     ];
+    statements.push(...replaceEventLocationStatements(this.db, event.id, location, now,
+      "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)", [event.id, now]));
     for (const source of inputSources) statements.push(this.insertSourceStatement(event.id, source, actor.id, now, now));
     statements.push(
       this.db.prepare("UPDATE change_sets SET status = 'published', reviewed_by = ?, reviewed_at = ?, published_at = ? WHERE id = ? AND status = 'proposed'").bind(actor.id, now, now, change.id),
@@ -229,17 +276,26 @@ export class ChangeService {
       throw new ServiceError("version_conflict", `活动当前为 v${before.version}，提案基于 v${change.base_version}`, 409, { current: before });
     }
     const after = this.applyPayload(before, change) as EventRecord;
+    const payload = JSON.parse(change.payload_json) as UpdatePayload;
+    const locationInput = change.operation === "update" ? mergedLocation(before, payload.patch) : null;
+    if (locationInput) {
+      after.location_mode = locationInput.location_mode;
+      after.location_note = locationInput.location_note;
+    }
     const now = nowIso();
     after.version = before.version + 1;
     after.updated_at = now;
     const update = this.db.prepare(`UPDATE events SET
       slug = ?, title = ?, start_date = ?, end_date = ?, start_time = ?, end_time = ?, timezone = ?,
-      category = ?, classification = ?, venue = ?, region = ?, remark = ?, status = ?, published = ?,
+      category = ?, classification = ?, location_mode = ?, location_note = ?, remark = ?, status = ?, published = ?,
       version = version + 1, updated_at = ?, published_at = ?, archived_at = ?
       WHERE id = ? AND version = ?`)
-      .bind(after.slug, after.title, after.start_date, after.end_date, after.start_time, after.end_time, after.timezone, after.category, after.classification, after.venue, after.region, after.remark, after.status, after.published ? 1 : 0, now, after.published_at, after.archived_at, before.id, before.version);
+      .bind(after.slug, after.title, after.start_date, after.end_date, after.start_time, after.end_time, after.timezone, after.category, after.classification, after.location_mode, after.location_note, after.remark, after.status, after.published ? 1 : 0, now, after.published_at, after.archived_at, before.id, before.version);
     const statements: D1PreparedStatement[] = [update];
-    const payload = JSON.parse(change.payload_json) as UpdatePayload;
+    if (locationInput) {
+      statements.push(...replaceEventLocationStatements(this.db, before.id, prepareEventLocation(locationInput), now,
+        "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)", [before.id, now]));
+    }
     if (change.operation === "update" && payload.patch.sources) {
       for (const source of payload.patch.sources) statements.push(this.insertSourceStatement(before.id, source, actor.id, now, now));
     }
@@ -280,7 +336,7 @@ export class ChangeService {
     if (change.operation === "update") {
       const payload = JSON.parse(change.payload_json) as UpdatePayload;
       const patch = eventPatchSchema.parse(payload.patch);
-      const { sources: sourcePatch, ...fields } = patch;
+      const { sources: sourcePatch, venues: _venues, channels: _channels, ...fields } = patch;
       Object.assign(after, fields);
       if (after.end_date && after.end_date < after.start_date) throw new ServiceError("invalid_date_range", "结束日期不能早于开始日期");
       if (sourcePatch?.length) after.sources = [...(after.sources ?? []), ...sourcePatch.map((source) => ({ ...source, id: "preview", event_id: before.id, verified_at: null, created_at: "preview", created_by: "preview" }))];

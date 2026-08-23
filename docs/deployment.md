@@ -188,6 +188,13 @@ migrations/
 5. 破坏性 migration 必须先导出数据并记录恢复点。
 6. 优先采用向后兼容的两阶段变更：先加字段/表并兼容，再迁移数据，最后删除旧结构。
 
+`0004_structured_locations.sql` 是一次明确批准的破坏性切换：当前没有外部用户依赖旧地点契约，因此 migration 会在同一步中迁移旧 `venue`/`region`、生成结构化场馆和渠道、记录无法自动拆分的待办，随后删除旧列。执行 production migration 前必须：
+
+1. 导出完整 D1 备份并记录恢复点。
+2. 在备份副本上运行 migration，确认 `PRAGMA foreign_key_check` 为空。
+3. 记录迁移前后活动总数以及 `venues`、`event_venues`、`event_channels`、`location_migration_backlog` 数量。
+4. migration 成功后立即部署同时版本的 Web 与 MCP；旧应用代码不能在新 schema 上运行。
+
 参考：[Cloudflare D1 migrations](https://developers.cloudflare.com/d1/reference/migrations/)
 
 ## 6. 初始数据迁移
@@ -196,9 +203,7 @@ migrations/
 
 ```text
 scripts/import-notion-export.ts
-scripts/validate-import.ts
-scripts/import-d1.ts
-scripts/export-events.ts
+scripts/build-import-sql.ts
 ```
 
 建议生成但不提交包含敏感内部信息的中间文件；原始 Notion CSV、清洗报告和最终导入文件的保存位置在实施前确认。公开活动数据本身可以作为迁移 artifact 保存。

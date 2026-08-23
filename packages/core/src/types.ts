@@ -1,4 +1,55 @@
-import type { Category, ChangeOperation, ChangeStatus, EventStatus, SourceInput } from "./schema";
+import type { Category, ChangeOperation, ChangeStatus, ChannelType, EventChannelInput, EventStatus, EventVenueInput, LocationMode, SourceInput, VenueRole } from "./schema";
+
+export interface EventLocationInput {
+  location_mode: LocationMode;
+  location_note: string | null;
+  venues: EventVenueInput[];
+  channels: EventChannelInput[];
+}
+
+export interface AdministrativeArea {
+  id: string;
+  country_code: string;
+  level: "country" | "subdivision" | "municipality" | "ward" | "locality";
+  parent_id: string | null;
+  name_local: string;
+  name_ja: string | null;
+  name_zh: string | null;
+  name_en: string | null;
+  codes: Array<{ scheme: string; code: string }>;
+}
+
+export interface VenueRecord {
+  id: string;
+  canonical_name: string;
+  administrative_area_id: string | null;
+  address_text: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  coordinate_precision: "entrance" | "building" | "site" | "approximate" | null;
+  coordinate_source: string | null;
+  coordinates_verified_at: string | null;
+  status: "active" | "closed" | "renamed" | "demolished" | "unknown";
+  created_at: string;
+  updated_at: string;
+  area_name: string | null;
+  country_code: string | null;
+}
+
+export interface EventVenue extends VenueRecord {
+  role: VenueRole;
+  position: number;
+  display_name_snapshot: string | null;
+}
+
+export interface EventChannel {
+  id: string;
+  event_id: string;
+  channel_type: ChannelType;
+  name: string;
+  url: string | null;
+  position: number;
+}
 
 export interface EventRecord {
   id: string;
@@ -11,8 +62,13 @@ export interface EventRecord {
   timezone: string;
   category: Category;
   classification: string | null;
-  venue: string | null;
-  region: string | null;
+  location_mode: LocationMode;
+  location_note: string | null;
+  venues: EventVenue[];
+  channels: EventChannel[];
+  venue_label: string | null;
+  area_label: string | null;
+  location_label: string | null;
   remark: string | null;
   status: EventStatus;
   published: boolean;
@@ -81,7 +137,7 @@ export interface DuplicateCandidate {
 export interface ChangePreview {
   change: ChangeSet;
   before: EventRecord | null;
-  after: Partial<EventRecord>;
+  after: Partial<EventRecord> & { location_input?: EventLocationInput };
   duplicate_candidates: DuplicateCandidate[];
   warnings: string[];
   public_path: string | null;

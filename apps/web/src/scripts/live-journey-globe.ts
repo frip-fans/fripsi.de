@@ -129,7 +129,7 @@ async function init():Promise<void>{
   const date=get<HTMLElement>("[data-current-date]"),title=get<HTMLAnchorElement>("[data-current-title]"),place=get<HTMLElement>("[data-current-venue]");
   const precision=get<HTMLElement>("[data-current-precision]"),progress=get<HTMLElement>("[data-journey-progress]"),status=get<HTMLElement>("[data-map-status]");
   const consolePanel=get<HTMLElement>(".journey-console"),phaseJumps=[...container.querySelectorAll<HTMLButtonElement>("[data-phase-jump]")];
-  const soundtrack=get<HTMLElement>("[data-soundtrack]"),soundtrackToggle=get<HTMLButtonElement>("[data-soundtrack-toggle]"),youtubeFrame=get<HTMLIFrameElement>("[data-youtube-frame]");
+  const soundtrack=get<HTMLElement>("[data-soundtrack]"),soundtrackToggles=[...container.querySelectorAll<HTMLButtonElement>("[data-soundtrack-toggle]")],youtubeFrame=get<HTMLIFrameElement>("[data-youtube-frame]");
   const payload=await fetch("/api/journey").then(response=>response.json()) as Payload;
   let stops=payload.stops,index=stops.length-1,timer:ReturnType<typeof setTimeout>|undefined,animationFrame:number|undefined,playing=false,runId=0;
   let youtubePlayer:YouTubePlayer|undefined,youtubeReady=false,soundtrackEnabled=true,pendingSoundtrack=false;
@@ -178,9 +178,10 @@ async function init():Promise<void>{
   const startPlay=()=>{if(index>=stops.length-1)render(0,true);playing=true;const token=++runId;play.dataset.playing="true";play.setAttribute("aria-pressed","true");playText.textContent=container.dataset.pauseLabel??"Pause";playSoundtrack();const advance=()=>{if(!playing||token!==runId)return;if(index>=stops.length-1){stopPlay();return;}animateTo(index+1,token,()=>{timer=setTimeout(()=>retractLatest(token,()=>{timer=setTimeout(advance,Math.round(500*speedScale()));}),Math.round(400*speedScale()));});};advance();};
   play.addEventListener("click",()=>{if(playing){stopPlay();return;}startPlay();});
   speed.addEventListener("change",()=>{if(playing){stopPlay();startPlay();}});document.addEventListener("visibilitychange",()=>{if(document.hidden)stopPlay();});
-  soundtrackToggle.addEventListener("click",()=>{soundtrackEnabled=!soundtrackEnabled;soundtrackToggle.setAttribute("aria-pressed",String(soundtrackEnabled));soundtrackToggle.textContent=soundtrackEnabled?"BGM ON":"BGM OFF";if(soundtrackEnabled&&playing)playSoundtrack();else pauseSoundtrack();});
+  const syncSoundtrackToggles=(label=soundtrackEnabled?"BGM ON":"BGM OFF")=>soundtrackToggles.forEach(button=>{button.setAttribute("aria-pressed",String(soundtrackEnabled));if(button.hasAttribute("data-soundtrack-compact"))button.setAttribute("aria-label",label);else{const text=button.querySelector<HTMLElement>("[data-soundtrack-toggle-text]");if(text)text.textContent=label;}});
+  soundtrackToggles.forEach(button=>button.addEventListener("click",()=>{soundtrackEnabled=!soundtrackEnabled;syncSoundtrackToggles();if(soundtrackEnabled&&playing)playSoundtrack();else pauseSoundtrack();}));
   const youtubeWindow=window as Window&{YT?:YouTubeApi;onYouTubeIframeAPIReady?:()=>void};
-  const initializeYouTube=()=>{if(youtubePlayer||!youtubeWindow.YT)return;youtubePlayer=new youtubeWindow.YT.Player(youtubeFrame,{events:{onReady:()=>{youtubeReady=true;if(pendingSoundtrack&&playing)playSoundtrack();},onAutoplayBlocked:()=>{pendingSoundtrack=false;soundtrack.dataset.autoplayBlocked="true";},onError:()=>{soundtrackEnabled=false;soundtrackToggle.setAttribute("aria-pressed","false");soundtrackToggle.textContent="BGM ERROR";}}});};
+  const initializeYouTube=()=>{if(youtubePlayer||!youtubeWindow.YT)return;youtubePlayer=new youtubeWindow.YT.Player(youtubeFrame,{events:{onReady:()=>{youtubeReady=true;if(pendingSoundtrack&&playing)playSoundtrack();},onAutoplayBlocked:()=>{pendingSoundtrack=false;soundtrack.dataset.autoplayBlocked="true";},onError:()=>{soundtrackEnabled=false;syncSoundtrackToggles("BGM ERROR");}}});};
   youtubeWindow.onYouTubeIframeAPIReady=initializeYouTube;if(youtubeWindow.YT)initializeYouTube();else{const script=document.createElement("script");script.src="https://www.youtube.com/iframe_api";script.async=true;document.head.appendChild(script);}
 }
 

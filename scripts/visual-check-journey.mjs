@@ -30,15 +30,26 @@ async function check(viewport,outputPath){
   const progress=await page.locator("[data-journey-progress]").textContent();
   await page.locator("[data-journey-play]").click();
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+  const layout=await page.evaluate(()=>Object.fromEntries([".journey-map-stage",".journey-soundtrack",".journey-current",".journey-console"].map(selector=>{const box=document.querySelector(selector)?.getBoundingClientRect();return[selector,box?{top:box.top,right:box.right,bottom:box.bottom,left:box.left}:null]})));
   if(events<1||ticks<5||phaseMarker!==3||canvas!==1||status!=="GLOBE READY")errors.push(`state: events=${events}, ticks=${ticks}, phaseMarker=${phaseMarker}, canvas=${canvas}, status=${status}`);
   if(requests.some(request=>request.status>=400))errors.push("vector response >=400");
   if(requests.length<=beforeZoom)errors.push("zoom did not request more vector resources");
   if(!soundtrackSrc?.includes("MfWqe_cb9rA")||!soundtrackSrc.includes("sHaQijiyhMk")||!soundtrackSrc.includes("loop=1"))errors.push("soundtrack playlist is incomplete");
   if(!progress||progress.startsWith("1 /"))errors.push(`playback did not advance: ${progress}`);
   if(overflow>1)errors.push(`horizontal overflow: ${overflow}px`);
+  if(viewport.width<=850){
+    const stage=layout[".journey-map-stage"],soundtrack=layout[".journey-soundtrack"],current=layout[".journey-current"],consolePanel=layout[".journey-console"];
+    if(!stage||!soundtrack||!current||!consolePanel)errors.push("mobile layout element missing");
+    else{
+      if(soundtrack.top<stage.bottom-1)errors.push("soundtrack overlaps map stage");
+      if(consolePanel.top<stage.bottom-1)errors.push("console overlaps map stage");
+      if(soundtrack.top<consolePanel.bottom-1)errors.push("soundtrack overlaps console");
+      if(current.bottom>stage.bottom+1)errors.push("current event card escapes map stage");
+    }
+  }
   await page.screenshot({path:outputPath,fullPage:true});
   await context.close();
-  return{viewport,outputPath,events,ticks,phaseMarker,status,vectorRequests:requests.length,zoomRequests:requests.length-beforeZoom,progress,errors};
+  return{viewport,outputPath,events,ticks,phaseMarker,status,vectorRequests:requests.length,zoomRequests:requests.length-beforeZoom,progress,layout,errors};
 }
 
 const results=[await check({width:1440,height:1000},"/tmp/frip-journey-globe-desktop.png"),await check({width:390,height:844},"/tmp/frip-journey-globe-mobile.png")];

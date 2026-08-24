@@ -1,149 +1,75 @@
 ---
-import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import Icon from "../components/Icon.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
-import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
-
-const locale = getLocale(Astro.request);
-const tileUrl = getEnv().MAP_TILE_URL ?? "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const locale=getLocale(Astro.request);
+const youtubeOrigin=Astro.url.origin;
 ---
-<SiteLayout title={t(locale, "journey.title")} description={t(locale, "journey.description")}>
-  <article
-    class="journey-shell"
-    data-live-journey
-    data-locale={locale}
-    data-tile-url={tileUrl}
-    data-play-label={t(locale, "journey.play")}
-    data-pause-label={t(locale, "journey.pause")}
-    data-exact-label={t(locale, "journey.exact")}
-    data-approximate-label={t(locale, "journey.approximate")}
-    data-error-label={t(locale, "journey.error")}
-  >
-    <header class="journey-head">
-      <div>
-        <p class="eyebrow">{t(locale, "journey.eyebrow")}</p>
-        <h1>{t(locale, "journey.title")}</h1>
-        <p class="lede">{t(locale, "journey.description")}</p>
-      </div>
-      <dl class="journey-stats" aria-label="Journey summary">
-        <div><dt>{t(locale, "journey.events")}</dt><dd data-summary-field="events">—</dd></div>
-        <div><dt>{t(locale, "journey.venues")}</dt><dd data-summary-field="venues">—</dd></div>
-        <div><dt>{t(locale, "journey.countries")}</dt><dd data-summary-field="countries">—</dd></div>
-      </dl>
+<SiteLayout title={t(locale,"journey.title")} description={t(locale,"journey.description")}>
+  <article class="journey-globe" data-live-journey data-locale={locale} data-play-label={t(locale,"journey.play")} data-pause-label={t(locale,"journey.pause")} data-exact-label={t(locale,"journey.exact")} data-approximate-label={t(locale,"journey.approximate")} data-map-label={t(locale,"journey.mapLabel")}>
+    <div class="journey-map" data-journey-map></div>
+    <header class="journey-title-hud">
+      <h1>{t(locale,"journey.title")}</h1><small>{t(locale,"journey.description")}</small>
     </header>
-
-    <section class="journey-stage panel">
-      <div class="journey-map-wrap">
-        <div class="journey-map" data-journey-map role="application" aria-label={t(locale, "journey.mapLabel")}></div>
-        <div class="journey-current" aria-live="polite">
-          <div class="journey-current-top">
-            <time data-current-date>—</time>
-            <span data-current-precision data-precision="area">{t(locale, "journey.approximate")}</span>
-          </div>
-          <a data-current-title href="/archive">—</a>
-          <p data-current-venue>—</p>
-        </div>
-        <div class="journey-map-legend">
-          <span><i class="legend-exact"></i>{t(locale, "journey.exact")}</span>
-          <span><i class="legend-approximate"></i>{t(locale, "journey.approximate")}</span>
-        </div>
+    <aside class="journey-right-hud">
+      <dl class="journey-stats">
+        <div><dt>{t(locale,"journey.events")}</dt><dd data-summary-field="events">—</dd></div>
+        <div><dt>{t(locale,"journey.venues")}</dt><dd data-summary-field="venues">—</dd></div>
+        <div><dt>{t(locale,"journey.countries")}</dt><dd data-summary-field="countries">—</dd></div>
+      </dl>
+      <div class="journey-status"><i></i><span data-map-status>INITIALIZING GLOBE</span></div>
+      <div class="journey-legend">
+        <span><i class="solid"></i>{t(locale,"journey.exact")}</span><span><i class="hollow"></i>{t(locale,"journey.approximate")}</span>
       </div>
-
-      <div class="journey-controls">
-        <div class="journey-actions">
-          <button type="button" data-journey-play aria-pressed="false" disabled><Icon name="globe" /><span>{t(locale, "journey.play")}</span></button>
-          <label>{t(locale, "journey.filter")}
-            <select data-journey-filter>
-              <option value="all">{t(locale, "journey.all")}</option>
-              <option value="solo">{t(locale, "journey.solo")}</option>
-              <option value="festival">{t(locale, "journey.festival")}</option>
-            </select>
-          </label>
-          <label>{t(locale, "journey.speed")}
-            <select data-journey-speed>
-              <option value="1400">0.5×</option>
-              <option value="850" selected>1×</option>
-              <option value="430">2×</option>
-            </select>
-          </label>
-        </div>
-        <div class="journey-timeline">
-          <div><span data-timeline-start>—</span><output data-journey-progress>—</output><span data-timeline-end>—</span></div>
-          <input data-journey-range type="range" min="0" max="0" value="0" disabled aria-label={t(locale, "journey.title")} />
-        </div>
-      </div>
-      <p class="journey-empty" data-journey-empty hidden>{t(locale, "journey.empty")}</p>
+    </aside>
+    <section class="journey-current" aria-live="polite">
+      <div><time data-current-date>—</time><span data-current-precision data-precision="area">—</span></div>
+      <a data-current-title href="/archive">—</a><p data-current-venue>—</p>
     </section>
-    <p class="journey-note">{t(locale, "journey.attribution")} <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="external noopener noreferrer">Report a map issue</a></p>
+    <aside class="journey-soundtrack" data-soundtrack>
+      <header><span>Journey Soundtrack</span><button type="button" data-soundtrack-toggle aria-pressed="true">BGM ON</button></header>
+      <iframe data-youtube-frame width="356" height="200" src={`https://www.youtube.com/embed/MfWqe_cb9rA?enablejsapi=1&playsinline=1&rel=0&loop=1&playlist=MfWqe_cb9rA%2CsHaQijiyhMk&origin=${encodeURIComponent(youtubeOrigin)}`} title="fripSide Journey soundtrack — two-song YouTube playlist" allow="autoplay; encrypted-media; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </aside>
+    <section class="journey-console">
+      <div class="journey-actions">
+        <button type="button" data-journey-play aria-pressed="false"><span class="playback-icon"><Icon name="play-fill" class="icon-play"/><Icon name="pause-fill" class="icon-pause"/></span><span data-play-text>{t(locale,"journey.play")}</span></button>
+        <button type="button" class="secondary" data-world-view><Icon name="globe-americas"/>World</button>
+        <label>{t(locale,"journey.filter")}<select data-journey-filter><option value="all">{t(locale,"journey.all")}</option><option value="solo">{t(locale,"journey.solo")}</option><option value="festival">{t(locale,"journey.festival")}</option></select></label>
+        <label>{t(locale,"journey.speed")}<select data-journey-speed><option value="2800">0.5×</option><option value="1700" selected>1×</option><option value="860">2×</option></select></label>
+      </div>
+      <div class="journey-timeline">
+        <button type="button" class="phase-marker" data-phase-jump data-date="2002-02-01" aria-label="Jump to fripSide Phase 1 — February 2002"><span>Phase 1</span></button>
+        <button type="button" class="phase-marker" data-phase-jump data-date="2009-08-07" aria-label="Jump to fripSide Phase 2 — 2009-08-07"><span>Phase 2</span></button>
+        <button type="button" class="phase-marker" data-phase-jump data-date="2022-04-24" aria-label="Jump to fripSide Phase 3 — 2022-04-24"><span>Phase 3</span></button>
+        <div class="year-ticks" data-year-ticks></div>
+        <input data-journey-range type="range" min="0" max="0" value="0" aria-label={t(locale,"journey.title")}/>
+        <output data-journey-progress hidden>—</output>
+      </div>
+    </section>
   </article>
 </SiteLayout>
-
-<script src="../scripts/live-journey.ts"></script>
-
+<script src="../scripts/live-journey-globe.ts"></script>
 <style>
-  .journey-shell { width: min(1500px, calc(100% - 2rem)); margin: 0 auto; padding: clamp(2rem, 5vw, 4.5rem) 0; }
-  .journey-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2rem; align-items: end; margin-bottom: 1.5rem; }
-  .journey-head h1 { margin: .25rem 0 .65rem; font-size: clamp(2.5rem, 7vw, 6.5rem); line-height: .9; letter-spacing: -.055em; }
-  .journey-head .lede { max-width: 720px; color: var(--muted); font-size: clamp(1rem, 1.6vw, 1.25rem); }
-  .journey-stats { display: grid; grid-template-columns: repeat(3, minmax(94px, 1fr)); gap: .6rem; margin: 0; }
-  .journey-stats div { padding: .9rem 1rem; border: 1px solid var(--line); border-radius: 14px; background: rgba(7,16,28,.72); }
-  .journey-stats dt { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .1em; }
-  .journey-stats dd { margin: .25rem 0 0; font: 700 1.55rem/1 ui-monospace, monospace; }
-  .journey-stage { padding: 0; overflow: hidden; border-radius: 24px; background: #091522; }
-  .journey-map-wrap { position: relative; min-height: min(68vh, 760px); }
-  .journey-map { position: absolute; inset: 0; min-height: 520px; background: #07101c; }
-  .journey-current { position: absolute; z-index: 500; left: 1.1rem; top: 1.1rem; width: min(390px, calc(100% - 2.2rem)); padding: 1rem 1.1rem; border: 1px solid rgba(255,255,255,.16); border-radius: 15px; background: rgba(7,16,28,.88); backdrop-filter: blur(14px); box-shadow: 0 18px 45px rgba(0,0,0,.28); }
-  .journey-current-top { display: flex; justify-content: space-between; gap: 1rem; align-items: center; margin-bottom: .55rem; }
-  .journey-current time { color: var(--accent); font: 700 .78rem/1 ui-monospace, monospace; letter-spacing: .06em; }
-  .journey-current [data-current-precision] { color: #d8e7f2; font-size: .66rem; padding: .25rem .45rem; border: 1px solid rgba(216,231,242,.25); border-radius: 999px; }
-  .journey-current [data-current-precision][data-precision="venue"] { color: #ffd4b9; border-color: rgba(234,129,66,.45); }
-  .journey-current a { display: block; color: var(--text); font-weight: 700; text-decoration: none; line-height: 1.3; }
-  .journey-current a:hover { color: #ffd4b9; }
-  .journey-current p { margin: .45rem 0 0; color: var(--muted); font-size: .82rem; }
-  .journey-map-legend { position: absolute; z-index: 500; right: 1rem; bottom: 1rem; display: grid; gap: .35rem; padding: .65rem .8rem; border-radius: 11px; background: rgba(7,16,28,.82); color: #d8e7f2; font-size: .68rem; }
-  .journey-map-legend span { display: flex; align-items: center; gap: .45rem; }
-  .journey-map-legend i { width: 9px; height: 9px; border-radius: 50%; }
-  .legend-exact { background: var(--accent); border: 1px solid #ffd4b9; }
-  .legend-approximate { background: #07101c; border: 2px dashed #91a9bd; }
-  .journey-controls { position: relative; z-index: 600; display: grid; grid-template-columns: auto minmax(240px, 1fr); gap: 1.25rem; align-items: end; padding: 1rem 1.2rem 1.2rem; border-top: 1px solid var(--line); background: rgba(7,16,28,.96); }
-  .journey-actions { display: flex; gap: .65rem; align-items: end; }
-  .journey-actions button { min-height: 43px; white-space: nowrap; }
-  .journey-actions button[data-playing="true"] { background: #d96c2d; }
-  .journey-actions label { display: grid; gap: .3rem; color: var(--muted); font-size: .67rem; text-transform: uppercase; letter-spacing: .08em; }
-  .journey-actions select { min-width: 130px; padding: .58rem 2rem .58rem .7rem; }
-  .journey-timeline > div { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; color: var(--muted); font: .72rem/1 ui-monospace, monospace; }
-  .journey-timeline > div span:last-child { text-align: right; }
-  .journey-timeline output { color: #e8f5ff; }
-  .journey-timeline input { width: 100%; margin-top: .6rem; accent-color: var(--accent); cursor: pointer; }
-  .journey-empty { margin: 0; padding: 2rem; text-align: center; color: var(--muted); }
-  .journey-note { margin: .8rem .3rem 0; color: var(--muted); font-size: .72rem; }
-  .journey-note a { color: inherit; }
-  :global(.journey-map .leaflet-tile-pane) { filter: brightness(.55) saturate(.55) hue-rotate(165deg) contrast(1.08); }
-  :global(.journey-map .leaflet-control-attribution) { background: rgba(7,16,28,.78); color: #b9cbd8; }
-  :global(.journey-map .leaflet-control-attribution a) { color: #ffd4b9; }
-  :global(.journey-map .leaflet-bar a) { color: #e8f5ff; background: rgba(7,16,28,.9); border-bottom-color: var(--line); }
-  :global(.journey-map .leaflet-popup-content-wrapper), :global(.journey-map .leaflet-popup-tip) { color: #e8f5ff; background: #0d1b2d; }
-  :global(.journey-map .leaflet-popup-content a) { color: #ffad79; }
-  :global(.journey-active-marker) { border: 0; background: transparent; }
-  :global(.journey-active-marker span) { display: grid; place-items: center; width: 34px; height: 34px; color: #fff3e9; font-size: 22px; border-radius: 50%; background: rgba(234,129,66,.82); box-shadow: 0 0 0 6px rgba(234,129,66,.22), 0 0 28px rgba(234,129,66,.8); animation: journey-pulse 1.5s ease-in-out infinite; }
-  @keyframes journey-pulse { 50% { transform: scale(1.12); box-shadow: 0 0 0 11px rgba(234,129,66,.08), 0 0 36px rgba(234,129,66,.9); } }
-  @media (max-width: 900px) {
-    .journey-head { grid-template-columns: 1fr; }
-    .journey-stats { width: 100%; }
-    .journey-controls { grid-template-columns: 1fr; }
-    .journey-actions { display: grid; grid-template-columns: 1fr 1fr; }
-    .journey-actions button { grid-column: 1 / -1; }
-  }
-  @media (max-width: 620px) {
-    .journey-shell { width: min(100% - 1rem, 1500px); padding-top: 1.5rem; }
-    .journey-head h1 { font-size: clamp(2.6rem, 16vw, 4.5rem); }
-    .journey-map-wrap { min-height: 64vh; }
-    .journey-map { min-height: 460px; }
-    .journey-current { left: .6rem; top: .6rem; width: calc(100% - 1.2rem); }
-    .journey-map-legend { right: .6rem; bottom: .6rem; }
-    .journey-controls { padding: .85rem; }
-    .journey-stats div { padding: .75rem; }
-  }
-  @media (prefers-reduced-motion: reduce) { :global(.journey-active-marker span) { animation: none; } }
+  :global(body:has(.journey-globe) main){width:100%;max-width:none;padding:0}
+  :global(body:has(.journey-globe) footer){display:none}
+  .journey-globe{--journey-console-height:128px;position:relative;width:100%;height:calc(100svh - 88px);min-height:680px;overflow:hidden;background:#020713;color:#edf8ff}
+  .journey-map{position:absolute;inset:0}
+  .journey-globe::after{content:"";position:absolute;z-index:2;inset:0;pointer-events:none;background:linear-gradient(90deg,rgba(0,229,255,.045) 1px,transparent 1px),linear-gradient(rgba(0,229,255,.045) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(to bottom,black,transparent 55%)}
+  .journey-title-hud,.journey-stats,.journey-status,.journey-current,.journey-legend,.journey-console,.journey-soundtrack{position:absolute;z-index:4;background:rgba(2,9,18,.78);border:1px solid rgba(0,229,255,.25);backdrop-filter:blur(14px);box-shadow:0 16px 45px rgba(0,0,0,.2)}
+  .journey-right-hud{position:absolute;z-index:4;top:1rem;right:1rem;display:grid;justify-items:end;gap:.55rem;pointer-events:none}
+  .journey-title-hud{top:1rem;left:1rem;width:min(540px,calc(100% - 2rem));padding:1rem 1.15rem;pointer-events:none}
+  .journey-title-hud h1{margin:0 0 1rem;font-size:clamp(1.8rem,4vw,3.7rem);line-height:.92;letter-spacing:-.05em}.journey-title-hud small{display:block;color:#a9bdcb;font-size:.78rem;line-height:1.5}
+  .journey-stats{position:static;display:flex;margin:0;padding:.35rem}.journey-stats div{padding:.45rem .7rem}.journey-stats dt{color:#8fa7b8;font-size:.58rem;text-transform:uppercase;letter-spacing:.08em}.journey-stats dd{margin:.2rem 0 0;font:700 1rem/1 ui-monospace,monospace}
+  .journey-status{position:static;display:flex;align-items:center;gap:.5rem;padding:.5rem .65rem;font:700 .62rem/1 ui-monospace,monospace;letter-spacing:.08em}.journey-status i{width:6px;height:6px;border-radius:50%;background:#00e5ff;box-shadow:0 0 12px #00e5ff}
+  .journey-current{left:1rem;bottom:calc(var(--journey-console-height) + 1.5rem);width:min(440px,calc(100% - 2rem));padding:.8rem 1rem}.journey-current>div{display:flex;justify-content:space-between;gap:1rem}.journey-current time{color:#ff8a45;font:700 .72rem/1 ui-monospace,monospace}.journey-current [data-current-precision]{font-size:.62rem;color:#b7c9d5}.journey-current a{display:block;margin:.45rem 0 0;color:#fff;font-weight:750;text-decoration:none;line-height:1.25}.journey-current p{margin:.35rem 0 0;color:#9db2c5;font-size:.75rem}
+  .journey-soundtrack{right:1rem;bottom:calc(var(--journey-console-height) + 1.5rem);width:358px;overflow:hidden}.journey-soundtrack header{display:flex;align-items:center;justify-content:space-between;gap:.7rem;padding:.42rem .55rem;color:#cfe0ea;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:.58rem;font-weight:700;line-height:1;letter-spacing:.04em;text-transform:uppercase}.journey-soundtrack header button{min-height:0;padding:.28rem .45rem;border-radius:4px;font-family:inherit;font-size:.55rem;font-weight:700}.journey-soundtrack header button[aria-pressed="false"]{border-color:#52606c;background:#171d25;color:#8393a0}.journey-soundtrack iframe{display:block;width:356px;height:200px;border:0}.journey-soundtrack[data-autoplay-blocked="true"]{border-color:#ff7a2f}.journey-soundtrack[data-autoplay-blocked="true"] header::after{content:"CLICK PLAYER";color:#ff9a5f}
+  .journey-legend{position:static;display:grid;gap:.4rem;padding:.6rem .7rem;color:#c4d2dd;font-size:.65rem}.journey-legend span{display:flex;gap:.45rem;align-items:center}.journey-legend i{width:9px;height:9px;border-radius:50%}.journey-legend .solid{background:#00dff5;border:1px solid #fff}.journey-legend .hollow{background:transparent;border:2px solid #8298ab}
+  .journey-console{left:1rem;right:1rem;bottom:1rem;display:grid;grid-template-columns:1fr;gap:.65rem;padding:.8rem 1rem}
+  .journey-actions{display:flex;gap:.55rem;align-items:end}.journey-actions button{min-height:42px;white-space:nowrap}.journey-actions button[data-playing="true"]{background:#d96c2d}.playback-icon{display:inline-grid;place-items:center;width:1em}.playback-icon :global(.icon){grid-area:1/1}.playback-icon :global(.icon-pause){display:none}.journey-actions button[data-playing="true"] .playback-icon :global(.icon-play){display:none}.journey-actions button[data-playing="true"] .playback-icon :global(.icon-pause){display:inline-block}.journey-actions label{display:grid;gap:.25rem;color:#8fa7b8;font-size:.58rem;text-transform:uppercase;letter-spacing:.08em}.journey-actions select{min-width:116px;padding:.55rem 1.8rem .55rem .65rem}
+  .journey-timeline{position:relative;padding-top:2.5rem;padding-bottom:1.2rem}.journey-timeline input{width:100%;accent-color:#ff7a2f}.year-ticks{position:absolute;left:0;right:0;bottom:0;height:1rem}:global(.year-ticks span){position:absolute;transform:translateX(-50%);color:#8fa7b8;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:.58rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}:global(.year-ticks span:first-child){transform:none}:global(.year-ticks span:last-child){transform:translateX(-100%)}
+  .phase-marker{position:absolute;z-index:2;top:.35rem;left:0;min-height:0;padding:.34rem .6rem;transform:translateX(-50%);border:1px solid rgba(255,122,47,.72);border-radius:5px;background:#10141d;color:#ff9a5f;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:.67rem;font-weight:700;line-height:1;letter-spacing:.01em;white-space:nowrap}.phase-marker[data-edge="start"]{transform:none}.phase-marker[data-edge="end"]{transform:translateX(-100%)}.phase-marker::after{content:"";position:absolute;top:100%;left:50%;width:1px;height:.65rem;background:#ff7a2f}.phase-marker[data-edge="start"]::after{left:0}.phase-marker[data-edge="end"]::after{left:100%}.phase-marker:hover,.phase-marker:focus-visible{background:#ff7a2f;color:#07101c}
+  :global(.journey-map .maplibregl-ctrl-top-left),:global(.journey-map .maplibregl-ctrl-top-right){top:50%!important;left:1rem!important;right:auto!important;transform:translateY(-50%)}:global(.journey-map .maplibregl-ctrl-bottom-right){bottom:calc(var(--journey-console-height) + .75rem)!important;right:.7rem!important}:global(.journey-map .maplibregl-ctrl-group){background:rgba(2,8,16,.84);border:1px solid rgba(255,255,255,.15)}:global(.journey-map .maplibregl-ctrl button .maplibregl-ctrl-icon){filter:invert(1)}:global(.journey-map .maplibregl-ctrl-attrib){color:#b9cbd8;background:rgba(2,8,16,.75)}:global(.journey-map .maplibregl-ctrl-attrib a){color:#e8f4ff}:global(.journey-map .maplibregl-popup-content){color:#e8f4ff;background:#081421;border:1px solid #00e5ff;border-radius:10px}:global(.journey-map .maplibregl-popup-tip){border-top-color:#081421}
+  @media(max-width:850px){.journey-globe{height:calc(100svh - 132px);min-height:650px}.journey-title-hud{padding:.75rem}.journey-title-hud small{display:none}.journey-right-hud{top:6.5rem;left:1rem;right:auto;justify-items:start}.journey-status,.journey-legend{display:none}.journey-soundtrack{top:10.5rem;right:.5rem;bottom:auto;width:min(356px,calc(100% - 4rem))}.journey-soundtrack iframe{width:100%;height:200px}.journey-console{grid-template-columns:1fr}.journey-actions{display:grid;grid-template-columns:1fr 1fr}.journey-actions label{min-width:0}.journey-actions select{width:100%}:global(.journey-map .maplibregl-ctrl-top-left){left:.5rem!important}}
+  @media(max-width:520px){.journey-globe{height:calc(100svh - 136px);min-height:720px}.journey-title-hud h1{font-size:1.9rem}.journey-right-hud{top:5.7rem;left:.5rem}.journey-console{left:.5rem;right:.5rem;bottom:.5rem;padding:.65rem}.journey-title-hud{left:.5rem;top:.5rem;width:calc(100% - 1rem)}.journey-current{left:.5rem;width:calc(100% - 1rem)}}
 </style>

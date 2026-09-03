@@ -1,43 +1,105 @@
 ---
-import { dateInTimeZone, listArchiveYears, searchEvents } from "@frip-fan/core";
+import {
+  dateInTimeZone,
+  listAdministrativeAreas,
+  listArchiveFilterEntries,
+  searchEvents,
+  type AdministrativeArea,
+} from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import Icon from "../components/Icon.astro";
+import { archiveLocationCounts, archiveYearCounts } from "../lib/archive-filter";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
 
 const db = getEnv().DB;
 const locale = getLocale(Astro.request);
-const archiveYears = await listArchiveYears(db);
+const [areas, archiveEntries] = await Promise.all([
+  listAdministrativeAreas(db),
+  listArchiveFilterEntries(db),
+]);
+const areaById = new Map(areas.map((area) => [area.id, area]));
+const countryAreas = new Map(areas.filter((area) => area.level === "country").map((area) => [area.country_code, area]));
+const localizedAreaName = (area: AdministrativeArea): string => locale === "en" ? area.name_en ?? area.name_local : locale === "ja" ? area.name_ja ?? area.name_local : area.name_zh ?? area.name_local;
+
+const areaLocationKey = (areaId: string): string | null => {
+  let area = areaById.get(areaId);
+  if (!area) return null;
+  if (area.country_code !== "JP") return `country:${area.country_code}`;
+  const visited = new Set<string>();
+  while (area && area.level !== "subdivision") {
+    if (!area.parent_id || visited.has(area.id)) return null;
+    visited.add(area.id);
+    area = areaById.get(area.parent_id);
+  }
+  return area?.level === "subdivision" ? `jp:${area.id}` : null;
+};
+
+const locationLabel = (key: string): string => {
+  const area = key.startsWith("jp:") ? areaById.get(key.slice(3)) : countryAreas.get(key.slice(8));
+  return area ? localizedAreaName(area) : key;
+};
+const archiveItems = archiveEntries.map((entry) => {
+  const locationKeys = [...new Set(entry.area_ids.map(areaLocationKey).filter((key): key is string => Boolean(key)))];
+  const searchText = [
+    entry.title, entry.category, entry.classification, entry.location_note, entry.remark,
+    ...entry.venue_names, ...entry.area_names, ...entry.channel_names,
+  ].filter(Boolean).join(" ").toLocaleLowerCase();
+  return { id: entry.id, startDate: entry.start_date, category: entry.category, searchText, locationKeys };
+});
+const locationCounts = archiveLocationCounts(archiveItems);
+const validCategories = new Set(["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"]);
+const query = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 200);
+const selectedCategories = [...new Set(Astro.url.searchParams.getAll("category"))]
+  .filter((value) => validCategories.has(value));
+const selectedLocations = [...new Set(Astro.url.searchParams.getAll("location"))]
+  .filter((value) => locationCounts.has(value));
+const filterState = { query, categories: selectedCategories, locations: selectedLocations };
+const filtering = Boolean(query || selectedCategories.length || selectedLocations.length);
+
 const today = dateInTimeZone();
 const currentYear = today.slice(0, 4);
-const years = archiveYears.some((item) => item.year === currentYear)
-  ? archiveYears
-  : [...archiveYears, { year: currentYear, count: 0 }].sort((left, right) => right.year.localeCompare(left.year));
+const matchedYears = archiveYearCounts(archiveItems, filterState);
+const years = !filtering && !matchedYears.some((item) => item.year === currentYear)
+  ? [...matchedYears, { year: currentYear, count: 0 }].sort((left, right) => right.year.localeCompare(left.year))
+  : matchedYears;
 const requested = Astro.url.searchParams.get("year");
-const year = requested && /^\d{4}$/.test(requested) ? requested : currentYear;
-const events = year ? await searchEvents(db, { date_from: `${year}-01-01`, date_to: `${year}-12-31`, limit: 500 }, true) : [];
+const year = requested && /^\d{4}$/.test(requested) && years.some((item) => item.year === requested)
+  ? requested : years.find((item) => item.year === currentYear)?.year ?? years[0]?.year ?? currentYear;
+const events = await searchEvents(db, { date_from: `${year}-01-01`, date_to: `${year}-12-31`, limit: 500 }, true);
 const categoryOptions = [
   { value: "LIVE", label: "Live" },
   { value: "EVENT", label: "Event" },
   { value: "RELEASE", label: "Release" },
   { value: "MEDIA", label: "Media" },
-  { value: "OTHER", label: "Other" }
-].map((option) => ({ ...option, count: events.filter((event) => event.category === option.value).length }));
+  { value: "OTHER", label: "Other" },
+].map((option) => ({ ...option, count: archiveItems.filter((event) => event.category === option.value).length }));
+const locationOptions = [...locationCounts].map(([value, count]) => ({ value, count, label: locationLabel(value) }))
+  .sort((left, right) => left.label.localeCompare(right.label, locale));
+const japaneseLocationOptions = locationOptions.filter((option) => option.value.startsWith("jp:"));
+const overseasLocationOptions = locationOptions.filter((option) => option.value.startsWith("country:"));
+const locationKeysByEventId = new Map(archiveItems.map((item) => [item.id, item.locationKeys]));
+const archiveHref = (targetYear: string): string => {
+  const params = new URLSearchParams();
+  params.set("year", targetYear);
+  if (query) params.set("q", query);
+  for (const category of selectedCategories) params.append("category", category);
+  for (const location of selectedLocations) params.append("location", location);
+  return `/archive?${params}`;
+};
 ---
 <SiteLayout title={t(locale, "archive.title")} clientRouting>
   <header class="archive-head">
     <h1>Event List</h1>
   </header>
-  <div class="year-tabs" data-year-tabs>
-    {years.map((item) => <a class:list={{ active: item.year === year }} href={`/archive?year=${item.year}`} data-astro-prefetch="viewport"><strong>{item.year}</strong><small>{t(locale, "archive.yearCount", { count: item.count })}</small></a>)}
-  </div>
-  {events.length > 0 && (
-    <div class="list-toolbar">
+  {archiveEntries.length > 0 && (
+    <form class="list-toolbar" method="get" action="/archive" data-archive-filter-form>
+      <input type="hidden" name="year" value={year} />
       <label class="event-search">
         <span class="visually-hidden">{t(locale, "archive.searchLabel")}</span>
         <Icon name="search" />
-        <input type="search" placeholder={t(locale, "archive.searchPlaceholder")} autocomplete="off" data-event-search-input />
+        <input type="search" name="q" value={query} placeholder={t(locale, "archive.searchPlaceholder")} autocomplete="off" data-event-search-input />
       </label>
       <div class="list-control-row">
         <div class="list-controls">
@@ -63,17 +125,50 @@ const categoryOptions = [
                   <label class:list={["filter-choice", { disabled: option.count === 0 }]}>
                     <input
                       type="checkbox"
+                      name="category"
                       value={option.value}
                       data-category-filter
                       disabled={option.count === 0}
+                      checked={selectedCategories.includes(option.value)}
                     />
                     <span class="filter-pill"><span>{option.label}</span><small>{option.count}</small></span>
                   </label>
                 ))}
               </div>
+              {(japaneseLocationOptions.length > 0 || overseasLocationOptions.length > 0) && (
+                <div class="location-filter-section">
+                  <div class="filter-section-head"><strong>{t(locale, "archive.location")}</strong><span>{t(locale, "archive.multiple")}</span></div>
+                  {japaneseLocationOptions.length > 0 && (
+                    <div class="location-filter-group">
+                      <span class="filter-group-label">{t(locale, "archive.japanPrefectures")}</span>
+                      <div class="filter-options location-options">
+                        {japaneseLocationOptions.map((option) => (
+                          <label class="filter-choice">
+                            <input type="checkbox" name="location" value={option.value} data-location-filter checked={selectedLocations.includes(option.value)} />
+                            <span class="filter-pill"><span>{option.label}</span><small>{option.count}</small></span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {overseasLocationOptions.length > 0 && (
+                    <div class="location-filter-group">
+                      <span class="filter-group-label">{t(locale, "archive.overseasCountries")}</span>
+                      <div class="filter-options location-options">
+                        {overseasLocationOptions.map((option) => (
+                          <label class="filter-choice">
+                            <input type="checkbox" name="location" value={option.value} data-location-filter checked={selectedLocations.includes(option.value)} />
+                            <span class="filter-pill"><span>{option.label}</span><small>{option.count}</small></span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <div class="control-card-actions">
                 <button type="button" class="clear-control" data-filter-clear disabled>{t(locale, "archive.clear")}</button>
-                <button type="button" class="done-control" data-filter-done>{t(locale, "archive.done")}</button>
+                <button type="submit" class="done-control" data-filter-done>{t(locale, "archive.done")}</button>
               </div>
             </div>
           </div>
@@ -116,8 +211,11 @@ const categoryOptions = [
           aria-live="polite"
         >{t(locale, "archive.total", { count: events.length })}</span>
       </div>
-    </div>
+    </form>
   )}
+  <div class="year-tabs" data-year-tabs>
+    {years.map((item) => <a class:list={{ active: item.year === year }} href={archiveHref(item.year)} data-astro-prefetch="viewport"><strong>{item.year}</strong><small>{t(locale, "archive.yearCount", { count: item.count })}</small></a>)}
+  </div>
   <section
     class="stack"
     data-event-list
@@ -130,6 +228,7 @@ const categoryOptions = [
         data-event-item
         data-event-index={index}
         data-event-category={event.category}
+        data-event-locations={(locationKeysByEventId.get(event.id) ?? []).join(" ")}
         data-event-sort={`${event.start_date}T${event.start_time ?? "00:00"}`}
         data-search-text={[event.title, event.category, event.classification, event.location_label, event.remark].filter(Boolean).join(" ").toLocaleLowerCase()}
       >
@@ -185,7 +284,8 @@ const categoryOptions = [
     const searchEmpty = document.querySelector<HTMLElement>("[data-search-empty]");
     const filterToggle = document.querySelector<HTMLButtonElement>("[data-filter-toggle]");
     const filterPanel = document.querySelector<HTMLElement>("[data-filter-panel]");
-    const filterInputs = [...document.querySelectorAll<HTMLInputElement>("[data-category-filter]")];
+    const categoryFilterInputs = [...document.querySelectorAll<HTMLInputElement>("[data-category-filter]")];
+    const locationFilterInputs = [...document.querySelectorAll<HTMLInputElement>("[data-location-filter]")];
     const filterCount = document.querySelector<HTMLElement>("[data-filter-count]");
     const filterClear = document.querySelector<HTMLButtonElement>("[data-filter-clear]");
     const filterDone = document.querySelector<HTMLButtonElement>("[data-filter-done]");
@@ -297,7 +397,8 @@ const categoryOptions = [
 
     const applyListState = () => {
       const terms = searchInput?.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean) ?? [];
-      const selectedCategories = new Set(filterInputs.filter((input) => input.checked).map((input) => input.value));
+      const selectedCategories = new Set(categoryFilterInputs.filter((input) => input.checked).map((input) => input.value));
+      const selectedLocations = new Set(locationFilterInputs.filter((input) => input.checked).map((input) => input.value));
       const sortDirection = sortInputs.find((input) => input.checked)?.value === "desc" ? -1 : 1;
 
       const sortedItems = [...eventItems].sort((left, right) => {
@@ -312,11 +413,13 @@ const categoryOptions = [
         const searchText = item.dataset.searchText ?? "";
         const matchesSearch = terms.every((term) => searchText.includes(term));
         const matchesCategory = selectedCategories.size === 0 || selectedCategories.has(item.dataset.eventCategory ?? "");
-        item.hidden = !(matchesSearch && matchesCategory);
+        const itemLocations = (item.dataset.eventLocations ?? "").split(" ").filter(Boolean);
+        const matchesLocation = selectedLocations.size === 0 || itemLocations.some((location) => selectedLocations.has(location));
+        item.hidden = !(matchesSearch && matchesCategory && matchesLocation);
         if (!item.hidden) visibleCount += 1;
       });
 
-      const filtering = terms.length > 0 || selectedCategories.size > 0;
+      const filtering = terms.length > 0 || selectedCategories.size > 0 || selectedLocations.size > 0;
       if (currentTimeMarker && eventList) {
         currentTimeMarker.hidden = !isCurrentYearPage || (filtering && visibleCount === 0);
         if (!currentTimeMarker.hidden) {
@@ -335,12 +438,13 @@ const categoryOptions = [
           : totalTemplate.replaceAll("{count}", String(eventItems.length));
       }
       if (searchEmpty) searchEmpty.hidden = !filtering || visibleCount > 0;
+      const selectedFilterCount = selectedCategories.size + selectedLocations.size;
       if (filterCount) {
-        filterCount.textContent = String(selectedCategories.size);
-        filterCount.hidden = selectedCategories.size === 0;
+        filterCount.textContent = String(selectedFilterCount);
+        filterCount.hidden = selectedFilterCount === 0;
       }
-      if (filterClear) filterClear.disabled = selectedCategories.size === 0;
-      filterToggle?.classList.toggle("active", selectedCategories.size > 0);
+      if (filterClear) filterClear.disabled = selectedFilterCount === 0;
+      filterToggle?.classList.toggle("active", selectedFilterCount > 0);
       updateJumpButton();
     };
 
@@ -364,9 +468,10 @@ const categoryOptions = [
     searchInput?.addEventListener("input", applyListState, { signal });
     filterToggle?.addEventListener("click", () => togglePanel(filterToggle, filterPanel), { signal });
     sortToggle?.addEventListener("click", () => togglePanel(sortToggle, sortPanel), { signal });
-    filterInputs.forEach((input) => input.addEventListener("change", applyListState, { signal }));
+    [...categoryFilterInputs, ...locationFilterInputs].forEach((input) => input.addEventListener("change", applyListState, { signal }));
     filterClear?.addEventListener("click", () => {
-      filterInputs.forEach((input) => { input.checked = false; });
+      categoryFilterInputs.forEach((input) => { input.checked = false; });
+      locationFilterInputs.forEach((input) => { input.checked = false; });
       applyListState();
     }, { signal });
     filterDone?.addEventListener("click", () => closePanel(filterToggle, filterPanel), { signal });
@@ -397,14 +502,14 @@ const categoryOptions = [
 
 <style>
   .archive-head h1 { margin-bottom: 0; }
-  .year-tabs { display: flex; gap: .7rem; margin: 2.5rem 0 1.25rem; overflow-x: auto; padding-bottom: .5rem; }
+  .year-tabs { display: flex; gap: .7rem; margin: 1.25rem 0; overflow-x: auto; padding-bottom: .5rem; }
   .year-tabs a { min-width: 120px; display: grid; gap: .2rem; text-decoration: none; border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; transition: color .16s, border-color .16s, background .16s, opacity .16s; }
   .year-tabs a.active { border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .06); }
   .year-tabs a.is-pending { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .08); animation: year-tab-pulse .8s ease-in-out infinite alternate; }
   .year-tabs strong { font-size: 1.2rem; }
   .year-tabs small { color: var(--muted); }
   @keyframes year-tab-pulse { to { opacity: .58; } }
-  .list-toolbar { display: grid; gap: .75rem; margin-bottom: 1.25rem; }
+  .list-toolbar { display: grid; gap: .75rem; margin-top: 2.5rem; }
   .event-search { position: relative; display: flex; align-items: center; width: 100%; color: var(--muted); }
   .event-search :global(.icon) { position: absolute; left: .9rem; pointer-events: none; }
   .event-search input { height: 46px; padding-left: 2.65rem; background: rgba(7,16,28,.74); border-color: var(--line); }
@@ -420,11 +525,18 @@ const categoryOptions = [
   .active-filter-count[hidden] { display: none; }
   .control-card { position: absolute; z-index: 30; top: calc(100% + .65rem); left: 0; width: min(20rem, calc(100vw - 2rem)); padding: 1rem; background: linear-gradient(145deg, rgba(15,30,49,.98), rgba(7,16,28,.98)); border: 1px solid rgba(var(--accent-rgb),.28); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.5); backdrop-filter: blur(24px); }
   .control-card[hidden] { display: none; }
+  .filter-card { width: min(38rem, calc(100vw - 2rem)); max-height: min(75vh, 48rem); overflow-y: auto; }
   .control-card-head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: .15rem .15rem .85rem; border-bottom: 1px solid var(--line); }
   .control-card-head div { display: grid; gap: .2rem; }
   .control-card-head strong { font-size: .92rem; }
   .control-card-head span { color: var(--muted); font-size: .7rem; }
   .control-card-head > small { color: var(--accent); font-size: .58rem; letter-spacing: .18em; }
+  .location-filter-section { padding-top: .9rem; border-top: 1px solid var(--line); }
+  .filter-section-head { display: grid; gap: .2rem; }
+  .filter-section-head strong { font-size: .92rem; }
+  .filter-section-head span, .filter-group-label { color: var(--muted); font-size: .7rem; }
+  .location-filter-group { margin-top: .9rem; }
+  .location-options { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: .45rem 0 0; }
   .filter-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: .9rem 0; }
   .filter-choice { display: block; cursor: pointer; }
   .filter-choice input, .sort-choice input { position: absolute; opacity: 0; pointer-events: none; }
@@ -471,6 +583,7 @@ const categoryOptions = [
     .list-control-row { align-items: flex-start; }
     .list-controls { flex-wrap: wrap; }
     .control-card { position: fixed; top: auto; left: 1rem; right: 1rem; bottom: 1rem; width: auto; }
+    .location-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .control-value { display: none; }
     .current-time-marker { gap: .55rem; }
     .jump-current-time { right: .85rem; min-height: 48px; padding: .76rem 1rem; font-size: .82rem; }

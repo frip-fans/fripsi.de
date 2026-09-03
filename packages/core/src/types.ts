@@ -80,6 +80,20 @@ export interface EventRecord {
   sources?: EventSource[];
 }
 
+export interface ArchiveFilterEntry {
+  id: string;
+  title: string;
+  start_date: string;
+  category: Category;
+  classification: string | null;
+  location_note: string | null;
+  remark: string | null;
+  venue_names: string[];
+  area_ids: string[];
+  area_names: string[];
+  channel_names: string[];
+}
+
 export interface EventSource extends SourceInput {
   id: string;
   event_id: string;

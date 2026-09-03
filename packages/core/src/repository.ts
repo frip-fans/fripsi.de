@@ -1,7 +1,14 @@
 import { duplicateInputSchema, searchInputSchema, type SearchInput } from "./schema";
 import { hydrateEventLocations } from "./locations";
-import type { AuditLog, ChangeSet, DuplicateCandidate, EventRecord, EventSource } from "./types";
+import type { ArchiveFilterEntry, AuditLog, ChangeSet, DuplicateCandidate, EventRecord, EventSource } from "./types";
 import { normalizeForDuplicate, ServiceError } from "./utils";
+
+interface ArchiveFilterRow extends Omit<ArchiveFilterEntry, "venue_names" | "area_ids" | "area_names" | "channel_names"> {
+  venue_names: string | null;
+  area_ids: string | null;
+  area_names: string | null;
+  channel_names: string | null;
+}
 
 interface EventRow extends Omit<EventRecord, "published" | "sources" | "venues" | "channels" | "venue_label" | "area_label" | "location_label"> {
   published: number;
@@ -118,6 +125,35 @@ export async function listLatestPublicEvents(db: D1Database, limit = 6): Promise
     LIMIT ?
   `).bind(safeLimit).all<EventRow>();
   return hydrateEventLocations(db, result.results.map(mapEvent));
+}
+
+export async function listArchiveFilterEntries(db: D1Database): Promise<ArchiveFilterEntry[]> {
+  const result = await db.prepare(`SELECT
+    e.id, e.title, e.start_date, e.category, e.classification, e.location_note, e.remark,
+    (SELECT GROUP_CONCAT(v.canonical_name, char(31))
+      FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+      WHERE ev.event_id = e.id ORDER BY ev.position, ev.venue_id) AS venue_names,
+    (SELECT GROUP_CONCAT(v.administrative_area_id, char(31))
+      FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+      WHERE ev.event_id = e.id AND v.administrative_area_id IS NOT NULL
+      ORDER BY ev.position, ev.venue_id) AS area_ids,
+    (SELECT GROUP_CONCAT(a.name_local, char(31))
+      FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+      JOIN administrative_areas a ON a.id = v.administrative_area_id
+      WHERE ev.event_id = e.id ORDER BY ev.position, ev.venue_id) AS area_names,
+    (SELECT GROUP_CONCAT(ec.name, char(31)) FROM event_channels ec
+      WHERE ec.event_id = e.id ORDER BY ec.position, ec.id) AS channel_names
+    FROM events e
+    WHERE e.published = 1 AND e.archived_at IS NULL
+    ORDER BY e.start_date ASC, e.title ASC`).all<ArchiveFilterRow>();
+  const split = (value: string | null): string[] => value?.split("\u001f").filter(Boolean) ?? [];
+  return result.results.map((entry) => ({
+    ...entry,
+    venue_names: split(entry.venue_names),
+    area_ids: split(entry.area_ids),
+    area_names: split(entry.area_names),
+    channel_names: split(entry.channel_names),
+  }));
 }
 
 export async function listArchiveYears(db: D1Database): Promise<Array<{ year: string; count: number }>> {

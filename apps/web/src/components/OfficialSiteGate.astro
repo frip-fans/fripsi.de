@@ -30,9 +30,9 @@ const locale = getLocale(Astro.request);
 
 <script>
   import {
-    OFFICIAL_SITE_NOTICE_COOKIE,
     OFFICIAL_SITE_NOTICE_REOPEN_STORAGE_KEY,
     OFFICIAL_SITE_NOTICE_STORAGE_KEY,
+    serializeOfficialSiteNoticeCookie,
   } from "../lib/site-notice";
 
   let siteGateController: AbortController | undefined;
@@ -50,7 +50,7 @@ const locale = getLocale(Astro.request);
 
     const hasAcknowledgedNotice = () => {
       try {
-        return sessionStorage.getItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY) === "yes";
+        return localStorage.getItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY) === "yes";
       } catch {
         return false;
       }
@@ -58,13 +58,12 @@ const locale = getLocale(Astro.request);
 
     const persistAcknowledgement = () => {
       try {
-        sessionStorage.setItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY, "yes");
+        localStorage.setItem(OFFICIAL_SITE_NOTICE_STORAGE_KEY, "yes");
       } catch {
-        // The session cookie remains the server-side source of truth.
+        // The persistent cookie remains the server-side source of truth.
       }
 
-      const secure = location.protocol === "https:" ? "; Secure" : "";
-      document.cookie = `${OFFICIAL_SITE_NOTICE_COOKIE}=yes; Path=/; SameSite=Lax${secure}`;
+      document.cookie = serializeOfficialSiteNoticeCookie(location.protocol === "https:");
     };
 
     const consumeLanguageChangeReopen = () => {

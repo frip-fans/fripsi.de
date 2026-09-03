@@ -525,7 +525,7 @@ const archiveHref = (targetYear: string): string => {
   .active-filter-count[hidden] { display: none; }
   .control-card { position: absolute; z-index: 30; top: calc(100% + .65rem); left: 0; width: min(20rem, calc(100vw - 2rem)); padding: 1rem; background: linear-gradient(145deg, rgba(15,30,49,.98), rgba(7,16,28,.98)); border: 1px solid rgba(var(--accent-rgb),.28); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.5); backdrop-filter: blur(24px); }
   .control-card[hidden] { display: none; }
-  .filter-card { width: min(38rem, calc(100vw - 2rem)); max-height: min(75vh, 48rem); overflow-y: auto; }
+  .filter-card { width: min(38rem, calc(100vw - 2rem)); max-height: min(75vh, 48rem); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
   .control-card-head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: .15rem .15rem .85rem; border-bottom: 1px solid var(--line); }
   .control-card-head div { display: grid; gap: .2rem; }
   .control-card-head strong { font-size: .92rem; }
@@ -537,11 +537,11 @@ const archiveHref = (targetYear: string): string => {
   .filter-section-head span, .filter-group-label { color: var(--muted); font-size: .7rem; }
   .location-filter-group { margin-top: .9rem; }
   .location-options { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: .45rem 0 0; }
-  .filter-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: .9rem 0; }
-  .filter-choice { display: block; cursor: pointer; }
+  .filter-options { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: .9rem 0; }
+  .filter-choice { display: block; min-width: 0; cursor: pointer; }
   .filter-choice input, .sort-choice input { position: absolute; opacity: 0; pointer-events: none; }
-  .filter-pill { display: flex; align-items: center; justify-content: space-between; min-height: 40px; padding: .55rem .7rem; color: var(--muted); background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 10px; transition: color .16s, border-color .16s, background .16s; }
-  .filter-pill > span { font-size: .78rem; font-weight: 680; }
+  .filter-pill { display: flex; min-width: 0; align-items: center; justify-content: space-between; min-height: 40px; padding: .55rem .7rem; color: var(--muted); background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 10px; transition: color .16s, border-color .16s, background .16s; }
+  .filter-pill > span { min-width: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 680; }
   .filter-pill small { min-width: 1.45rem; text-align: center; color: var(--muted); font-size: .65rem; }
   .filter-choice:hover .filter-pill { color: var(--text); border-color: rgba(var(--accent-rgb),.25); }
   .filter-choice input:focus-visible + .filter-pill { box-shadow: 0 0 0 3px rgba(var(--accent-rgb),.1); }
@@ -583,6 +583,7 @@ const archiveHref = (targetYear: string): string => {
     .list-control-row { align-items: flex-start; }
     .list-controls { flex-wrap: wrap; }
     .control-card { position: fixed; top: auto; left: 1rem; right: 1rem; bottom: 1rem; width: auto; }
+    .control-card.filter-card { right: auto; width: calc(100vw - 2rem); max-width: calc(100vw - 2rem); }
     .location-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .control-value { display: none; }
     .current-time-marker { gap: .55rem; }

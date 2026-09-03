@@ -23,10 +23,20 @@ async function check(viewport,outputPath){
   const beforeZoom=requests.length;
   for(let count=0;count<3;count+=1)await page.locator(".maplibregl-ctrl-zoom-in").click();
   await page.waitForTimeout(1800);
-  const range=page.locator("[data-journey-range]"),minimum=await range.getAttribute("min");
-  if(minimum)await range.fill(minimum);
+  const range=page.locator("[data-journey-range]"),minimum=await range.getAttribute("min"),maximum=await range.getAttribute("max");
   await page.locator("[data-journey-play]").click();
+  await page.waitForTimeout(100);
+  const defaultStart=await page.locator("[data-journey-progress]").textContent();
   await page.waitForTimeout(1900);
+  await page.locator("[data-journey-play]").click();
+  await page.locator("[data-journey-play]").click();
+  await page.waitForTimeout(100);
+  const restart=await page.locator("[data-journey-progress]").textContent();
+  await page.locator("[data-journey-play]").click();
+  if(minimum&&maximum)await range.fill(String(Math.round((Number(minimum)+Number(maximum))/2)));
+  const seekStart=await page.locator("[data-journey-progress]").textContent();
+  await page.locator("[data-journey-play]").click();
+  await page.waitForTimeout(100);
   const progress=await page.locator("[data-journey-progress]").textContent();
   await page.locator("[data-journey-play]").click();
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
@@ -35,7 +45,8 @@ async function check(viewport,outputPath){
   if(requests.some(request=>request.status>=400))errors.push("vector response >=400");
   if(requests.length<=beforeZoom)errors.push("zoom did not request more vector resources");
   if(!soundtrackSrc?.includes("MfWqe_cb9rA")||!soundtrackSrc.includes("sHaQijiyhMk")||!soundtrackSrc.includes("loop=1"))errors.push("soundtrack playlist is incomplete");
-  if(!progress||progress.startsWith("1 /"))errors.push(`playback did not advance: ${progress}`);
+  if(!defaultStart?.startsWith("1 /")||!restart?.startsWith("1 /"))errors.push(`playback did not restart from the beginning: default=${defaultStart}, restart=${restart}`);
+  if(!seekStart||seekStart.startsWith("1 /")||progress!==seekStart)errors.push(`playback did not honor slider start: seek=${seekStart}, playback=${progress}`);
   if(overflow>1)errors.push(`horizontal overflow: ${overflow}px`);
   if(viewport.width<=850){
     const stage=layout[".journey-map-stage"],soundtrack=layout[".journey-soundtrack"],current=layout[".journey-current"],consolePanel=layout[".journey-console"];
@@ -49,7 +60,7 @@ async function check(viewport,outputPath){
   }
   await page.screenshot({path:outputPath,fullPage:true});
   await context.close();
-  return{viewport,outputPath,events,ticks,phaseMarker,status,vectorRequests:requests.length,zoomRequests:requests.length-beforeZoom,progress,layout,errors};
+  return{viewport,outputPath,events,ticks,phaseMarker,status,vectorRequests:requests.length,zoomRequests:requests.length-beforeZoom,defaultStart,restart,seekStart,progress,layout,errors};
 }
 
 const results=[await check({width:1440,height:1000},"/tmp/frip-journey-globe-desktop.png"),await check({width:390,height:844},"/tmp/frip-journey-globe-mobile.png")];

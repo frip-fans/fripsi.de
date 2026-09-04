@@ -1,5 +1,7 @@
 # fripSi.de
 
+[简体中文](./README.md) | [日本語](./README.ja.md) | [English](./README.en.md)
+
 [fripSi.de](https://fripsi.de) 是一个由粉丝维护的非官方 fripSide 活动日历与 Live 歌单资料库。
 
 项目用于整理公开发布的活动、发行物、歌曲版本与演唱记录。内容保存在 Cloudflare D1 中，通过站内后台维护；更新资料不需要重新构建网站。
@@ -9,9 +11,11 @@
 ## 功能
 
 - 按月份浏览活动，并通过公开的 iCalendar 地址订阅日历。
-- 按年份、类型和关键词查询历史活动。
+- 按年份、类型、地点和关键词查询历史活动。
 - 在 Live Journey 世界地图上拖动时间轴，播放历年实体活动轨迹。
 - 浏览 Live 歌单、专辑曲目、歌曲版本及相互之间的关联。
+- 通过社区页面和嵌入式 GitHub Discussions 参与公开讨论。
+- 使用“八木沼悟志浓度检测器”互动页面生成趣味检测结果。
 - 支持简体中文、繁体中文、日语和英语界面。
 - 通过 `/admin` 管理活动、歌曲、专辑和歌单。
 - 记录资料来源和管理操作，方便核查与修正。
@@ -80,7 +84,7 @@ MCP endpoint 默认为 `http://localhost:8787/mcp`，健康检查位于 `/health
 | `npm run build` | 构建全部 workspace |
 | `npm run build:web` | 只构建网站 |
 | `npm run visual:check` | 使用 Playwright 检查首页视觉状态 |
-| `node scripts/visual-check-journey.mjs` | 检查Journey桌面/移动端地图与播放交互 |
+| `node scripts/visual-check-journey.mjs` | 检查 Journey 桌面端／移动端地图与播放交互 |
 | `npm run db:migrate:local` | 将 migrations 应用到本地 D1 |
 | `npm run db:seed:local` | 写入本地示例数据 |
 

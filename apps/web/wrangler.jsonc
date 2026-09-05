@@ -51,7 +51,13 @@
         "MAP_TILE_URL": "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         "ACCESS_TEAM_DOMAIN": "rklee.cloudflareaccess.com",
         "ACCESS_AUD": "38ea414c004a9c76d1835d12a76f9cd76e1ca4b0ae7a1fca7743921f2ecaaf40"
-      }
+      },
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "frip-fan-media-prod"
+        }
+      ]
     },
     "staging": {
       "name": "frip-fan-web-staging",
@@ -74,7 +80,19 @@
         "ADMIN_PUBLISHERS": "rickylee1999@gmail.com",
         "DEV_AUTH_BYPASS": "false",
         "ACCESS_AUD": "099052d15ac06bb98dc1e666a4ff5174c3aeb10ad3601384fa0da3a725d76b08"
-      }
+      },
+      "r2_buckets": [
+        {
+          "binding": "MEDIA",
+          "bucket_name": "frip-fan-media-staging"
+        }
+      ]
     }
-  }
+  },
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "frip-fan-media-dev"
+    }
+  ]
 }

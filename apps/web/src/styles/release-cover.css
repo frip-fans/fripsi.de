@@ -1,0 +1,10 @@
+.release-cover { position: relative; display: block; width: 100%; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, rgba(var(--accent-rgb), .13), rgba(4,11,20,.8)); }
+.release-cover-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 3rem; opacity: .45; }
+.release-cover img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; background: #08111d; }
+.release-cover img[hidden] { display: none; }
+.release-detail-header { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 2rem; align-items: center; }
+.release-cover-source { display: inline-block; margin-top: .7rem; color: var(--muted); font-size: .75rem; }
+@media (max-width: 560px) {
+  .release-detail-header { grid-template-columns: 1fr; gap: 1.2rem; }
+  .release-detail-header > div:first-child { width: min(100%, 260px); }
+}

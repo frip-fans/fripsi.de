@@ -1,5 +1,6 @@
 ---
 import type { AdminReleaseDetail, MusicEditorOptions } from "@frip-fan/core";
+import ReleaseCover from "./ReleaseCover.astro";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -31,6 +32,11 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
     <label>发行日期<input type="date" name="release_date" value={release?.release_date ?? ""} /></label>
     <label>品番<input name="catalog_number" maxlength="120" value={release?.catalog_number ?? ""} /></label>
     <label>版本 / Edition<input name="edition" maxlength="160" value={release?.edition ?? ""} /></label>
+    <input type="hidden" name="cover_url" value={release?.cover_url ?? ""} />
+    <label class="wide">导入封面<input type="url" name="cover_import_url" maxlength="2048" placeholder="https://fripside.net/s3/skiyaki/uploads/…" /><small>填写官网图片链接；保存时导入本站。留空保留现有封面。</small></label>
+    {release?.cover_url && <label class="publish-check wide"><input type="checkbox" name="cover_remove" />移除现有封面</label>}
+    <label class="wide">封面来源页面<input type="url" name="cover_source_url" maxlength="2048" value={release?.cover_source_url ?? ""} placeholder="https://fripside.net/musics/…" /></label>
+    <div class="wide" style="max-width: 220px" data-cover-preview><ReleaseCover url={release?.cover_url} alt="封面预览" eager /></div>
     <label class="wide">Slug<input name="slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={release?.slug ?? ""} placeholder="留空自动生成" /></label>
     <label class="wide">说明<textarea name="notes" maxlength="4000">{release?.notes ?? ""}</textarea></label>
     <label class="wide">来源<textarea name="sources" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea></label>
@@ -96,7 +102,15 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
 </form>
 
 <script>
+  import { createReleaseCover } from "../scripts/release-cover";
   const releaseEditor = document.querySelector<HTMLElement>("[data-release-editor]");
+  const coverInput = releaseEditor?.querySelector<HTMLInputElement>("[name=cover_import_url]");
+  coverInput?.addEventListener("change", () => {
+    const preview = releaseEditor?.querySelector<HTMLElement>("[data-cover-preview]");
+    const value = coverInput.value.trim();
+    const allowed = /^https:\/\/fripside\.net\/s3\/skiyaki\/uploads\//.test(value);
+    preview?.replaceChildren(createReleaseCover(allowed ? value : null, "封面预览"));
+  });
   const trackRows = releaseEditor?.querySelector<HTMLElement>("[data-track-rows]");
   const trackTemplate = releaseEditor?.querySelector<HTMLTemplateElement>("[data-track-template]");
   const trackEmpty = releaseEditor?.querySelector<HTMLElement>("[data-track-empty]");

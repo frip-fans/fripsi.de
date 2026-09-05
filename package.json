@@ -17,7 +17,7 @@
     "typecheck": "npm run typecheck:workspaces && npm run typecheck:scripts",
     "typecheck:workspaces": "npm run typecheck --workspaces --if-present",
     "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
-    "test": "vitest run",
+    "test": "vitest run && npm run test:release-covers",
     "test:watch": "vitest",
     "visual:check": "node scripts/visual-check.mjs",
     "deploy:web": "npm run deploy --workspace @frip-fan/web",
@@ -42,7 +42,11 @@
     "build:phase2-archive": "node scripts/build-phase2-archive-import.mjs",
     "build:phase2-early-archive": "node scripts/build-phase2-archive-import.mjs --early",
     "build:web:staging": "npm run build:staging --workspace @frip-fan/web",
-    "deploy:web:staging": "npm run deploy:staging --workspace @frip-fan/web"
+    "deploy:web:staging": "npm run deploy:staging --workspace @frip-fan/web",
+    "test:release-covers": "node --test scripts/release-cover-import.test.mjs",
+    "scrape:release-covers": "node scripts/scrape-release-covers.mjs",
+    "build:release-covers": "node scripts/build-release-cover-import.mjs",
+    "import:release-covers:r2": "tsx scripts/import-release-covers-r2.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",

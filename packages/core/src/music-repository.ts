@@ -83,7 +83,7 @@ const songSummarySelect = `
 `;
 
 const releaseSummarySelect = `
-  SELECT r.id, r.slug, r.title, r.release_type, r.release_date, r.catalog_number, r.edition, r.notes,
+  SELECT r.id, r.slug, r.title, r.release_type, r.release_date, r.catalog_number, r.edition, r.notes, r.cover_url, r.cover_source_url,
     (SELECT COUNT(*) FROM release_tracks rt WHERE rt.release_id = r.id) AS track_count,
     (SELECT COUNT(DISTINCT sv.song_id)
       FROM release_tracks rt
@@ -218,9 +218,18 @@ export async function countSongs(db: D1Database, options: MusicSearchOptions = {
   return Number(row?.count ?? 0);
 }
 
-export async function getSongBySlug(db: D1Database, slug: string): Promise<SongDetail | null> {
+export function songPerformancePagination(total: number, requestedPage: number) {
+  const pageSize = 10;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(totalPages, Math.max(1, Number.isFinite(requestedPage) ? Math.floor(requestedPage) : 1));
+  return { page, pageSize, totalPages, offset: (page - 1) * pageSize };
+}
+
+export async function getSongBySlug(db: D1Database, slug: string, performancePage?: number, performanceOrder: "asc" | "desc" = "desc"): Promise<SongDetail | null> {
   const song = await db.prepare(`${songSummarySelect} WHERE s.slug = ? AND s.published = 1`).bind(slug).first<SongSummary>();
   if (!song) return null;
+  const direction = performanceOrder === "asc" ? "ASC" : "DESC";
+  const pagination = performancePage === undefined ? null : songPerformancePagination(song.performance_count, performancePage);
 
   const [aliasesResult, versionsResult, relationsResult, releasesResult, performancesResult, sources] = await Promise.all([
     db.prepare("SELECT alias FROM song_aliases WHERE song_id = ? ORDER BY alias COLLATE NOCASE ASC").bind(song.id).all<{ alias: string }>(),
@@ -241,7 +250,7 @@ export async function getSongBySlug(db: D1Database, slug: string): Promise<SongD
     `).bind(song.id, song.id).all<VersionRelationRecord>(),
     db.prepare(`
       SELECT r.id AS release_id, r.slug AS release_slug, r.title AS release_title, r.release_type,
-        r.release_date, r.edition, rt.disc_number, rt.track_number, rt.display_title,
+        r.release_date, r.edition, r.cover_url, rt.disc_number, rt.track_number, rt.display_title,
         sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label
       FROM release_tracks rt
       JOIN releases r ON r.id = rt.release_id AND r.published = 1
@@ -260,8 +269,9 @@ export async function getSongBySlug(db: D1Database, slug: string): Promise<SongD
       JOIN events e ON e.id = sl.event_id AND e.published = 1 AND e.archived_at IS NULL
       LEFT JOIN song_versions pv ON pv.id = se.performed_version_id AND pv.published = 1
       WHERE se.song_id = ?
-      ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label ASC, se.position ASC
-    `).bind(song.id).all<SongPerformance>(),
+      ORDER BY e.start_date ${direction}, e.start_time ${direction}, sl.performance_label ASC, se.position ASC, sl.id ASC, se.id ASC
+      LIMIT ? OFFSET ?
+    `).bind(song.id, pagination?.pageSize ?? -1, pagination?.offset ?? 0).all<SongPerformance>(),
     getCatalogSources(db, "song", song.id),
   ]);
 

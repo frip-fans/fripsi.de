@@ -7,17 +7,19 @@ interface Props {
   totalPages: number;
   totalItems: number;
   itemLabel: string;
+  pageParam?: string;
+  anchor?: string;
 }
 
-const { currentPage, totalPages, totalItems, itemLabel } = Astro.props;
+const { currentPage, totalPages, totalItems, itemLabel, pageParam = "page", anchor = "" } = Astro.props;
 const locale = getLocale(Astro.request);
 
 const pageHref = (page: number) => {
   const params = new URLSearchParams(Astro.url.searchParams);
-  if (page <= 1) params.delete("page");
-  else params.set("page", String(page));
+  if (page <= 1) params.delete(pageParam);
+  else params.set(pageParam, String(page));
   const query = params.toString();
-  return `${Astro.url.pathname}${query ? `?${query}` : ""}`;
+  return `${Astro.url.pathname}${query ? `?${query}` : ""}${anchor ? `#${encodeURIComponent(anchor)}` : ""}`;
 };
 
 type PageToken = number | "ellipsis-start" | "ellipsis-end";

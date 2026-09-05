@@ -73,6 +73,7 @@ export interface VersionRelationRecord {
 }
 
 export interface SongReleaseAppearance {
+  cover_url: string | null;
   release_id: string;
   release_slug: string;
   release_title: string;
@@ -134,6 +135,8 @@ export interface AdminSongDetail extends AdminSongSummary {
 }
 
 export interface ReleaseSummary {
+  cover_url: string | null;
+  cover_source_url: string | null;
   id: string;
   slug: string;
   title: string;

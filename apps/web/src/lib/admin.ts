@@ -122,6 +122,8 @@ export function readReleaseSave(form: FormData): ReleaseSaveInput {
     title: String(form.get("title") ?? ""),
     release_type: String(form.get("release_type") ?? "album") as ReleaseSaveInput["release_type"],
     release_date: optional(form, "release_date"),
+    cover_url: optional(form, "cover_url"),
+    cover_source_url: optional(form, "cover_source_url"),
     catalog_number: optional(form, "catalog_number"),
     edition: optional(form, "edition"),
     notes: optional(form, "notes"),

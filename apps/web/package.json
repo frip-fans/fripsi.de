@@ -9,7 +9,9 @@
     "build:production": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=production ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "XDG_CONFIG_HOME=../../.cache/xdg astro preview",
     "typecheck": "XDG_CONFIG_HOME=../../.cache/xdg ASTRO_TELEMETRY_DISABLED=1 astro check",
-    "deploy": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=production ASTRO_TELEMETRY_DISABLED=1 astro build && XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy"
+    "deploy": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=production ASTRO_TELEMETRY_DISABLED=1 astro build && XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy",
+    "build:staging": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=staging ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "deploy:staging": "npm run build:staging && XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.1.3",

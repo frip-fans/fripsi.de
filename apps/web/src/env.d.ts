@@ -8,6 +8,7 @@ declare global {
     DB: D1Database;
     ASSETS: Fetcher;
     SITE_URL?: string;
+    APP_ENV?: string;
     MAP_TILE_URL?: string;
     ACCESS_TEAM_DOMAIN?: string;
     ACCESS_AUD?: string;

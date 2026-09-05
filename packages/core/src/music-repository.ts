@@ -219,15 +219,16 @@ export async function countSongs(db: D1Database, options: MusicSearchOptions = {
 }
 
 export function songPerformancePagination(total: number, requestedPage: number) {
-  const pageSize = 20;
+  const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const page = Math.min(totalPages, Math.max(1, Number.isFinite(requestedPage) ? Math.floor(requestedPage) : 1));
   return { page, pageSize, totalPages, offset: (page - 1) * pageSize };
 }
 
-export async function getSongBySlug(db: D1Database, slug: string, performancePage?: number): Promise<SongDetail | null> {
+export async function getSongBySlug(db: D1Database, slug: string, performancePage?: number, performanceOrder: "asc" | "desc" = "desc"): Promise<SongDetail | null> {
   const song = await db.prepare(`${songSummarySelect} WHERE s.slug = ? AND s.published = 1`).bind(slug).first<SongSummary>();
   if (!song) return null;
+  const direction = performanceOrder === "asc" ? "ASC" : "DESC";
   const pagination = performancePage === undefined ? null : songPerformancePagination(song.performance_count, performancePage);
 
   const [aliasesResult, versionsResult, relationsResult, releasesResult, performancesResult, sources] = await Promise.all([
@@ -268,7 +269,7 @@ export async function getSongBySlug(db: D1Database, slug: string, performancePag
       JOIN events e ON e.id = sl.event_id AND e.published = 1 AND e.archived_at IS NULL
       LEFT JOIN song_versions pv ON pv.id = se.performed_version_id AND pv.published = 1
       WHERE se.song_id = ?
-      ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label ASC, se.position ASC, sl.id ASC, se.id ASC
+      ORDER BY e.start_date ${direction}, e.start_time ${direction}, sl.performance_label ASC, se.position ASC, sl.id ASC, se.id ASC
       LIMIT ? OFFSET ?
     `).bind(song.id, pagination?.pageSize ?? -1, pagination?.offset ?? 0).all<SongPerformance>(),
     getCatalogSources(db, "song", song.id),

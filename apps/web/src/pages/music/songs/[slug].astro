@@ -13,9 +13,16 @@ import "../../../styles/music.css";
 
 const locale = getLocale(Astro.request);
 const requestedPage = Number(Astro.url.searchParams.get("performances_page") ?? "1");
-const song = await getSongBySlug(getEnv().DB, Astro.params.slug!, requestedPage);
+const performanceOrder = Astro.url.searchParams.get("performances_order") === "asc" ? "asc" : "desc";
+const song = await getSongBySlug(getEnv().DB, Astro.params.slug!, requestedPage, performanceOrder);
 if (!song) return Astro.redirect("/404", 302);
 const performancePagination = songPerformancePagination(song.performance_count, requestedPage);
+const sortHref = (order: "asc" | "desc") => {
+  const params = new URLSearchParams(Astro.url.searchParams);
+  params.delete("performances_page");
+  params.set("performances_order", order);
+  return `${Astro.url.pathname}?${params}#performances-heading`;
+};
 ---
 <SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
   <div class="music-page">
@@ -34,6 +41,10 @@ const performancePagination = songPerformancePagination(song.performance_count, 
 
     <section class="music-section" aria-labelledby="performances-heading">
       <div class="music-section-head"><div><p class="music-kicker">Live history</p><h2 id="performances-heading">{t(locale, "music.liveHistory")}</h2></div><span class="muted">{t(locale, "music.timesCount", { count: song.performance_count })}</span></div>
+      {song.performance_count > 0 && <nav class="music-chips performance-sort" aria-label={t(locale, "music.sortOrder")}>
+        <a href={sortHref("asc")} class:list={{ active: performanceOrder === "asc" }} aria-current={performanceOrder === "asc" ? "true" : undefined} data-performance-order="asc">{t(locale, "music.oldestFirst")}</a>
+        <a href={sortHref("desc")} class:list={{ active: performanceOrder === "desc" }} aria-current={performanceOrder === "desc" ? "true" : undefined} data-performance-order="desc">{t(locale, "music.newestFirst")}</a>
+      </nav>}
       {song.performances.length ? (
         <div class="music-track-list">
           {song.performances.map((performance) => (
@@ -109,6 +120,7 @@ const performancePagination = songPerformancePagination(song.performance_count, 
 </SiteLayout>
 
 <style>
+  .performance-sort { margin-bottom: 1rem; }
   #performances-heading { scroll-margin-top: 1rem; }
   .song-release-card { grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 1rem; }
   .song-release-cover { width: 96px; }

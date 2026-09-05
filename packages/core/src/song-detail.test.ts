@@ -39,8 +39,8 @@ describe("song detail pagination and covers", () => {
   it("pages public performances without duplicates or omissions while preserving totals and release covers", async () => {
     const { sqlite, db } = fixture();
     try {
-      const pages = await Promise.all([1, 2, 3].map((page) => getSongBySlug(db, "test-song", page)));
-      expect(pages.map((song) => song?.performances.length)).toEqual([20, 20, 5]);
+      const pages = await Promise.all([1, 2, 3, 4, 5].map((page) => getSongBySlug(db, "test-song", page)));
+      expect(pages.map((song) => song?.performances.length)).toEqual([10, 10, 10, 10, 5]);
       for (const song of pages) {
         expect(song?.performance_count).toBe(45);
         expect(song?.show_count).toBe(44);
@@ -54,16 +54,31 @@ describe("song detail pagination and covers", () => {
       expect(entries).not.toContain("44:1");
       expect(entries).not.toContain("45:1");
       expect((await getSongBySlug(db, "test-song"))?.performances).toHaveLength(45);
-      expect((await getSongBySlug(db, "test-song", 999))?.performances).toEqual(pages[2]?.performances);
+      expect((await getSongBySlug(db, "test-song", 999))?.performances).toEqual(pages[4]?.performances);
       expect((await getSongBySlug(db, "test-song", NaN))?.performances).toEqual(pages[0]?.performances);
       expect(await getSongBySlug(db, "not-found", 1)).toBeNull();
     } finally { sqlite.close(); }
   });
+  it("sorts dates and same-day times across page boundaries in both directions", async () => {
+    const { sqlite, db } = fixture();
+    try {
+      sqlite.exec("UPDATE events SET start_date = '2026-09-02', start_time = '18:00' WHERE id = '00'; UPDATE events SET start_date = '2026-09-02', start_time = '20:00' WHERE id = '01'; UPDATE events SET start_date = '2026-08-01' WHERE id = '02'");
+      const asc = (await Promise.all([1, 2, 3, 4, 5].map(page => getSongBySlug(db, "test-song", page, "asc")))).flatMap(song => song!.performances);
+      const desc = (await Promise.all([1, 2, 3, 4, 5].map(page => getSongBySlug(db, "test-song", page, "desc")))).flatMap(song => song!.performances);
+      expect(asc[0].setlist_id).toBe("02");
+      expect(asc.at(-1)?.setlist_id).toBe("01");
+      expect(desc[0].setlist_id).toBe("01");
+      expect(desc.at(-1)?.setlist_id).toBe("02");
+      const identity = (items: typeof asc) => items.map(item => `${item.setlist_id}:${item.position}`).sort();
+      expect(identity(asc)).toEqual(identity(desc));
+      expect(new Set(identity(asc)).size).toBe(45);
+    } finally { sqlite.close(); }
+  });
   it("handles empty, single-page, invalid and fractional page requests", () => {
     expect(songPerformancePagination(0, 999)).toMatchObject({ page: 1, totalPages: 1, offset: 0 });
-    expect(songPerformancePagination(20, 2)).toMatchObject({ page: 1, totalPages: 1 });
+    expect(songPerformancePagination(10, 2)).toMatchObject({ page: 1, totalPages: 1 });
     expect(songPerformancePagination(45, -1)).toMatchObject({ page: 1, offset: 0 });
     expect(songPerformancePagination(45, Infinity)).toMatchObject({ page: 1 });
-    expect(songPerformancePagination(45, 2.7)).toMatchObject({ page: 2, offset: 20 });
+    expect(songPerformancePagination(45, 2.7)).toMatchObject({ page: 2, offset: 10 });
   });
 });

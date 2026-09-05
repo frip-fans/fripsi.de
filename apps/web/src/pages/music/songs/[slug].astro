@@ -1,5 +1,7 @@
 ---
-import { getSongBySlug } from "@frip-fan/core";
+import { getSongBySlug, songPerformancePagination } from "@frip-fan/core";
+import ReleaseCover from "../../../components/ReleaseCover.astro";
+import Pagination from "../../../components/Pagination.astro";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
 import MusicNav from "../../../components/MusicNav.astro";
@@ -10,8 +12,10 @@ import { getLocale, t } from "../../../lib/i18n";
 import "../../../styles/music.css";
 
 const locale = getLocale(Astro.request);
-const song = await getSongBySlug(getEnv().DB, Astro.params.slug!);
+const requestedPage = Number(Astro.url.searchParams.get("performances_page") ?? "1");
+const song = await getSongBySlug(getEnv().DB, Astro.params.slug!, requestedPage);
 if (!song) return Astro.redirect("/404", 302);
+const performancePagination = songPerformancePagination(song.performance_count, requestedPage);
 ---
 <SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
   <div class="music-page">
@@ -44,6 +48,7 @@ if (!song) return Astro.redirect("/404", 302);
           ))}
         </div>
       ) : <div class="music-empty panel">{t(locale, "music.noSongPerformances")}</div>}
+      <Pagination currentPage={performancePagination.page} totalPages={performancePagination.totalPages} totalItems={song.performance_count} itemLabel={t(locale, "music.performanceItems")} pageParam="performances_page" anchor="performances-heading" />
     </section>
 
     <section class="music-section" aria-labelledby="versions-heading">
@@ -81,10 +86,13 @@ if (!song) return Astro.redirect("/404", 302);
       {song.releases.length ? (
         <div class="music-grid">
           {song.releases.map((release) => (
-            <a class="music-card" href={`/music/releases/${encodeURIComponent(release.release_slug)}`}>
-              <span class="music-kicker">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
-              <h3>{release.release_title}</h3>
-              <div class="music-card-meta"><span>Disc {release.disc_number} / Track {release.track_number}</span><span>·</span><span>{release.version_label || release.version_title}</span></div>
+            <a class="music-card song-release-card" href={`/music/releases/${encodeURIComponent(release.release_slug)}`}>
+              <div class="song-release-cover"><ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.release_title })} /></div>
+              <div class="song-release-info">
+                <span class="music-kicker">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
+                <h3>{release.release_title}</h3>
+                <div class="music-card-meta"><span>Disc {release.disc_number} / Track {release.track_number}</span><span>·</span><span>{release.version_label || release.version_title}</span></div>
+              </div>
             </a>
           ))}
         </div>
@@ -101,6 +109,11 @@ if (!song) return Astro.redirect("/404", 302);
 </SiteLayout>
 
 <style>
+  #performances-heading { scroll-margin-top: 1rem; }
+  .song-release-card { grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 1rem; }
+  .song-release-cover { width: 96px; }
+  .song-release-info { display: grid; min-width: 0; gap: .65rem; }
+  @media (max-width: 480px) { .song-release-card { grid-template-columns: 72px minmax(0, 1fr); gap: .75rem; } .song-release-cover { width: 72px; } }
   .performance-row { grid-template-columns: 7.5rem minmax(0, 1fr) auto; }
   @media (max-width: 640px) { .performance-row { grid-template-columns: 1fr; } .performance-row :global(.music-track-stats) { grid-column: 1; } }
 </style>

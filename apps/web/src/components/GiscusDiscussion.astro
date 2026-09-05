@@ -1,5 +1,6 @@
 ---
 import type { Locale } from "../lib/i18n";
+import { getEnv } from "../lib/env";
 
 interface Props {
   locale: Locale;
@@ -7,7 +8,7 @@ interface Props {
 
 const { locale } = Astro.props;
 ---
-<div class="giscus-frame">
+{getEnv().APP_ENV !== "staging" && <div class="giscus-frame">
   <script
     is:inline
     src="https://giscus.app/client.js"
@@ -27,7 +28,7 @@ const { locale } = Astro.props;
     crossorigin="anonymous"
     async
   ></script>
-</div>
+</div>}
 
 <style>
   .giscus-frame {

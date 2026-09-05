@@ -40,7 +40,9 @@
     "scrape:phase2-archive": "node scripts/scrape-livefans-phase2-archive.mjs",
     "scrape:phase2-early-archive": "node scripts/scrape-livefans-phase2-archive.mjs 2014-01-01 2018-12-31 data/research/livefans-fripside-phase2-early-archive.json",
     "build:phase2-archive": "node scripts/build-phase2-archive-import.mjs",
-    "build:phase2-early-archive": "node scripts/build-phase2-archive-import.mjs --early"
+    "build:phase2-early-archive": "node scripts/build-phase2-archive-import.mjs --early",
+    "build:web:staging": "npm run build:staging --workspace @frip-fan/web",
+    "deploy:web:staging": "npm run deploy:staging --workspace @frip-fan/web"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",

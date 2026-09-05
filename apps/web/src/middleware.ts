@@ -5,6 +5,7 @@ import { getLocale, type Locale } from "./lib/i18n";
 
 function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale, allowGiscus = false, allowVectorMap = false): Response {
   const headers = new Headers(response.headers);
+  if (getEnv().APP_ENV === "staging") headers.set("x-robots-tag", "noindex, nofollow");
   headers.set("x-content-type-options", "nosniff");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("x-frame-options", "DENY");
@@ -25,15 +26,24 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const path = context.url.pathname;
-  const privateRoute = path.startsWith("/admin") || path.startsWith("/api/admin");
+  const env = getEnv();
+  const staging = env.APP_ENV === "staging";
+  const privateRoute = staging || path.startsWith("/admin") || path.startsWith("/api/admin");
   if (!privateRoute) {
     const cacheControl = path === "/archive" ? "private, max-age=60, stale-while-revalidate=30" : undefined;
     return secure(await next(), false, cacheControl, getLocale(context.request), path === "/" || path === "/discuss", path === "/journey");
   }
 
   try {
-    context.locals.actor = await authenticateAdmin(context.request, getEnv());
-    return secure(await next(), true);
+    // Staging protects every SSR route and cannot opt into the local identity bypass.
+    context.locals.actor = await authenticateAdmin(context.request, staging ? { ...env, DEV_AUTH_BYPASS: "false" } : env);
+    if (staging) {
+      const publishers = (env.ADMIN_PUBLISHERS ?? "").split(",").map((email) => email.trim().toLowerCase());
+      if (!publishers.includes(context.locals.actor.id.toLowerCase())) {
+        throw new ServiceError("forbidden", "没有测试环境访问权限", 403);
+      }
+    }
+    return secure(await next(), true, undefined, getLocale(context.request), !staging && (path === "/" || path === "/discuss"), path === "/journey");
   } catch (error) {
     const status = error instanceof ServiceError ? error.status : 401;
     const message = error instanceof Error ? error.message : "未授权";

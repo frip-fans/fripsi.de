@@ -139,8 +139,8 @@ const archiveHref = (targetYear: string): string => {
                 <div class="location-filter-section">
                   <div class="filter-section-head"><strong>{t(locale, "archive.location")}</strong><span>{t(locale, "archive.multiple")}</span></div>
                   {japaneseLocationOptions.length > 0 && (
-                    <div class="location-filter-group">
-                      <span class="filter-group-label">{t(locale, "archive.japanPrefectures")}</span>
+                    <details class="location-filter-group japan-filter" open={selectedLocations.some((value) => value.startsWith("jp:"))} data-japan-filter>
+                      <summary><span>{t(locale, "archive.japanPrefectures")}</span><span class="japan-selected" data-japan-selected data-template={t(locale, "archive.selectedCount", { count: "{count}" })} hidden={!selectedLocations.some((value) => value.startsWith("jp:"))}>{t(locale, "archive.selectedCount", { count: selectedLocations.filter((value) => value.startsWith("jp:")).length })}</span><Icon name="chevron-down" /></summary>
                       <div class="filter-options location-options">
                         {japaneseLocationOptions.map((option) => (
                           <label class="filter-choice">
@@ -149,7 +149,7 @@ const archiveHref = (targetYear: string): string => {
                           </label>
                         ))}
                       </div>
-                    </div>
+                    </details>
                   )}
                   {overseasLocationOptions.length > 0 && (
                     <div class="location-filter-group">
@@ -438,6 +438,12 @@ const archiveHref = (targetYear: string): string => {
           : totalTemplate.replaceAll("{count}", String(eventItems.length));
       }
       if (searchEmpty) searchEmpty.hidden = !filtering || visibleCount > 0;
+      const japanCount = [...selectedLocations].filter((value) => value.startsWith("jp:")).length;
+      const japanSelected = document.querySelector<HTMLElement>("[data-japan-selected]");
+      if (japanSelected) {
+        japanSelected.hidden = japanCount === 0;
+        japanSelected.textContent = (japanSelected.dataset.template ?? "{count}").replaceAll("{count}", String(japanCount));
+      }
       const selectedFilterCount = selectedCategories.size + selectedLocations.size;
       if (filterCount) {
         filterCount.textContent = String(selectedFilterCount);
@@ -535,6 +541,13 @@ const archiveHref = (targetYear: string): string => {
   .filter-section-head { display: grid; gap: .2rem; }
   .filter-section-head strong { font-size: .92rem; }
   .filter-section-head span, .filter-group-label { color: var(--muted); font-size: .7rem; }
+  .japan-filter summary { display: flex; align-items: center; gap: .65rem; min-height: 40px; cursor: pointer; color: var(--muted); font-size: .78rem; list-style: none; }
+  .japan-filter summary::-webkit-details-marker { display: none; }
+  .japan-filter summary :global(.icon) { margin-left: auto; transition: transform .16s; }
+  .japan-filter[open] summary :global(.icon) { transform: rotate(180deg); }
+  .japan-filter summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  .japan-selected { color: var(--accent); font-size: .7rem; }
+  .japan-selected[hidden] { display: none; }
   .location-filter-group { margin-top: .9rem; }
   .location-options { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: .45rem 0 0; }
   .filter-options { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: .9rem 0; }

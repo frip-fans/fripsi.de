@@ -1,0 +1,1017 @@
+{
+  "source": "https://fripside.net/discography",
+  "releases": [
+    {
+      "release_slug": "first-odyssey-of-fripside",
+      "release_date": "2003-04-12",
+      "source_url": "https://fripside.net/musics/11702",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/a2bd9b8181a73c42ca0be10782423491edf880ba25fbe1f1466a655bfc6e155e.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/a2bd9b8181a73c42ca0be10782423491edf880ba25fbe1f1466a655bfc6e155e.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124414/9706_20140627235020.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 17984
+    },
+    {
+      "release_slug": "second-fragment-of-fripside",
+      "release_date": "2004-03-28",
+      "source_url": "https://fripside.net/musics/11703",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/0c44dc4af6f623ca800f2b7c1df4db431ee24e38672856e282a474e95af73d8e.png",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/0c44dc4af6f623ca800f2b7c1df4db431ee24e38672856e282a474e95af73d8e.png",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124416/9707_20140627235128.png",
+      "contentType": "image/png",
+      "bytes": 104698
+    },
+    {
+      "release_slug": "third-reflection-of-fripside",
+      "release_date": "2005-06-23",
+      "source_url": "https://fripside.net/musics/11704",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/42f139c5bf0aec48276ff628b8688d9c7e179d569cbc93f326f372883e2fe3b6.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/42f139c5bf0aec48276ff628b8688d9c7e179d569cbc93f326f372883e2fe3b6.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124418/9708_20140627235213.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 54605
+    },
+    {
+      "release_slug": "the-very-best-of-fripside-2002-2006-doujin",
+      "release_date": "2006-07-15",
+      "source_url": "https://fripside.net/musics/11705",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/6c4a93fab5031ad044eb2e6b9e14da86e77e7ce7c17f7ddeed8ead62b55224b7.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/6c4a93fab5031ad044eb2e6b9e14da86e77e7ce7c17f7ddeed8ead62b55224b7.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124420/9709_20140627234924.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 41831
+    },
+    {
+      "release_slug": "the-very-best-of-fripside-2002-2006-commercial",
+      "release_date": "2006-12-29",
+      "source_url": "https://fripside.net/musics/11706",
+      "catalogs": [
+        "SCFS-0701〜02"
+      ],
+      "cover_url": "/media/covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "cover_edition": "収録内容",
+      "match": "catalog_number",
+      "key": "covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124423/blank.png",
+      "contentType": "image/png",
+      "bytes": 95
+    },
+    {
+      "release_slug": "binarydigit",
+      "release_date": "2007-08-24",
+      "source_url": "https://fripside.net/musics/11707",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/d7b145a1086d435754b7f43605bb20ebf67a4ddbb4df5666e58065ab7f37aa3d.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/d7b145a1086d435754b7f43605bb20ebf67a4ddbb4df5666e58065ab7f37aa3d.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124424/9711_20140627233539.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 13491
+    },
+    {
+      "release_slug": "rabbit-syndrome-fripside-nao-project",
+      "release_date": "2008-01-25",
+      "source_url": "https://fripside.net/musics/11708",
+      "catalogs": [
+        "scfs-0801"
+      ],
+      "cover_url": "/media/covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "cover_edition": "収録内容",
+      "match": "catalog_number",
+      "key": "covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124427/blank.png",
+      "contentType": "image/png",
+      "bytes": 95
+    },
+    {
+      "release_slug": "flower-of-bravery",
+      "release_date": "2008-07-16",
+      "source_url": "https://fripside.net/musics/11710",
+      "catalogs": [
+        "PCCR-90028",
+        "PCCR-90029"
+      ],
+      "cover_url": "/media/covers/c980ee0eb326eed98a0a8e9b3422d847f6577d6145d1fa3e499ffe4ec8969f9b.jpg",
+      "cover_edition": "【第1期】flower of bravery",
+      "match": "catalog_number",
+      "key": "covers/c980ee0eb326eed98a0a8e9b3422d847f6577d6145d1fa3e499ffe4ec8969f9b.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124431/9714_20140627235404.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 36780
+    },
+    {
+      "release_slug": "yappari-sekai-wa-atashi-legend",
+      "release_date": "2008-08-20",
+      "source_url": "https://fripside.net/musics/11711",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/825966dd955d209c2e389323c31859b10bb6f2690c8b788650d84b3d57070b45.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/825966dd955d209c2e389323c31859b10bb6f2690c8b788650d84b3d57070b45.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124432/9715_20140628000800.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 28500
+    },
+    {
+      "release_slug": "split-tears",
+      "release_date": "2008-09-17",
+      "source_url": "https://fripside.net/musics/11713",
+      "catalogs": [
+        "PCCG-90010",
+        null
+      ],
+      "cover_url": "/media/covers/21688056b3fd26d3ba91794d113d2e237c9991efd87b471977d6e6cb6bc7fe49.jpg",
+      "cover_edition": "【第1期】split tears",
+      "match": "catalog_number",
+      "key": "covers/21688056b3fd26d3ba91794d113d2e237c9991efd87b471977d6e6cb6bc7fe49.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124437/9717_20140627233842.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 18202
+    },
+    {
+      "release_slug": "reproduct-mixes-ver-0-1",
+      "release_date": "2008-12-28",
+      "source_url": "https://fripside.net/musics/11714",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/576dfd6be1f524d290f8ef9e5cb36aa0f17d5ff7cb78420054ddde1e11ca2f65.png",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/576dfd6be1f524d290f8ef9e5cb36aa0f17d5ff7cb78420054ddde1e11ca2f65.png",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124438/9718_20140627234231.png",
+      "contentType": "image/png",
+      "bytes": 131748
+    },
+    {
+      "release_slug": "only-my-railgun",
+      "release_date": "2009-11-04",
+      "source_url": "https://fripside.net/musics/11716",
+      "catalogs": [
+        "GNCA-0151",
+        "GNCA-0152"
+      ],
+      "cover_url": "/media/covers/9effe11cc4acd91c484f0cb981f663cb1012d21dedf794a3d24b861ad50683c4.jpg",
+      "cover_edition": "only my railgun",
+      "match": "catalog_number",
+      "key": "covers/9effe11cc4acd91c484f0cb981f663cb1012d21dedf794a3d24b861ad50683c4.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124443/9720_20140627224214.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 167640
+    },
+    {
+      "release_slug": "nao-complete-anthology-2002-2009-my-graduation",
+      "release_date": "2009-12-29",
+      "source_url": "https://fripside.net/musics/11717",
+      "catalogs": [
+        "SCFS-0901〜0910"
+      ],
+      "cover_url": "/media/covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "cover_edition": "収録内容",
+      "match": "catalog_number",
+      "key": "covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124445/blank.png",
+      "contentType": "image/png",
+      "bytes": 95
+    },
+    {
+      "release_slug": "level5-judgelight",
+      "release_date": "2010-02-17",
+      "source_url": "https://fripside.net/musics/11718",
+      "catalogs": [
+        "GNCA-0155",
+        "GNCA-0156"
+      ],
+      "cover_url": "/media/covers/e1af4d53ecfef8459ad925d9e03926dbb483de95a2599a89e9b234f9e155bd69.jpg",
+      "cover_edition": "LEVEL5 -judgelight-",
+      "match": "catalog_number",
+      "key": "covers/e1af4d53ecfef8459ad925d9e03926dbb483de95a2599a89e9b234f9e155bd69.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124447/9722_20140627224315.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 125313
+    },
+    {
+      "release_slug": "future-gazer",
+      "release_date": "2010-10-13",
+      "source_url": "https://fripside.net/musics/11721",
+      "catalogs": [
+        "GNCA-0181",
+        "GNCA-0182"
+      ],
+      "cover_url": "/media/covers/a143c4c7fc93794943c90c3770dfebaaeb334b89fd2ea0fb8f68c98a11c1c111.jpg",
+      "cover_edition": "future gazer",
+      "match": "catalog_number",
+      "key": "covers/a143c4c7fc93794943c90c3770dfebaaeb334b89fd2ea0fb8f68c98a11c1c111.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124453/9725_20140627224511.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 134668
+    },
+    {
+      "release_slug": "infinite-synthesis",
+      "release_date": "2010-12-01",
+      "source_url": "https://fripside.net/musics/11722",
+      "catalogs": [
+        "GNCA-1271",
+        "GNCA-1272"
+      ],
+      "cover_url": "/media/covers/34351584e30a957b9f6d37a94bcae1ed67fc5237466068cc65df6b43fc5a8c60.jpg",
+      "cover_edition": "infinite synthesis",
+      "match": "catalog_number",
+      "key": "covers/34351584e30a957b9f6d37a94bcae1ed67fc5237466068cc65df6b43fc5a8c60.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124455/9726_GNCA-1271.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 56711
+    },
+    {
+      "release_slug": "heaven-is-a-place-on-earth",
+      "release_date": "2011-08-24",
+      "source_url": "https://fripside.net/musics/11724",
+      "catalogs": [
+        "GNCA-0187",
+        "GNCA-0188"
+      ],
+      "cover_url": "/media/covers/7c3812afff1d00a667510f3b7e9cd9a247c3ec265dcfcfcf11faa4bd0dc97c36.jpg",
+      "cover_edition": "Heaven is a Place on Earth",
+      "match": "catalog_number",
+      "key": "covers/7c3812afff1d00a667510f3b7e9cd9a247c3ec265dcfcfcf11faa4bd0dc97c36.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124459/9728_20140627105622.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 453316
+    },
+    {
+      "release_slug": "way-to-answer",
+      "release_date": "2011-12-14",
+      "source_url": "https://fripside.net/musics/11726",
+      "catalogs": [
+        "GNCA-0228",
+        "GNCA-0229"
+      ],
+      "cover_url": "/media/covers/ad471aff278833b6c673d7a768898d73473e0c5e5754a268c403d57c71792b94.jpg",
+      "cover_edition": "way to answer",
+      "match": "catalog_number",
+      "key": "covers/ad471aff278833b6c673d7a768898d73473e0c5e5754a268c403d57c71792b94.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124463/9730_20140627105703.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 259151
+    },
+    {
+      "release_slug": "fripside-pc-game-compilation-vol-1",
+      "release_date": "2012-01-01",
+      "source_url": "https://fripside.net/musics/11728",
+      "catalogs": [
+        "SCFS-120"
+      ],
+      "cover_url": "/media/covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "cover_edition": "収録内容",
+      "match": "catalog_number",
+      "key": "covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124467/blank.png",
+      "contentType": "image/png",
+      "bytes": 95
+    },
+    {
+      "release_slug": "decade",
+      "release_date": "2012-12-05",
+      "source_url": "https://fripside.net/musics/11730",
+      "catalogs": [
+        "GNCA-1350",
+        "GNCA-1351",
+        "GNCA-1352"
+      ],
+      "cover_url": "/media/covers/db15f47f4ddd14b6e61a1c8ee4978fb65ef50295da7803ba061250b54729b1e3.jpg",
+      "cover_edition": "Decade",
+      "match": "catalog_number",
+      "key": "covers/db15f47f4ddd14b6e61a1c8ee4978fb65ef50295da7803ba061250b54729b1e3.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124471/9734_GNCA-1350.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 169815
+    },
+    {
+      "release_slug": "sisters-noise",
+      "release_date": "2013-05-08",
+      "source_url": "https://fripside.net/musics/11732",
+      "catalogs": [
+        "GNCA-0280",
+        "GNCA-0281"
+      ],
+      "cover_url": "/media/covers/9bae7e03c928a5ead412b31dcc3cf61b40cdd26ef75832530be503170312ca66.jpg",
+      "cover_edition": "sister's noise",
+      "match": "catalog_number",
+      "key": "covers/9bae7e03c928a5ead412b31dcc3cf61b40cdd26ef75832530be503170312ca66.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124475/9736_20140627224618.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 113682
+    },
+    {
+      "release_slug": "eternal-reality-anime-edition",
+      "release_date": "2013-08-21",
+      "source_url": "https://fripside.net/musics/11737",
+      "catalogs": [
+        "GNCA-0305"
+      ],
+      "cover_url": "/media/covers/0e78cc869f8d04162af13c798f9a4a5e440d4cd4721f83b8763dfeceda4ffade.jpg",
+      "cover_edition": "eternal reality",
+      "match": "catalog_number",
+      "key": "covers/0e78cc869f8d04162af13c798f9a4a5e440d4cd4721f83b8763dfeceda4ffade.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124485/9741_GNCA-0305.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 145984
+    },
+    {
+      "release_slug": "eternal-reality",
+      "release_date": "2013-08-21",
+      "source_url": "https://fripside.net/musics/11737",
+      "catalogs": [
+        "GNCA-0306",
+        "GNCA-0307"
+      ],
+      "cover_url": "/media/covers/a15695063ce97a9ea74fcbe51f9d5dcfda0cecec30a95f7a1c9932cad2176750.jpg",
+      "cover_edition": "eternal reality",
+      "match": "catalog_number",
+      "key": "covers/a15695063ce97a9ea74fcbe51f9d5dcfda0cecec30a95f7a1c9932cad2176750.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/129550/GNCA-0306.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 112397
+    },
+    {
+      "release_slug": "the-very-best-of-fripside-2009-2020",
+      "release_date": "2020-11-04",
+      "source_url": "https://fripside.net/musics/11796",
+      "catalogs": [
+        "GNCA-1580",
+        "GNCA-1581",
+        "GNCA-1582"
+      ],
+      "cover_url": "/media/covers/9f7f7bfd2a9cd156a00238a449bb29bd0ec611b3457301f6e61d4d3b7dc5fdd9.jpg",
+      "cover_edition": "the very best of fripSide 2009-2020",
+      "match": "catalog_number",
+      "key": "covers/9f7f7bfd2a9cd156a00238a449bb29bd0ec611b3457301f6e61d4d3b7dc5fdd9.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124604/9800_fripside_1602429162132.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 1115610
+    },
+    {
+      "release_slug": "the-very-best-of-fripside-moving-ballads",
+      "release_date": "2020-11-04",
+      "source_url": "https://fripside.net/musics/11791",
+      "catalogs": [
+        "GNCA-1583",
+        "GNCA-1584",
+        "GNCA-1585"
+      ],
+      "cover_url": "/media/covers/985fdd2ea0d0e9081170316d3430d69a314388fcb33a35089397af2d7e5a1747.jpg",
+      "cover_edition": "the very best of fripSide -moving ballads-",
+      "match": "catalog_number",
+      "key": "covers/985fdd2ea0d0e9081170316d3430d69a314388fcb33a35089397af2d7e5a1747.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124594/9795_fripside_1602428552878.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 973980
+    },
+    {
+      "release_slug": "legendary-future",
+      "release_date": "2020-11-04",
+      "source_url": "https://fripside.net/musics/11790",
+      "catalogs": [
+        "GNCA-0616",
+        "GNCA-0617"
+      ],
+      "cover_url": "/media/covers/c1c1931492a9d7a35089d6c9aeeb240dfedfb9665a4fe79f37fa0f04bd765f50.jpg",
+      "cover_edition": "legendary future",
+      "match": "catalog_number",
+      "key": "covers/c1c1931492a9d7a35089d6c9aeeb240dfedfb9665a4fe79f37fa0f04bd765f50.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124592/9794_fripside_1602429664039.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 2060547
+    },
+    {
+      "release_slug": "dual-existence",
+      "release_date": "2020-08-19",
+      "source_url": "https://fripside.net/musics/11788",
+      "catalogs": [
+        "GNCA-0608",
+        "GNCA-0609"
+      ],
+      "cover_url": "/media/covers/7f77504dae380db0e59b069537474242d7ef94a56b26372b7baa84ef675977a8.jpg",
+      "cover_edition": "dual existence",
+      "match": "catalog_number",
+      "key": "covers/7f77504dae380db0e59b069537474242d7ef94a56b26372b7baa84ef675977a8.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124588/9792_fripside_1594980276769.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 2145342
+    },
+    {
+      "release_slug": "final-phase",
+      "release_date": "2020-02-26",
+      "source_url": "https://fripside.net/musics/11785",
+      "catalogs": [
+        "GNCA-0603",
+        "GNCA-0604"
+      ],
+      "cover_url": "/media/covers/c3c1dfcb26da8a76b897f106a0ddd17555740aa73db1a096410fd2fb801efd57.jpg",
+      "cover_edition": "final phase",
+      "match": "catalog_number",
+      "key": "covers/c3c1dfcb26da8a76b897f106a0ddd17555740aa73db1a096410fd2fb801efd57.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124582/9789_fripside_1582654050678.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 976255
+    },
+    {
+      "release_slug": "infinite-synthesis-5",
+      "release_date": "2019-10-30",
+      "source_url": "https://fripside.net/musics/11782",
+      "catalogs": [
+        "GNCA-1558",
+        "GNCA-1559",
+        "GNCA-1560"
+      ],
+      "cover_url": "/media/covers/df5c6ca99d61d8c37ebce28c5e3a70d0c769dd3a7fffededad41ca94f823c587.jpg",
+      "cover_edition": "infinite synthesis 5",
+      "match": "catalog_number",
+      "key": "covers/df5c6ca99d61d8c37ebce28c5e3a70d0c769dd3a7fffededad41ca94f823c587.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124576/9786_fripside_1570617734353.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 1277957
+    },
+    {
+      "release_slug": "love-with-you",
+      "release_date": "2018-11-07",
+      "source_url": "https://fripside.net/musics/11779",
+      "catalogs": [
+        "GNCA-0537",
+        "GNCA-0538",
+        "GNCA-0539"
+      ],
+      "cover_url": "/media/covers/51ff48958683df657a9816faa3c7b910273e4c868e188122befc568c778f9ae0.jpg",
+      "cover_edition": "Love with You",
+      "match": "catalog_number",
+      "key": "covers/51ff48958683df657a9816faa3c7b910273e4c868e188122befc568c778f9ae0.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124569/9783_fripside_1540177536271.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 67043
+    },
+    {
+      "release_slug": "infinite-synthesis-4",
+      "release_date": "2018-10-10",
+      "source_url": "https://fripside.net/musics/11776",
+      "catalogs": [
+        "GNCA-1542",
+        "GNCA-1543",
+        "GNCA-1544"
+      ],
+      "cover_url": "/media/covers/0c17003f012511bb89b615fa411bb06f3566f021e191b4799c34ee49ccd7f700.jpg",
+      "cover_edition": "infinite synthesis 4",
+      "match": "catalog_number",
+      "key": "covers/0c17003f012511bb89b615fa411bb06f3566f021e191b4799c34ee49ccd7f700.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124563/9780_fripside_1536796341508.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 4994575
+    },
+    {
+      "release_slug": "divine-criminal",
+      "release_date": "2018-05-16",
+      "source_url": "https://fripside.net/musics/11774",
+      "catalogs": [
+        "GNCA-0505",
+        "GNCA-0506"
+      ],
+      "cover_url": "/media/covers/38659436270afaf12db7c0b68ce1b58df3e81d7cf0e76df3ba7447bb7bdb9be4.jpg",
+      "cover_edition": "divine criminal",
+      "match": "catalog_number",
+      "key": "covers/38659436270afaf12db7c0b68ce1b58df3e81d7cf0e76df3ba7447bb7bdb9be4.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124559/9778_fripside_1523849266176.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 156128
+    },
+    {
+      "release_slug": "killing-bites",
+      "release_date": "2018-02-28",
+      "source_url": "https://fripside.net/musics/11772",
+      "catalogs": [
+        "GNCA-0512",
+        "GNCA-0513"
+      ],
+      "cover_url": "/media/covers/6759dfde8d9142c7131dad33c25e6ae4391c65efa01427ccf7d8e517d2e36015.jpg",
+      "cover_edition": "killing bites",
+      "match": "catalog_number",
+      "key": "covers/6759dfde8d9142c7131dad33c25e6ae4391c65efa01427ccf7d8e517d2e36015.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124555/9776_fripside_1518022173648.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 265558
+    },
+    {
+      "release_slug": "crossroads",
+      "release_date": "2017-10-04",
+      "source_url": "https://fripside.net/musics/11768",
+      "catalogs": [
+        "GNCA-1511",
+        "GNCA-1512",
+        "GNCA-1513"
+      ],
+      "cover_url": "/media/covers/7db6a2794619cefe197ad1681cef8408d19c2596e87d0785005f83c458755184.jpg",
+      "cover_edition": "crossroads",
+      "match": "catalog_number",
+      "key": "covers/7db6a2794619cefe197ad1681cef8408d19c2596e87d0785005f83c458755184.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124547/9772_fripside_1507072491286.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 281623
+    },
+    {
+      "release_slug": "clockwork-planet",
+      "release_date": "2017-05-03",
+      "source_url": "https://fripside.net/musics/11763",
+      "catalogs": [
+        "GNCA-0495",
+        "GNCA-0496"
+      ],
+      "cover_url": "/media/covers/5649e80bdcb08a362012e15a4dc22aa05ae5e5f302c6f8bb44297bda321cb747.jpg",
+      "cover_edition": "clockwork planet",
+      "match": "catalog_number",
+      "key": "covers/5649e80bdcb08a362012e15a4dc22aa05ae5e5f302c6f8bb44297bda321cb747.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124537/9767_fripside_1491293987161.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 279353
+    },
+    {
+      "release_slug": "fripside-angela-the-end-of-escape-limited",
+      "release_date": "2016-12-07",
+      "source_url": "https://fripside.net/musics/11761",
+      "catalogs": [
+        "GNCA-0461"
+      ],
+      "cover_url": "/media/covers/db03d4d2d00ece8ed724c2cfb8d0c9a94d9427c6770071104c2821fb0fa27918.jpg",
+      "cover_edition": "fripSide×angela／The end of escape",
+      "match": "catalog_number",
+      "key": "covers/db03d4d2d00ece8ed724c2cfb8d0c9a94d9427c6770071104c2821fb0fa27918.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124533/9765_fripside_1478864975784.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 107581
+    },
+    {
+      "release_slug": "fripside-angela-the-end-of-escape-regular",
+      "release_date": "2016-12-07",
+      "source_url": "https://fripside.net/musics/11761",
+      "catalogs": [
+        "GNCA-0462"
+      ],
+      "cover_url": "/media/covers/a829d724bbd0400b08a16c07426a0ba1604197fd5a7f91c072a8931e07626bc0.jpg",
+      "cover_edition": "fripSide×angela／The end of escape",
+      "match": "catalog_number",
+      "key": "covers/a829d724bbd0400b08a16c07426a0ba1604197fd5a7f91c072a8931e07626bc0.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/129534/fripside_1478864695074.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 118783
+    },
+    {
+      "release_slug": "angela-fripside-boku-wa-boku-de-atte-limited",
+      "release_date": "2016-10-19",
+      "source_url": "https://fripside.net/musics/11759",
+      "catalogs": [
+        "KICM-91710"
+      ],
+      "cover_url": "/media/covers/5120b7966f4f33076a184ffc4bf0d1bb9d6698c8478494b28900486acb3df8ad.jpg",
+      "cover_edition": "angela×fripSide／僕は僕であって",
+      "match": "catalog_number",
+      "key": "covers/5120b7966f4f33076a184ffc4bf0d1bb9d6698c8478494b28900486acb3df8ad.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124529/9763_fripside_1476876199130.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 504998
+    },
+    {
+      "release_slug": "angela-fripside-boku-wa-boku-de-atte-regular",
+      "release_date": "2016-10-19",
+      "source_url": "https://fripside.net/musics/11759",
+      "catalogs": [
+        "KICM-1711"
+      ],
+      "cover_url": "/media/covers/598c327598b5536f9eafa4b5a91b89c604a317c136187cbd7e81df0c1d4b63bd.jpg",
+      "cover_edition": "angela×fripSide／僕は僕であって",
+      "match": "catalog_number",
+      "key": "covers/598c327598b5536f9eafa4b5a91b89c604a317c136187cbd7e81df0c1d4b63bd.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/129535/fripside_1476876121076.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 448816
+    },
+    {
+      "release_slug": "infinite-synthesis-3",
+      "release_date": "2016-10-05",
+      "source_url": "https://fripside.net/musics/11756",
+      "catalogs": [
+        "GNCA-1490",
+        "GNCA-1491",
+        "GNCA-1492"
+      ],
+      "cover_url": "/media/covers/18fc11b6e13b206ff6be435656d0136f5514f560ee02f04f5dedb0d621a5a111.jpg",
+      "cover_edition": "infinite synthesis 3",
+      "match": "catalog_number",
+      "key": "covers/18fc11b6e13b206ff6be435656d0136f5514f560ee02f04f5dedb0d621a5a111.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124523/9760_fripside_1476813787038.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 96432
+    },
+    {
+      "release_slug": "white-forces",
+      "release_date": "2016-02-10",
+      "source_url": "https://fripside.net/musics/11755",
+      "catalogs": [
+        "EYCA-10774/B",
+        "EYCA-10775"
+      ],
+      "cover_url": "/media/covers/c1095236fe15735b148ab26dfe42bd1abb10bb55f0cb9bfafeda57505a4d5e7a.jpg",
+      "cover_edition": "white forces",
+      "match": "catalog_number",
+      "key": "covers/c1095236fe15735b148ab26dfe42bd1abb10bb55f0cb9bfafeda57505a4d5e7a.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124521/9759_fripside_1455081003819.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 174255
+    },
+    {
+      "release_slug": "two-souls-toward-the-truth",
+      "release_date": "2015-12-02",
+      "source_url": "https://fripside.net/musics/11753",
+      "catalogs": [
+        "GNCA-0398",
+        "GNCA-0399"
+      ],
+      "cover_url": "/media/covers/dae69cf4d1614d95a43d5d34c8856b1a40d1e1712f189d6f17f5f0b56d17e481.jpg",
+      "cover_edition": "Two souls -toward the truth-",
+      "match": "catalog_number",
+      "key": "covers/dae69cf4d1614d95a43d5d34c8856b1a40d1e1712f189d6f17f5f0b56d17e481.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124517/9757_fripside_1452574201214.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 200098
+    },
+    {
+      "release_slug": "fripside-pc-game-compilation-vol-2",
+      "release_date": "2015-08-26",
+      "source_url": "https://fripside.net/musics/11747",
+      "catalogs": [
+        "SCFS-1501"
+      ],
+      "cover_url": "/media/covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "cover_edition": "収録内容",
+      "match": "catalog_number",
+      "key": "covers/51b42074adc78d3a6e9e45b60e8f366ed5dc028a84e4bbcf7811e7d42e188510.png",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124505/blank.png",
+      "contentType": "image/png",
+      "bytes": 95
+    },
+    {
+      "release_slug": "luminize",
+      "release_date": "2015-05-20",
+      "source_url": "https://fripside.net/musics/11746",
+      "catalogs": [
+        "GNCA-0384",
+        "GNCA-0385",
+        "GNCA-0386"
+      ],
+      "cover_url": "/media/covers/8b78b40b84f29dfda46d263c36367a9b97d4f41e70c3aca655831690957be9cc.jpg",
+      "cover_edition": "Luminize",
+      "match": "catalog_number",
+      "key": "covers/8b78b40b84f29dfda46d263c36367a9b97d4f41e70c3aca655831690957be9cc.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124503/9750_20150610181856.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 656958
+    },
+    {
+      "release_slug": "infinite-synthesis-2",
+      "release_date": "2014-09-10",
+      "source_url": "https://fripside.net/musics/11743",
+      "catalogs": [
+        "GNCA-1415",
+        "GNCA-1416",
+        "GNCA-1417"
+      ],
+      "cover_url": "/media/covers/f3a74a6d770150f4c35580b12daa5020d4379ca7834eeba66d8973c8de0f2e74.jpg",
+      "cover_edition": "infinite synthesis 2",
+      "match": "catalog_number",
+      "key": "covers/f3a74a6d770150f4c35580b12daa5020d4379ca7834eeba66d8973c8de0f2e74.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124497/9747_20140814165104.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 131636
+    },
+    {
+      "release_slug": "black-bullet",
+      "release_date": "2014-05-14",
+      "source_url": "https://fripside.net/musics/11740",
+      "catalogs": [
+        "GNCA-0333",
+        "GNCA-0334"
+      ],
+      "cover_url": "/media/covers/9397db0dbb6374d858a01e587d8c01290921507693e96c2480e8fdca5671a723.jpg",
+      "cover_edition": "black bullet",
+      "match": "catalog_number",
+      "key": "covers/9397db0dbb6374d858a01e587d8c01290921507693e96c2480e8fdca5671a723.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/124491/9744_20140627224755.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 201097
+    },
+    {
+      "release_slug": "leap-of-faith",
+      "release_date": "2022-02-02",
+      "source_url": "https://fripside.net/musics/13485",
+      "catalogs": [
+        "GNCA-0656",
+        "GNCA-0657"
+      ],
+      "cover_url": "/media/covers/7d72a88a8e1199e1df2293afb0d11e0cb0f5e11c30b5d10d3383b79f1a74b580.jpg",
+      "cover_edition": "Leap of faith",
+      "match": "catalog_number",
+      "key": "covers/7d72a88a8e1199e1df2293afb0d11e0cb0f5e11c30b5d10d3383b79f1a74b580.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/153820/GNCA-0656_H1.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 2258150
+    },
+    {
+      "release_slug": "infinite-synthesis-6",
+      "release_date": "2022-03-23",
+      "source_url": "https://fripside.net/musics/11823",
+      "catalogs": [
+        "GNCA-1610",
+        "GNCA-1611",
+        "GNCA-1612"
+      ],
+      "cover_url": "/media/covers/d322a0a30c94bea39207dd21607010e13e4ced5d5379cf761ab5cfdf79a68bb3.jpg",
+      "cover_edition": "infinite synthesis 6",
+      "match": "catalog_number",
+      "key": "covers/d322a0a30c94bea39207dd21607010e13e4ced5d5379cf761ab5cfdf79a68bb3.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/129484/sn_00000176.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 51495
+    },
+    {
+      "release_slug": "dawn-of-infinity",
+      "release_date": "2022-05-18",
+      "source_url": "https://fripside.net/musics/11821",
+      "catalogs": [
+        "GNCA-0667",
+        "GNCA-0668"
+      ],
+      "cover_url": "/media/covers/5357171162c9e672cde214899cd953727449f42d6287eb46f1b7f7375ff36d5a.jpg",
+      "cover_edition": "dawn of infinity",
+      "match": "catalog_number",
+      "key": "covers/5357171162c9e672cde214899cd953727449f42d6287eb46f1b7f7375ff36d5a.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/129482/sn_00000183.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 233456
+    },
+    {
+      "release_slug": "double-decades",
+      "release_date": "2022-10-19",
+      "source_url": "https://fripside.net/musics/12522",
+      "catalogs": [
+        "GNCA-1627"
+      ],
+      "cover_url": "/media/covers/106c6def2754858c44b4c633fe7e20d8f1082b56140de062646e18107fdcb0cb.jpg",
+      "cover_edition": "double Decades",
+      "match": "catalog_number",
+      "key": "covers/106c6def2754858c44b4c633fe7e20d8f1082b56140de062646e18107fdcb0cb.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/140339/sn_00000185.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 269206
+    },
+    {
+      "release_slug": "infinite-resonance",
+      "release_date": "2022-10-19",
+      "source_url": "https://fripside.net/musics/12523",
+      "catalogs": [
+        "GNCA-1628"
+      ],
+      "cover_url": "/media/covers/d5e6e6b16c40ecaee232799f15175f1b4c802851863be13946684a025ebc8b82.jpg",
+      "cover_edition": "infinite Resonance",
+      "match": "catalog_number",
+      "key": "covers/d5e6e6b16c40ecaee232799f15175f1b4c802851863be13946684a025ebc8b82.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/140340/sn_00000186.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 289146
+    },
+    {
+      "release_slug": "double-decades-infinite-resonance",
+      "release_date": "2022-10-19",
+      "source_url": "https://fripside.net/musics/12524",
+      "catalogs": [
+        "GNCA-1626"
+      ],
+      "cover_url": "/media/covers/622d049fd6b06b65c764f1cc5ba3f1bc20cf2b2a2c955f9c7d0c3087bffcc81c.jpg",
+      "cover_edition": "double Decades",
+      "match": "catalog_number",
+      "key": "covers/622d049fd6b06b65c764f1cc5ba3f1bc20cf2b2a2c955f9c7d0c3087bffcc81c.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/140343/sn_00000187.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 271084
+    },
+    {
+      "release_slug": "red-liberation",
+      "release_date": "2023-10-11",
+      "source_url": "https://fripside.net/musics/13820",
+      "catalogs": [
+        "GNCA-0700",
+        "GNCA-0701"
+      ],
+      "cover_url": "/media/covers/c483c367c4fa9a45c35b3279a30a84301b92b4e45e3d72ebc1444caa77e4c726.jpg",
+      "cover_edition": "Red Liberation",
+      "match": "catalog_number",
+      "key": "covers/c483c367c4fa9a45c35b3279a30a84301b92b4e45e3d72ebc1444caa77e4c726.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/160189/GNCA-0700_JK.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 1095147
+    },
+    {
+      "release_slug": "infinite-resonance-2",
+      "release_date": "2023-11-08",
+      "source_url": "https://fripside.net/musics/13906",
+      "catalogs": [
+        "GNCA-1654",
+        "GNCA-1655",
+        null
+      ],
+      "cover_url": "/media/covers/0996a45d5d4a888b3e7363ba448bf1b52402d63672fe246efbb52e1ef6196131.jpg",
+      "cover_edition": "infinite Resonance 2",
+      "match": "catalog_number",
+      "key": "covers/0996a45d5d4a888b3e7363ba448bf1b52402d63672fe246efbb52e1ef6196131.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/162358/GNCA-1654_bookcase.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 2274789
+    },
+    {
+      "release_slug": "secret-operation",
+      "release_date": "2024-08-21",
+      "source_url": "https://fripside.net/musics/15355",
+      "catalogs": [
+        "GNCA-0711",
+        "GNCA-0712"
+      ],
+      "cover_url": "/media/covers/c24dc45eb01de6ec13ec20a01ae12fb8281ce9a5d5d3f480fcd57031deddc21b.jpg",
+      "cover_edition": "Secret Operation",
+      "match": "catalog_number",
+      "key": "covers/c24dc45eb01de6ec13ec20a01ae12fb8281ce9a5d5d3f480fcd57031deddc21b.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/183603/GNCA-0711_JK_s.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 2293569
+    },
+    {
+      "release_slug": "infinite-resonance-3",
+      "release_date": "2024-10-09",
+      "source_url": "https://fripside.net/musics/15538",
+      "catalogs": [
+        "GNCA-1675",
+        "GNCA-1676"
+      ],
+      "cover_url": "/media/covers/8809da1aed3d1b183b4fc255d55f23f283acde42f23bc6d7e9686713eba18b3b.jpg",
+      "cover_edition": "infinite Resonance 3",
+      "match": "catalog_number",
+      "key": "covers/8809da1aed3d1b183b4fc255d55f23f283acde42f23bc6d7e9686713eba18b3b.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/186910/GNCA-1675_CD_BD_3box_jk.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 868531
+    },
+    {
+      "release_slug": "only-my-railgun-version-2024",
+      "release_date": "2024-12-18",
+      "source_url": "https://fripside.net/musics/15742",
+      "catalogs": [
+        "GNCA-0716",
+        "GNCA-0717",
+        "GNCA-0718"
+      ],
+      "cover_url": "/media/covers/e26303e6cc1a121d367d887aa3aef6df3d8de52edd0e894f6bd1a5eb58609234.jpg",
+      "cover_edition": "通常盤",
+      "match": "catalog_number",
+      "key": "covers/e26303e6cc1a121d367d887aa3aef6df3d8de52edd0e894f6bd1a5eb58609234.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/192098/GNCA-0718_JK%E3%81%AE%E3%82%B3%E3%83%94%E3%83%BC.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 1104348
+    },
+    {
+      "release_slug": "wandering-traveler",
+      "release_date": "2025-06-15",
+      "source_url": "https://fripside.net/musics/19111",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/5c8e157cbfc52fcf81f7d25324a5ba7e94b95d84ac8526b65eff492086888808.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/5c8e157cbfc52fcf81f7d25324a5ba7e94b95d84ac8526b65eff492086888808.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/217737/Wandering_Traveler_HAISHIN_jk_0507_Wandering_Traveler_HAISHIN_jk_0507_1.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 945335
+    },
+    {
+      "release_slug": "echoes-of-the-stars",
+      "release_date": "2025-07-07",
+      "source_url": "https://fripside.net/musics/19112",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/b400fab61de7a184f6bd57b6cd0ac53313ac76dc0fbfc297554d41427bee43ce.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/b400fab61de7a184f6bd57b6cd0ac53313ac76dc0fbfc297554d41427bee43ce.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/217738/fS_Echoes_of_the_Stars_HAISHIN_3.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 909500
+    },
+    {
+      "release_slug": "eternal-reality-version-2025",
+      "release_date": "2025-09-12",
+      "source_url": "https://fripside.net/musics/19309",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/5719f243dae46f1c456658a7947c18d8bfdb59f5e42aaaff58591032bfaf1871.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/5719f243dae46f1c456658a7947c18d8bfdb59f5e42aaaff58591032bfaf1871.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/219940/fS_eternal_reality_-version2025-_HAISHIN.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 633300
+    },
+    {
+      "release_slug": "a-certain-scientific-railgun-music-chronicles",
+      "release_date": "2025-09-24",
+      "source_url": "https://fripside.net/musics/19132",
+      "catalogs": [
+        "WPZL-32229/32",
+        "WPZL-60066/9"
+      ],
+      "cover_url": "/media/covers/a316de7533dc31a078b0b47e3711716695222bb52fa28d8a957c205408b02a36.jpg",
+      "cover_edition": "とある科学の超音楽集 −A Certain Scientific Railgun：Music Chronicles−",
+      "match": "catalog_number",
+      "key": "covers/a316de7533dc31a078b0b47e3711716695222bb52fa28d8a957c205408b02a36.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/218280/fS_RAILGUN_JK_fix_Lsize.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 757831
+    },
+    {
+      "release_slug": "a-certain-scientific-railgun-music-chronicles-selected-edition",
+      "release_date": "2025-09-24",
+      "source_url": "https://fripside.net/musics/19455",
+      "catalogs": [
+        null
+      ],
+      "cover_url": "/media/covers/e72d4a452f51dc4cc22379b17b47a71f5412073bb07e68518a2fc8d33a41e334.jpg",
+      "cover_edition": null,
+      "match": "official_main_artwork",
+      "key": "covers/e72d4a452f51dc4cc22379b17b47a71f5412073bb07e68518a2fc8d33a41e334.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/223516/fS_Railgun_Selected_Edition_haishin_2.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 129116
+    },
+    {
+      "release_slug": "infinite-resonance-4",
+      "release_date": "2026-08-26",
+      "source_url": "https://fripside.net/musics/20902",
+      "catalogs": [
+        "WPZL-32314～5",
+        "WPCL-13787"
+      ],
+      "cover_url": "/media/covers/e7f1b8cceb6153ad0bac2693b85c99b1c41732addb18541e4503ce0a92c9a068.jpg",
+      "cover_edition": "infinite Resonance 4 通常盤",
+      "match": "catalog_number",
+      "key": "covers/e7f1b8cceb6153ad0bac2693b85c99b1c41732addb18541e4503ce0a92c9a068.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/251858/fS_iR4_TSUJO_JK_RGB_Small.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 499579
+    },
+    {
+      "release_slug": "a-certain-scientific-railgun-music-chronicles-wms-edition",
+      "release_date": "2025-09-24",
+      "source_url": "https://fripside.net/musics/19132",
+      "catalogs": [
+        "WPZL-60066/9"
+      ],
+      "cover_url": "/media/covers/a316de7533dc31a078b0b47e3711716695222bb52fa28d8a957c205408b02a36.jpg",
+      "cover_edition": "とある科学の超音楽集 −A Certain Scientific Railgun：Music Chronicles−",
+      "match": "catalog_number",
+      "key": "covers/a316de7533dc31a078b0b47e3711716695222bb52fa28d8a957c205408b02a36.jpg",
+      "original_url": "https://fripside.net/s3/skiyaki/uploads/image/file/218281/fS_RAILGUN_JK_fix_Lsize.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 757831
+    }
+  ]
+}

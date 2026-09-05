@@ -83,7 +83,7 @@ const songSummarySelect = `
 `;
 
 const releaseSummarySelect = `
-  SELECT r.id, r.slug, r.title, r.release_type, r.release_date, r.catalog_number, r.edition, r.notes,
+  SELECT r.id, r.slug, r.title, r.release_type, r.release_date, r.catalog_number, r.edition, r.notes, r.cover_url, r.cover_source_url,
     (SELECT COUNT(*) FROM release_tracks rt WHERE rt.release_id = r.id) AS track_count,
     (SELECT COUNT(DISTINCT sv.song_id)
       FROM release_tracks rt

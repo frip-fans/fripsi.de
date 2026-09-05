@@ -1,0 +1,19 @@
+---
+import "../styles/release-cover.css";
+interface Props {
+  url?: string | null;
+  alt: string;
+  eager?: boolean;
+}
+const { url, alt, eager = false } = Astro.props;
+---
+<span class="release-cover" role="img" aria-label={alt}>
+  <span class="release-cover-placeholder" aria-hidden="true">♫</span>
+  {url && <img src={url} alt="" width="480" height="480" loading={eager ? "eager" : "lazy"} decoding="async" referrerpolicy="no-referrer" data-release-cover-image />}
+</span>
+
+<script>
+  import { setupReleaseCovers } from "../scripts/release-cover";
+  setupReleaseCovers();
+  document.addEventListener("astro:page-load", () => setupReleaseCovers());
+</script>

@@ -73,6 +73,7 @@ export interface VersionRelationRecord {
 }
 
 export interface SongReleaseAppearance {
+  cover_url: string | null;
   release_id: string;
   release_slug: string;
   release_title: string;

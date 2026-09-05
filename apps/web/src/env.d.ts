@@ -4,9 +4,7 @@
 import type { Actor } from "@frip-fan/core";
 
 declare global {
-  interface Env {
-    DB: D1Database;
-    ASSETS: Fetcher;
+  interface Env extends Pick<WebWorkerBindings, "DB" | "ASSETS" | "MEDIA"> {
     SITE_URL?: string;
     APP_ENV?: string;
     MAP_TILE_URL?: string;

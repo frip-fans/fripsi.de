@@ -2,6 +2,7 @@
 import { getReleaseBySlug } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
+import ReleaseCover from "../../../components/ReleaseCover.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
@@ -18,7 +19,12 @@ let previousDisc = 0;
   <div class="music-page">
     <MusicNav />
     <MusicBackLink href="/music/releases" storageKey="music:list:releases" label={t(locale, "music.backReleases")} />
-    <header class="music-detail-head">
+    <header class="music-detail-head release-detail-header">
+      <div>
+        <ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} eager />
+        {release.cover_url && release.cover_source_url && <a class="release-cover-source" href={release.cover_source_url} target="_blank" rel="noreferrer">{t(locale, "music.coverSource")} <Icon name="box-arrow-up-right" /></a>}
+      </div>
+      <div>
       <p class="eyebrow">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</p>
       <h1>{release.title}</h1>
       <div class="music-detail-meta">
@@ -26,6 +32,7 @@ let previousDisc = 0;
         {release.edition && <span class="tag">{release.edition}</span>}
         <span class="tag">{t(locale, "music.tracksCount", { count: release.track_count })}</span>
         <span class="tag">{t(locale, "music.performedLive", { count: release.performed_song_count })}</span>
+      </div>
       </div>
     </header>
 

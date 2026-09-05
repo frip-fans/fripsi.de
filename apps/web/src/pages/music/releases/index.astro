@@ -2,6 +2,7 @@
 import { listReleases, type ReleaseSummary, type ReleaseType } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicListState from "../../../components/MusicListState.astro";
+import ReleaseCover from "../../../components/ReleaseCover.astro";
 import MusicNav from "../../../components/MusicNav.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
@@ -68,6 +69,7 @@ const browserPayload = {
   releases: allReleases,
   typeLabels: releaseTypeLabels,
   labels: {
+    coverAlt: t(locale, "music.coverAlt", { title: "{title}" }),
     tracks: t(locale, "music.tracksCount", { count: "{count}" }),
     performed: t(locale, "music.performedSongs", { count: "{count}" }),
     datePending: t(locale, "common.datePending"),
@@ -121,6 +123,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
       <div class="music-grid" data-catalog-grid>
         {releases.map((release) => (
           <a class="music-card" href={`/music/releases/${encodeURIComponent(release.slug)}`}>
+            <ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
             <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
             <h3>{release.title}</h3>
             <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
@@ -139,9 +142,11 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
 </SiteLayout>
 
 <script>
+  import { createReleaseCover } from "../../../scripts/release-cover";
   import { setupPagedCatalog } from "../../../scripts/paged-catalog";
 
   interface ReleaseItem {
+    cover_url: string | null;
     slug: string;
     title: string;
     release_type: string;
@@ -220,6 +225,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
           span.textContent = value;
           stats.appendChild(span);
         }
+        card.appendChild(createReleaseCover(release.cover_url, payload.labels.coverAlt.replaceAll("{title}", release.title)));
         card.appendChild(meta);
         card.appendChild(title);
         card.appendChild(details);

@@ -1,3 +1,4 @@
+import { COVER_PATH_PATTERN } from "./release-media";
 import { z } from "zod";
 import { getAdminReleaseById, getAdminSetlistById, getAdminSongById } from "./music-admin-repository";
 import type {
@@ -20,6 +21,15 @@ const optionalIdSchema = z.string().trim().min(1).max(160).optional();
 const optionalText = (max: number) => z.string().trim().max(max).nullish().transform((value) => value || null);
 const slugSchema = z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug 只能包含小写字母、数字和连字符");
 const catalogSourceSchema = sourceInputSchema;
+const storedCoverUrl = optionalText(2048).refine((value) => !value || COVER_PATH_PATTERN.test(value), "请先将封面导入本站图片库").optional();
+const officialCoverSource = optionalText(2048).refine((value) => {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    return url.origin === "https://fripside.net" && !url.username && !url.password
+      && /^\/musics\/\d+\/?$/.test(url.pathname);
+  } catch { return false; }
+}, "来源须使用 fripSide 官网发行页面").optional();
 
 const songVersionSaveSchema = z.object({
   id: optionalIdSchema,
@@ -98,6 +108,8 @@ const releaseTrackSchema = z.object({
 });
 
 export const releaseSaveSchema = z.object({
+  cover_url: storedCoverUrl,
+  cover_source_url: officialCoverSource,
   id: optionalIdSchema,
   expected_updated_at: z.string().trim().min(1).optional(),
   idempotency_key: idempotencyKeySchema,
@@ -465,6 +477,9 @@ export class ContentAdminService {
     const before = input.id ? await getAdminReleaseById(this.db, input.id) : null;
     if (input.id && !before) throw new ServiceError("not_found", "没有找到专辑", 404);
     if (before && before.updated_at !== input.expected_updated_at) throw new ServiceError("version_conflict", "专辑已经被修改，请刷新页面", 409);
+    const coverUrl = input.cover_url === undefined ? before?.cover_url ?? null : input.cover_url;
+    const coverSourceUrl = input.cover_source_url === undefined ? before?.cover_source_url ?? null : input.cover_source_url;
+    if (coverUrl && !coverSourceUrl) throw new ServiceError("invalid_cover", "请填写封面来源页面", 400);
     const id = before?.id ?? makeId("mus_release");
     const slug = input.slug ?? before?.slug ?? catalogSlug("release", input.title, id);
     const now = nextUpdatedAt(before?.updated_at);
@@ -473,14 +488,14 @@ export class ContentAdminService {
     const statements: D1PreparedStatement[] = [];
     if (before) {
       statements.push(this.db.prepare(`UPDATE releases SET slug = ?, title = ?, release_type = ?, release_date = ?,
-        catalog_number = ?, edition = ?, notes = ?, published = ?, updated_at = ?
+        catalog_number = ?, edition = ?, notes = ?, published = ?, cover_url = ?, cover_source_url = ?, updated_at = ?
         WHERE id = ? AND updated_at = ?`)
-        .bind(slug, input.title, input.release_type, input.release_date ?? null, input.catalog_number, input.edition, input.notes, input.published ? 1 : 0, now, id, before.updated_at));
+        .bind(slug, input.title, input.release_type, input.release_date ?? null, input.catalog_number, input.edition, input.notes, input.published ? 1 : 0, coverUrl, coverSourceUrl, now, id, before.updated_at));
     } else {
       statements.push(this.db.prepare(`INSERT INTO releases (
-        id, slug, title, release_type, release_date, catalog_number, edition, notes, published, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .bind(id, slug, input.title, input.release_type, input.release_date ?? null, input.catalog_number, input.edition, input.notes, input.published ? 1 : 0, now, now));
+        id, slug, title, release_type, release_date, catalog_number, edition, notes, published, cover_url, cover_source_url, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .bind(id, slug, input.title, input.release_type, input.release_date ?? null, input.catalog_number, input.edition, input.notes, input.published ? 1 : 0, coverUrl, coverSourceUrl, now, now));
     }
     statements.push(
       this.db.prepare(`DELETE FROM release_tracks WHERE release_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),
@@ -493,7 +508,7 @@ export class ContentAdminService {
         .bind(makeId("mus_track"), id, track.song_version_id, track.disc_number, track.track_number, track.display_title, track.notes, now, ...conditionBindings));
     }
     for (const source of input.sources) statements.push(sourceInsertStatement(this.db, "release", id, source, actor, now, conditionSql, conditionBindings));
-    const after = { ...input, id, slug, updated_at: now };
+    const after = { ...input, id, slug, cover_url: coverUrl, cover_source_url: coverSourceUrl, updated_at: now };
     statements.push(
       auditStatement(this.db, actor, requestId, before ? "content.release.update" : "content.release.create", "release", id, before, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.release.save", id, now, conditionSql, conditionBindings),

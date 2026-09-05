@@ -134,6 +134,8 @@ export interface AdminSongDetail extends AdminSongSummary {
 }
 
 export interface ReleaseSummary {
+  cover_url: string | null;
+  cover_source_url: string | null;
   id: string;
   slug: string;
   title: string;

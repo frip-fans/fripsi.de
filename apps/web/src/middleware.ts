@@ -3,18 +3,19 @@ import { defineMiddleware } from "astro:middleware";
 import { getEnv } from "./lib/env";
 import { getLocale, type Locale } from "./lib/i18n";
 
-function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale, allowGiscus = false, allowVectorMap = false): Response {
+function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale, allowGiscus = false, allowVectorMap = false, allowCoverPreview = false): Response {
   const headers = new Headers(response.headers);
   if (getEnv().APP_ENV === "staging") headers.set("x-robots-tag", "noindex, nofollow");
   headers.set("x-content-type-options", "nosniff");
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("x-frame-options", "DENY");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
+  const coverOrigin = allowCoverPreview ? " https://fripside.net" : "";
   const giscusOrigin = allowGiscus ? " https://giscus.app" : "";
   const vectorMapOrigin = allowVectorMap ? " https://tiles.openfreemap.org" : "";
   const vectorMapBlob = allowVectorMap ? " blob:" : "";
   const youtubeOrigin = allowVectorMap ? " https://www.youtube.com https://www.youtube-nocookie.com" : "";
-  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${vectorMapOrigin}; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${giscusOrigin}${youtubeOrigin}`);
+  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${giscusOrigin}${youtubeOrigin}`);
   if (locale && headers.get("content-type")?.includes("text/html")) {
     headers.set("content-language", locale);
     headers.append("vary", "Cookie");
@@ -43,7 +44,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         throw new ServiceError("forbidden", "没有测试环境访问权限", 403);
       }
     }
-    return secure(await next(), true, undefined, getLocale(context.request), !staging && (path === "/" || path === "/discuss"), path === "/journey");
+    return secure(await next(), true, undefined, getLocale(context.request), !staging && (path === "/" || path === "/discuss"), path === "/journey", path.startsWith("/admin/music/releases"));
   } catch (error) {
     const status = error instanceof ServiceError ? error.status : 401;
     const message = error instanceof Error ? error.message : "未授权";

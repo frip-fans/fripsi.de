@@ -18,7 +18,7 @@ master 规则要求 PR、`Verify` 检查成功、PR 分支与目标分支保持�
 
 ## Cloudflare Workers Builds
 
-两个现有 Worker 连接同一个 GitHub 仓库 `frip-fans/fripsi.de`，根目录均为 `/`，Node.js 24。
+已于 2026-09-05 配置完成。两个现有 Worker 连接同一个 GitHub 仓库 `frip-fans/fripsi.de`，根目录均为 `/`，Node.js 24。
 
 | 配置 | 测试 Worker | 生产 Worker |
 |---|---|---|

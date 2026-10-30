@@ -128,3 +128,9 @@ MCP 和 sync 都不随现有 Web Worker 的自动部署一起发布。普通本�
 - 两个 Worker 已配置同一枚生产专用 `AUTOMATION_SIGNING_SECRET`，与 staging 独立。生产 `OPENAI_API_KEY` 由维护者通过 sync Worker 控制台的 Variables and Secrets 单独填写，不可从 staging Secret 读取或复制。
 
 生产验证已通过：匿名请求被拒绝、短期凭据初始化及活动查询成功、只读任务不暴露发布工具、公开官网段落读取成功。验证任务已结束，未调用 OpenAI。准备前后生产活动总数均为 534、公开活动 532。准备阶段不导入 staging 内容，也不运行模型或发布活动。代码发布继续通过 staging → master 的发布 PR；在确认运行时密钥、身份验证与绑定正确后，另行启用生产同步。Worker 控制台中的 production deployment 表示该 Worker 的活动部署；环境以 Worker 名称和 D1 ID 为准。
+
+## 正式运行状态
+
+生产发布合并后，仅生产 `frip-fan-sync` 启用 `SYNC_ENABLED=true`，`SYNC_AUTO_PUBLISH=true`；staging 继续保持 `SYNC_ENABLED=false`。两边固定样例评测均关闭。生产每天最多启动一次同步，五分钟 Cron 用于收取任务进度；正文没有变化时跳过模型。模型保持 Luna 主跑、Sol 自动复核，预算组按日本日期划分，每日 $1 软控制不是预期日均费用。
+
+生产和 staging 数据库独立。生产活动更新不会自动复制到 staging；需要新一轮测试时再单独开启测试同步或按项目流程刷新数据。停止生产同步应修改 production 的配置并单独部署 sync Worker，合并 Web 代码本身不会修改该 Worker 的运行开关。

@@ -32,7 +32,7 @@
         "database_id": "f35ee3c1-3f65-44ed-988b-e6cbf2c187f6",
         "migrations_dir": "../../migrations"
       }],
-      "vars": { "SYNC_ENABLED": "false", "SYNC_AUTO_PUBLISH": "true", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_REVIEW_MODEL": "gpt-6.1-sol", "SYNC_DISCOVERY_ENABLED": "true", "SYNC_EVAL_ENABLED": "false", "SYNC_BUDGET_USD": "1", "MCP_ENDPOINT_URL": "https://frip-fan-mcp.rklee.workers.dev/mcp" }
+      "vars": { "SYNC_ENABLED": "true", "SYNC_AUTO_PUBLISH": "true", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_REVIEW_MODEL": "gpt-6.1-sol", "SYNC_DISCOVERY_ENABLED": "true", "SYNC_EVAL_ENABLED": "false", "SYNC_BUDGET_USD": "1", "MCP_ENDPOINT_URL": "https://frip-fan-mcp.rklee.workers.dev/mcp" }
     }
   }
 }

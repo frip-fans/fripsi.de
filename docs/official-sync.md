@@ -118,3 +118,13 @@ MCP 和 sync 都不随现有 Web Worker 的自动部署一起发布。普通本�
 - 模型启动前预留预算，用量按 session/turn 幂等记录，搜索调用另计。用量可能延迟到达，缺失时保留保守预留，不能按零元计算。预算是软控制，正在进行的调用可能超出；最终费用以 OpenAI 账单为准。
 
 固定样例评测位于 `apps/sync/src/eval-cases.ts`。`scripts/prepare-sync-evaluation.ts` 仅生成忽略目录下的排队 SQL 与输入指纹，不自动部署、调用模型或发布活动。两模型使用相同冻结输入、medium reasoning、default service tier，无工具、无数据库内容写入；14 例是压缩事实与标明的合成对照，不是完整官网抓取准确率。预期答案不进入模型输入。临时验收 HTTP 控制器不属于应用代码，测试后应恢复无公开入口并删除临时密钥。
+
+## 2026-10-30 生产准备
+
+生产已应用迁移 0008、0009、0010，并单独部署：
+
+- MCP：`frip-fan-mcp`，地址 `https://frip-fan-mcp.rklee.workers.dev/mcp`，绑定 `frip-fan-prod`，关闭开发认证绕过与 Preview URLs。
+- sync：`frip-fan-sync`，绑定同一个生产库，`SYNC_ENABLED=false`、`SYNC_EVAL_ENABLED=false`；无公开 HTTP 入口。模型为 Luna 主跑、Sol 自动复核。
+- 两个 Worker 已配置同一枚生产专用 `AUTOMATION_SIGNING_SECRET`，与 staging 独立。生产 `OPENAI_API_KEY` 由维护者通过 sync Worker 控制台的 Variables and Secrets 单独填写，不可从 staging Secret 读取或复制。
+
+生产验证已通过：匿名请求被拒绝、短期凭据初始化及活动查询成功、只读任务不暴露发布工具、公开官网段落读取成功。验证任务已结束，未调用 OpenAI。准备前后生产活动总数均为 534、公开活动 532。准备阶段不导入 staging 内容，也不运行模型或发布活动。代码发布继续通过 staging → master 的发布 PR；在确认运行时密钥、身份验证与绑定正确后，另行启用生产同步。Worker 控制台中的 production deployment 表示该 Worker 的活动部署；环境以 Worker 名称和 D1 ID 为准。

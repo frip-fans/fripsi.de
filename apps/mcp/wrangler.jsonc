@@ -23,6 +23,8 @@
   "env": {
     "production": {
       "name": "frip-fan-mcp",
+      "workers_dev": true,
+      "preview_urls": false,
       "d1_databases": [
         {
           "binding": "DB",
@@ -32,9 +34,10 @@
         }
       ],
       "vars": {
-        "MCP_RESOURCE_URL": "https://mcp.example.com",
-        "AUTOMATION_AUDIENCE": "https://mcp.example.com/mcp",
+        "MCP_RESOURCE_URL": "https://frip-fan-mcp.rklee.workers.dev",
+        "AUTOMATION_AUDIENCE": "https://frip-fan-mcp.rklee.workers.dev/mcp",
         "SITE_URL": "https://fripsi.de",
+        "DEV_AUTH_BYPASS": "false",
         "MCP_AUTHORIZATION_SERVER": "https://rklee.cloudflareaccess.com"
       }
     },

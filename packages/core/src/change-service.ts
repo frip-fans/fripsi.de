@@ -194,7 +194,8 @@ export class ChangeService {
           start_date: after.start_date,
           end_date: after.end_date,
           venue_id: after.location_input?.venues[0]?.venue_id ?? before?.venues[0]?.id,
-          source_url: change.source_url ?? undefined
+          source_url: change.source_url ?? undefined,
+          category: after.category, location_mode: after.location_mode
         })
       : [];
     const filtered = candidates.filter((candidate) => candidate.event.id !== before?.id);

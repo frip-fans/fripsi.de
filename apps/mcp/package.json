@@ -7,6 +7,7 @@
     "dev": "XDG_CONFIG_HOME=../../.cache/xdg wrangler dev --persist-to ../web/.wrangler/state",
     "build": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --dry-run --env '' --outdir dist",
     "typecheck": "tsc --noEmit -p tsconfig.json",
+    "deploy:staging": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --env staging",
     "deploy": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --env production"
   },
   "dependencies": {

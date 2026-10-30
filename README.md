@@ -20,6 +20,7 @@
 - 通过 `/admin` 管理活动、歌曲、专辑和歌单。
 - 记录资料来源和管理操作，方便核查与修正。
 - 提供独立的 Remote MCP Worker，用于查询资料和提交待审核的内容变更。
+- 提供可选的 OpenAI Agents API 同步 Worker，每天检查官方活动公告，校验后自动发布。
 
 ## 技术栈
 
@@ -37,7 +38,8 @@
 ```text
 apps/
 ├── web/          Astro 网站、管理后台和 Web API
-└── mcp/          Remote MCP Worker
+├── mcp/          Remote MCP Worker
+└── sync/         官方活动自动同步 Worker（默认关闭）
 packages/
 └── core/         数据访问、校验、权限和共享业务逻辑
 migrations/       D1 数据库迁移
@@ -95,6 +97,7 @@ MCP endpoint 默认为 `http://localhost:8787/mcp`，健康检查位于 `/health
 - [歌单库的数据结构与导入格式](./docs/music-library.md)
 - [数据库模型](./docs/data-model.md)
 - [管理后台与 MCP](./docs/admin-and-mcp.md)
+- [官方活动自动同步](./docs/official-sync.md)
 
 从 Notion 迁移旧活动数据时，可使用：
 

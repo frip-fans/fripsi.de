@@ -102,7 +102,7 @@ MCP_AUDIENCE        MCP resource audience
 
 需要保密的值放入 Cloudflare Secrets/Build Secrets，不提交到仓库。公开的域名和 binding 名可以写入 `wrangler.jsonc`。
 
-MCP 模式本身不需要 `OPENAI_API_KEY`：模型运行在 Codex/ChatGPT 等 MCP Client 中。只有未来要在 `/admin` 内嵌自有 AI 聊天时，才另行接入 OpenAI Responses API 和 API key。
+MCP 模式本身不需要 `OPENAI_API_KEY`：模型运行在 Codex/ChatGPT 等 MCP Client 中。可选的 `apps/sync` Worker 使用独立 API key，通过 Agents API 每天检查官方公告；迁移、配置和单独部署方式见[官方活动自动同步](./official-sync.md)。
 
 ## 4.1 第一次部署配置
 

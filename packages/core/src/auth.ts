@@ -1,8 +1,12 @@
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import type { Actor } from "./types";
 import { ServiceError } from "./utils";
+import { authenticateAutomationToken } from "./automation-auth";
 
 export interface AuthEnv {
+  DB?: D1Database;
+  AUTOMATION_SIGNING_SECRET?: string;
+  AUTOMATION_AUDIENCE?: string;
   ACCESS_TEAM_DOMAIN?: string;
   ACCESS_AUD?: string;
   MCP_AUDIENCE?: string;
@@ -55,6 +59,8 @@ export async function authenticateAdmin(request: Request, env: AuthEnv): Promise
 }
 
 export async function authenticateMcp(request: Request, env: AuthEnv): Promise<Actor> {
+  const bearer = request.headers.get("Authorization");
+  if (bearer?.startsWith("Bearer fsync.")) return authenticateAutomationToken(bearer.slice(7), env);
   const local = devActor(env, "mcp");
   if (local) return local;
   const authorization = request.headers.get("Authorization");

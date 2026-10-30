@@ -142,6 +142,7 @@ export const eventPatchSchema = z.object({
 }).refine((patch) => Object.keys(patch).length > 0, "至少需要修改一个字段");
 
 export const searchInputSchema = z.object({
+  source_url: sourceUrlSchema.optional(),
   query: z.string().trim().max(200).optional(),
   date_from: dateSchema.optional(),
   date_to: dateSchema.optional(),
@@ -158,7 +159,9 @@ export const duplicateInputSchema = z.object({
   start_date: dateSchema,
   end_date: dateSchema.nullish(),
   venue_id: z.string().trim().min(1).max(160).nullish(),
-  source_url: sourceUrlSchema.optional()
+  source_url: sourceUrlSchema.optional(),
+  category: categorySchema.optional(),
+  location_mode: locationModeSchema.optional()
 });
 
 export const proposeCreateSchema = z.object({

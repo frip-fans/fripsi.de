@@ -137,6 +137,8 @@ export interface AuditLog {
 }
 
 export interface Actor {
+  automation_run_id?: string;
+  automation_role?: "primary" | "review";
   id: string;
   type: "human" | "ai" | "system";
   channel: "admin" | "mcp" | "import" | "system";

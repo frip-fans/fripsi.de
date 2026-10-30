@@ -5,3 +5,5 @@ SITE_URL=http://localhost:4321
 MCP_AUTHORIZATION_SERVER=https://your-team.cloudflareaccess.com
 ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
 MCP_AUDIENCE=replace-with-mcp-access-aud
+AUTOMATION_AUDIENCE=https://mcp.example.com/mcp
+AUTOMATION_SIGNING_SECRET=

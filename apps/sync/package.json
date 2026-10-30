@@ -1,0 +1,17 @@
+{
+  "name": "@frip-fan/sync",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "XDG_CONFIG_HOME=../../.cache/xdg wrangler dev --test-scheduled --persist-to ../web/.wrangler/state",
+    "build": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --dry-run --env '' --outdir dist",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "deploy:staging": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --env staging",
+    "deploy": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --env production"
+  },
+  "dependencies": {
+    "@frip-fan/core": "*",
+    "zod": "^4.4.3"
+  }
+}

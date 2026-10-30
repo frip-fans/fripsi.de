@@ -78,7 +78,7 @@ Worker 接到请求后仍需验证 `Cf-Access-Jwt-Assertion`：
 
 ### 3.1 定位
 
-MCP 让 Codex、ChatGPT 或其他兼容客户端成为受控编辑助手。网站本身不需要调用 OpenAI API，也不需要在前台内置聊天框。
+MCP 让 Codex、ChatGPT 或其他兼容客户端成为受控编辑助手。MCP 模式不需要站点调用 OpenAI API，也不需要前台聊天框。另有独立的[官方活动自动同步 Worker](./official-sync.md)，在维护者启用自动发布后，通过共享业务层验证并发布；不改变 MCP 对每次发布明确确认的要求。
 
 典型对话：
 
@@ -96,6 +96,8 @@ AI：已发布，并返回公开活动 URL。
 - Authentication：OAuth 2.1
 - OAuth provider：优先 Cloudflare Access OAuth Provider
 - 匿名调用：不允许
+
+每日官方同步使用专用的短期任务 JWT，不通过普通 OAuth scope 获得自动发布权限。它由 sync Worker 签发，由 MCP Worker 独立校验，详见[自动同步的认证与配置](./official-sync.md)。
 
 建议 scopes：
 
@@ -251,7 +253,11 @@ openWorldHint: true
 - 绕过 change set 的 `update_event`
 - 返回 OAuth token、Access JWT、数据库内部配置的资源或工具
 
-网页查证由 AI Client 自己完成。MCP 只接收结构化数据和来源 URL，避免服务端成为任意 URL 抓取器或 SSRF 入口。
+网页查证由 AI Client 完成。自动发布另由 MCP 对固定官方域名做受限来源核对；不提供任意 URL 抓取工具。
+
+### 3.5 已授权的自动发布
+
+维护者启用每日自动同步后，专用身份可使用 `sync.propose` → `changes.preview` → `changes.publish_automatic`，无需逐条确认。发布工具要求本次服务端预览摘要，只接受当前活跃任务关联的活动新增、修改或状态变更；来源、重复、版本和审计检查仍然执行。普通 MCP 身份不暴露这些自动化写入工具，也不能仅凭 OAuth scope 升级为自动身份。
 
 ## 4. 强制工作流
 
@@ -261,7 +267,7 @@ MCP server `instructions` 和配套 Codex skill/plugin 应规定：
 2. 事实更新必须提供来源。
 3. AI 不确定时只创建草稿并标记警告。
 4. 在发布前调用 `changes.preview`。
-5. 发布、下线、归档必须获得用户明确确认。
+5. 普通身份的发布、下线、归档必须获得用户明确确认。专用每日自动化身份按维护者预先授予的任务权限发布活动；不具备下线和归档工具。
 6. 工具失败时不得假装成功。
 7. 返回 change set ID、活动 ID、公开 URL 和审计 request ID。
 

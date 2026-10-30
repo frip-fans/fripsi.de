@@ -14,6 +14,7 @@
 - [实施路线图](./roadmap.md)：分阶段交付、验收标准和暂不实施的功能。
 - [实现状态](./implementation-status.md)：已经完成的能力、验证证据和上线前剩余事项。
 - [歌单库](./music-library.md)：歌曲、版本、发行曲目、Live 歌单、交叉查询和 CSV 导入。
+- [官方活动自动同步](./official-sync.md)：每天通过 OpenAI Agents API 检查公告、验证来源并自动发布。
 
 ## 已确定的决策
 

@@ -2,6 +2,7 @@ import { duplicateInputSchema, searchInputSchema, type SearchInput } from "./sch
 import { hydrateEventLocations } from "./locations";
 import type { ArchiveFilterEntry, AuditLog, ChangeSet, DuplicateCandidate, EventRecord, EventSource } from "./types";
 import { normalizeForDuplicate, ServiceError } from "./utils";
+import { distinctOccurrence } from "./sync-policy";
 
 interface ArchiveFilterRow extends Omit<ArchiveFilterEntry, "venue_names" | "area_ids" | "area_names" | "channel_names"> {
   venue_names: string | null;
@@ -35,6 +36,12 @@ function eventSearchWhere(input: SearchInput, publicOnly: boolean): { where: str
       OR EXISTS (SELECT 1 FROM event_channels ec WHERE ec.event_id = events.id AND ec.name LIKE ?))`);
     const pattern = `%${input.query.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
     bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
+  }
+  if (input.source_url) {
+    const url = new URL(input.source_url); url.search = ""; url.hash = "";
+    const variants = [...new Set([url.href, url.href.replace("https://www.fripside.net/", "https://fripside.net/"), url.href.replace("https://fripside.net/", "https://www.fripside.net/")])];
+    clauses.push(`EXISTS (SELECT 1 FROM event_sources s WHERE s.event_id=events.id AND (${variants.map(() => "(s.url=? OR s.url LIKE ? OR s.url LIKE ?)").join(" OR ")}))`);
+    for (const variant of variants) bindings.push(variant, `${variant}?%`, `${variant}#%`);
   }
   if (input.date_from) {
     clauses.push("COALESCE(end_date, start_date) >= ?");
@@ -185,7 +192,7 @@ export async function findDuplicates(db: D1Database, raw: unknown): Promise<Dupl
 
   const normalizedTitle = normalizeForDuplicate(input.title);
   const events = await hydrateEventLocations(db, result.results.map(mapEvent));
-  return events.map((event) => {
+  return events.filter((event) => !distinctOccurrence(input, event)).map((event) => {
     const reasons: string[] = [];
     if (normalizeForDuplicate(event.title) === normalizedTitle) reasons.push("标题相同或规范化后相同");
     if (input.venue_id && event.venues.some((venue) => venue.id === input.venue_id)) reasons.push("日期重叠且场地相同");

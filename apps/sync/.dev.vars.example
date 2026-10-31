@@ -10,3 +10,8 @@ AUTOMATION_SIGNING_SECRET=
 # Only when Cloudflare Access protects the MCP endpoint:
 MCP_ACCESS_CLIENT_ID=
 MCP_ACCESS_CLIENT_SECRET=
+
+# Optional Bark notifications; device credentials are never sent to OpenAI.
+BARK_ENABLED=false
+BARK_DEVICE_KEY=
+BARK_SITE_URL=https://fripsi.de

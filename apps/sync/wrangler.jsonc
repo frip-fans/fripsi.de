@@ -12,7 +12,7 @@
     "database_id": "00000000-0000-0000-0000-000000000000",
     "migrations_dir": "../../migrations"
   }],
-  "vars": { "SYNC_ENABLED": "false", "SYNC_AUTO_PUBLISH": "false", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_REVIEW_MODEL": "gpt-6.1-sol", "SYNC_DISCOVERY_ENABLED": "true", "SYNC_EVAL_ENABLED": "false", "SYNC_BUDGET_USD": "1", "MCP_ENDPOINT_URL": "https://mcp.example.com/mcp" },
+  "vars": { "BARK_ENABLED": "false", "BARK_SITE_URL": "https://fripsi.de", "SYNC_ENABLED": "false", "SYNC_AUTO_PUBLISH": "false", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_REVIEW_MODEL": "gpt-6.1-sol", "SYNC_DISCOVERY_ENABLED": "true", "SYNC_EVAL_ENABLED": "false", "SYNC_BUDGET_USD": "1", "MCP_ENDPOINT_URL": "https://mcp.example.com/mcp" },
   "env": {
     "staging": {
       "name": "frip-fan-sync-staging",
@@ -22,7 +22,7 @@
         "database_id": "32c5a88c-bbd1-4bda-9814-b8cce16fc7c4",
         "migrations_dir": "../../migrations"
       }],
-      "vars": { "SYNC_ENABLED": "false", "SYNC_AUTO_PUBLISH": "true", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_REVIEW_MODEL": "gpt-6.1-sol", "SYNC_DISCOVERY_ENABLED": "true", "SYNC_EVAL_ENABLED": "false", "SYNC_BUDGET_USD": "1", "MCP_ENDPOINT_URL": "https://frip-fan-mcp-staging.rklee.workers.dev/mcp" }
+      "vars": { "BARK_ENABLED": "false", "BARK_SITE_URL": "https://frip-fan-web-staging.rklee.workers.dev", "SYNC_ENABLED": "false", "SYNC_AUTO_PUBLISH": "true", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_REVIEW_MODEL": "gpt-6.1-sol", "SYNC_DISCOVERY_ENABLED": "true", "SYNC_EVAL_ENABLED": "false", "SYNC_BUDGET_USD": "1", "MCP_ENDPOINT_URL": "https://frip-fan-mcp-staging.rklee.workers.dev/mcp" }
     },
     "production": {
       "name": "frip-fan-sync",
@@ -32,7 +32,7 @@
         "database_id": "f35ee3c1-3f65-44ed-988b-e6cbf2c187f6",
         "migrations_dir": "../../migrations"
       }],
-      "vars": { "SYNC_ENABLED": "true", "SYNC_AUTO_PUBLISH": "true", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_REVIEW_MODEL": "gpt-6.1-sol", "SYNC_DISCOVERY_ENABLED": "true", "SYNC_EVAL_ENABLED": "false", "SYNC_BUDGET_USD": "1", "MCP_ENDPOINT_URL": "https://frip-fan-mcp.rklee.workers.dev/mcp" }
+      "vars": { "BARK_ENABLED": "true", "BARK_SITE_URL": "https://fripsi.de", "SYNC_ENABLED": "true", "SYNC_AUTO_PUBLISH": "true", "OPENAI_MODEL": "gpt-6-luna", "OPENAI_REVIEW_MODEL": "gpt-6.1-sol", "SYNC_DISCOVERY_ENABLED": "true", "SYNC_EVAL_ENABLED": "false", "SYNC_BUDGET_USD": "1", "MCP_ENDPOINT_URL": "https://frip-fan-mcp.rklee.workers.dev/mcp" }
     }
   }
 }

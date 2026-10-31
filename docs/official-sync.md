@@ -85,7 +85,7 @@ XDG_CONFIG_HOME="$PWD/.cache/xdg" npx wrangler secret put AUTOMATION_SIGNING_SEC
 
 遵循[项目发布流程](./release-workflow.md)。取得对应环境授权后，按顺序：
 
-1. 对目标 D1 按顺序应用 `0008_official_sync.sql`、`0009_automation_mcp.sql`、`0010_official_sync_v2.sql`。均为新增表或新增列，兼容旧 Web/MCP。
+1. 对目标 D1 按顺序应用 `0008_official_sync.sql`、`0009_automation_mcp.sql`、`0010_official_sync_v2.sql`、`0011_bark_notifications.sql`。均为新增表或新增列，兼容旧 Web/MCP。
 2. 配置实际 MCP 地址，部署 MCP 与保持关闭的 sync Worker。MCP 必须能被 OpenAI 通过 HTTPS 访问；如有 Access，配置上述服务令牌。
 3. 设置 Worker Secrets，确认两个 Worker 绑定的是同一个目标 D1。
 4. 在 staging 用 `SYNC_ENABLED=true`、`SYNC_AUTO_PUBLISH=false` 检查检索、认证和提案，再以 `true` 验收直接发布。
@@ -134,3 +134,15 @@ MCP 和 sync 都不随现有 Web Worker 的自动部署一起发布。普通本�
 生产发布合并后，仅生产 `frip-fan-sync` 启用 `SYNC_ENABLED=true`，`SYNC_AUTO_PUBLISH=true`；staging 继续保持 `SYNC_ENABLED=false`。两边固定样例评测均关闭。生产每天最多启动一次同步，五分钟 Cron 用于收取任务进度；正文没有变化时跳过模型。模型保持 Luna 主跑、Sol 自动复核，预算组按日本日期划分，每日 $1 软控制不是预期日均费用。
 
 生产和 staging 数据库独立。生产活动更新不会自动复制到 staging；需要新一轮测试时再单独开启测试同步或按项目流程刷新数据。停止生产同步应修改 production 的配置并单独部署 sync Worker，合并 Web 代码本身不会修改该 Worker 的运行开关。
+
+## Bark 有更新通知
+
+生产 sync Worker 通过 Bark 官方 HTTPS API 发送个人通知，不额外调用 OpenAI。`BARK_ENABLED=true` 且配置了 `BARK_DEVICE_KEY` 才工作；staging 默认 `BARK_ENABLED=false`。设备 key 只存 sync Worker Secret，不进入 Agent 输入、D1 通知内容、Git 或日志。`BARK_SITE_URL` 用于构建站内链接，生产为 `https://fripsi.de`。
+
+每个自动同步任务结束后，按数据库里实际发布的活动合并为一条通知；同一活动在该轮的多次修改合并显示，草稿和无变化结果不推送。任务最终失败或 Sol 复核后仍有事项未解决，会单独在该轮通知中说明，部分已发布内容也会保留。正常的自动复核过程不通知。通知以本次任务最终结果为准，而不是官网一更新就实时发送；官网发现仍沿用日常同步频率。后台手动编辑本期不发送通知。
+
+通知首次启用时保存激活时间，不补发之前已结束任务的历史通知。`official_sync_notifications` 保存无凭据的消息快照及状态，发布提交后由 Cron 独立收取，因此即使同步停用或某轮已失败，待发消息仍可重试。无变化的已结束任务记录为 skipped，避免队首空任务挡住后续更新。
+
+发送采用带过期时间的领取锁，确认 Bark HTTP 成功且返回 code=200 才标记 sent。失败从 5 分钟开始退避，最长间隔 6 小时；通知失败不回滚发布、不重跑 Agent。网络丢失确认时仍可能出现少量重复投递，设备是否显示受 iOS 通知权限、专注模式和网络影响。
+
+部署前先应用新增迁移 `0011_bark_notifications.sql`。手机端安装开发者 Finb 的 Bark 并允许通知，在生产 `frip-fan-sync` 的 Variables and Secrets 保存 `BARK_DEVICE_KEY`，只填官方推送地址最后一段 key。无需把完整地址或 key 发到聊天，也无需配置到 GitHub CI 或 MCP Worker。

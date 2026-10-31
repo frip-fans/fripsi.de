@@ -146,3 +146,5 @@ MCP 和 sync 都不随现有 Web Worker 的自动部署一起发布。普通本�
 发送采用带过期时间的领取锁，确认 Bark HTTP 成功且返回 code=200 才标记 sent。失败从 5 分钟开始退避，最长间隔 6 小时；通知失败不回滚发布、不重跑 Agent。网络丢失确认时仍可能出现少量重复投递，设备是否显示受 iOS 通知权限、专注模式和网络影响。
 
 部署前先应用新增迁移 `0011_bark_notifications.sql`。手机端安装开发者 Finb 的 Bark 并允许通知，在生产 `frip-fan-sync` 的 Variables and Secrets 保存 `BARK_DEVICE_KEY`，只填官方推送地址最后一段 key。无需把完整地址或 key 发到聊天，也无需配置到 GitHub CI 或 MCP Worker。
+
+Bark 自定义图标使用公开地址 `https://fripsi.de/bark-icon-v1.png`（iOS 15+）。PNG 为现有 `apps/web/public/fan-site-logo.svg` 的 512×512 导出，透明区域填充站点深蓝色；图标在发送时加入，因此旧的待发消息也可使用。发布时先确认生产 Web 静态资源可公开访问，再部署 sync。更新图片需改版本化文件名，避免 Bark/iOS 缓存旧图；staging 也使用生产公开图标，避免 Access 阻挡图片下载。

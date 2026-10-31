@@ -10,6 +10,8 @@ interface NotificationPayload { title: string; body: string; url: string; group:
 interface TerminalRun { id: string; status: string; error_code: string | null }
 interface PublishedChange { event_id: string; operation: string; title: string; slug: string; start_date: string; start_time: string | null; status: string }
 interface Delivery { run_id: string; payload_json: string; attempts: number }
+// Keep the icon publicly reachable even when a staging site is Access-protected.
+const BARK_ICON_URL = "https://fripsi.de/bark-icon-v1.png";
 class DeliveryError extends Error { constructor(readonly code: string) { super(code); } }
 
 function truncate(text: string, bytes: number): string {
@@ -81,7 +83,7 @@ async function send(payload: NotificationPayload, key: string, request: typeof f
   const response = await request("https://api.day.app/push", {
     method: "POST", redirect: "manual", signal: AbortSignal.timeout(8000),
     headers: { "Content-Type": "application/json", "User-Agent": "fripsi-bark-notifications/1.0" },
-    body: JSON.stringify({ ...payload, device_key: key }),
+    body: JSON.stringify({ ...payload, icon: BARK_ICON_URL, device_key: key }),
   });
   if (!response.ok) { await response.body?.cancel(); throw new DeliveryError(`bark_http_${response.status}`); }
   const result = JSON.parse(await boundedText(response, 8192)) as { code?: number };
@@ -107,7 +109,7 @@ export async function tickNotifications(env: BarkEnv, now = new Date(), request:
     try {
       const payload = JSON.parse(row.payload_json) as NotificationPayload;
       if (typeof payload.body !== "string" || typeof payload.title !== "string" || new URL(payload.url).origin !== site.origin
-        || new TextEncoder().encode(JSON.stringify({ ...payload, device_key: key })).length > 3500) throw new DeliveryError("bark_payload_invalid");
+        || new TextEncoder().encode(JSON.stringify({ ...payload, icon: BARK_ICON_URL, device_key: key })).length > 3500) throw new DeliveryError("bark_payload_invalid");
       await send(payload, key, request);
       await env.DB.prepare(`UPDATE official_sync_notifications SET status='sent',sent_at=?,updated_at=?,locked_until=0,claim_id=NULL,last_error_code=NULL
         WHERE run_id=? AND claim_id=?`).bind(now.toISOString(), now.toISOString(), row.run_id, claim).run();

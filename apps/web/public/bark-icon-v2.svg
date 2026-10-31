@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 120 120" fill="none">
+  <title>fripSi.de notification mark</title>
+  <desc>Orange waveform on navy, with safe margins for a circular notification crop and a lower-right application badge.</desc>
+  <defs>
+    <radialGradient id="background" cx=".3" cy=".25" r=".95">
+      <stop stop-color="#17334b"/>
+      <stop offset="1" stop-color="#091725"/>
+    </radialGradient>
+    <linearGradient id="wave" x1="24" y1="40" x2="88" y2="75" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb367"/>
+      <stop offset="1" stop-color="#ea8142"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#background)" d="M0 0h120v120H0z"/>
+  <path d="M24 66C34 66 36 40 46 40S57 75 67 75 79 56 88 56" stroke="url(#wave)" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="24" cy="66" r="4.25" fill="#f3f9ff"/>
+  <circle cx="88" cy="56" r="4.25" fill="#f3f9ff"/>
+</svg>

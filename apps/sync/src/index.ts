@@ -4,8 +4,9 @@ import { Budget } from "./budget";
 import { discover, DISCOVERY_LOOKBACK_DAYS } from "./discovery";
 import { tickEvaluations } from "./evaluations";
 import { instructions, reviewInstructions } from "./prompt";
+import { safeTickNotifications, type BarkEnv } from "./notifications";
 
-export interface SyncEnv {
+export interface SyncEnv extends BarkEnv {
   DB: D1Database;
   OPENAI_API_KEY?: string; OPENAI_MODEL?: string; OPENAI_REVIEW_MODEL?: string;
   SYNC_ENABLED?: string; SYNC_AUTO_PUBLISH?: string; SYNC_DISCOVERY_ENABLED?: string;
@@ -212,5 +213,11 @@ export async function tick(env: SyncEnv, now = new Date(), trial?: TrialOptions)
 
 export default {
   async fetch(): Promise<Response> { return new Response("Not found", { status: 404 }); },
-  async scheduled(_controller, env, ctx): Promise<void> { ctx.waitUntil(tick(env)); },
+  async scheduled(_controller, env, ctx): Promise<void> {
+    ctx.waitUntil((async () => {
+      await safeTickNotifications(env);
+      try { await tick(env); }
+      finally { await safeTickNotifications(env); }
+    })());
+  },
 } satisfies ExportedHandler<SyncEnv>;

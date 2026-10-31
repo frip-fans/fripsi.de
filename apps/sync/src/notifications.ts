@@ -125,5 +125,5 @@ export async function tickNotifications(env: BarkEnv, now = new Date(), request:
 // Notification errors cannot prevent publication, completion recording, or later retries.
 export async function safeTickNotifications(env: BarkEnv): Promise<void> {
   try { await tickNotifications(env); }
-  catch { console.error(JSON.stringify({ action: "official_sync.notification_error", code: "notification_tick_failed" })); }
+  catch (error) { console.error(JSON.stringify({ action: "official_sync.notification_error", code: error instanceof DeliveryError ? error.code : "notification_tick_failed" })); }
 }

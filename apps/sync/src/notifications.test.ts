@@ -4,7 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { ChangeService, type Actor } from "@frip-fan/core";
 import { createTestD1 } from "../../../packages/core/src/test-d1";
 import worker from "./index";
-import { tickNotifications, type BarkEnv } from "./notifications";
+import { safeTickNotifications, tickNotifications, type BarkEnv } from "./notifications";
 
 const databases: DatabaseSync[] = [];
 afterEach(() => { vi.unstubAllGlobals(); for (const database of databases.splice(0)) database.close(); });
@@ -27,6 +27,16 @@ function setup() {
   }
   return { db, sqlite, env, request, changes, run, change };
 }
+
+it("diagnoses a pasted URL without exposing the device credential or throwing into sync", async () => {
+  const t = setup(), secret = "https://api.day.app/private-device-key";
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await safeTickNotifications({ ...t.env, BARK_DEVICE_KEY: secret });
+    expect(log.mock.calls.flat().join(" ")).toContain("bark_configuration_invalid");
+    expect(log.mock.calls.flat().join(" ")).not.toContain(secret);
+  } finally { log.mockRestore(); }
+});
 
 it("stays silent when disabled or missing a key, and skips historical tasks on activation", async () => {
   const t = setup(); t.run("history", "failed", new Date(initial.valueOf() - 1000));

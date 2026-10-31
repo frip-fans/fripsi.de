@@ -11,7 +11,7 @@ interface TerminalRun { id: string; status: string; error_code: string | null }
 interface PublishedChange { event_id: string; operation: string; title: string; slug: string; start_date: string; start_time: string | null; status: string }
 interface Delivery { run_id: string; payload_json: string; attempts: number }
 // Keep the icon publicly reachable even when a staging site is Access-protected.
-const BARK_ICON_URL = "https://fripsi.de/bark-icon-v1.png";
+const BARK_ICON_URL = "https://fripsi.de/bark-icon-v2.png";
 class DeliveryError extends Error { constructor(readonly code: string) { super(code); } }
 
 function truncate(text: string, bytes: number): string {

@@ -58,7 +58,7 @@ it("batches only real publications, ignores draft/model claims, and sends once",
   expect(url).toBe("https://api.day.app/push"); expect(options?.redirect).toBe("manual");
   expect(payload.body).toContain("新增 2 条，更新 0 条"); expect(payload.body).not.toContain("Draft C"); expect(payload.body).not.toContain("100 published");
   expect(payload.body).toContain("https://fripsi.de/events/"); expect(payload.device_key).toBe(t.env.BARK_DEVICE_KEY);
-  expect(payload.icon).toBe("https://fripsi.de/bark-icon-v1.png");
+  expect(payload.icon).toBe("https://fripsi.de/bark-icon-v2.png");
   const row = t.sqlite.prepare("SELECT status,payload_json FROM official_sync_notifications").get() as { status: string; payload_json: string };
   expect(row.status).toBe("sent"); expect(row.payload_json).not.toContain(t.env.BARK_DEVICE_KEY);
 });

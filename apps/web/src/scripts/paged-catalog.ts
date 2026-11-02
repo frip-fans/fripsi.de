@@ -27,9 +27,10 @@ interface CatalogBrowserOptions<T> {
 const fillTemplate = (template: string, values: Record<string, string | number>) => Object.entries(values)
   .reduce((text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), template);
 
-export function setupPagedCatalog<T>(options: CatalogBrowserOptions<T>): void {
+export function setupPagedCatalog<T>(options: CatalogBrowserOptions<T>): { refresh: (resetPage?: boolean) => void } {
   const { root } = options;
-  if (root.dataset.catalogReady === "true") return;
+  const idle = { refresh: () => {} };
+  if (root.dataset.catalogReady === "true") return idle;
   root.dataset.catalogReady = "true";
 
   const grid = root.querySelector<HTMLElement>("[data-catalog-grid]");
@@ -40,7 +41,7 @@ export function setupPagedCatalog<T>(options: CatalogBrowserOptions<T>): void {
   const pages = root.querySelector<HTMLElement>("[data-catalog-pages]");
   const searchForm = root.querySelector<HTMLFormElement>("[data-catalog-search-form]");
   const searchInput = root.querySelector<HTMLInputElement>("[data-catalog-search]");
-  if (!grid || !empty || !summary || !pagination || !paginationSummary || !pages || !searchForm || !searchInput) return;
+  if (!grid || !empty || !summary || !pagination || !paginationSummary || !pages || !searchForm || !searchInput) return idle;
 
   const state = { ...options.initialState };
 
@@ -160,4 +161,5 @@ export function setupPagedCatalog<T>(options: CatalogBrowserOptions<T>): void {
   });
 
   render(false);
+  return { refresh: (resetPage = false) => { if (resetPage) state.page = 1; render(); } };
 }

@@ -1,0 +1,221 @@
+---
+import Icon from "../../components/Icon.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getLocale, t } from "../../lib/i18n";
+import "../../styles/music.css";
+
+const locale = getLocale(Astro.request);
+const payload = {
+  locale,
+  labels: {
+    summary: t(locale, "votes.visibleVersions", { visible: "{visible}", total: "{total}" }),
+    pagination: t(locale, "pagination.summary", { total: "{total}", item: t(locale, "votes.versionItem"), current: "{current}", pages: "{pages}" }),
+    previous: t(locale, "pagination.previous"), next: t(locale, "pagination.next"),
+    scoreGroup: t(locale, "votes.scoreGroup", { title: "{title}" }), count: t(locale, "votes.count", { count: "{count}" }),
+    average: t(locale, "votes.average", { score: "{score}" }), threshold: t(locale, "votes.threshold"),
+    release: t(locale, "votes.release"), allReleases: t(locale, "votes.allReleases"), error: t(locale, "votes.error"), refreshError: t(locale, "votes.refreshError"),
+  },
+};
+const browserJson = JSON.stringify(payload).replaceAll("<", "\\u003c");
+---
+<SiteLayout title={t(locale, "votes.title")} description={t(locale, "votes.description")}>
+  <div class="music-page" data-vote-browser>
+    <header class="vote-intro"><p class="eyebrow">fripSide</p><h1>{t(locale, "votes.title")}</h1><p>{t(locale, "votes.description")}</p><p>{t(locale, "votes.lede")}</p></header>
+    <section class="music-section vote-list" aria-label={t(locale, "votes.title")}>
+      <form class="music-toolbar" method="get" data-catalog-search-form>
+        <label class="music-search"><span class="visually-hidden">{t(locale, "music.searchSong")}</span><Icon name="search" /><input type="search" name="q" placeholder={t(locale, "music.searchSongPlaceholder")} data-catalog-search /></label>
+        <button type="submit" class="secondary">{t(locale, "common.search")}</button>
+      </form>
+      <div class="vote-filters" aria-label={t(locale, "common.filter")}>
+        <div class="vote-filter-heading"><span class="vote-filter-heading-title"><Icon name="funnel" />{t(locale, "common.filter")}</span><button type="button" class="vote-clear" data-vote-clear>{t(locale, "votes.clearFilters")}</button></div>
+        <div class="vote-filter-row"><span class="vote-filter-label">{t(locale, "votes.initial")}</span>
+          <select hidden id="vote-initial" data-vote-filter="initial"><option value="">{t(locale, "votes.all")}</option><option>A–D</option><option>E–H</option><option>I–L</option><option>M–P</option><option>Q–T</option><option>U–Z</option><option value="#">{t(locale, "votes.otherInitial")}</option></select>
+          <div class="vote-filter-options" role="group" aria-label={t(locale, "votes.initial")}>
+            {[['', t(locale, "votes.all")], ['A–D','A–D'], ['E–H','E–H'], ['I–L','I–L'], ['M–P','M–P'], ['Q–T','Q–T'], ['U–Z','U–Z'], ['#', t(locale, "votes.otherInitial")]].map(([value, label]) => <button type="button" data-vote-choice="initial" data-value={value} aria-pressed="false">{label}</button>)}
+          </div>
+        </div>
+        <div class="vote-filter-row"><span class="vote-filter-label">{t(locale, "votes.phase")}</span>
+          <select hidden id="vote-phase" data-vote-filter="phase"><option value="">{t(locale, "votes.all")}</option><option value="1">Phase 1</option><option value="2">Phase 2</option><option value="3">Phase 3</option><option value="unknown">{t(locale, "votes.unknownPhase")}</option></select>
+          <div class="vote-filter-options" role="group" aria-label={t(locale, "votes.phase")}>
+            {[['',t(locale, "votes.all")], ['1','Phase 1'], ['2','Phase 2'], ['3','Phase 3'], ['unknown',t(locale, "votes.unknownPhase")]].map(([value, label]) => <button type="button" data-vote-choice="phase" data-value={value} aria-pressed="false">{label}</button>)}
+          </div>
+        </div>
+        <div class="vote-filter-row"><span class="vote-filter-label">{t(locale, "votes.releaseType")}</span>
+          <select hidden id="vote-type" data-vote-filter="type"><option value="">{t(locale, "votes.all")}</option><option value="album">Album</option><option value="single">Single</option><option value="other">{t(locale, "votes.otherType")}</option></select>
+          <div class="vote-filter-options" role="group" aria-label={t(locale, "votes.releaseType")}>
+            {[['',t(locale, "votes.all")], ['album','Album'], ['single','Single'], ['other',t(locale, "votes.otherType")]].map(([value, label]) => <button type="button" data-vote-choice="type" data-value={value} aria-pressed="false">{label}</button>)}
+          </div>
+        </div>
+        <div class="vote-filter-row"><label class="vote-filter-label" for="vote-release">{t(locale, "votes.release")}</label><select class="vote-release-select" id="vote-release" data-vote-filter="release"><option value="">{t(locale, "votes.allReleases")}</option></select></div>
+        <div class="vote-filter-row vote-sort-row"><span class="vote-filter-label">{t(locale, "music.sortOrder")}</span><div class="music-chips vote-sort-options" data-catalog-sorts><a href="?sort=title-asc" data-catalog-sort="title-asc">{t(locale, "votes.sortTitle")}</a><a href="?sort=score-desc" data-catalog-sort="score-desc">{t(locale, "votes.sortScore")}</a></div></div>
+      </div>
+      <p role="status" aria-live="polite" data-vote-status>{t(locale, "votes.loading")}</p>
+      <noscript><p>{t(locale, "votes.requiresJs")}</p></noscript>
+      <div class="music-list-feedback" aria-live="polite"><span data-catalog-summary></span></div>
+      <div class="music-grid" data-catalog-grid></div>
+      <div class="music-empty panel" data-catalog-empty hidden>{t(locale, "music.noSongs")}</div>
+      <nav class="music-client-pagination" aria-label={t(locale, "pagination.label")} data-catalog-pagination hidden><p data-catalog-pagination-summary></p><div class="music-client-pages" data-catalog-pages></div></nav>
+    </section>
+    <script is:inline type="application/json" data-vote-browser-data set:html={browserJson}></script>
+  </div>
+</SiteLayout>
+<script>
+  import { setupPagedCatalog } from "../../scripts/paged-catalog";
+  interface VoteVersion { id: string; song_slug: string; song_title: string; title: string; version_label: string | null; artist_credit: string; search_text: string; vote_count: number; average: number | null; my_score: number | null; phases: number[]; releases: Array<{ id: string; title: string; type: string; edition: string | null }> }
+  interface Payload { locale: string; labels: Record<string, string> }
+  const root = document.querySelector<HTMLElement>("[data-vote-browser]");
+  const data = root?.querySelector<HTMLScriptElement>("[data-vote-browser-data]");
+  const status = root?.querySelector<HTMLElement>("[data-vote-status]");
+  if (root && data && status) {
+    const container = root;
+    const statusNode = status;
+    const payload = JSON.parse(data.textContent ?? "{}") as Payload;
+    const fill = (template: string, key: string, value: string | number) => template.replaceAll(`{${key}}`, String(value));
+    const params = new URLSearchParams(location.search);
+    const input = container.querySelector<HTMLInputElement>("[data-catalog-search]");
+    if (input) input.value = params.get("q") ?? "";
+    const versions: VoteVersion[] = [];
+    let saving = false;
+    const controls = Object.fromEntries(Array.from(container.querySelectorAll<HTMLElement>("[data-vote-filter]")).map((element) => [element.dataset.voteFilter!, element as unknown as HTMLSelectElement])) as Record<string, HTMLSelectElement>;
+    for (const [key, control] of Object.entries(controls)) control.value = params.get(key) ?? "";
+    const typeMatches = (type: string, selected: string) => !selected || (selected === "other" ? type !== "album" && type !== "single" : type === selected);
+    function updateReleases() {
+      const selected = controls.release.value || params.get("release") || "";
+      const releases = new Map<string, VoteVersion["releases"][number]>();
+      for (const version of versions) for (const release of version.releases) if (typeMatches(release.type, controls.type.value)) releases.set(release.id, release);
+      controls.release.replaceChildren(new Option(payload.labels.allReleases, ""));
+      for (const release of Array.from(releases.values()).sort((a, b) => a.title.localeCompare(b.title) || a.id.localeCompare(b.id))) controls.release.add(new Option(release.edition ? `${release.title} · ${release.edition}` : release.title, release.id));
+      controls.release.value = releases.has(selected) ? selected : "";
+    }
+    const filterMatch = (v: VoteVersion) => {
+      const initial = v.song_title.trim().normalize("NFKC").charAt(0).toUpperCase();
+      const group = controls.initial.value;
+      const initialMatches = !group || (group === "#" ? !/^[A-Z]$/.test(initial) : initial >= group[0] && initial <= group[group.length - 1]);
+      const phase = controls.phase.value;
+      const phaseMatches = !phase || (phase === "unknown" ? v.phases.length === 0 : v.phases.includes(Number(phase)));
+      const type = controls.type.value, release = controls.release.value;
+      return initialMatches && phaseMatches && (!type && !release || v.releases.some((r) => typeMatches(r.type, type) && (!release || r.id === release)));
+    };
+    async function load(signal?: AbortSignal) {
+      const response = await fetch("/api/votes", { cache: "no-store", signal });
+      if (!response.ok) throw new Error("load failed");
+      const rows = await response.json() as VoteVersion[];
+      signal?.throwIfAborted();
+      versions.splice(0, versions.length, ...rows);
+    }
+    const statsText = (version: VoteVersion) => `${fill(payload.labels.count, "count", version.vote_count)} · ${version.average === null ? payload.labels.threshold : fill(payload.labels.average, "score", version.average.toFixed(1))}`;
+    function renderCard(version: VoteVersion): HTMLElement {
+      const card = document.createElement("article"); card.className = "music-card vote-card"; card.dataset.voteId = version.id;
+      const link = document.createElement("a"); link.className = "vote-title"; link.href = `/music/songs/${encodeURIComponent(version.song_slug)}`;
+      const artist = document.createElement("span"); artist.className = "music-artist"; artist.textContent = version.artist_credit;
+      const title = document.createElement("h3"); title.textContent = version.title;
+      const detail = document.createElement("span"); detail.className = "music-card-meta"; detail.textContent = [version.song_title, version.version_label].filter(Boolean).join(" · ");
+      link.appendChild(artist); link.appendChild(title); link.appendChild(detail); card.appendChild(link);
+      if (version.releases.length) {
+        const release = document.createElement("p"); release.className = "vote-release-meta";
+        const titles = [...new Set(version.releases.map((item) => item.title))];
+        release.textContent = `${payload.labels.release} · ${titles.slice(0, 2).join(" / ")}${titles.length > 2 ? ` +${titles.length - 2}` : ""}`;
+        release.title = titles.join(" / "); card.appendChild(release);
+      }
+      const stats = document.createElement("p"); stats.className = "vote-stats";
+      stats.textContent = statsText(version);
+      card.appendChild(stats);
+      const scores = document.createElement("div"); scores.className = "vote-scores"; scores.setAttribute("role", "group"); scores.setAttribute("aria-label", fill(payload.labels.scoreGroup, "title", version.title));
+      for (let score = 1; score <= 10; score++) { const button = document.createElement("button"); button.type = "button"; button.dataset.voteScore = String(score); button.textContent = String(score); button.disabled = saving; button.setAttribute("aria-pressed", String(version.my_score === score)); scores.appendChild(button); }
+      card.appendChild(scores); return card;
+    }
+    void (async () => {
+      try {
+        await load(); updateReleases(); statusNode.textContent = "";
+        const catalog = setupPagedCatalog({ root: container, items: versions, pageSize: 20,
+          initialState: { query: params.get("q") ?? "", filter: "", sort: params.get("sort") === "score-desc" ? "score-desc" : "title-asc", page: Math.max(1, Number(params.get("page")) || 1) },
+          matches: (v, state) => filterMatch(v) && v.search_text.toLocaleLowerCase(payload.locale).includes(state.query.trim().toLocaleLowerCase(payload.locale)),
+          compare: (a, b, sort) => (sort === "score-desc" ? (b.average ?? -1) - (a.average ?? -1) || (a.average !== null && b.average !== null ? b.vote_count - a.vote_count : 0) : 0) || a.title.localeCompare(b.title) || a.id.localeCompare(b.id),
+          renderCard, labels: { summary: payload.labels.summary, pagination: payload.labels.pagination, previous: payload.labels.previous, next: payload.labels.next } });
+        const syncChoices = () => container.querySelectorAll<HTMLElement>("[data-vote-choice]").forEach((button) => {
+          const selected = controls[button.dataset.voteChoice!]?.value === button.dataset.value;
+          button.setAttribute("aria-pressed", String(selected));
+        });
+        syncChoices();
+        container.querySelectorAll<HTMLElement>("[data-vote-choice]").forEach((button) => button.addEventListener("click", () => {
+          const control = controls[button.dataset.voteChoice!];
+          if (!control) return;
+          control.value = button.dataset.value ?? "";
+          control.dispatchEvent(new Event("change"));
+        }));
+        const syncFilters = () => {
+          const url = new URL(location.href);
+          for (const [key, control] of Object.entries(controls)) { if (control.value) url.searchParams.set(key, control.value); else url.searchParams.delete(key); }
+          history.replaceState(null, "", url); syncChoices(); catalog.refresh(true);
+        };
+        for (const [key, control] of Object.entries(controls)) control.addEventListener("change", () => { if (key === "type") { params.delete("release"); updateReleases(); } syncFilters(); });
+        container.querySelector("[data-vote-clear]")?.addEventListener("click", () => { for (const control of Object.values(controls)) control.value = ""; params.delete("release"); updateReleases(); syncFilters(); });
+        const grid = container.querySelector<HTMLElement>("[data-catalog-grid]")!;
+        const pagination = container.querySelector<HTMLElement>("[data-catalog-pagination]")!;
+        const updateVisibleVotes = () => {
+          const byId = new Map(versions.map((version) => [version.id, version]));
+          grid.querySelectorAll<HTMLElement>("[data-vote-id]").forEach((card) => {
+            const version = byId.get(card.dataset.voteId!);
+            if (!version) return;
+            const stats = card.querySelector(".vote-stats");
+            if (stats) stats.textContent = statsText(version);
+            card.querySelectorAll<HTMLButtonElement>("[data-vote-score]").forEach((button) => button.setAttribute("aria-pressed", String(version.my_score === Number(button.dataset.voteScore))));
+          });
+        };
+        const refreshResults = () => {
+          // Keep keyboard targets stable while the user is navigating the results.
+          const active = document.activeElement;
+          if (active && (grid.contains(active) || pagination.contains(active))) updateVisibleVotes();
+          else catalog.refresh();
+        };
+        let pollController: AbortController | null = null;
+        window.setInterval(async () => {
+          if (saving || pollController || document.hidden) return;
+          const controller = new AbortController();
+          pollController = controller;
+          try {
+            await load(controller.signal);
+            refreshResults();
+          } catch { /* Keep the last successful results. */ } finally {
+            if (pollController === controller) pollController = null;
+          }
+        }, 15000);
+        grid.addEventListener("click", async (event) => {
+          if (!(event.target instanceof HTMLButtonElement)) return;
+          const button = event.target; const id = button.closest<HTMLElement>("[data-vote-id]")?.dataset.voteId; const score = Number(button.dataset.voteScore);
+          const version = versions.find((item) => item.id === id);
+          if (saving || !version || !Number.isInteger(score) || score < 1 || score > 10 || button.disabled) return;
+          saving = true;
+          // A user's save takes priority over an older background response.
+          pollController?.abort();
+          pollController = null;
+          const nextScore = version.my_score === score ? null : score;
+          let saved = false;
+          let restoreScoreFocus = false;
+          container.querySelectorAll<HTMLButtonElement>("[data-vote-score]").forEach((item) => { item.disabled = true; });
+          try {
+            const response = await fetch("/api/votes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ versionId: id, score: nextScore }) });
+            if (!response.ok) throw new Error("save failed");
+            saved = true;
+            version.my_score = nextScore;
+            await load();
+            restoreScoreFocus = document.activeElement === document.body || document.activeElement === button;
+            statusNode.textContent = "";
+            refreshResults();
+          } catch {
+            if (saved) updateVisibleVotes();
+            restoreScoreFocus = document.activeElement === document.body || document.activeElement === button;
+            statusNode.textContent = saved ? payload.labels.refreshError : payload.labels.error;
+          } finally {
+            saving = false;
+            container.querySelectorAll<HTMLButtonElement>("[data-vote-score]").forEach((item) => { item.disabled = false; });
+            if (restoreScoreFocus && document.activeElement === document.body) {
+              const card = Array.from(grid.querySelectorAll<HTMLElement>("[data-vote-id]")).find((item) => item.dataset.voteId === id);
+              (card?.querySelector<HTMLButtonElement>(`[data-vote-score="${score}"]`) ?? container.querySelector<HTMLElement>("[data-catalog-sort]"))?.focus();
+            }
+          }
+        });
+      } catch { statusNode.textContent = payload.labels.error; }
+    })();
+  }
+</script>

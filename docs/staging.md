@@ -41,7 +41,7 @@ XDG_CONFIG_HOME="$PWD/.cache/xdg" npx wrangler login --device --browser=false
 
 导出和验证中间文件保存于被 Git 忽略的 `.cache/staging/`。
 
-Web 分支自动部署已配置：推送 staging 更新测试站，合并到 master 更新生产站，构建前均执行类型检查和测试。详见 [发布流程](./release-workflow.md)。MCP 和 sync 使用独立部署命令，不随 Web 分支自动发布。手动命令仍可用于部署当前服务器工作区代码。
+Web 分支自动部署已配置：任务 PR 合入 staging 后更新测试站；验收后从最新 master 创建 release 分支，对齐验收源内容，通过 rebase PR 合入 master 后更新生产站。构建前均执行类型检查和测试。详见 [发布流程](./release-workflow.md)。MCP 和 sync 使用独立部署命令，不随 Web 分支自动发布。手动命令仍可用于部署当前服务器工作区代码。
 
 ## 2026-10-30 自动同步测试环境
 

@@ -1,5 +1,5 @@
-import { createMcpHandler } from "agents/mcp";
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { createMcpHandler } from "agents/mcp/server";
+import { McpServer } from "@modelcontextprotocol/server";
 import {
   ChangeService,
   AutomationService,
@@ -317,9 +317,10 @@ export default {
     if (path !== "/mcp") return new Response("Not found", { status: 404 });
     try {
       const actor = await authenticateMcp(request, env);
-      return createMcpHandler(createServer(env, actor), {
+      return createMcpHandler(() => createServer(env, actor), {
         route: "/mcp",
-        enableJsonResponse: true
+        responseMode: "json",
+        legacy: "stateless"
       })(request, env, ctx);
     } catch (error) {
       const status = error instanceof ServiceError ? error.status : 401;

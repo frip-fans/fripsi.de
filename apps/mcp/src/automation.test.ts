@@ -1,14 +1,12 @@
 /// <reference types="node" />
 import { z } from "zod";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { Client, InMemoryTransport } from "@modelcontextprotocol/client";
 import { afterEach, expect, it, vi } from "vitest";
 import type { DatabaseSync } from "node:sqlite";
 import { createTestD1 } from "../../../packages/core/src/test-d1";
 import { createServer } from "./index";
 import type { Actor } from "@frip-fan/core";
 
-vi.mock("agents/mcp", () => ({ createMcpHandler: vi.fn() }));
 const databases: DatabaseSync[] = [];
 afterEach(() => { vi.unstubAllGlobals(); for (const db of databases.splice(0)) db.close(); });
 

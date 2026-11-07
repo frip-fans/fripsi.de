@@ -3,7 +3,7 @@
 ## 分支
 
 ```text
-独立 worktree + 任务分支 → PR 到 staging → CI 通过 → 测试站验收 → staging 向 master 提 PR → 生产部署
+独立 worktree + 任务分支 → PR 到 staging → CI / 测试站验收 → release/*（基于 master，内容对齐已验收 staging）→ rebase PR 到 master → 生产部署
 ```
 
 `master` 是生产分支；`staging` 是长期测试分支。每个独立开发任务从最新 `origin/staging` 创建独立 worktree 和任务分支，同一任务的后续修正复用该 worktree。功能、修复、重构和文档变更均通过 PR 进入 `staging`，不直接推送 `staging` 或 `master`。
@@ -16,17 +16,46 @@
 2. 在任务 worktree 中开发并完成适用的验证。UI 预览必须来自该 worktree 的最新代码或构建，明确地址并实际确认改动可见。
 3. 推送任务分支并提 PR 到 `staging`，说明变更、验证及数据库影响。等待 `CI / Verify` 通过，获得合并授权后再合并。
 4. 在测试站完成验收。代码合并、CI 通过和测试站部署成功分别核对，不能互相替代。
-5. 验收通过并获得发布授权后，从 `staging` 提 PR 到 `master`，通过检查后发布。
+5. 验收通过并获得发布授权后，固定 staging 验收 SHA；从最新 master 创建独立 `release/*` 分支，核对其受版本控制内容与验收源完全一致，再提 PR 到 master。通过检查后选择 **Rebase and merge**，等待生产构建并核对线上版本。
 
 纯文档变更只需核对文案、链接、命令与 `git diff --check`，应用检查由 PR CI 执行。
 
-将 `staging` 合并到 `master` 时使用 **merge commit**，不要 squash/rebase 这条长期分支，避免后续发布反复出现已经合并的提交。发布 PR 合并后不要删除 `staging`。若生产有紧急修复，要再把 `master` 合并回 `staging`。
+## Rebase 发布分支
+
+`Protect Master` 仅允许 **Rebase and merge**；保留仓库现有保护规则。staging 可以包含任务 PR 的 merge commit，不能假设 GitHub 能直接 rebase 整条长期分支。生产发布使用从最新 master 创建的短期 `release/*` 分支，仅提交本次已经在 staging 验证的内容差异，不继承 staging 的合并历史。
+
+先确认 master 没有 staging 尚未包含的生产修复；如有，使用独立任务 PR 回补 staging 并重新验收。完成发布授权后，在独立 worktree 创建 `release/*` 分支，基点为最新 `origin/master`，在该 worktree 的仓库根目录执行以下步骤。不能在主工作区或已有未提交改动的目录执行快照对齐。
+
+```bash
+git fetch origin staging master
+release_source_sha="$(git rev-parse origin/staging)"
+release_base_sha="$(git rev-parse origin/master)"
+test -z "$(git status --porcelain)"
+test "$(git rev-parse HEAD)" = "$release_base_sha"
+# 确认 release_source_sha 就是已完成 CI / 测试站验收的提交
+git diff --stat "$release_base_sha" "$release_source_sha"
+git diff "$release_base_sha" "$release_source_sha"
+```
+
+核对差异符合本次发布范围后，对齐已验收内容，并验证文件树；任一检查失败都应停止后续步骤。
+
+```bash
+git restore --source="$release_source_sha" --staged --worktree -- .
+test "$(git write-tree)" = "$(git rev-parse "${release_source_sha}^{tree}")"
+git diff --cached --check
+git commit -m "Release staging ${release_source_sha}"
+git push -u origin HEAD
+```
+
+为 `release/*` → `master` 创建发布 PR，记录验收源 SHA、master 基点、发布分支 SHA、文件树核对、CI / 测试站结果和数据库影响。通过检查并获得发布授权后，使用 GitHub 的 **Rebase and merge** 或 `gh pr merge` 的 `--rebase` 与 `--match-head-commit` 选项；不要选择 merge commit 或 squash，也不要修改保护规则来允许其他方式。master 或验收源变化时，重新审查差异，在新的 release worktree / 分支准备更新后的候选版本并运行检查，不直接改写长期分支。
+
+发布后保留 staging，核对 master 的源代码文件树与冻结验收源一致，并确认 master 新提交的 CI、Cloudflare Workers Builds 和线上表现。rebase merge 会改变提交 SHA；每次发布从最新 master 生成新的快照差异，因此无需为对齐提交历史反复合并两条长期分支。后续任务继续从最新 staging 开始。
 
 ## CI 与分支规则
 
 GitHub Actions 的 `CI / Verify` 对 master/staging 的 push 与 PR 运行：安装锁定依赖、类型检查、测试、所有 workspace 构建，以及生产和 staging Web 构建。CI 不持有 Cloudflare 部署凭据。
 
-master 规则要求 PR、`Verify` 检查成功、PR 分支与目标分支保持最新、所有讨论已解决；不强制他人批准，适合单人维护。master/staging 均禁止删除和强推。
+master 规则要求 PR、`Verify` 检查成功、PR 分支与目标分支保持最新、所有讨论已解决，并且仅允许 rebase 合并；不强制他人批准，适合单人维护。master/staging 均禁止删除和强推。
 
 项目协作规则要求 `staging` 也通过 PR 合入；即使仓库权限仍允许直接提交，也不能据此绕过该流程。`AGENTS.md` 和本文档不修改 GitHub 分支保护设置，仓库端的强制限制需单独配置。Cloudflare 发布前仍运行验证命令。
 

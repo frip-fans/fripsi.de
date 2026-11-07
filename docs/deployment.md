@@ -31,31 +31,19 @@ MCP 使用独立子域，便于设置独立 OAuth resource、CORS/安全策略�
 
 GitHub 是代码和 migration 的权威来源，不是活动内容数据源。
 
-Workers Builds 连接同一个仓库中的两个项目：
+Web 的测试 Worker 监听 staging，生产 Worker 监听 master；任务分支和 release 分支不直接部署。任务 PR 先进入 staging，完成验收后，从最新 master 创建 `release/*` 分支，对齐冻结的 staging 内容，通过 **Rebase and merge** 发布到 master。保留现有分支保护，具体步骤和文件树核对见 [发布流程](./release-workflow.md)。
 
-- Web 项目监听 `apps/web/**`、`packages/core/**`、相关 migration/配置。
-- MCP 项目监听 `apps/mcp/**`、`packages/core/**`、相关配置。
+master 合并后由 Workers Builds 自动发布 Web。MCP 与 sync 使用独立部署流程，不随 Web 分支合并自动发布。不要通过手动部署绕过 PR 发布流程。
 
-预计命令：
-
-```text
-npm run build:web
-npm run deploy:web
-npm run build:mcp
-npm run deploy:mcp
-```
-
-具体命令在脚手架确定后写入根 `package.json`。依赖版本通过 lockfile 固定，Node 版本通过 `.node-version` 或 Workers Builds 变量固定。
-
-当前脚手架已经确定，使用 Node 24 和 npm lockfile：
+使用 Node 24 和 npm lockfile，CI 运行：
 
 ```text
 npm ci
 npm run typecheck
 npm test
 npm run build
-npm run deploy:web
-npm run deploy:mcp
+npm run build:production --workspace @frip-fan/web
+npm run build:web:staging
 ```
 
 Astro 7 / Cloudflare adapter 14 使用统一 entrypoint：

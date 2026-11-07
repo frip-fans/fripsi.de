@@ -112,7 +112,9 @@ npm run import:sql
 
 Web 与 MCP 是两个独立的 Cloudflare Worker，共用同一个 D1 数据库。仓库中的 `wrangler.jsonc` 保存 Worker、binding 和公开环境变量配置；令牌、Access 凭据等敏感值应使用 Cloudflare Secrets 或构建环境变量管理。
 
-生产数据库迁移需要单独执行，不会随网站构建自动应用。部署流程和 Cloudflare Access 配置见 [部署文档](./docs/deployment.md)。
+代码先通过任务 PR 进入 staging，完成 CI 与测试站验收后，从最新 master 创建 `release/*` 分支并对齐已验收 staging 内容，再通过 **Rebase and merge** 合入 master。保留现有分支保护与 staging 长期分支，详见 [发布流程](./docs/release-workflow.md) 和 [项目协作约定](./AGENTS.md)。
+
+生产数据库迁移需要单独执行，不会随网站构建自动应用。Cloudflare Access 和环境配置见 [部署文档](./docs/deployment.md)。
 
 ## 参与项目
 

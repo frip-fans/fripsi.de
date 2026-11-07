@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { archiveRedirectHref, calendarViewHref, eventListYear } from "./calendar-navigation";
+import { archiveRedirectHref, calendarAgendaHref, calendarViewHref, eventListYear } from "./calendar-navigation";
 
 describe("unified event calendar navigation", () => {
   it("preserves legacy search, repeated filters, year, language and anchor", () => {
@@ -50,4 +50,25 @@ describe("unified event calendar navigation", () => {
     expect(eventListYear("9999", "2026", [])).toBe("2026");
   });
 
+});
+
+describe("returning from search to the monthly agenda", () => {
+  it("preserves the browsed month, repeated categories, language and expanded calendar while removing search-only state", () => {
+    const params = new URLSearchParams("view=list&month=2026-11&year=2020&q=Tokyo&location=country%3AJP&sort=desc&category=LIVE&category=EVENT&lang=ja&calendar=1&date=2026-11-08");
+    const target = new URL(calendarAgendaHref(params, "2026-12"), "https://fripsi.de");
+    expect(target.searchParams.get("view")).toBe("calendar");
+    expect(target.searchParams.get("month")).toBe("2026-11");
+    expect(target.searchParams.getAll("category")).toEqual(["LIVE", "EVENT"]);
+    expect(target.searchParams.get("lang")).toBe("ja");
+    expect(target.searchParams.get("calendar")).toBe("1");
+    for (const key of ["year", "q", "location", "sort", "date"]) expect(target.searchParams.has(key)).toBe(false);
+    expect(params.get("q")).toBe("Tokyo");
+  });
+
+  it("returns direct search links without a valid month to the current month instead of inheriting the search year", () => {
+    for (const source of ["view=list&year=2008", "view=list&year=2008&month=bad", "view=list&month=2026-13"]) {
+      const target = new URL(calendarAgendaHref(new URLSearchParams(source), "2026-11"), "https://fripsi.de");
+      expect(target.searchParams.get("month")).toBe("2026-11");
+    }
+  });
 });

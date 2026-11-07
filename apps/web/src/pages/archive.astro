@@ -91,7 +91,7 @@ const archiveHref = (targetYear: string): string => {
 ---
 <SiteLayout title={t(locale, "archive.title")} clientRouting>
   <header class="archive-head">
-    <h1>Event List</h1>
+    <h1>{t(locale, "archive.title")}</h1>
   </header>
   {archiveEntries.length > 0 && (
     <form class="list-toolbar" method="get" action="/archive" data-archive-filter-form>

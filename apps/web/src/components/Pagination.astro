@@ -62,8 +62,8 @@ const pageTokens: PageToken[] = totalPages <= 7
   .pagination-ellipsis { min-width: 1.4rem; color: var(--muted); text-align: center; }
   @media (max-width: 720px) {
     .pagination { align-items: stretch; flex-direction: column; }
-    .pagination p { margin: 0; text-align: center; }
-    .pagination-pages { justify-content: center; overflow-x: auto; }
+    .pagination p { margin: 0; text-align: center; white-space: normal; line-height: 1.5; }
+    .pagination-pages { min-width: 0; max-width: 100%; justify-content: safe center; overflow-x: auto; }
     .pagination-step span { display: none; }
     .pagination-step { padding: 0; min-width: 2.25rem; }
   }

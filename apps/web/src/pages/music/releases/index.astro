@@ -86,6 +86,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
     <MusicListState storageKey="music:list:releases" detailPrefix="/music/releases/" />
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, "music.nav.releases")}>
+      <h1 class="music-list-heading">{t(locale, "music.nav.releases")}</h1>
       <form class="music-toolbar" method="get" data-catalog-search-form>
         {type && <input type="hidden" name="type" value={type} />}
         {sort !== "date-desc" && <input type="hidden" name="sort" value={sort} />}
@@ -125,7 +126,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
           <a class="music-card" href={`/music/releases/${encodeURIComponent(release.slug)}`}>
             <ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
             <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
-            <h3>{release.title}</h3>
+            <h2>{release.title}</h2>
             <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
             <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span><span>{t(locale, "music.performedSongs", { count: release.performed_song_count })}</span></div>
           </a>
@@ -209,7 +210,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
         const meta = document.createElement("span");
         meta.className = "music-release-meta";
         meta.textContent = `${payload.typeLabels[release.release_type] ?? release.release_type} · ${formatDate(release.release_date)}`;
-        const title = document.createElement("h3");
+        const title = document.createElement("h2");
         title.textContent = release.title;
         const details = document.createElement("div");
         details.className = "music-card-meta";

@@ -215,11 +215,12 @@ const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
   .day.current .day-number { color: #07101c; background: var(--accent); }
   .day-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: var(--muted); font-size: .72rem; }
   .day-events { display: grid; gap: .3rem; margin-top: .45rem; }
-  .calendar-event { display: block; padding: .38rem .42rem; overflow: hidden; color: #dceaf3; background: rgba(156,134,255,.1); border-left: 2px solid var(--purple); border-radius: 4px; text-decoration: none; font-size: .68rem; line-height: 1.35; }
+  .calendar-event { display: block; padding: .38rem .42rem; overflow: hidden; color: #dceaf3; background: rgba(156,134,255,.1); border-left: 2px solid var(--purple); border-radius: 4px; text-decoration: none; font-size: .8rem; line-height: 1.5; }
+  .calendar-event:hover, .calendar-event:focus-visible { background: rgba(var(--accent-rgb), .2); }
   .calendar-event.live { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
   .calendar-event.release { border-color: #70a7ff; }
   .calendar-event.cancelled { text-decoration: line-through; opacity: .7; }
-  .calendar-event small, .calendar-event b { display: block; color: var(--muted); font: .55rem/1.4 ui-monospace; }
+  .calendar-event small, .calendar-event b { display: block; color: var(--muted); font: .75rem/1.5 ui-monospace; }
   .calendar-event b { color: var(--warning); }
   .mobile-timeline { display: none; }
   @media (max-width: 800px) { .calendar-grid { display: none; } .mobile-timeline { display: grid; } .page-head { align-items: flex-start; flex-direction: column; } .page-actions { width: 100%; justify-content: flex-start; } .month-picker { order: 3; flex: 1 1 100%; } .month-picker summary { width: 100%; } .month-picker-panel { right: auto; left: 0; width: min(19rem, calc(100vw - 2rem)); } }

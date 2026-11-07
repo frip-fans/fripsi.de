@@ -27,6 +27,22 @@ const resolvedDescription = description ?? t(locale, "site.description");
 const rotateHomeBackground = !admin && current === "/";
 const siteName = admin ? "Calendar Studio" : "fripSi.de Fan Site";
 const autoOpenOfficialSiteGate = !admin && current === "/" && Astro.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value !== "yes";
+const navigationLinks = admin ? [
+  { href: "/admin", label: "概览", active: current === "/admin" },
+  { href: "/admin/events", label: "活动", active: current.startsWith("/admin/events") },
+  { href: "/admin/music/setlists", label: "音乐库", active: current.startsWith("/admin/music") },
+  { href: "/admin/changes", label: "提案", active: current.startsWith("/admin/changes") },
+  { href: "/admin/audit", label: "审计", active: current.startsWith("/admin/audit") },
+  { href: "/admin/data", label: "数据", active: current.startsWith("/admin/data") },
+] : [
+  { href: "/", label: t(locale, "nav.home"), active: current === "/" },
+  { href: "/calendar", label: t(locale, "nav.calendar"), active: current.startsWith("/calendar") },
+  { href: "/archive", label: t(locale, "nav.events"), active: current.startsWith("/archive") },
+  { href: "/journey", label: t(locale, "nav.journey"), active: current.startsWith("/journey") },
+  { href: "/music/lives", label: t(locale, "nav.music"), active: current.startsWith("/music") },
+  { href: "/yaginuma-intensity-calibrator", label: t(locale, "nav.yaginuma"), active: current.startsWith("/yaginuma-intensity-calibrator") },
+  { href: "/about", label: t(locale, "nav.about"), active: current.startsWith("/about") },
+];
 const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 ---
 <!doctype html>
@@ -42,6 +58,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     {clientRouting && <ClientRouter fallback="swap" />}
   </head>
   <body class:list={{ admin }} transition:animate={clientRouting ? "none" : undefined}>
+    <a class="skip-link" href="#main-content">{t(locale, "nav.skip")}</a>
     <div class="background-rotator" data-background-rotator={rotateHomeBackground || undefined} aria-hidden="true">
       <div class="space-backdrop moon-backdrop is-active" data-background-slide style={`--space-image: url("${moonBackground}"); --space-position: center top`}></div>
       {rotateHomeBackground && (
@@ -65,34 +82,33 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         )}
       </a>
       <div class="header-actions">
-      <nav aria-label={admin ? "主导航" : t(locale, "nav.main")}>
-        {admin ? (
-          <>
-            <a class:list={{ active: current === "/admin" }} href="/admin">概览</a>
-            <a class:list={{ active: current.startsWith("/admin/events") }} href="/admin/events">活动</a>
-            <a class:list={{ active: current.startsWith("/admin/music") }} href="/admin/music/setlists">音乐库</a>
-            <a class:list={{ active: current.startsWith("/admin/changes") }} href="/admin/changes">提案</a>
-            <a class:list={{ active: current.startsWith("/admin/audit") }} href="/admin/audit">审计</a>
-            <a class:list={{ active: current.startsWith("/admin/data") }} href="/admin/data">数据</a>
-            <a href="/" target="_blank">查看网站 <Icon name="box-arrow-up-right" /></a>
-          </>
-        ) : (
-          <>
-            <a class:list={{ active: current === "/" }} href="/">{t(locale, "nav.home")}</a>
-            <a class:list={{ active: current.startsWith("/calendar") }} href="/calendar">{t(locale, "nav.calendar")}</a>
-            <a class:list={{ active: current.startsWith("/archive") }} href="/archive">{t(locale, "nav.events")}</a>
-            <a class:list={{ active: current.startsWith("/journey") }} href="/journey">{t(locale, "nav.journey")}</a>
-            <a class:list={{ active: current.startsWith("/music") }} href="/music/lives">{t(locale, "nav.music")}</a>
-            <a class:list={{ active: current.startsWith("/yaginuma-intensity-calibrator") }} href="/yaginuma-intensity-calibrator">{t(locale, "nav.yaginuma")}</a>
-            <a class:list={{ active: current.startsWith("/about") }} href="/about">{t(locale, "nav.about")}</a>
-          </>
-        )}
+      <nav data-main-nav aria-label={admin ? "主导航" : t(locale, "nav.main")}>
+        {navigationLinks.map(link => <a class:list={{ active: link.active }} aria-current={link.active ? "page" : undefined} href={link.href}>{link.label}</a>)}
+        {admin && <a href="/" target="_blank">查看网站 <Icon name="box-arrow-up-right" /></a>}
       </nav>
-      {!admin && <a class:list={["nav-community", { active: current.startsWith("/discuss") }]} href="/discuss"><Icon name="chat-dots" />{t(locale, "nav.community")}</a>}
+      {!admin && <a class:list={["nav-community", { active: current.startsWith("/discuss") }]} href="/discuss" aria-label={t(locale, "nav.community")}><Icon name="chat-dots" /><span>{t(locale, "nav.community")}</span></a>}
       </div>
+      <button class="mobile-menu-trigger" type="button" data-menu-open aria-label={t(locale, "nav.openMenu")} aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+        <span>{t(locale, "nav.menu")}</span>
+      </button>
     </header>
+    <dialog id="mobile-menu" class="mobile-menu" data-mobile-menu aria-labelledby="mobile-menu-title">
+      <div class="mobile-menu-top">
+        <div class="mobile-menu-brand"><img src="/fan-site-logo.svg" width="40" height="40" alt="" /><span>fripSi<span class="brand-tld">.de</span></span></div>
+        <button type="button" class="mobile-menu-close" data-menu-close aria-label={t(locale, "nav.closeMenu")}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+      </div>
+      <h2 id="mobile-menu-title">{t(locale, "nav.menu")}</h2>
+      <nav class="mobile-menu-links" aria-label={t(locale, "nav.main")}>
+        {navigationLinks.map(link => <a href={link.href} aria-current={link.active ? "page" : undefined}><span>{link.label}</span><Icon name="chevron-right" /></a>)}
+        {admin ? <a href="/">查看网站 <Icon name="chevron-right" /></a> : <a class="mobile-menu-community" href="/discuss" aria-current={current.startsWith("/discuss") ? "page" : undefined}><span><Icon name="chat-dots" />{t(locale, "nav.community")}</span><Icon name="chevron-right" /></a>}
+      </nav>
+      {!admin && <div class="mobile-menu-language"><span>{t(locale, "language.label")}</span><LanguageSwitcher /></div>}
+    </dialog>
     {!admin && <OfficialSiteGate autoOpen={autoOpenOfficialSiteGate} />}
-    <main><slot /></main>
+    <main id="main-content" tabindex="-1"><slot /></main>
     <footer>
       <span>{admin ? "fripSide 名称、标识、作品及其他相关内容的权利归各自权利人所有。" : t(locale, "footer.rights")}</span>
       {admin ? <span>本站并非 fripSide 官方网站</span> : (
@@ -107,6 +123,54 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 </html>
 
 <script>
+  let navigationController: AbortController | undefined;
+  const setupNavigation = () => {
+    navigationController?.abort();
+    navigationController = new AbortController();
+    const { signal } = navigationController;
+    const menu = document.querySelector<HTMLDialogElement>("[data-mobile-menu]");
+    const trigger = document.querySelector<HTMLButtonElement>("[data-menu-open]");
+    const close = document.querySelector<HTMLButtonElement>("[data-menu-close]");
+    if (!menu || !trigger || !close) return;
+    const setOpenState = (open: boolean) => {
+      trigger.setAttribute("aria-expanded", String(open));
+      document.documentElement.classList.toggle("mobile-menu-open", open);
+    };
+    const closeMenu = (restoreFocus = true) => {
+      if (menu.open) menu.close();
+      setOpenState(false);
+      if (restoreFocus && trigger.checkVisibility()) trigger.focus();
+    };
+    trigger.addEventListener("click", () => {
+      menu.showModal();
+      setOpenState(true);
+      close.focus();
+    }, { signal });
+    close.addEventListener("click", () => closeMenu(), { signal });
+    menu.addEventListener("cancel", event => { event.preventDefault(); closeMenu(); }, { signal });
+    menu.addEventListener("close", () => setOpenState(false), { signal });
+    menu.addEventListener("keydown", event => {
+      if (event.key !== "Tab") return;
+      const items = [...menu.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), select:not(:disabled), [tabindex="0"]')].filter(item => item.checkVisibility());
+      const first = items[0], last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first?.focus();
+      }
+    }, { signal });
+    menu.addEventListener("click", event => {
+      if (event.target instanceof Element && event.target.closest("a[href]")) closeMenu(false);
+    }, { signal });
+    const mobile = matchMedia("(max-width: 760px)");
+    mobile.addEventListener("change", () => { if (!mobile.matches) closeMenu(false); }, { signal });
+    document.addEventListener("astro:before-swap", () => closeMenu(false), { signal });
+    document.documentElement.classList.add("mobile-menu-ready");
+    setOpenState(false);
+  };
+  setupNavigation();
+  document.addEventListener("astro:page-load", setupNavigation);
+
   const backgroundRotator = document.querySelector<HTMLElement>("[data-background-rotator]");
   const backgroundSlides = [...(backgroundRotator?.querySelectorAll<HTMLElement>("[data-background-slide]") ?? [])];
   const reducedBackgroundMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -125,7 +189,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 
   const startBackgroundRotation = () => {
     stopBackgroundRotation();
-    if (backgroundSlides.length > 1 && !reducedBackgroundMotion.matches && !document.hidden) {
+    if (backgroundSlides.length > 1 && !reducedBackgroundMotion.matches && !document.hidden && document.documentElement.dataset.homeMotionPaused !== "true") {
       backgroundTimer = window.setInterval(() => {
         showBackground((activeBackgroundIndex + 1) % backgroundSlides.length);
       }, 16000);
@@ -134,6 +198,12 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 
   reducedBackgroundMotion.addEventListener("change", startBackgroundRotation);
   document.addEventListener("visibilitychange", startBackgroundRotation);
+  document.addEventListener("home-motion-change", () => {
+    if (document.documentElement.dataset.homeMotionPaused === "true") {
+      backgroundSlides.forEach(slide => slide.getAnimations().forEach(animation => animation.finish()));
+    }
+    startBackgroundRotation();
+  });
   startBackgroundRotation();
 </script>
 
@@ -161,6 +231,13 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   html { min-width: 320px; background: var(--bg); scroll-behavior: smooth; scrollbar-gutter: stable; }
   body { position: relative; isolation: isolate; margin: 0; min-height: 100vh; background: transparent; }
   a { color: inherit; }
+  :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  #main-content:focus { outline: none; }
+  .skip-link { position: fixed; z-index: 1100; top: 1rem; left: 1rem; padding: .8rem 1rem; color: var(--bg); background: var(--accent); border-radius: 8px; transform: translateY(calc(-100% - 2rem)); }
+  .skip-link:focus { transform: none; }
+  h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
+  [id] { scroll-margin-top: 1rem; }
+  button, .button, nav a { touch-action: manipulation; }
   button, input, select, textarea { font: inherit; }
   button, .button { cursor: pointer; }
   .background-rotator { position: fixed; z-index: -3; inset: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
@@ -249,21 +326,43 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .error { border-left-color: var(--danger); color: #ffd9df; background: rgba(255,132,152,.08); }
   code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   pre { overflow: auto; color: #cde5f5; background: #050c15; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }
+  .mobile-menu-trigger { display: none; min-width: 48px; min-height: 48px; padding: .6rem .75rem; color: var(--text); background: rgba(255,255,255,.055); border: 1px solid var(--line); font-size: .85rem; }
+  .mobile-menu { position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; height: 100dvh; max-height: none; margin: 0; padding: max(1rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); color: var(--text); background: radial-gradient(ellipse at top right, rgba(var(--accent-rgb), .09), transparent 50%), #07101c; border: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .mobile-menu:not([open]) { display: none; }
+  .mobile-menu[open] { display: flex; flex-direction: column; }
+  .mobile-menu > * { flex-shrink: 0; }
+  .mobile-menu::backdrop { background: #07101c; }
+  html.mobile-menu-open { overflow: hidden; }
+  .mobile-menu-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .mobile-menu-brand { display: flex; align-items: center; gap: .75rem; font-weight: 800; font-size: 1.2rem; }
+  .mobile-menu-close { width: 48px; height: 48px; padding: .6rem; color: var(--text); background: rgba(255,255,255,.06); border: 1px solid var(--line); }
+  .mobile-menu-trigger:hover, .mobile-menu-close:hover { color: var(--accent); border-color: var(--accent); transform: none; }
+  .mobile-menu h2 { margin: 1.75rem 0 1rem; color: var(--muted); font-size: .85rem; font-weight: 600; letter-spacing: .08em; }
+  .mobile-menu-links { display: grid; gap: .35rem; margin-bottom: 1.5rem; }
+  .mobile-menu-links a { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 56px; padding: .85rem 1rem; border: 1px solid transparent; border-radius: 12px; color: var(--text); font-size: 1.125rem; font-weight: 650; overflow-wrap: anywhere; }
+  .mobile-menu-links a > .icon { flex: 0 0 auto; color: var(--muted); font-size: .8rem; opacity: .65; }
+  .mobile-menu-links a[aria-current="page"] { color: var(--accent); background: rgba(var(--accent-rgb), .1); border-color: rgba(var(--accent-rgb), .45); }
+  .mobile-menu-links a[aria-current="page"] > .icon { color: var(--accent); }
+  .mobile-menu-links a:hover { background: rgba(255,255,255,.07); }
+  .mobile-menu-links .mobile-menu-community { margin-top: .6rem; border-color: var(--line); }
+  .mobile-menu-community span { display: inline-flex; align-items: center; gap: .65rem; }
+  .mobile-menu-language { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: auto; padding: 1rem 0 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+  .mobile-menu-language select[data-language-switcher] { height: 48px; font-size: .9rem; }
   @media (max-width: 760px) {
-    .site-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding: 1rem 0; gap: .8rem; }
-    .brand { grid-column: 1 / -1; grid-row: 1; min-width: 0; }
-    .header-actions { display: contents; }
-    .header-actions nav { grid-column: 1; grid-row: 2; width: 100%; min-width: 0; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; overscroll-behavior-inline: contain; }
-    .header-actions nav::-webkit-scrollbar { display: none; }
-    .nav-community { grid-column: 2; grid-row: 2; justify-self: end; font-size: .78rem; }
-    nav a { white-space: nowrap; }
-    main { padding-top: 2rem; }
+    .site-header { min-height: 80px; padding: .75rem 0; flex-wrap: wrap; justify-content: space-between; }
+    .brand { min-width: 0; }
+    .header-actions { width: 100%; margin-left: 0; justify-content: flex-start; flex-wrap: wrap; }
+    .mobile-menu-ready .header-actions { display: none; }
+    .mobile-menu-ready .mobile-menu-trigger { display: inline-flex; }
+    main { padding-top: 1.25rem; }
     .form-grid { grid-template-columns: 1fr; }
     footer { flex-direction: column; }
     .footer-links { justify-content: flex-start; }
   }
   @media (max-width: 380px) {
     .site-header { gap: .55rem; }
+    .mobile-menu-trigger span { display: none; }
+    .mobile-menu-trigger { width: 48px; padding: .6rem; }
     .brand { gap: .55rem; }
     .brand-logo { width: 2.65rem; height: 2.65rem; }
     .brand b { font-size: .9rem; }
@@ -271,6 +370,8 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     .footer-language select[data-language-switcher] { padding-left: 1.65rem; padding-right: 1.15rem; font-size: .7rem; }
   }
   @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { scroll-behavior: auto !important; }
     .space-backdrop { transition: none; transform: none; }
   }
 </style>

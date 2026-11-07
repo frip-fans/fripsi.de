@@ -57,4 +57,12 @@ describe("staging access isolation", () => {
     expect(mocks.authenticate).not.toHaveBeenCalled();
     expect(response.headers.has("x-robots-tag")).toBe(false);
   });
+  it("keeps list view caching private after moving the archive under calendar", async () => {
+    mocks.env.APP_ENV = "production";
+    const { response } = await request("/calendar?view=list&year=2025");
+    expect(response.headers.get("cache-control")).toBe("private, max-age=60, stale-while-revalidate=30");
+    const { response: calendar } = await request("/calendar?view=calendar");
+    expect(calendar.headers.has("cache-control")).toBe(false);
+  });
+
 });

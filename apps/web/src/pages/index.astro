@@ -75,21 +75,18 @@ const nextCountdown = !next
     <>
       <div class="section-heading latest-events-heading">
         <h2><Icon name="tickets" />{t(locale, "home.moreEvents")}</h2>
-        <a class="muted all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="arrow-right" /></a>
+        <a class="section-link all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="chevron-right" size=".75rem" /></a>
       </div>
       <section class="event-list stack">
-        {moreEvents.map((event) => <EventCard event={event} />)}
+        {moreEvents.map((event) => <EventCard event={event} timeInHeader />)}
       </section>
-      <div class="event-list-more">
-        <a href="/archive">{t(locale, "home.viewMore")} <Icon name="arrow-right" /></a>
-      </div>
     </>
   )}
 
   <section class="recent-setlists" aria-labelledby="recent-setlists-title">
     <div class="section-heading">
       <h2 id="recent-setlists-title"><Icon name="list-music" />{t(locale, "home.latestSetlists")}</h2>
-      <a class="muted recent-setlists-all" href="/music/lives">{t(locale, "home.allSetlists")} <Icon name="arrow-right" /></a>
+      <a class="section-link recent-setlists-all" href="/music/lives">{t(locale, "home.allSetlists")} <Icon name="chevron-right" size=".75rem" /></a>
     </div>
     {recentSetlists.length > 0 ? (
       <div class="recent-setlist-grid">
@@ -260,13 +257,11 @@ const nextCountdown = !next
   .hero + .section-heading { margin-top: 1.5rem; }
   .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; }
   .latest-events-heading h2 > :global(.icon), .recent-setlists .section-heading h2 > :global(.icon) { color: var(--accent); font-size: .9em; }
-  .event-list-more { display: flex; justify-content: flex-end; margin-top: 1rem; }
-  .event-list-more a { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .1rem; color: var(--muted); font-size: .82rem; text-decoration: none; }
-  .event-list-more a:hover { color: var(--text); }
+  .latest-events-heading, .recent-setlists .section-heading { align-items: center; }
+  .section-link { display: inline-flex; align-items: center; justify-content: flex-end; gap: .3rem; min-height: 44px; padding: .5rem .125rem; border-radius: 6px; color: var(--muted); font-size: .8125rem; font-weight: 400; text-decoration: none; touch-action: manipulation; }
+  .section-link:hover, .section-link:focus-visible { color: var(--accent); }
   .recent-setlists { margin-top: 4.5rem; }
   .recent-setlists .section-heading { margin-top: 0; }
-  .recent-setlists-all { display: inline-flex; align-items: center; gap: .35rem; font-size: .82rem; text-decoration: none; }
-  .recent-setlists-all:hover { color: var(--text); }
   .recent-setlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
   .recent-setlist-card {
     position: relative;
@@ -310,7 +305,7 @@ const nextCountdown = !next
   .signal:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
   .signal a:focus-visible { outline: none; }
   .signal a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
-  .signal a, .all-calendar { display: inline-flex; align-items: center; gap: .35rem; }
+  .signal a { display: inline-flex; align-items: center; gap: .35rem; }
   @media (prefers-reduced-motion: reduce) { .hero-title.is-glitching, .hero-title.is-glitching::after { animation: none; } }
   @media (max-width: 1100px) {
     @supports (-webkit-text-stroke: 1px currentColor) {
@@ -344,8 +339,6 @@ const nextCountdown = !next
     .signal-footer { grid-column: 1 / -1; margin-top: .65rem; }
     .signal p { font-size: .8125rem; line-height: 1.55; }
     .latest-events-heading h2, .recent-setlists .section-heading h2 { color: #d3dce8; font-size: 1.375rem; font-weight: 600; }
-    .latest-events-heading .all-calendar, .recent-setlists-all { color: var(--muted); font-size: .8125rem; font-weight: 400; }
-    .latest-events-heading .all-calendar:hover, .recent-setlists-all:hover { color: var(--text); }
     .event-list { --event-title-color: #d3dce8; --event-title-weight: 600; --event-title-size: 1.0625rem; --event-time-color: #a8b6c8; --event-venue-color: #8f9fb4; --event-year-color: #8998ac; }
     .recent-setlists { margin-top: 3rem; }
     .recent-setlist-grid { grid-template-columns: 1fr; }

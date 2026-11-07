@@ -12,13 +12,14 @@
   },
   "dependencies": {
     "@frip-fan/core": "*",
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "agents": "^0.17.4",
-    "zod": "^4.4.3"
+    "@modelcontextprotocol/server": "2.4.0",
+    "agents": "^0.33.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",
+    "@modelcontextprotocol/client": "2.4.0",
     "typescript": "^5.9.3",
-    "wrangler": "^4.128.0"
+    "wrangler": "^4.158.0"
   }
 }

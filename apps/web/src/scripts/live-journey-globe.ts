@@ -1,7 +1,8 @@
 import {
   FullscreenControl, GeoJSONSource, Map as MapLibreMap, NavigationControl,
-  Popup, type MapLayerMouseEvent,
+  Popup, setWorkerUrl, type ExpressionSpecification, type MapLayerMouseEvent,
 } from "maplibre-gl";
+import mapLibreWorkerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 import type { Feature, FeatureCollection, LineString, Point } from "geojson";
 
 interface Stop {
@@ -12,6 +13,8 @@ interface Stop {
 interface Payload { summary:{events:number;venues:number;countries:number}; stops:Stop[] }
 interface YouTubePlayer { playVideo:()=>void; pauseVideo:()=>void }
 interface YouTubeApi { Player:new(element:HTMLIFrameElement,options:{events:{onReady:()=>void;onAutoplayBlocked:()=>void;onError:()=>void}})=>YouTubePlayer }
+
+setWorkerUrl(mapLibreWorkerUrl);
 
 const DAY=86_400_000;
 const root=document.querySelector<HTMLElement>("[data-live-journey]");
@@ -106,10 +109,10 @@ function agePaint(map:MapLibreMap,currentIndex:number,currentDay:number,duration
   map.setPaintProperty("journey-route-main","line-opacity-transition",{duration,delay:0});
   map.setPaintProperty("journey-route-main","line-width-transition",{duration,delay:0});
   map.setPaintProperty("journey-route-glow","line-opacity-transition",{duration,delay:0});
-  const stepAge=["-",currentIndex,["get","index"]] as const;
-  const timeAge=["-",currentDay,["get","day"]] as const;
-  const stepOpacity=["interpolate",["linear"],stepAge,0,.98,1,.32,3,.18,8,.1,20,.05,60,.018] as const;
-  const timeOpacity=["interpolate",["linear"],timeAge,0,.96,30,.84,90,.55,180,.25,365,.08,730,.015] as const;
+  const stepAge:ExpressionSpecification=["-",currentIndex,["get","index"]];
+  const timeAge:ExpressionSpecification=["-",currentDay,["get","day"]];
+  const stepOpacity:ExpressionSpecification=["interpolate",["linear"],stepAge,0,.98,1,.32,3,.18,8,.1,20,.05,60,.018];
+  const timeOpacity:ExpressionSpecification=["interpolate",["linear"],timeAge,0,.96,30,.84,90,.55,180,.25,365,.08,730,.015];
   map.setPaintProperty("journey-route-main","line-opacity",["case",["==",["get","settled"],1],.32,["min",stepOpacity,timeOpacity]]);
   map.setPaintProperty("journey-route-main","line-width",["case",["==",["get","settled"],1],1.8,["interpolate",["linear"],stepAge,0,3.6,1,1.8,4,1.25,12,.8,40,.5]]);
   map.setPaintProperty("journey-route-glow","line-opacity",["case",["==",["get","settled"],1],0,["interpolate",["linear"],stepAge,0,.34,1,0]]);

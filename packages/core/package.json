@@ -13,7 +13,7 @@
   "dependencies": {
     "htmlparser2": "^10.1.0",
     "jose": "^6.2.3",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",

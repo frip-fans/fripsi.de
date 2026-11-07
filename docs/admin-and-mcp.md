@@ -91,6 +91,14 @@ AI：已发布，并返回公开活动 URL。
 
 ### 3.2 Transport 与认证
 
+MCP Worker 使用 `@modelcontextprotocol/server` v2 和 `agents/mcp/server` 的无状态 `createMcpHandler`。认证通过后传入 server factory，每个请求创建独立服务器，并绑定本次认证身份；不复用已连接的服务器或权限上下文。
+
+`@modelcontextprotocol/server` 与测试客户端 `@modelcontextprotocol/client` 的版本按 Agents 的 peer 要求精确匹配。项目不再依赖 SDK v1。handler 使用 `responseMode: "json"`，并以 `legacy: "stateless"` 兼容现有 2025-era HTTP 客户端；这不需要保留 SDK v1 或协议会话。
+
+普通编辑者的发布确认、自动同步身份的任务绑定与 `preview_digest` 校验继续由现有业务服务执行。协议测试覆盖自动同步的查询、提案、预览和自动发布；HTTP 测试覆盖 v2 客户端、旧客户端初始化、未认证拒绝和 Host/Origin 校验。
+
+MCP Worker 不随 Web 的分支构建自动部署。发布时按现有独立 MCP 部署流程先在 staging 验收，再发布生产；代码合并本身不会更新在线 MCP Worker。
+
 - Endpoint：`https://mcp.example.com/mcp`
 - Transport：Streamable HTTP
 - Authentication：OAuth 2.1

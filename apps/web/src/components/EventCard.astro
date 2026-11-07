@@ -4,16 +4,17 @@ import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel
 import { getLocale } from "../lib/i18n";
 import Icon from "./Icon.astro";
 
-interface Props { event: EventRecord; compact?: boolean }
-const { event, compact = false } = Astro.props;
+interface Props { event: EventRecord; compact?: boolean; timeInHeader?: boolean }
+const { event, compact = false, timeInHeader = false } = Astro.props;
 const locale = getLocale(Astro.request);
 const displayStatus = displayEventStatus(event);
 const singleDay = !event.end_date || event.end_date === event.start_date;
 ---
-<article class:list={["event-card", { compact, "single-day": singleDay, dimmed: displayStatus === "completed" }]}>
+<article class:list={["event-card", { compact, "time-in-header": timeInHeader, "single-day": singleDay, dimmed: displayStatus === "completed" }]}>
   <div class="event-date">
-    <span>{event.start_date.slice(0, 4)}</span>
+    <span class="event-year">{event.start_date.slice(0, 4)}</span>
     <strong>{event.start_date.slice(5).replace("-", ".")}</strong>
+    {timeInHeader && <span class="event-header-time">{formatTime(event, locale)}</span>}
   </div>
   <div class="event-main">
     <div class="meta">
@@ -24,7 +25,7 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
     <h3><a href={`/events/${event.slug}`}>{event.title}</a></h3>
     <div class="event-details">
       <div class="event-detail-text">
-        <p><span class="event-day">{formatDate(event.start_date, event.end_date, locale)} · </span>{formatTime(event, locale)}</p>
+        <p class="event-time"><span class="event-day">{formatDate(event.start_date, event.end_date, locale)} · </span>{formatTime(event, locale)}</p>
         {event.location_label && <p class="venue">{event.location_label}</p>}
       </div>
       <span class="arrow" aria-hidden="true"><Icon name="chevron-right" size=".85rem" /></span>
@@ -40,7 +41,7 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
   .event-card { display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 1rem; align-items: start; padding: 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(135deg, rgba(15,31,51,.86), rgba(10,21,36,.7)); transition: border-color .18s, transform .18s; }
   .event-card:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .3); }
   .event-date { display: grid; align-content: start; text-align: right; border-right: 1px solid var(--line); padding-right: 1rem; }
-  .event-date span { color: var(--event-year-color, var(--muted)); font-size: .7rem; font-weight: 400; letter-spacing: .12em; }
+  .event-year { color: var(--event-year-color, var(--muted)); font-size: .7rem; font-weight: 400; letter-spacing: .12em; }
   .event-date strong { color: var(--accent); font-size: 1.32rem; letter-spacing: -.04em; }
   .meta { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .7rem; }
   h3 { margin: 0 0 .5rem; color: var(--event-title-color, inherit); font-size: var(--event-title-size, 1.08rem); font-weight: var(--event-title-weight, 700); line-height: var(--event-title-line-height, 1.45); }
@@ -56,6 +57,18 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
   .event-main { min-width: 0; overflow-wrap: anywhere; }
   :global(body:has(.archive-head)) .event-card { padding: 1rem; background: rgba(10,21,36,.94); border-radius: 14px; }
   @media (prefers-reduced-motion: reduce) { .event-card { transition: none; } .event-card:hover { transform: none; } }
+  .event-header-time { color: var(--event-time-color, var(--muted)); font-size: .8125rem; font-weight: 400; line-height: 1.4; white-space: nowrap; }
+  .time-in-header { grid-template-columns: minmax(0, 1fr) auto; gap: 0 .75rem; }
+  .time-in-header .event-main { display: contents; }
+  .time-in-header .event-date { grid-column: 1; grid-row: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: .35rem; align-self: center; min-width: 0; padding-right: 0; border-right: 0; text-align: left; }
+  .time-in-header .event-date strong { order: -1; }
+  .time-in-header .event-year { display: inline-flex; align-items: center; gap: .5rem; }
+  .time-in-header .event-year::after { content: ""; width: 1px; height: 1em; background: var(--line); }
+  .time-in-header .meta { grid-column: 2; grid-row: 1; align-self: center; justify-content: flex-end; min-width: 0; margin: 0; }
+  .time-in-header h3, .time-in-header .event-details { grid-column: 1 / -1; min-width: 0; }
+  .time-in-header h3 { margin: .65rem 0 .75rem; }
+  .time-in-header.single-day .event-time { display: none; }
+  .time-in-header:not(.single-day) .event-time .event-day { display: inline; }
   .compact { grid-template-columns: 62px minmax(0, 1fr); padding: 1rem; }
   @media (max-width: 560px) {
     .event-card { grid-template-columns: auto minmax(0, 1fr); gap: 0 .75rem; padding: 1rem; }
@@ -66,8 +79,8 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
     .venue { margin-top: 0; }
     .event-date { grid-column: 1; grid-row: 1; display: flex; align-items: baseline; gap: .35rem; align-self: center; padding-right: 0; border-right: 0; text-align: left; }
     .event-date strong { order: -1; font-size: 1.125rem; line-height: 1.2; }
-    .event-date span { display: inline-flex; align-items: center; gap: .75rem; font-size: .6875rem; line-height: 1.2; letter-spacing: .06em; }
-    .event-date span::after { content: ""; width: 1px; height: 1em; background: var(--line); }
+    .event-year { display: inline-flex; align-items: center; gap: .75rem; font-size: .6875rem; line-height: 1.2; letter-spacing: .06em; }
+    .event-year::after { content: ""; width: 1px; height: 1em; background: var(--line); }
     .meta { grid-column: 2; grid-row: 1; align-self: center; justify-content: flex-end; min-width: 0; margin-bottom: 0; }
     h3, p { grid-column: 1 / -1; min-width: 0; overflow-wrap: anywhere; }
     h3 { margin: .65rem 0 .75rem; font-size: var(--event-title-size, 1rem); }

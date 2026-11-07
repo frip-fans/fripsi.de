@@ -31,7 +31,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const staging = env.APP_ENV === "staging";
   const privateRoute = staging || path.startsWith("/admin") || path.startsWith("/api/admin");
   if (!privateRoute) {
-    const cacheControl = path === "/archive" ? "private, max-age=60, stale-while-revalidate=30" : undefined;
+    const cacheControl = path === "/archive" || (path === "/calendar" && context.url.searchParams.get("view") === "list") ? "private, max-age=60, stale-while-revalidate=30" : undefined;
     return secure(await next(), false, cacheControl, getLocale(context.request), path === "/" || path === "/discuss", path === "/journey");
   }
 

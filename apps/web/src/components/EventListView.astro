@@ -97,6 +97,7 @@ const archiveHref = (targetYear: string): string => {
 };
 ---
 <section class="archive-head" data-event-list-view>
+  <p class="search-scope">{t(locale, "calendar.searchYear", { year })}</p>
   {archiveEntries.length > 0 && (
     <form class="list-toolbar" method="get" action="/calendar" data-archive-filter-form>
       <input type="hidden" name="view" value="list" />
@@ -104,7 +105,7 @@ const archiveHref = (targetYear: string): string => {
       {Astro.url.searchParams.has("month") && <input type="hidden" name="month" value={Astro.url.searchParams.get("month")!} />}
       {Astro.url.searchParams.has("lang") && <input type="hidden" name="lang" value={locale} />}
       <label class="event-search">
-        <span class="visually-hidden">{t(locale, "archive.searchLabel")}</span>
+        <span class="visually-hidden">{t(locale, "calendar.searchYear", { year })}</span>
         <Icon name="search" />
         <input type="search" name="q" value={query} placeholder={t(locale, "archive.searchPlaceholder")} autocomplete="off" data-event-search-input />
       </label>
@@ -272,7 +273,7 @@ const archiveHref = (targetYear: string): string => {
 </section>
 
 <script>
-  import { calendarViewHref } from "../lib/calendar-navigation";
+  import { calendarAgendaHref, calendarViewHref } from "../lib/calendar-navigation";
   const yearTabsScrollKey = "frip-fan:archive-year-tabs-scroll";
   let archivePageController: AbortController | undefined;
 
@@ -449,6 +450,9 @@ const archiveHref = (targetYear: string): string => {
         const fallbackMonth = document.querySelector<HTMLElement>("[data-event-views]")?.dataset.todayMonth ?? new Date().toISOString().slice(0, 7);
         link.href = calendarViewHref(url.searchParams, view, fallbackMonth);
       });
+      document.querySelectorAll<HTMLAnchorElement>("[data-agenda-return]").forEach((link) => {
+        link.href = calendarAgendaHref(url.searchParams, link.dataset.todayMonth ?? "");
+      });
       const filtering = terms.length > 0 || selectedCategories.size > 0 || selectedLocations.size > 0;
       if (currentTimeMarker && eventList) {
         currentTimeMarker.hidden = !isCurrentYearPage || (filtering && visibleCount === 0);
@@ -537,6 +541,7 @@ const archiveHref = (targetYear: string): string => {
 </script>
 
 <style>
+  .search-scope { margin: 0 0 .75rem; color: var(--muted); font-size: .8125rem; }
   .year-tabs { display: flex; gap: .7rem; margin: 1.25rem 0; overflow-x: auto; padding-bottom: .5rem; }
   .year-tabs a { min-width: 120px; display: grid; gap: .2rem; text-decoration: none; border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; transition: color .16s, border-color .16s, background .16s, opacity .16s; }
   .year-tabs a.active { border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .06); }

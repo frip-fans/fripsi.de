@@ -1,0 +1,91 @@
+---
+import type { EventRecord } from "@frip-fan/core";
+import { displayEventStatus, formatDate, statusLabel } from "../lib/format";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+  month: string;
+  monthLabel: string;
+  today: string;
+  locale: Locale;
+  days: number;
+  offset: number;
+  byDay: Map<number, EventRecord[]>;
+  compact?: boolean;
+}
+const { month, monthLabel, today, locale, days, offset, byDay, compact = false } = Astro.props;
+const cells = Array.from({ length: Math.ceil((offset + days) / 7) * 7 }, (_, index) => {
+  const day = index - offset + 1;
+  const date = `${month}-${String(day).padStart(2, "0")}`;
+  return { day, date, events: byDay.get(day) ?? [], outside: day < 1 || day > days };
+});
+---
+<section class:list={["calendar-grid", { compact }]} aria-label={t(locale, "calendar.grid", { month: monthLabel })}>
+  {t(locale, "calendar.weekdays").split(",").map((day) => <div class="weekday">{day}</div>)}
+  {cells.map(({ day, date, events, outside }) => (
+    <div class:list={["day", { outside, current: date === today }]}>
+      {!outside && (compact ? (
+        events.length ? (
+          <a class="day-select" href={`#agenda-${date}`} data-calendar-jump={date} aria-label={`${formatDate(date, null, locale)}${date === today ? ` · ${t(locale, "common.today")}` : ""} · ${t(locale, "calendar.dayCount", { count: new Intl.NumberFormat(locale).format(events.length) })}`}>
+            <span>{day}</span>
+            <span class="day-markers" aria-hidden="true">
+              {events.slice(0, 3).map((event) => <i class={event.category.toLowerCase()} />)}
+              {events.length > 3 && <b>+</b>}
+            </span>
+          </a>
+        ) : <span class="empty-date" aria-label={date === today ? `${formatDate(date, null, locale)} · ${t(locale, "common.today")}` : undefined}><span>{day}</span><span class="day-markers" aria-hidden="true"></span></span>
+      ) : (
+        <>
+          <span class="day-number">{day}</span>
+          <div class="day-events">
+            {events.map((event) => {
+              const displayStatus = displayEventStatus(event, today);
+              return <a class:list={["calendar-event", event.category.toLowerCase(), displayStatus]} href={`/events/${event.slug}`} title={event.title}>
+                <small>{event.start_time ?? "ALL"}</small>{event.title}
+                {displayStatus !== "scheduled" && <b>{statusLabel(locale, displayStatus)}</b>}
+              </a>;
+            })}
+          </div>
+        </>
+      ))}
+    </div>
+  ))}
+</section>
+
+<style>
+  .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid rgba(159,180,211,.3); border-radius: var(--radius); overflow: hidden; background: rgba(7,16,28,.55); }
+  .weekday { padding: .7rem; color: var(--muted); text-align: center; font-size: .68rem; border-right: 1px solid rgba(159,180,211,.25); border-bottom: 1px solid rgba(159,180,211,.3); background: rgba(7,16,28,.18); }
+  .weekday:nth-child(7) { border-right: 0; }
+  .day { min-height: 132px; padding: .55rem; border-right: 1px solid rgba(159,180,211,.25); border-bottom: 1px solid rgba(159,180,211,.25); overflow: hidden; }
+  .day:nth-child(7n + 7) { border-right: 0; }
+  .day.outside { background: rgba(0,0,0,.24); }
+  .day.current .day-number { color: #07101c; background: var(--accent); }
+  .day-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums; }
+  .day-events { display: grid; gap: .3rem; margin-top: .45rem; }
+  .calendar-event { display: block; padding: .38rem .42rem; overflow-wrap: anywhere; color: #dceaf3; background: rgba(156,134,255,.1); border-left: 2px solid var(--purple); border-radius: 4px; text-decoration: none; font-size: .8rem; line-height: 1.5; }
+  .calendar-event:hover, .calendar-event:focus-visible { background: rgba(var(--accent-rgb), .2); }
+  .calendar-event.live { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
+  .calendar-event.release { border-color: #70a7ff; }
+  .calendar-event.cancelled { text-decoration: line-through; opacity: .7; }
+  .calendar-event small, .calendar-event b { display: block; color: var(--muted); font: .75rem/1.5 ui-monospace; }
+  .calendar-event b { color: var(--warning); }
+  .compact { border: 0; border-radius: 0; background: none; gap: .2rem 0; overflow: visible; }
+  .compact .weekday { padding: .5rem 0; font-size: .75rem; border: 0; background: none; }
+  .compact .day { min-height: 0; padding: 0; border: 0; overflow: visible; }
+  .compact .day.outside { background: transparent; }
+  .day-select, .empty-date { display: grid; align-content: center; justify-items: center; gap: .3rem; min-height: 48px; color: var(--text); border: 1px solid transparent; border-radius: 10px; text-decoration: none; font-size: .875rem; font-variant-numeric: tabular-nums; }
+  .empty-date { color: var(--muted); }
+  .day-select { touch-action: manipulation; background: rgba(255,255,255,.035); }
+  .day-select:hover { background: rgba(var(--accent-rgb), .15); }
+  .current .day-select > span:first-child, .current .empty-date { color: var(--accent); text-decoration: underline; text-underline-offset: .2em; }
+  .day-select[aria-current="location"] { background: var(--accent); color: #07101c; font-weight: 800; }
+  .current .day-select[aria-current="location"] > span:first-child { color: #07101c; }
+  .day-markers { display: flex; align-items: center; justify-content: center; gap: 3px; height: 5px; }
+  .day-markers i { width: 4px; height: 4px; border-radius: 50%; background: var(--muted); }
+  .day-markers .live { background: var(--accent); }
+  .day-markers .event { background: var(--purple); }
+  .day-markers .release { background: #70a7ff; }
+  .day-markers .media { background: #7ad8c0; }
+  .day-select[aria-current="location"] .day-markers i { background: #07101c; }
+  .day-markers b { font-size: .625rem; line-height: 1; }
+</style>

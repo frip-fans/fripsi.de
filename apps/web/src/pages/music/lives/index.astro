@@ -132,6 +132,7 @@ const browseJson = JSON.stringify(browsePayload).replaceAll("<", "\\u003c");
     <MusicListState storageKey="music:list:lives" detailPrefix="/music/lives/" />
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, "music.nav.lives")}>
+      <h1 class="music-list-heading">{t(locale, "music.nav.lives")}</h1>
       <form class="music-toolbar" method="get" data-live-search-form>
         <input type="hidden" name="year" value={year ?? "all"} data-live-year-input />
         {classification && <input type="hidden" name="classification" value={classification} data-live-classification-input />}
@@ -186,7 +187,7 @@ const browseJson = JSON.stringify(browsePayload).replaceAll("<", "\\u003c");
                 "is-festival": setlist.event_classification === "拼盘",
               }]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
             </div>
-            <h3>{setlistDisplayTitle(setlist)}</h3>
+            <h2>{setlistDisplayTitle(setlist)}</h2>
             <div class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span>·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></div>
             <div class="music-card-stats"><span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span><span>{setlistCompletenessLabel(setlist.completeness, locale)}</span></div>
           </a>
@@ -321,7 +322,7 @@ const browseJson = JSON.stringify(browsePayload).replaceAll("<", "\\u003c");
       top.appendChild(date);
       top.appendChild(type);
 
-      const title = document.createElement("h3");
+      const title = document.createElement("h2");
       title.textContent = displayTitle(item);
       const meta = document.createElement("div");
       meta.className = "music-card-meta";

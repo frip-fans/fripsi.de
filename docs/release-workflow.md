@@ -3,10 +3,22 @@
 ## 分支
 
 ```text
-feature/* → PR 到 staging → 测试站验收 → staging 向 master 提 PR → 生产部署
+独立 worktree + 任务分支 → PR 到 staging → CI 通过 → 测试站验收 → staging 向 master 提 PR → 生产部署
 ```
 
-`master` 是生产分支；`staging` 是长期测试分支。功能分支从最新 `staging` 创建。直接推送 `staging` 也可以，但应优先使用 PR，让 CI 在进入测试分支前运行。
+`master` 是生产分支；`staging` 是长期测试分支。每个独立开发任务从最新 `origin/staging` 创建独立 worktree 和任务分支，同一任务的后续修正复用该 worktree。功能、修复、重构和文档变更均通过 PR 进入 `staging`，不直接推送 `staging` 或 `master`。
+
+自动化开发代理遵循根目录 [AGENTS.md](../AGENTS.md)；Claude Code 通过 [CLAUDE.md](../CLAUDE.md) 的 `@AGENTS.md` 导入同一份规则。
+
+## 开发与验收
+
+1. 开始修改前获取最新 `origin/staging`，创建独立 worktree 和任务分支；不搬运其他任务的未提交改动。
+2. 在任务 worktree 中开发并完成适用的验证。UI 预览必须来自该 worktree 的最新代码或构建，明确地址并实际确认改动可见。
+3. 推送任务分支并提 PR 到 `staging`，说明变更、验证及数据库影响。等待 `CI / Verify` 通过，获得合并授权后再合并。
+4. 在测试站完成验收。代码合并、CI 通过和测试站部署成功分别核对，不能互相替代。
+5. 验收通过并获得发布授权后，从 `staging` 提 PR 到 `master`，通过检查后发布。
+
+纯文档变更只需核对文案、链接、命令与 `git diff --check`，应用检查由 PR CI 执行。
 
 将 `staging` 合并到 `master` 时使用 **merge commit**，不要 squash/rebase 这条长期分支，避免后续发布反复出现已经合并的提交。发布 PR 合并后不要删除 `staging`。若生产有紧急修复，要再把 `master` 合并回 `staging`。
 
@@ -14,7 +26,9 @@ feature/* → PR 到 staging → 测试站验收 → staging 向 master 提 PR �
 
 GitHub Actions 的 `CI / Verify` 对 master/staging 的 push 与 PR 运行：安装锁定依赖、类型检查、测试、所有 workspace 构建，以及生产和 staging Web 构建。CI 不持有 Cloudflare 部署凭据。
 
-master 规则要求 PR、`Verify` 检查成功、PR 分支与目标分支保持最新、所有讨论已解决；不强制他人批准，适合单人维护。master/staging 均禁止删除和强推。staging 允许直接提交，Cloudflare 发布前仍应运行验证命令。
+master 规则要求 PR、`Verify` 检查成功、PR 分支与目标分支保持最新、所有讨论已解决；不强制他人批准，适合单人维护。master/staging 均禁止删除和强推。
+
+项目协作规则要求 `staging` 也通过 PR 合入；即使仓库权限仍允许直接提交，也不能据此绕过该流程。`AGENTS.md` 和本文档不修改 GitHub 分支保护设置，仓库端的强制限制需单独配置。Cloudflare 发布前仍运行验证命令。
 
 ## Cloudflare Workers Builds
 

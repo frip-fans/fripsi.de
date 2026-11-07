@@ -7,6 +7,9 @@
 
 ## 文档导航
 
+- [项目协作约定](../AGENTS.md)：独立 worktree、PR 与开发代理的共享规则。
+- [代码与数据发布流程](./release-workflow.md)：staging 验收、生产发布与 migration 顺序。
+
 - [总体架构](./architecture.md)：系统边界、组件、请求流和关键技术选择。
 - [数据模型](./data-model.md)：D1 表结构、约束、状态与 Notion 旧数据迁移方案。
 - [管理后台与 MCP](./admin-and-mcp.md)：人工编辑流程、MCP 工具、权限与安全规则。

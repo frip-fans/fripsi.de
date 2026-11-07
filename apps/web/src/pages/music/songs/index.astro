@@ -80,6 +80,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
     <MusicListState storageKey="music:list:songs" detailPrefix="/music/songs/" />
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, "music.nav.songs")}>
+      <h1 class="music-list-heading">{t(locale, "music.nav.songs")}</h1>
       <form class="music-toolbar" method="get" data-catalog-search-form>
         {sort !== "live-desc" && <input type="hidden" name="sort" value={sort} />}
         <label class="music-search">
@@ -107,7 +108,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
         {songs.map((song) => (
           <a class="music-card" href={`/music/songs/${encodeURIComponent(song.slug)}`}>
             <span class="music-artist">{song.original_artist}</span>
-            <h3>{song.title}</h3>
+            <h2>{song.title}</h2>
             <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
           </a>
         ))}
@@ -182,7 +183,7 @@ const browserJson = JSON.stringify(browserPayload).replaceAll("<", "\\u003c");
         const artist = document.createElement("span");
         artist.className = "music-artist";
         artist.textContent = song.original_artist;
-        const title = document.createElement("h3");
+        const title = document.createElement("h2");
         title.textContent = song.title;
         const stats = document.createElement("div");
         stats.className = "music-card-stats";

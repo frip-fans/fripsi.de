@@ -22,7 +22,7 @@ const locale = getLocale(Astro.request);
     <div class="gate-actions">
       <a class="button official-link" href="https://fripside.net" rel="external">{t(locale, "gate.official")} <Icon name="box-arrow-up-right" /></a>
       <form method="dialog">
-        <button class="secondary" type="submit" data-continue-site>{t(locale, "gate.continue")}</button>
+        <button class="gate-continue" type="submit" data-continue-site>{t(locale, "gate.continue")}</button>
       </form>
     </div>
   </div>
@@ -205,6 +205,7 @@ const locale = getLocale(Astro.request);
     margin-top: 2.2rem;
   }
 
+  .gate-continue { color: var(--accent); background: rgba(var(--accent-rgb), .1); border: 1px solid var(--accent); }
   .gate-actions form { display: contents; }
   .gate-actions :global(.button), .gate-actions :global(button) { min-height: 48px; }
   @media (max-width: 560px) {

@@ -5,6 +5,7 @@ import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
+import { displayEventStatus, statusLabel } from "../lib/format";
 import { getLocale, t } from "../lib/i18n";
 import {
   formatMusicDate,
@@ -18,27 +19,28 @@ const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
 const [upcoming, recentSetlists] = await Promise.all([
-  searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 3 }, true),
+  searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 4 }, true),
   listSetlists(db, { order: "desc", limit: 3 }),
 ]);
 const next = upcoming[0];
-const latest = upcoming;
+const moreEvents = upcoming.slice(1);
+const daysUntilNext = next ? Math.max(0, Math.round((Date.parse(next.start_date) - Date.parse(today)) / 86_400_000)) : 0;
+const nextStatus = next ? displayEventStatus(next, today) : "scheduled";
+const nextCountdown = !next
+  ? ""
+  : nextStatus !== "scheduled"
+    ? statusLabel(locale, nextStatus)
+    : daysUntilNext === 0
+    ? t(locale, "home.countdownToday")
+    : daysUntilNext === 1
+      ? t(locale, "home.countdownTomorrow")
+      : t(locale, "home.countdownDays", { count: daysUntilNext });
 ---
 <SiteLayout>
+  <h1 class="mobile-home-title" translate="no">fripSide Fan Site</h1>
   <section class="hero">
-    <div>
-      <p class="eyebrow">fripsi.de · Independent fan archive</p>
-      <h1 class="hero-title" data-lyric-rotator>
-        <span class="title-lead" data-lyric-lead>This desire</span>
-        <span class="title-solid"><span data-lyric-line-one>is bound</span><br data-lyric-break /><span data-lyric-line-two>in the melody.</span></span>
-      </h1>
-      <div class="actions">
-        <a class="button" href="/calendar"><Icon name="calendar3" />{t(locale, "home.calendar")}</a>
-        <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" />{t(locale, "home.setlistDatabase")}</a>
-      </div>
-    </div>
     <aside class="signal panel">
-      <div class="signal-top"><span>{t(locale, "home.next")}</span><i></i></div>
+      <div class="signal-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
       {next ? (
         <>
           <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
@@ -50,25 +52,41 @@ const latest = upcoming;
         <div class="no-signal"><strong>—</strong><h2>{t(locale, "home.waiting")}</h2><p>{t(locale, "home.noUpcoming")}</p></div>
       )}
     </aside>
+    <div class="hero-intro">
+      <p class="eyebrow" lang="en" translate="no">fripSide Fan Site</p>
+      <h1 class="hero-title" data-lyric-rotator lang="en">
+        <span class="title-lead" data-lyric-lead>This desire</span>
+        <span class="title-solid"><span data-lyric-line-one>is bound</span><br data-lyric-break /><span data-lyric-line-two>in the melody.</span></span>
+      </h1>
+      <p class="hero-description">{t(locale, "home.description")}</p>
+      <div class="actions">
+        <a class="button" href="/calendar"><Icon name="calendar3" /><span class="label-full">{t(locale, "home.calendar")}</span><span class="label-short">{t(locale, "home.calendarShort")}</span></a>
+        <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" /><span class="label-full">{t(locale, "home.setlistDatabase")}</span><span class="label-short">{t(locale, "home.setlistDatabaseShort")}</span></a>
+      </div>
+      <button class="motion-toggle" type="button" data-home-motion aria-label={t(locale, "home.motionLabel")} aria-pressed="false" data-pause-label={t(locale, "home.pauseMotion")} data-resume-label={t(locale, "home.resumeMotion")}>
+        <Icon name="pause-fill" /><span>{t(locale, "home.pauseMotion")}</span>
+      </button>
+    </div>
   </section>
 
-  <div class="section-heading">
-    <div><p class="eyebrow">Timeline</p><h2>{t(locale, "home.latest")}</h2></div>
-    <a class="muted all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="arrow-right" /></a>
-  </div>
-  <section class="event-list stack">
-    {latest.map((event) => <EventCard event={event} />)}
-    {!latest.length && <div class="empty panel">{t(locale, "home.empty")}</div>}
-  </section>
-  {latest.length > 0 && (
-    <div class="event-list-more">
-      <a href="/archive">{t(locale, "home.viewMore")} <Icon name="arrow-right" /></a>
-    </div>
+  {moreEvents.length > 0 && (
+    <>
+      <div class="section-heading latest-events-heading">
+        <h2><Icon name="tickets" />{t(locale, "home.moreEvents")}</h2>
+        <a class="muted all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="arrow-right" /></a>
+      </div>
+      <section class="event-list stack">
+        {moreEvents.map((event) => <EventCard event={event} />)}
+      </section>
+      <div class="event-list-more">
+        <a href="/archive">{t(locale, "home.viewMore")} <Icon name="arrow-right" /></a>
+      </div>
+    </>
   )}
 
   <section class="recent-setlists" aria-labelledby="recent-setlists-title">
     <div class="section-heading">
-      <div><p class="eyebrow">Live Setlists</p><h2 id="recent-setlists-title">{t(locale, "home.latestSetlists")}</h2></div>
+      <h2 id="recent-setlists-title"><Icon name="list-music" />{t(locale, "home.latestSetlists")}</h2>
       <a class="muted recent-setlists-all" href="/music/lives">{t(locale, "home.allSetlists")} <Icon name="arrow-right" /></a>
     </div>
     {recentSetlists.length > 0 ? (
@@ -92,7 +110,7 @@ const latest = upcoming;
             <div class="recent-setlist-meta">
               <span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span>
               <span>{setlistCompletenessLabel(setlist.completeness, locale)}</span>
-              <Icon name="arrow-up-right" />
+              <Icon name="chevron-right" size=".85rem" />
             </div>
           </a>
         ))}
@@ -120,6 +138,7 @@ const latest = upcoming;
     { lead: "君と出会った必然が", lineOne: "無限の宇宙に解き放たれて輝く", lineTwo: "その絆だけが　unlimited destiny", variant: "japanese-long" }
   ];
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const smallScreen = window.matchMedia("(max-width: 800px)");
   let activeIndex = 0;
   let rotationTimer: number | undefined;
   let transitionTimer: number | undefined;
@@ -163,18 +182,38 @@ const latest = upcoming;
 
   const startRotation = () => {
     stopRotation();
-    if (!reducedMotion.matches && lyrics.length > 1 && !document.hidden) {
+    if (!smallScreen.matches && !reducedMotion.matches && lyrics.length > 1 && !document.hidden && document.documentElement.dataset.homeMotionPaused !== "true") {
       rotationTimer = window.setInterval(showNextLyric, 8000);
     }
   };
 
+  const motionToggle = document.querySelector<HTMLButtonElement>("[data-home-motion]");
+  const updateMotionToggle = () => {
+    if (!motionToggle) return;
+    const paused = document.documentElement.dataset.homeMotionPaused === "true";
+    motionToggle.setAttribute("aria-pressed", String(paused));
+    motionToggle.querySelector("span")!.textContent = (paused ? motionToggle.dataset.resumeLabel : motionToggle.dataset.pauseLabel) ?? "";
+    motionToggle.hidden = reducedMotion.matches;
+  };
+  motionToggle?.addEventListener("click", () => {
+    document.documentElement.dataset.homeMotionPaused = String(document.documentElement.dataset.homeMotionPaused !== "true");
+    updateMotionToggle();
+    startRotation();
+    document.dispatchEvent(new Event("home-motion-change"));
+  });
+  updateMotionToggle();
+  reducedMotion.addEventListener("change", updateMotionToggle);
   reducedMotion.addEventListener("change", startRotation);
+  smallScreen.addEventListener("change", startRotation);
   document.addEventListener("visibilitychange", startRotation);
   startRotation();
 </script>
 
 <style>
+  .mobile-home-title { display: none; }
   .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: center; gap: clamp(2rem, 7vw, 7rem); padding: 2rem 0 .5rem; }
+  .hero-intro { grid-column: 1; grid-row: 1; min-width: 0; }
+  .signal { grid-column: 2; grid-row: 1; min-width: 0; }
   .hero-title { position: relative; display: grid; align-content: start; gap: .14em; height: clamp(5.25rem, 13.5vw, 10.75rem); margin-bottom: 0; }
   .hero-title::after { content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(120, 225, 255, .14) 6px, transparent 7px); mix-blend-mode: screen; }
   .hero-title.is-glitching { animation: lyric-signal-glitch .56s steps(2, end) both; }
@@ -205,13 +244,20 @@ const latest = upcoming;
     18%, 78% { opacity: .8; transform: translateX(-5px); }
     48% { opacity: 1; transform: translateX(7px); }
   }
-  .hero .actions { margin-top: 2rem; }
+  .hero-description { max-width: 34rem; margin: 1.15rem 0 .6rem; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
+  .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
+  .motion-toggle:hover { color: var(--text); transform: none; }
+  .motion-toggle[hidden] { display: none; }
+  .motion-toggle[aria-pressed="true"] { color: var(--accent); }
+  .hero .actions { margin-top: 1.1rem; }
   .hero .actions .button { min-height: 52px; padding: .82rem 1.25rem; border-radius: 12px; font-size: .95rem; }
   .hero .actions .button.secondary { background: rgba(7,16,28,.76); border-color: rgba(200,220,237,.22); box-shadow: 0 10px 28px rgba(0,0,0,.18); backdrop-filter: blur(16px); }
   .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
   .setlist-button :global(.icon) { color: var(--accent); }
   .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
   .hero + .section-heading { margin-top: 1.5rem; }
+  .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; }
+  .latest-events-heading h2 > :global(.icon), .recent-setlists .section-heading h2 > :global(.icon) { color: var(--accent); font-size: .9em; }
   .event-list-more { display: flex; justify-content: flex-end; margin-top: 1rem; }
   .event-list-more a { display: inline-flex; align-items: center; gap: .4rem; padding: .35rem .1rem; color: var(--muted); font-size: .82rem; text-decoration: none; }
   .event-list-more a:hover { color: var(--text); }
@@ -239,21 +285,24 @@ const latest = upcoming;
   .recent-setlist-card:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); background: rgba(14, 29, 49, .88); }
   .recent-setlist-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
   .recent-setlist-top time { color: var(--accent); font-size: .73rem; font-weight: 720; }
-  .recent-setlist-type { display: inline-flex; align-items: center; gap: .35rem; padding: .27rem .5rem; color: var(--muted); border: 1px solid rgba(159, 180, 211, .17); border-radius: 999px; font-size: .64rem; line-height: 1; }
+  .recent-setlist-type { display: inline-flex; align-items: center; gap: .35rem; padding: .27rem .5rem; color: var(--muted); border: 1px solid rgba(159, 180, 211, .17); border-radius: 999px; font-size: .75rem; line-height: 1; }
   .recent-setlist-type:is(.is-solo, .is-festival)::before { content: ""; width: .42rem; height: .42rem; border: 1px solid var(--accent); border-radius: 50%; box-sizing: border-box; }
   .recent-setlist-type.is-solo::before { background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), .34); }
   .recent-setlist-card h3 { margin: 0; font-size: 1rem; line-height: 1.42; }
-  .recent-setlist-card > p { margin: 0; color: var(--muted); font-size: .74rem; line-height: 1.55; }
-  .recent-setlist-meta { display: flex; align-items: center; gap: .65rem; padding-top: .75rem; color: var(--muted); border-top: 1px solid rgba(159, 180, 211, .12); font-size: .7rem; }
+  .recent-setlist-card > p { margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.55; }
+  .recent-setlist-meta { display: flex; align-items: center; gap: .65rem; padding-top: .75rem; color: var(--muted); border-top: 1px solid rgba(159, 180, 211, .12); font-size: .8125rem; }
   .recent-setlist-meta :global(.icon) { margin-left: auto; color: var(--accent); }
-  .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+  .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
   .signal::before { content: ""; position: absolute; inset: -20% -40% 35%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 17px, rgba(var(--accent-rgb),.12) 18px 19px); transform: rotate(-10deg); }
-  .signal-top { position: absolute; left: 1.6rem; right: 1.6rem; top: 1.5rem; display: flex; justify-content: space-between; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
+  .signal-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
+  .signal-top span { margin-right: auto; }
+  .signal-countdown { color: var(--accent); font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
+  .label-short { display: none; }
   .signal-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
   .signal > strong, .no-signal strong { color: var(--accent); font-size: clamp(3.7rem, 8vw, 6rem); line-height: 1; letter-spacing: -.08em; position: relative; }
-  .signal h2 { font-size: 1.25rem; margin: 1rem 0 .4rem; position: relative; }
+  .signal h2 { font-size: 1.25rem; line-height: 1.45; overflow-wrap: anywhere; margin: 1rem 0 .4rem; position: relative; }
   .signal p { color: var(--muted); position: relative; }
-  .signal a { color: var(--accent); margin-top: 1.5rem; font-size: .85rem; text-decoration: none; position: relative; }
+  .signal a { color: var(--accent); margin-top: auto; padding-top: 1.5rem; font-size: .85rem; text-decoration: none; position: relative; }
   .signal a, .all-calendar { display: inline-flex; align-items: center; gap: .35rem; }
   @media (prefers-reduced-motion: reduce) { .hero-title.is-glitching, .hero-title.is-glitching::after { animation: none; } }
   @media (max-width: 1100px) {
@@ -267,11 +316,36 @@ const latest = upcoming;
     .hero-title[data-variant="japanese"] .title-solid { letter-spacing: -.035em; }
   }
   @media (max-width: 800px) {
-    .hero { grid-template-columns: 1fr; min-height: 0; }
-    .signal { min-height: 290px; }
-    .signal-top { position: relative; inset: auto; flex-shrink: 0; margin-bottom: auto; padding-bottom: 1rem; }
+    .mobile-home-title { display: block; position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
+    .hero-intro, .signal { grid-column: auto; grid-row: auto; }
+    .hero-intro { display: flex; flex-direction: column; }
+    .hero-intro > .eyebrow, .hero-title, .hero-description { display: none; }
+    .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }
+    .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
+    .label-full { display: none; }
+    .label-short { display: inline; overflow: hidden; text-overflow: ellipsis; }
+    .motion-toggle { align-self: flex-start; margin-top: .25rem; }
+    .signal { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: .75rem; min-height: 0; padding: 1rem 1.1rem 1.1rem; transition: border-color .18s; }
+    .signal:has(a:hover) { border-color: rgba(var(--accent-rgb), .42); }
+    .signal:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .signal-top { grid-column: 1 / -1; margin-bottom: .6rem; font-size: .6875rem; letter-spacing: .08em; }
+    .signal > strong, .no-signal strong { font-size: clamp(2.125rem, 9vw, 2.5rem); letter-spacing: -.05em; }
+    .signal > strong { grid-column: 1; }
+    .no-signal { grid-column: 1 / -1; }
+    .signal h2 { grid-column: 1 / -1; margin: .5rem 0 .2rem; font-size: 1.0625rem; font-weight: 600; line-height: 1.45; letter-spacing: -.015em; }
+    .signal p { grid-column: 1 / -1; margin: 0; font-size: .8125rem; line-height: 1.55; }
+    .signal a { grid-column: 2; grid-row: 2; align-self: center; position: static; margin: 0; padding: 0; font-size: .8125rem; }
+    .signal a:focus-visible { outline: none; }
+    .signal a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+    .latest-events-heading h2, .recent-setlists .section-heading h2 { color: #d3dce8; font-size: 1.375rem; font-weight: 600; }
+    .latest-events-heading .all-calendar, .recent-setlists-all { color: var(--muted); font-size: .8125rem; font-weight: 400; }
+    .latest-events-heading .all-calendar:hover, .recent-setlists-all:hover { color: var(--text); }
+    .event-list { --event-title-color: #d3dce8; --event-title-weight: 600; --event-title-size: 1.0625rem; --event-time-color: #a8b6c8; --event-venue-color: #8f9fb4; --event-year-color: #8998ac; }
+    .recent-setlists { margin-top: 3rem; }
     .recent-setlist-grid { grid-template-columns: 1fr; }
     .recent-setlist-card { min-height: 0; }
+    .recent-setlist-card h3 { color: #d3dce8; font-weight: 600; }
     @supports (-webkit-text-stroke: 1px currentColor) {
       .hero-title[data-variant^="japanese"] .title-solid {
         color: rgba(239, 248, 255, .92);
@@ -279,5 +353,12 @@ const latest = upcoming;
         text-shadow: 0 2px 20px rgba(0, 0, 0, .55);
       }
     }
+  }
+  @media (max-width: 480px) {
+    .latest-events-heading h2, .recent-setlists .section-heading h2 { font-size: 1.25rem; }
+  }
+  @media (max-width: 560px) {
+    .event-list { --event-title-size: .9375rem; --event-title-line-height: 1.5; }
+    .recent-setlist-card h3 { font-size: .9375rem; line-height: 1.5; }
   }
 </style>

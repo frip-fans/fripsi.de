@@ -4,7 +4,7 @@ import EventCalendarView from "../components/EventCalendarView.astro";
 import EventListView from "../components/EventListView.astro";
 import Icon from "../components/Icon.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
-import { calendarViewHref } from "../lib/calendar-navigation";
+import { calendarAgendaHref, calendarViewHref } from "../lib/calendar-navigation";
 import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
 
@@ -16,23 +16,41 @@ const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
 ---
 <SiteLayout title={t(locale, "calendar.title")} clientRouting>
   <header class="events-head">
-    <h1>{t(locale, "nav.calendar")}</h1>
-    <a class="button secondary subscribe-button" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" />{t(locale, "home.subscribe")}</a>
+    <h1><span class="desktop-label">{t(locale, "nav.calendar")}</span><span class="mobile-label">{t(locale, view === "list" ? "calendar.findEvents" : "calendar.agendaTitle")}</span></h1>
+    <div class="head-actions">
+      <a class="button secondary subscribe-button" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" /><span class="desktop-label">{t(locale, "home.subscribe")}</span><span class="mobile-label">{t(locale, "calendar.subscribeShort")}</span></a>
+      {view !== "list" && <a class="mobile-find" href={calendarViewHref(Astro.url.searchParams, "list", todayMonth)} data-calendar-view="list"><Icon name="search" />{t(locale, "calendar.findShort")}</a>}
+    </div>
   </header>
   <nav class="event-views" aria-label={t(locale, "calendar.views")} data-event-views data-today-month={todayMonth}>
     <a href={calendarViewHref(Astro.url.searchParams, "calendar", todayMonth)} aria-current={view === "calendar" ? "page" : undefined} data-calendar-view="calendar"><Icon name="calendar3" />{t(locale, "calendar.calendarView")}</a>
     <a href={calendarViewHref(Astro.url.searchParams, "list", todayMonth)} aria-current={view === "list" ? "page" : undefined} data-calendar-view="list"><Icon name="list" />{t(locale, "calendar.listView")}</a>
   </nav>
+  {view === "list" && <a class="mobile-back" href={calendarAgendaHref(Astro.url.searchParams, todayMonth)} data-agenda-return data-today-month={todayMonth}><Icon name="chevron-left" />{t(locale, "calendar.backAgenda")}</a>}
   {view === "list" ? <EventListView /> : <EventCalendarView />}
 </SiteLayout>
 
 <style>
   .events-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
   .events-head h1 { margin: 0; font-size: clamp(1.5rem, 3.5vw, 2rem); }
+  .head-actions { display: flex; align-items: center; gap: .5rem; }
+  .mobile-label, .mobile-find, .mobile-back { display: none; }
   .subscribe-button { min-height: 44px; font-size: .8125rem; }
   .event-views { display: inline-flex; gap: .25rem; max-width: 100%; margin: 1.25rem 0 1.5rem; padding: .25rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(7,16,28,.75); }
   .event-views a { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; padding: .6rem 1rem; color: var(--muted); border-radius: 8px; text-decoration: none; font-size: .875rem; font-weight: 600; }
   .event-views a:hover { color: var(--text); background: rgba(255,255,255,.05); }
   .event-views a[aria-current="page"] { color: var(--accent); background: rgba(var(--accent-rgb),.12); }
-  @media (max-width: 480px) { .events-head { align-items: center; flex-wrap: wrap; } .event-views { display: flex; } .event-views a { flex: 1; } }
+  @media (max-width: 800px) {
+    .desktop-label, .event-views { display: none; }
+    .mobile-label { display: inline; }
+    .events-head { margin-bottom: 1rem; }
+    .events-head h1 { min-width: 0; font-size: 1.375rem; }
+    .head-actions { flex-shrink: 0; gap: .25rem; }
+    .subscribe-button { padding: .55rem .65rem; }
+    .mobile-find, .mobile-back { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; color: var(--text); text-decoration: none; font-size: .8125rem; }
+    .mobile-find { padding: .55rem .65rem; border: 1px solid var(--line); border-radius: 10px; background: rgba(7,16,28,.75); }
+    .mobile-back { margin: -.25rem 0 .75rem; }
+    .mobile-find:hover, .mobile-back:hover { color: var(--accent); background: rgba(var(--accent-rgb), .08); }
+  }
+  @media (max-width: 480px) { .events-head { align-items: center; flex-wrap: wrap; } }
 </style>

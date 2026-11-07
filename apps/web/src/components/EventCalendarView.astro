@@ -1,10 +1,11 @@
 ---
 import { dateInTimeZone, searchEvents, type EventRecord } from "@frip-fan/core";
+import CalendarMonthGrid from "./CalendarMonthGrid.astro";
 import EventCard from "./EventCard.astro";
 import Icon from "./Icon.astro";
-import { categoryLabels, displayEventStatus, formatDate, monthBounds, parseMonth, shiftMonth, statusLabel } from "../lib/format";
+import { categoryLabels, monthBounds, parseMonth, shiftMonth } from "../lib/format";
 import { getEnv } from "../lib/env";
-import { calendarViewHref } from "../lib/calendar-navigation";
+import { calendarAgendaHref } from "../lib/calendar-navigation";
 import { formatMonthLabel, formatMonthOption, formatYearLabel, getLocale, t } from "../lib/i18n";
 
 const env = getEnv();
@@ -19,323 +20,251 @@ const events = await searchEvents(env.DB, { date_from: from, date_to: to, catego
 const eventRange = await env.DB.prepare(`
   SELECT substr(MIN(start_date), 1, 7) AS first_month,
          substr(MAX(start_date), 1, 7) AS last_month
-  FROM events
-  WHERE published = 1 AND archived_at IS NULL
+  FROM events WHERE published = 1 AND archived_at IS NULL
 `).first<{ first_month: string | null; last_month: string | null }>();
 const byDay = new Map<number, EventRecord[]>();
 for (let day = 1; day <= days; day++) {
   const date = `${month}-${String(day).padStart(2, "0")}`;
   byDay.set(day, events.filter((event) => event.start_date <= date && (event.end_date ?? event.start_date) >= date));
 }
-const requestedDate = Astro.url.searchParams.get("date") ?? "";
-const selectedDate = requestedDate.startsWith(`${month}-`) && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) && requestedDate >= from && requestedDate <= to
-  ? requestedDate
-  : today.startsWith(month) ? today : `${month}-${String([...byDay].find(([, items]) => items.length)?.[0] ?? 1).padStart(2, "0")}`;
-const selectedDay = Number(selectedDate.slice(-2));
+const groups = [...byDay].filter(([, items]) => items.length).map(([day, items]) => ({
+  date: `${month}-${String(day).padStart(2, "0")}`, events: items,
+}));
 const dayLabel = (date: string) => new Intl.DateTimeFormat(locale, { month: "long", day: "numeric", weekday: "short", timeZone: "UTC" }).format(new Date(`${date}T00:00:00Z`));
-const dayHref = (date: string) => {
-  const params = new URLSearchParams(Astro.url.searchParams);
-  params.set("month", date.slice(0, 7));
-  params.set("date", date);
-  return calendarViewHref(params, "calendar", today.slice(0, 7));
-};
 const monthLabel = formatMonthLabel(locale, month);
-const weeks = Array.from({ length: Math.ceil((offset + days) / 7) * 7 }, (_, index) => index - offset + 1);
 const monthHref = (target: string, category?: string | null): string => {
   const params = new URLSearchParams(Astro.url.searchParams);
   params.set("month", target);
-  if (target !== month) params.delete("date");
+  if (target !== month) params.delete("calendar");
   if (category !== undefined) {
     params.delete("category");
     if (category) params.set("category", category);
   }
-  return calendarViewHref(params, "calendar", today.slice(0, 7));
+  return calendarAgendaHref(params, today.slice(0, 7));
 };
-const todayYear = Number(today.slice(0, 4));
 const selectedYear = Number(month.slice(0, 4));
-const firstEventYear = Number(eventRange?.first_month?.slice(0, 4) ?? todayYear);
-const lastEventYear = Number(eventRange?.last_month?.slice(0, 4) ?? todayYear);
-const firstPickerYear = Math.max(1900, Math.min(firstEventYear, selectedYear, 2002));
-const lastPickerYear = Math.min(2100, Math.max(lastEventYear, selectedYear, todayYear + 3));
+const todayYear = Number(today.slice(0, 4));
+const firstPickerYear = Math.max(1900, Math.min(Number(eventRange?.first_month?.slice(0, 4) ?? todayYear), selectedYear, 2002));
+const lastPickerYear = Math.min(2100, Math.max(Number(eventRange?.last_month?.slice(0, 4) ?? todayYear), selectedYear, todayYear + 3));
 const pickerYears = Array.from({ length: lastPickerYear - firstPickerYear + 1 }, (_, index) => firstPickerYear + index);
+const calendarExpanded = Astro.url.searchParams.get("calendar") === "1";
+const gridProps = { month, monthLabel, today, locale, days, offset, byDay };
 ---
 <section data-event-calendar-view>
- <div class="calendar-surface">
-  <header class="page-head">
-    <h2 class="visually-hidden">{monthLabel}</h2>
-    <div class="page-actions">
-      <a class="month-step previous" href={monthHref(shiftMonth(month, -1))} aria-label={t(locale, "calendar.previousMonth")}><Icon name="chevron-left" /></a>
-      <details
-        class="month-picker"
-        data-month-picker
-        data-selected-month={month}
-        data-today-month={today.slice(0, 7)}
-        data-min-year={firstPickerYear}
-        data-max-year={lastPickerYear}
-        data-search-params={Astro.url.searchParams.toString()}
-      >
-        <summary aria-label={`${monthLabel} · ${t(locale, "calendar.openPicker")}`}>
-          <Icon name="calendar3" />
-          <span>{monthLabel}</span>
-          <Icon name="chevron-right" class="picker-caret" />
-        </summary>
-        <div class="month-picker-panel">
-          <div class="year-switcher">
-            <button class="year-step" type="button" data-year-delta="-1" aria-label={t(locale, "calendar.previousYear")}><Icon name="chevron-left" /></button>
+  <div class="calendar-surface">
+    <header class="page-head">
+      <h2 class="visually-hidden">{monthLabel}</h2>
+      <div class="page-actions">
+        <a class="month-step" href={monthHref(shiftMonth(month, -1))} aria-label={t(locale, "calendar.previousMonth")}><Icon name="chevron-left" /></a>
+        <details class="month-picker" data-month-picker data-selected-month={month} data-today-month={today.slice(0, 7)} data-search-params={Astro.url.searchParams.toString()}>
+          <summary aria-label={`${monthLabel} · ${t(locale, "calendar.openPicker")}`}>
+            <span>{monthLabel}</span><Icon name="chevron-down" class="picker-caret" />
+          </summary>
+          <div class="month-picker-panel">
             <label class="year-select-wrap">
-              <span class="visually-hidden">{t(locale, "calendar.selectYear")}</span>
-              <select aria-label={t(locale, "calendar.selectYear")} data-picker-year>
+              <span>{t(locale, "calendar.selectYear")}</span>
+              <select name="picker-year" data-picker-year>
                 {pickerYears.map((year) => <option value={year} selected={year === selectedYear}>{formatYearLabel(locale, year)}</option>)}
               </select>
             </label>
-            <button class="year-step" type="button" data-year-delta="1" aria-label={t(locale, "calendar.nextYear")}><Icon name="chevron-right" /></button>
+            <nav class="month-grid" aria-label={t(locale, "calendar.selectMonth")}>
+              {Array.from({ length: 12 }, (_, index) => {
+                const value = `${selectedYear}-${String(index + 1).padStart(2, "0")}`;
+                return <a class:list={["month-option", { active: value === month, current: value === today.slice(0, 7) }]} href={monthHref(value)} data-picker-month={index + 1} aria-current={value === month ? "date" : undefined}>{formatMonthOption(locale, index + 1)}</a>;
+              })}
+            </nav>
           </div>
-          <div class="month-grid" aria-label={t(locale, "calendar.selectMonth")}>
-            {Array.from({ length: 12 }, (_, index) => {
-              const value = `${selectedYear}-${String(index + 1).padStart(2, "0")}`;
-              return (
-                <a
-                  class:list={["month-option", { active: value === month, current: value === today.slice(0, 7) }]}
-                  href={monthHref(value)}
-                  data-picker-month={index + 1}
-                  aria-current={value === month ? "date" : undefined}
-                >{formatMonthOption(locale, index + 1)}</a>
-              );
-            })}
-          </div>
-        </div>
-      </details>
-      <a class="month-step next" href={monthHref(shiftMonth(month, 1))} aria-label={t(locale, "calendar.nextMonth")}><Icon name="chevron-right" /></a>
-      <a class="today" href={dayHref(today)}>{t(locale, "calendar.thisMonth")}</a>
-    </div>
-  </header>
-  <nav class="filters" aria-label={t(locale, "calendar.categoryFilter")}>
-    <a class:list={{ active: !selectedCategories.length }} data-day-preserve aria-current={!selectedCategories.length ? "true" : undefined} href={monthHref(month, null)}>{t(locale, "common.all")}</a>
-    {Object.entries(categoryLabels).map(([value, label]) => <a class:list={{ active: selectedCategories.includes(value as EventRecord["category"]) }} data-day-preserve aria-current={selectedCategories.includes(value as EventRecord["category"]) ? "true" : undefined} href={monthHref(month, value)}>{label}</a>)}
-  </nav>
-
-  <section class="calendar-grid" aria-label={t(locale, "calendar.grid", { month: monthLabel })}>
-    {t(locale, "calendar.weekdays").split(",").map((day) => <div class="weekday">{day}</div>)}
-    {weeks.map((day) => (
-      <div class:list={["day", { outside: day < 1 || day > days, current: `${month}-${String(day).padStart(2, "0")}` === today }]}>
-        {day >= 1 && day <= days && <>
-          <span class="day-number">{day}</span>
-          <a class="day-select" href={dayHref(`${month}-${String(day).padStart(2, "0")}`)} data-calendar-day={day} aria-current={day === selectedDay ? "date" : undefined} aria-controls="calendar-day-events" aria-label={`${formatDate(`${month}-${String(day).padStart(2, "0")}`, null, locale)}${`${month}-${String(day).padStart(2, "0")}` === today ? ` · ${t(locale, "common.today")}` : ""} · ${t(locale, "calendar.dayCount", { count: new Intl.NumberFormat(locale).format(byDay.get(day)?.length ?? 0) })}`}>
-            <span>{day}</span>
-            <span class="day-markers" aria-hidden="true">
-              {(byDay.get(day) ?? []).slice(0, 3).map((event) => <i class={event.category.toLowerCase()} />)}
-              {(byDay.get(day)?.length ?? 0) > 3 && <b>+</b>}
-            </span>
-          </a>
-          <div class="day-events">
-            {(byDay.get(day) ?? []).map((event) => {
-              const displayStatus = displayEventStatus(event, today);
-              return (
-                <a class:list={["calendar-event", event.category.toLowerCase(), displayStatus]} href={`/events/${event.slug}`} title={event.title}>
-                  <small>{event.start_time ?? "ALL"}</small>{event.title}
-                  {displayStatus !== "scheduled" && <b>{statusLabel(locale, displayStatus)}</b>}
-                </a>
-              );
-            })}
-          </div>
-        </>}
+        </details>
+        <a class="month-step" href={monthHref(shiftMonth(month, 1))} aria-label={t(locale, "calendar.nextMonth")}><Icon name="chevron-right" /></a>
+        {month !== today.slice(0, 7) && <a class="this-month" href={monthHref(today.slice(0, 7))}>{t(locale, "calendar.thisMonth")}</a>}
       </div>
-    ))}
-  </section>
-
-  <p class="calendar-key"><span><i aria-hidden="true"></i>{t(locale, "calendar.hasEvents")}</span><span>{t(locale, "calendar.monthCount", { count: new Intl.NumberFormat(locale).format(events.length) })}</span></p>
- </div>
-  <section class="mobile-timeline" id="calendar-day-events" aria-labelledby="calendar-selected-date">
-    <header class="day-heading" aria-live="polite" aria-atomic="true">
-      <h3 id="calendar-selected-date" data-selected-date>{dayLabel(selectedDate)}</h3>
-      <span data-selected-count>{t(locale, "calendar.dayCount", { count: new Intl.NumberFormat(locale).format(byDay.get(selectedDay)?.length ?? 0) })}</span>
     </header>
-    {Array.from({ length: days }, (_, index) => index + 1).map((day) => (
-      <div class="day-agenda stack" data-day-agenda={day} data-date-label={dayLabel(`${month}-${String(day).padStart(2, "0")}`)} data-count-label={t(locale, "calendar.dayCount", { count: new Intl.NumberFormat(locale).format(byDay.get(day)?.length ?? 0) })} hidden={day !== selectedDay}>
-        {(byDay.get(day) ?? []).map((event) => <EventCard event={event} compact />)}
-        {!byDay.get(day)?.length && <div class="day-empty"><Icon name="calendar3" /><p>{t(locale, events.length ? "calendar.dayEmpty" : "calendar.empty")}</p></div>}
-      </div>
+    <nav class="filters desktop-calendar" aria-label={t(locale, "calendar.categoryFilter")}>
+      <a class:list={{ active: !selectedCategories.length }} aria-current={!selectedCategories.length ? "true" : undefined} href={monthHref(month, null)}>{t(locale, "common.all")}</a>
+      {Object.entries(categoryLabels).map(([value, label]) => <a class:list={{ active: selectedCategories.includes(value as EventRecord["category"]) }} aria-current={selectedCategories.includes(value as EventRecord["category"]) ? "true" : undefined} href={monthHref(month, value)}>{label}</a>)}
+    </nav>
+    <div class="mobile-controls">
+      <details class="category-picker" data-category-picker>
+        <summary><Icon name="funnel" /><span>{selectedCategories.length ? t(locale, "calendar.selectedTypes", { count: selectedCategories.length }) : t(locale, "calendar.allTypes")}</span><Icon name="chevron-down" /></summary>
+        <form class="category-panel" action="/calendar" method="get">
+          <input type="hidden" name="view" value="calendar" />
+          <input type="hidden" name="month" value={month} />
+          <input type="hidden" name="lang" value={locale} />
+          <input type="hidden" name="calendar" value={calendarExpanded ? "1" : "0"} />
+          <fieldset>
+            <legend>{t(locale, "calendar.categoryFilter")}</legend>
+            {Object.entries(categoryLabels).map(([value, label]) => <label><input type="checkbox" name="category" value={value} checked={selectedCategories.includes(value as EventRecord["category"])} /><span>{label}</span></label>)}
+          </fieldset>
+          <div class="category-actions"><a href={monthHref(month, null)}>{t(locale, "archive.clear")}</a><button type="submit">{t(locale, "calendar.applyFilters")}</button></div>
+        </form>
+      </details>
+      <span class="visually-hidden" aria-live="polite">{t(locale, "calendar.dayCount", { count: new Intl.NumberFormat(locale).format(events.length) })}</span>
+    </div>
+    <div class="desktop-calendar"><CalendarMonthGrid {...gridProps} /></div>
+    <details class="mobile-overview" data-calendar-overview open={calendarExpanded}>
+      <summary><Icon name="calendar3" /><span data-overview-label data-open-label={t(locale, "calendar.hideMonth")} data-closed-label={t(locale, "calendar.showMonth")}>{t(locale, calendarExpanded ? "calendar.hideMonth" : "calendar.showMonth")}</span><Icon name="chevron-down" class="overview-caret" /></summary>
+      <CalendarMonthGrid {...gridProps} compact />
+    </details>
+  </div>
+  <section class="mobile-timeline" aria-label={t(locale, "calendar.monthCount", { count: new Intl.NumberFormat(locale).format(events.length) })}>
+    {selectedCategories.length > 0 && <p class="filter-summary" aria-live="polite">{selectedCategories.map((value) => categoryLabels[value]).join(" / ")} · {t(locale, "calendar.dayCount", { count: new Intl.NumberFormat(locale).format(events.length) })}</p>}
+    {groups.map(({ date, events: dayEvents }) => (
+      <section class="day-agenda" aria-labelledby={`agenda-${date}`}>
+        <h2 id={`agenda-${date}`} tabindex="-1" class:list={["day-heading", { "is-today": date === today }]}>
+          <time datetime={date}>{dayLabel(date)}</time>{date === today && <span>{t(locale, "common.today")}</span>}
+        </h2>
+        <div class="stack">{dayEvents.map((event) => <EventCard event={event} compact dateInGroup />)}</div>
+      </section>
     ))}
+    {!events.length && <div class="month-empty"><Icon name="calendar3" /><p>{t(locale, selectedCategories.length ? "calendar.noMatches" : "calendar.empty")}</p>{selectedCategories.length > 0 && <a href={monthHref(month, null)}>{t(locale, "calendar.clearFilters")}</a>}</div>}
+    <a class="next-month" href={monthHref(shiftMonth(month, 1))}>{t(locale, "calendar.viewNextMonth")}<Icon name="chevron-right" /></a>
   </section>
 </section>
 
 <script>
-  let monthController: AbortController | undefined;
-  const setupMonthPicker = () => {
-    monthController?.abort();
-    monthController = new AbortController();
-    const { signal } = monthController;
-    document.querySelectorAll<HTMLElement>("[data-month-picker]").forEach((picker) => {
-    const yearSelect = picker.querySelector("[data-picker-year]") as (Element & { value: string }) | null;
-    const yearSteps = picker.querySelectorAll<HTMLElement>("[data-year-delta]");
-    const monthLinks = picker.querySelectorAll<HTMLElement>("[data-picker-month]");
-    const selectedMonth = picker.dataset.selectedMonth ?? "";
-    const todayMonth = picker.dataset.todayMonth ?? "";
-    const minYear = Number(picker.dataset.minYear);
-    const maxYear = Number(picker.dataset.maxYear);
-    let displayYear = Number(selectedMonth.slice(0, 4));
-
-    const renderPickerYear = () => {
-      if (yearSelect) yearSelect.value = String(displayYear);
-      yearSteps.forEach((button) => {
-        const delta = Number(button.dataset.yearDelta);
-        button.toggleAttribute("disabled", displayYear + delta < minYear || displayYear + delta > maxYear);
-      });
-      monthLinks.forEach((link) => {
-        const monthNumber = String(link.dataset.pickerMonth).padStart(2, "0");
-        const value = `${displayYear}-${monthNumber}`;
-        const params = new URLSearchParams(picker.dataset.searchParams ?? "");
-        params.set("view", "calendar");
-        params.set("month", value);
-        if (value !== selectedMonth) params.delete("date");
-        link.setAttribute("href", `/calendar?${params}`);
-        link.classList.toggle("active", value === selectedMonth);
-        link.classList.toggle("current", value === todayMonth);
-        if (value === selectedMonth) link.setAttribute("aria-current", "date");
-        else link.removeAttribute("aria-current");
-      });
-    };
-
-    yearSteps.forEach((button) => button.addEventListener("click", () => {
-      displayYear = Math.min(maxYear, Math.max(minYear, displayYear + Number(button.dataset.yearDelta)));
-      renderPickerYear();
-    }, { signal }));
-    yearSelect?.addEventListener("change", () => {
-      displayYear = Math.min(maxYear, Math.max(minYear, Number(yearSelect.value)));
+  import { calendarAgendaHref } from "../lib/calendar-navigation";
+  let calendarController: AbortController | undefined;
+  const setupCalendar = () => {
+    calendarController?.abort();
+    calendarController = new AbortController();
+    const { signal } = calendarController;
+    const calendar = document.querySelector<HTMLElement>("[data-event-calendar-view]");
+    if (!calendar) return;
+    const picker = calendar.querySelector<HTMLDetailsElement>("[data-month-picker]");
+    const yearSelect = picker?.querySelector("[data-picker-year]") as (HTMLElement & { value: string }) | null | undefined;
+    const monthLinks = picker?.querySelectorAll<HTMLAnchorElement>("[data-picker-month]");
+    const selectedMonth = picker?.dataset.selectedMonth ?? "";
+    const todayMonth = picker?.dataset.todayMonth ?? "";
+    const renderPickerYear = () => monthLinks?.forEach((link) => {
+      const value = `${yearSelect?.value}-${String(link.dataset.pickerMonth).padStart(2, "0")}`;
+      const params = new URLSearchParams(location.search);
+      params.set("month", value);
+      if (value !== selectedMonth) params.delete("calendar");
+      link.href = calendarAgendaHref(params, todayMonth);
+      link.classList.toggle("active", value === selectedMonth);
+      link.classList.toggle("current", value === todayMonth);
+      if (value === selectedMonth) link.setAttribute("aria-current", "date");
+      else link.removeAttribute("aria-current");
+    });
+    yearSelect?.addEventListener("change", renderPickerYear, { signal });
+    const overview = calendar.querySelector<HTMLDetailsElement>("[data-calendar-overview]");
+    overview?.addEventListener("toggle", () => {
+      const label = overview.querySelector<HTMLElement>("[data-overview-label]");
+      if (label) label.textContent = (overview.open ? label.dataset.openLabel : label.dataset.closedLabel) ?? "";
+      const url = new URL(location.href);
+      if (overview.open) url.searchParams.set("calendar", "1");
+      else url.searchParams.delete("calendar");
+      history.replaceState(history.state, "", url);
+      const form = calendar.querySelector<HTMLFormElement>(".category-panel");
+      const expandedInput = form?.querySelector<HTMLInputElement>('input[name="calendar"]');
+      if (expandedInput) expandedInput.value = overview.open ? "1" : "0";
       renderPickerYear();
     }, { signal });
+    const jumps = calendar.querySelectorAll<HTMLAnchorElement>("[data-calendar-jump]");
+    const syncAnchor = () => jumps.forEach((link) => {
+      if (link.hash === location.hash) link.setAttribute("aria-current", "location");
+      else link.removeAttribute("aria-current");
+    });
+    jumps.forEach((link) => link.addEventListener("click", (event) => {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const target = document.getElementById(link.hash.slice(1));
+      if (!target) return;
+      event.preventDefault();
+      if (location.hash !== link.hash) history.pushState(history.state, "", link.href);
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+      syncAnchor();
+    }, { signal }));
+    window.addEventListener("hashchange", syncAnchor, { signal });
+    // Old shared day links now locate a group instead of filtering the month.
+    const url = new URL(location.href);
+    const oldDate = url.searchParams.get("date");
+    if (oldDate) {
+      url.searchParams.delete("date");
+      if (!url.hash && document.getElementById(`agenda-${oldDate}`)) url.hash = `agenda-${oldDate}`;
+      history.replaceState(history.state, "", url);
+    }
+    if (matchMedia("(max-width: 800px)").matches && /^#agenda-\d{4}-\d{2}-\d{2}$/.test(location.hash)) {
+      document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "instant" });
+    }
+    syncAnchor();
     document.addEventListener("click", (event) => {
-      if (event.target instanceof Node && !picker.contains(event.target)) picker.removeAttribute("open");
+      if (!(event.target instanceof Node)) return;
+      calendar.querySelectorAll<HTMLDetailsElement>("[data-month-picker], [data-category-picker]").forEach((details) => {
+        if (!details.contains(event.target as Node)) details.open = false;
+      });
     }, { signal });
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && picker.hasAttribute("open")) {
-        picker.removeAttribute("open");
-        picker.querySelector<HTMLElement>("summary")?.focus();
-      }
+      if (event.key !== "Escape") return;
+      calendar.querySelectorAll<HTMLDetailsElement>("[data-month-picker][open], [data-category-picker][open]").forEach((details) => {
+        details.open = false;
+        details.querySelector<HTMLElement>("summary")?.focus();
+      });
     }, { signal });
-    renderPickerYear();
-    });
-
-    const calendar = document.querySelector<HTMLElement>("[data-event-calendar-view]");
-    const dayLinks = calendar?.querySelectorAll<HTMLAnchorElement>("[data-calendar-day]");
-    dayLinks?.forEach((link) => link.addEventListener("click", (event) => {
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      event.preventDefault();
-      const day = link.dataset.calendarDay;
-      const agenda = calendar?.querySelector<HTMLElement>(`[data-day-agenda="${day}"]`);
-      if (!agenda) return;
-      calendar?.querySelectorAll<HTMLElement>("[data-day-agenda]").forEach((panel) => { panel.hidden = panel !== agenda; });
-      dayLinks.forEach((item) => {
-        if (item === link) item.setAttribute("aria-current", "date");
-        else item.removeAttribute("aria-current");
-      });
-      const heading = calendar?.querySelector("[data-selected-date]");
-      const count = calendar?.querySelector("[data-selected-count]");
-      if (heading) heading.textContent = agenda.dataset.dateLabel ?? "";
-      if (count) count.textContent = agenda.dataset.countLabel ?? "";
-      history.replaceState(history.state, "", link.href);
-      calendar?.querySelectorAll<HTMLElement>("[data-month-picker]").forEach((picker) => { picker.dataset.searchParams = location.search.slice(1); });
-      // Keep filter and view links in sync with the date selected without a page request.
-      document.querySelectorAll<HTMLAnchorElement>("[data-day-preserve], [data-calendar-view]").forEach((item) => {
-        const url = new URL(item.href);
-        url.searchParams.set("date", new URL(link.href).searchParams.get("date") ?? "");
-        item.href = url.href;
-      });
-    }, { signal }));
   };
-  document.addEventListener("astro:page-load", setupMonthPicker);
-  setupMonthPicker();
+  document.addEventListener("astro:page-load", setupCalendar);
+  setupCalendar();
 </script>
 
 <style>
-  .page-head { position: relative; }
-  .page-head h2 { font-size: clamp(1.25rem, 3vw, 1.75rem); margin-bottom: 0; }
-  .page-actions { display: flex; align-items: center; gap: .5rem; }
-  .month-picker { position: relative; }
-  .month-picker summary { display: flex; align-items: center; gap: .55rem; min-width: 10.5rem; height: 44px; padding: 0 .8rem; color: var(--text); background: rgba(7,16,28,.82); border: 1px solid var(--line); border-radius: 10px; list-style: none; cursor: pointer; user-select: none; }
-  .month-picker summary::-webkit-details-marker { display: none; }
-  .month-picker summary :global(.icon:first-child) { color: var(--accent); }
-  .month-picker summary span { flex: 1; font-size: .82rem; font-weight: 650; }
-  .month-picker summary :global(.picker-caret) { color: var(--muted); transition: transform .2s ease; }
-  .month-picker[open] summary { border-color: rgba(var(--accent-rgb), .45); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .07); }
-  .month-picker[open] summary :global(.picker-caret) { transform: rotate(90deg); }
-  .month-picker-panel { position: absolute; z-index: 20; top: calc(100% + .65rem); right: 0; width: 19rem; padding: 1rem; background: linear-gradient(145deg, rgba(15,30,49,.98), rgba(8,18,31,.98)); border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.45); backdrop-filter: blur(20px); }
-  .year-switcher { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: .5rem; padding-bottom: .85rem; border-bottom: 1px solid var(--line); }
-  .year-step { min-height: 44px; padding: 0; color: var(--accent); background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 9px; }
-  .year-step:disabled { opacity: .28; cursor: not-allowed; transform: none; }
-  .year-select-wrap { display: block; }
-  .year-select-wrap select { height: 44px; padding: 0 2rem 0 .75rem; color: var(--text); text-align: center; background: rgba(4,11,20,.58); border-color: transparent; font-weight: 750; cursor: pointer; }
-  .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; margin-top: .9rem; }
-  .month-option { position: relative; display: grid; min-height: 44px; place-items: center; color: var(--muted); border: 1px solid transparent; border-radius: 9px; text-decoration: none; font-size: .8rem; transition: color .16s, border-color .16s, background .16s; }
-  .month-option:hover { color: var(--text); border-color: var(--line); background: rgba(255,255,255,.045); }
-  .month-option.current::after { content: ""; position: absolute; bottom: .3rem; width: 3px; height: 3px; background: var(--accent); border-radius: 50%; }
-  .month-option.active { color: #07101c; background: var(--accent); border-color: var(--accent); font-weight: 800; }
-  .month-option.active::after { background: #07101c; }
   .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-  .month-step, .today { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--text); touch-action: manipulation; }
+  .page-actions { display: flex; align-items: center; gap: .5rem; }
+  .month-picker, .category-picker { position: relative; }
+  summary { cursor: pointer; list-style: none; touch-action: manipulation; }
+  summary::-webkit-details-marker { display: none; }
+  .month-picker summary { display: flex; align-items: center; justify-content: center; gap: .55rem; min-width: 10.5rem; min-height: 44px; padding: 0 .8rem; color: var(--text); background: rgba(7,16,28,.82); border: 1px solid var(--line); border-radius: 10px; font-size: .9375rem; font-weight: 650; }
+  .month-picker summary:hover, .month-step:hover, .this-month:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .08); }
+  .month-picker-panel, .category-panel { position: absolute; z-index: 20; top: calc(100% + .5rem); left: 0; width: 19rem; max-width: calc(100vw - 3.5rem); padding: 1rem; background: #0b1728; border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.45); }
+  .year-select-wrap { display: grid; gap: .5rem; }
+  .year-select-wrap select { min-height: 44px; color: var(--text); background: #07101c; font-weight: 750; }
+  .month-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; margin-top: .75rem; }
+  .month-option { display: grid; min-height: 44px; place-items: center; color: var(--muted); border: 1px solid transparent; border-radius: 9px; text-decoration: none; font-size: .8125rem; touch-action: manipulation; }
+  .month-option:hover { color: var(--text); border-color: var(--line); background: rgba(255,255,255,.045); }
+  .month-option.current { text-decoration: underline; text-underline-offset: .3em; }
+  .month-option.active { color: #07101c; background: var(--accent); font-weight: 800; }
+  .month-step, .this-month { display: grid; place-items: center; min-width: 44px; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--text); touch-action: manipulation; }
   .month-step { color: var(--accent); }
-  .today { padding: 0 .75rem; margin-left: auto; font-size: .8125rem; white-space: nowrap; }
-  .month-step:hover, .today:hover, .month-picker summary:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .08); }
+  .this-month { padding: 0 .75rem; margin-left: auto; font-size: .8125rem; white-space: nowrap; }
   .filters { display: flex; flex-wrap: wrap; gap: .25rem; margin: .75rem 0; }
-  .filters a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; white-space: nowrap; padding: .5rem .75rem; text-decoration: none; color: var(--muted); border: 1px solid transparent; border-radius: 999px; font-size: .8125rem; touch-action: manipulation; }
+  .filters a { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: .5rem .75rem; color: var(--muted); border: 1px solid transparent; border-radius: 999px; text-decoration: none; font-size: .8125rem; }
   .filters a:hover { color: var(--text); background: rgba(255,255,255,.06); }
   .filters a.active { color: var(--accent); border-color: rgba(var(--accent-rgb), .4); background: rgba(var(--accent-rgb), .1); }
-  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 1px solid rgba(159,180,211,.3); border-radius: var(--radius); overflow: hidden; background: rgba(7,16,28,.55); }
-  .weekday { padding: .7rem; color: var(--muted); text-align: center; font-size: .68rem; border-right: 1px solid rgba(159,180,211,.25); border-bottom: 1px solid rgba(159,180,211,.3); background: rgba(7,16,28,.18); }
-  .weekday:nth-child(7) { border-right: 0; }
-  .day { min-height: 132px; padding: .55rem; border-right: 1px solid rgba(159,180,211,.25); border-bottom: 1px solid rgba(159,180,211,.25); overflow: hidden; }
-  .day:nth-child(7n + 7) { border-right: 0; }
-  .day.outside { background: rgba(0,0,0,.24); }
-  .day.current .day-number { color: #07101c; background: var(--accent); }
-  .day-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: var(--muted); font-size: .72rem; }
-  .day-events { display: grid; gap: .3rem; margin-top: .45rem; }
-  .calendar-event { display: block; padding: .38rem .42rem; overflow: hidden; color: #dceaf3; background: rgba(156,134,255,.1); border-left: 2px solid var(--purple); border-radius: 4px; text-decoration: none; font-size: .8rem; line-height: 1.5; }
-  .calendar-event:hover, .calendar-event:focus-visible { background: rgba(var(--accent-rgb), .2); }
-  .calendar-event.live { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
-  .calendar-event.release { border-color: #70a7ff; }
-  .calendar-event.cancelled { text-decoration: line-through; opacity: .7; }
-  .calendar-event small, .calendar-event b { display: block; color: var(--muted); font: .75rem/1.5 ui-monospace; }
-  .calendar-event b { color: var(--warning); }
-  .mobile-timeline, .day-select, .calendar-key { display: none; }
+  .mobile-controls, .mobile-overview, .mobile-timeline { display: none; }
   @media (max-width: 800px) {
+    .desktop-calendar { display: none; }
     .calendar-surface { padding: .75rem; background: rgba(7,16,28,.92); border: 1px solid var(--line); border-radius: var(--radius); }
     .page-actions { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: .375rem; }
     .month-picker { min-width: 0; }
-    .month-picker summary { min-width: 0; padding: 0 .65rem; background: transparent; }
-    .month-picker summary span { text-align: center; font-size: .9375rem; }
-    .month-picker summary :global(.icon:first-child) { display: none; }
-    .month-picker-panel { left: calc(-44px - .375rem); right: auto; width: min(19rem, calc(100vw - 3.5rem)); }
-    .today { grid-column: 1 / -1; justify-self: end; min-height: 32px; padding: .25rem .5rem; border-color: transparent; }
-    .filters { gap: .125rem; margin: .25rem 0 .75rem; }
-    .filters a { flex: 1 0 auto; min-width: 0; padding: .4rem .375rem; font-size: .75rem; }
-    .calendar-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); border: 0; border-radius: 0; background: none; gap: .2rem 0; overflow: visible; }
-    .weekday { padding: .5rem 0; font-size: .75rem; border: 0; background: none; }
-    .day { min-height: 0; padding: 0; border: 0; overflow: visible; }
-    .day.outside { background: transparent; }
-    .day-number, .day-events { display: none; }
-    .day-select { display: grid; align-content: center; justify-items: center; gap: .3rem; min-height: 48px; color: var(--text); border: 1px solid transparent; border-radius: 10px; text-decoration: none; font-size: .875rem; font-variant-numeric: tabular-nums; touch-action: manipulation; }
-    .day-select:hover { background: rgba(255,255,255,.07); }
-    .current .day-select > span:first-child { color: var(--accent); text-decoration: underline; text-underline-offset: .2em; }
-    .day-select[aria-current] { background: var(--accent); color: #07101c; font-weight: 800; }
-    .day-select[aria-current] > span:first-child, .current .day-select[aria-current] > span:first-child { color: #07101c; }
-    .day-markers { display: flex; align-items: center; justify-content: center; gap: 3px; height: 5px; }
-    .day-markers i, .calendar-key i { width: 4px; height: 4px; border-radius: 50%; background: var(--muted); }
-    .day-markers .live { background: var(--accent); }
-    .day-markers .event { background: var(--purple); }
-    .day-markers .release { background: #70a7ff; }
-    .day-markers .media { background: #7ad8c0; }
-    .day-select[aria-current] .day-markers i { background: #07101c; }
-    .day-markers b { font-size: .625rem; line-height: 1; }
-    .calendar-key { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin: .75rem .25rem 0; color: var(--muted); font-size: .75rem; }
-    .calendar-key > span:first-child { display: flex; align-items: center; gap: .4rem; }
-    .calendar-key i { background: var(--accent); }
-    .mobile-timeline { display: block; margin-top: 1.25rem; }
-    .day-heading { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; margin: 0 .15rem .75rem; }
-    .day-heading h3 { margin: 0; font-size: 1rem; }
-    .day-heading > span { flex-shrink: 0; color: var(--muted); font-size: .75rem; }
-    .day-agenda[hidden] { display: none; }
-    .day-empty { display: flex; align-items: center; gap: .75rem; padding: 1.25rem 1rem; background: rgba(7,16,28,.9); border: 1px solid var(--line); border-radius: var(--radius); color: var(--muted); }
-    .day-empty p { margin: 0; font-size: .875rem; line-height: 1.6; }
+    .month-picker summary { min-width: 0; padding: 0 .4rem; background: transparent; }
+    .month-picker-panel { left: calc(-44px - .375rem); }
+    .this-month { grid-column: 1 / -1; justify-self: end; border-color: transparent; }
+    .mobile-controls { display: flex; align-items: center; gap: .5rem; margin-top: .25rem; padding-right: 9rem; }
+    .category-picker summary { display: flex; align-items: center; gap: .4rem; min-height: 44px; padding: 0 .5rem; color: var(--text); font-size: .8125rem; }
+    .category-picker summary:hover, .mobile-overview > summary:hover { color: var(--accent); }
+
+    .category-panel { width: min(19rem, calc(100vw - 3.5rem)); }
+    fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem .5rem; margin: 0; padding: .5rem 0; border: 0; }
+    legend { color: var(--muted); font-size: .8125rem; }
+    fieldset label { display: flex; align-items: center; gap: .5rem; min-height: 44px; cursor: pointer; color: var(--text); }
+    fieldset input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+    .category-actions { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-top: .5rem; padding-top: .75rem; border-top: 1px solid var(--line); }
+    .category-actions a { display: inline-flex; align-items: center; min-height: 44px; padding: .25rem; color: var(--muted); font-size: .8125rem; }
+    .category-actions a:hover { color: var(--text); }
+    .category-actions button { min-height: 44px; font-size: .8125rem; }
+    .mobile-overview { display: block; }
+    .mobile-overview > summary { display: flex; align-items: center; justify-content: flex-end; width: max-content; max-width: 9rem; margin: -44px 0 0 auto; gap: .4rem; min-height: 44px; color: var(--muted); font-size: .8125rem; }
+    .mobile-overview[open] .overview-caret { transform: rotate(180deg); }
+    .mobile-timeline { display: grid; gap: 1.5rem; margin-top: 1.25rem; }
+    .filter-summary { margin: 0; color: var(--muted); font-size: .8125rem; }
+    .day-heading { display: flex; align-items: baseline; gap: .65rem; margin: 0 .15rem .75rem; font-size: 1rem; scroll-margin-top: 1rem; }
+    .day-heading > span { color: var(--accent); font-size: .75rem; }
+    .day-heading:target { color: var(--accent); }
+    .day-heading:focus { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
+    .month-empty { display: grid; justify-items: start; gap: .75rem; padding: 1.25rem 1rem; background: rgba(7,16,28,.9); border: 1px solid var(--line); border-radius: var(--radius); color: var(--muted); }
+    .month-empty p { margin: 0; font-size: .875rem; line-height: 1.6; }
+    .month-empty a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); }
+    .month-empty a:hover { color: var(--text); }
+    .next-month { display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px; color: var(--text); border: 1px solid var(--line); border-radius: 10px; text-decoration: none; font-size: .875rem; }
+    .next-month:hover { color: var(--accent); background: rgba(var(--accent-rgb), .08); }
   }
-  @media (prefers-reduced-motion: reduce) { .month-picker summary :global(.picker-caret) { transition: none; } }
 </style>

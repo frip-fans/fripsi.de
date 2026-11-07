@@ -25,3 +25,14 @@ export function eventListYear(requested: string | null, currentYear: string, yea
   if (/^\d{4}$/.test(requested ?? "") && Number(requested) >= 1900 && Number(requested) <= 2100) return requested!;
   return years.find((item) => item.year === currentYear)?.year ?? years[0]?.year ?? currentYear;
 }
+
+// The monthly agenda carries its month and categories, not the search-only state.
+export function calendarAgendaHref(params: URLSearchParams, fallbackMonth: string): string {
+  const next = new URLSearchParams(params);
+  const month = next.get("month");
+  next.set("month", /^\d{4}-(0[1-9]|1[0-2])$/.test(month ?? "") ? month! : fallbackMonth);
+  next.set("view", "calendar");
+  for (const key of ["year", "q", "location", "sort", "date"]) next.delete(key);
+  if (next.get("calendar") !== "1") next.delete("calendar");
+  return `/calendar?${next}`;
+}

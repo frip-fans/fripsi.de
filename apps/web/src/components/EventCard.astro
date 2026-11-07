@@ -4,13 +4,13 @@ import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel
 import { getLocale } from "../lib/i18n";
 import Icon from "./Icon.astro";
 
-interface Props { event: EventRecord; compact?: boolean; timeInHeader?: boolean }
-const { event, compact = false, timeInHeader = false } = Astro.props;
+interface Props { event: EventRecord; compact?: boolean; timeInHeader?: boolean; dateInGroup?: boolean }
+const { event, compact = false, timeInHeader = false, dateInGroup = false } = Astro.props;
 const locale = getLocale(Astro.request);
 const displayStatus = displayEventStatus(event);
 const singleDay = !event.end_date || event.end_date === event.start_date;
 ---
-<article class:list={["event-card", { compact, "time-in-header": timeInHeader, "single-day": singleDay, dimmed: displayStatus === "completed" }]}>
+<article class:list={["event-card", { compact, "time-in-header": timeInHeader, "date-in-group": dateInGroup, "single-day": singleDay, dimmed: displayStatus === "completed" }]}>
   <div class="event-date">
     <span class="event-year">{event.start_date.slice(0, 4)}</span>
     <strong>{event.start_date.slice(5).replace("-", ".")}</strong>
@@ -57,6 +57,11 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
   .event-main { min-width: 0; overflow-wrap: anywhere; }
   :global(body:has(.archive-head)) .event-card { padding: 1rem; background: rgba(10,21,36,.94); border-radius: 14px; }
   @media (prefers-reduced-motion: reduce) { .event-card { transition: none; } .event-card:hover { transform: none; } }
+  .event-card.date-in-group { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .date-in-group .event-date { display: none; }
+  .date-in-group .event-main { display: block; }
+  .date-in-group .meta { justify-content: flex-start; margin-bottom: .5rem; }
+  .date-in-group h3 { margin: 0 0 .75rem; }
   .event-header-time { color: var(--event-time-color, var(--muted)); font-size: .8125rem; font-weight: 400; line-height: 1.4; white-space: nowrap; }
   .time-in-header { grid-template-columns: minmax(0, 1fr) auto; gap: 0 .75rem; }
   .time-in-header .event-main { display: contents; }

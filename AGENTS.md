@@ -13,13 +13,16 @@
 ## PR 与发布
 
 ```text
-独立 worktree + 功能分支 → PR 到 staging → CI 通过 → 测试站验收 → staging 提 PR 到 master → 生产部署
+独立 worktree + 任务分支 → PR 到 staging → CI / 测试站验收 → release/*（基于 master，内容对齐已验收 staging）→ rebase PR 到 master → 生产部署
 ```
 
 - 完成变更后推送任务分支，创建目标为 `staging` 的 PR，说明最终行为、验证结果及数据库影响。
 - 默认交付到可审查的 PR；只有已获得用户合并授权且检查通过，才合并到 `staging`。已有授权无需重复询问。
-- 不直接推送 `staging` 或 `master`，不从功能分支直接向 `master` 发布，也不通过手动部署绕过分支发布流程。
-- `staging` 验收通过并获得发布授权后，从 `staging` 向 `master` 提 PR。使用 merge commit，不对这条长期分支做 squash/rebase，发布后保留 `staging`。
+- 不直接推送 `staging` 或 `master`，不从普通功能分支直接向 `master` 发布，也不通过手动部署绕过分支发布流程。生产发布只使用下述 `release/*` 分支。
+- `staging` 验收通过并获得发布授权后，固定验收提交 SHA；在独立 worktree 中从最新 `origin/master` 创建 `release/*` 分支，将已验收 staging 的完整受版本控制内容对齐到该分支，核对文件树完全一致，再提交发布 PR 到 `master`。不要将 staging 的合并历史直接带入发布分支。
+- `master` 的现有保护规则只允许 **Rebase and merge**。发布 PR 使用 rebase 合并，保留 PR、Verify 和其他现有保护；不得为了发布改动或绕过保护规则。提交前和合并前核对发布分支 SHA、验收源 SHA、目标 master 与 CI 状态；master 或验收范围变化后重新准备发布分支并验证。
+- 保留 `staging` 长期分支，不对 `staging` / `master` 本身做 rebase 或强推。rebase merge 会改变生产提交 SHA，发布后核对源代码文件树与生产部署提交，不要求两条长期分支具有相同提交历史。新的发布仍从最新 master 创建。
+- 如 master 有尚未进入 staging 的生产修复，先通过独立任务 PR 回补 staging 并重新验收，避免发布快照覆盖生产修复。
 - 不强推或删除 `staging`、`master`。修复发布问题仍走独立 worktree 和 PR 流程。
 - 代码合并不等于内容数据同步。数据库 migration、内容导入和跨环境数据写入按发布文档单独处理，不随代码发布擅自执行。
 

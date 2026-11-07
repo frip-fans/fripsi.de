@@ -48,7 +48,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 <html lang={locale}>
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content={resolvedDescription} />
     <meta name="theme-color" content="#07101c" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -57,6 +57,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     {clientRouting && <ClientRouter fallback="swap" />}
   </head>
   <body class:list={{ admin }} transition:animate={clientRouting ? "none" : undefined}>
+    <div class="safe-area-top" aria-hidden="true"></div>
     <a class="skip-link" href="#main-content">{t(locale, "nav.skip")}</a>
     <div class="background-rotator" data-background-rotator={rotateHomeBackground || undefined} aria-hidden="true">
       <div class="space-backdrop moon-backdrop is-active" data-background-slide style={`--space-image: url("${moonBackground}"); --space-position: center top`}></div>
@@ -209,6 +210,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   :root {
     color-scheme: dark;
     --bg: #07101c;
+    --safe-area-top: env(safe-area-inset-top, 0px);
     --panel: rgba(12, 25, 43, .82);
     --panel-solid: #0d1b2d;
     --line: rgba(173, 206, 231, .16);
@@ -226,8 +228,13 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     color: var(--text);
   }
   * { box-sizing: border-box; }
-  html { min-width: 320px; background: var(--bg); scroll-behavior: smooth; scrollbar-gutter: stable; }
-  body { position: relative; isolation: isolate; margin: 0; min-height: 100vh; background: transparent; }
+  html { min-width: 320px; background: var(--bg); scroll-behavior: smooth; scrollbar-gutter: stable; scroll-padding-top: var(--safe-area-top); }
+  body { position: relative; isolation: isolate; margin: 0; min-height: 100vh; min-height: 100svh; padding: var(--safe-area-top) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); background: var(--bg); }
+  .safe-area-top { display: none; }
+  @media (pointer: coarse) {
+    /* Keep Safari's top-edge color sampling off scrolling cards and background art. */
+    .safe-area-top { display: block; position: fixed; z-index: 1000; inset: 0 0 auto; height: max(1px, var(--safe-area-top)); background: var(--bg); pointer-events: none; }
+  }
   a { color: inherit; }
   :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   #main-content:focus { outline: none; }

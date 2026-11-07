@@ -16,7 +16,8 @@ describe("public UI i18n", () => {
   it("interpolates translated UI strings", () => {
     expect(t("en", "pagination.summary", { total: 12, item: "songs", current: 1, pages: 2 }))
       .toBe("12 songs · Page 1 of 2");
-    expect(t("zh-TW", "nav.calendar")).toBe("日曆");
+    expect(t("zh-TW", "nav.calendar")).toBe("活動日曆");
+    expect(t("en", "calendar.listView")).toBe("List");
   });
 
   it("does not leak CJK fallback copy into English UI", () => {

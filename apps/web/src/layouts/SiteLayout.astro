@@ -36,8 +36,7 @@ const navigationLinks = admin ? [
   { href: "/admin/data", label: "数据", active: current.startsWith("/admin/data") },
 ] : [
   { href: "/", label: t(locale, "nav.home"), active: current === "/" },
-  { href: "/calendar", label: t(locale, "nav.calendar"), active: current.startsWith("/calendar") },
-  { href: "/archive", label: t(locale, "nav.events"), active: current.startsWith("/archive") },
+  { href: "/calendar", label: t(locale, "nav.calendar"), active: current.startsWith("/calendar") || current.startsWith("/archive") },
   { href: "/journey", label: t(locale, "nav.journey"), active: current.startsWith("/journey") },
   { href: "/music/lives", label: t(locale, "nav.music"), active: current.startsWith("/music") },
   { href: "/yaginuma-intensity-calibrator", label: t(locale, "nav.yaginuma"), active: current.startsWith("/yaginuma-intensity-calibrator") },
@@ -93,14 +92,13 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         <span>{t(locale, "nav.menu")}</span>
       </button>
     </header>
-    <dialog id="mobile-menu" class="mobile-menu" data-mobile-menu aria-labelledby="mobile-menu-title">
+    <dialog id="mobile-menu" class="mobile-menu" data-mobile-menu aria-label={t(locale, "nav.menu")}>
       <div class="mobile-menu-top">
         <div class="mobile-menu-brand"><img src="/fan-site-logo.svg" width="40" height="40" alt="" /><span>fripSi<span class="brand-tld">.de</span></span></div>
         <button type="button" class="mobile-menu-close" data-menu-close aria-label={t(locale, "nav.closeMenu")}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
         </button>
       </div>
-      <h2 id="mobile-menu-title">{t(locale, "nav.menu")}</h2>
       <nav class="mobile-menu-links" aria-label={t(locale, "nav.main")}>
         {navigationLinks.map(link => <a href={link.href} aria-current={link.active ? "page" : undefined}><span>{link.label}</span><Icon name="chevron-right" /></a>)}
         {admin ? <a href="/">查看网站 <Icon name="chevron-right" /></a> : <a class="mobile-menu-community" href="/discuss" aria-current={current.startsWith("/discuss") ? "page" : undefined}><span><Icon name="chat-dots" />{t(locale, "nav.community")}</span><Icon name="chevron-right" /></a>}
@@ -278,8 +276,8 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   nav { display: flex; align-items: center; gap: .2rem; flex-wrap: wrap; }
   .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: .55rem; min-width: 0; margin-left: auto; }
   nav a { text-decoration: none; color: var(--muted); padding: .6rem .72rem; border-radius: 9px; font-size: .92rem; }
-  nav a:hover, nav a.active { color: var(--text); background: rgba(255,255,255,.06); }
-  nav a.active { box-shadow: inset 0 -1px var(--accent); }
+  nav a:hover { color: var(--text); background: rgba(255,255,255,.06); }
+  .header-actions nav a.active { color: #07101c; background: var(--accent); box-shadow: none; }
   .nav-community { display: inline-flex; align-items: center; justify-content: center; gap: .38rem; flex: 0 0 auto; min-height: 38px; padding: .55rem .72rem; color: #08111d; background: var(--accent); border-radius: 9px; box-shadow: 0 8px 22px rgba(var(--accent-rgb), .14); font-size: .84rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
   .nav-community:hover, .nav-community.active { color: #050b12; background: rgb(244, 145, 80); box-shadow: 0 10px 28px rgba(var(--accent-rgb), .22), inset 0 -1px rgba(255,255,255,.34); }
   main { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; min-height: calc(100vh - 180px); }
@@ -337,12 +335,11 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .mobile-menu-brand { display: flex; align-items: center; gap: .75rem; font-weight: 800; font-size: 1.2rem; }
   .mobile-menu-close { width: 48px; height: 48px; padding: .6rem; color: var(--text); background: rgba(255,255,255,.06); border: 1px solid var(--line); }
   .mobile-menu-trigger:hover, .mobile-menu-close:hover { color: var(--accent); border-color: var(--accent); transform: none; }
-  .mobile-menu h2 { margin: 1.75rem 0 1rem; color: var(--muted); font-size: .85rem; font-weight: 600; letter-spacing: .08em; }
-  .mobile-menu-links { display: grid; gap: .35rem; margin-bottom: 1.5rem; }
+  .mobile-menu-links { display: grid; gap: .35rem; margin: 1.5rem 0; }
   .mobile-menu-links a { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 56px; padding: .85rem 1rem; border: 1px solid transparent; border-radius: 12px; color: var(--text); font-size: 1.125rem; font-weight: 650; overflow-wrap: anywhere; }
   .mobile-menu-links a > .icon { flex: 0 0 auto; color: var(--muted); font-size: .8rem; opacity: .65; }
-  .mobile-menu-links a[aria-current="page"] { color: var(--accent); background: rgba(var(--accent-rgb), .1); border-color: rgba(var(--accent-rgb), .45); }
-  .mobile-menu-links a[aria-current="page"] > .icon { color: var(--accent); }
+  .mobile-menu-links a[aria-current="page"], .mobile-menu-links a[aria-current="page"]:hover { color: #07101c; background: var(--accent); border-color: transparent; }
+  .mobile-menu-links a[aria-current="page"] > .icon { color: inherit; opacity: 1; }
   .mobile-menu-links a:hover { background: rgba(255,255,255,.07); }
   .mobile-menu-links .mobile-menu-community { margin-top: .6rem; border-color: var(--line); }
   .mobile-menu-community span { display: inline-flex; align-items: center; gap: .65rem; }

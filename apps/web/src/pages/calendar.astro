@@ -1,227 +1,38 @@
 ---
-import { dateInTimeZone, searchEvents, type EventRecord } from "@frip-fan/core";
-import EventCard from "../components/EventCard.astro";
+import { dateInTimeZone } from "@frip-fan/core";
+import EventCalendarView from "../components/EventCalendarView.astro";
+import EventListView from "../components/EventListView.astro";
 import Icon from "../components/Icon.astro";
-import { categoryLabels, displayEventStatus, monthBounds, parseMonth, shiftMonth, statusLabel } from "../lib/format";
 import SiteLayout from "../layouts/SiteLayout.astro";
+import { calendarViewHref } from "../lib/calendar-navigation";
 import { getEnv } from "../lib/env";
-import { formatMonthLabel, formatMonthOption, formatYearLabel, getLocale, t } from "../lib/i18n";
+import { getLocale, t } from "../lib/i18n";
 
-const env = getEnv();
 const locale = getLocale(Astro.request);
-const today = dateInTimeZone();
-const month = parseMonth(Astro.url.searchParams.get("month"), today);
-const requestedCategory = Astro.url.searchParams.get("category");
-const category = requestedCategory && ["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"].includes(requestedCategory)
-  ? requestedCategory as EventRecord["category"]
-  : null;
-const { from, to, days, offset } = monthBounds(month);
-const categories = category ? [category] : undefined;
-const events = await searchEvents(env.DB, { date_from: from, date_to: to, categories, limit: 100 }, true);
-const eventRange = await env.DB.prepare(`
-  SELECT substr(MIN(start_date), 1, 7) AS first_month,
-         substr(MAX(start_date), 1, 7) AS last_month
-  FROM events
-  WHERE published = 1 AND archived_at IS NULL
-`).first<{ first_month: string | null; last_month: string | null }>();
-const byDay = new Map<number, EventRecord[]>();
-for (const event of events) {
-  const day = Number(event.start_date.slice(-2));
-  byDay.set(day, [...(byDay.get(day) ?? []), event]);
-}
-const monthLabel = formatMonthLabel(locale, month);
-const weeks = Array.from({ length: Math.ceil((offset + days) / 7) * 7 }, (_, index) => index - offset + 1);
-const filterQuery = category ? `&category=${category}` : "";
-const todayYear = Number(today.slice(0, 4));
-const selectedYear = Number(month.slice(0, 4));
-const firstEventYear = Number(eventRange?.first_month?.slice(0, 4) ?? todayYear);
-const lastEventYear = Number(eventRange?.last_month?.slice(0, 4) ?? todayYear);
-const firstPickerYear = Math.max(1900, Math.min(firstEventYear, selectedYear, 2002));
-const lastPickerYear = Math.min(2100, Math.max(lastEventYear, selectedYear, todayYear + 3));
-const pickerYears = Array.from({ length: lastPickerYear - firstPickerYear + 1 }, (_, index) => firstPickerYear + index);
-const subscriptionUrl = new URL("/calendar.ics", env.SITE_URL || Astro.url.origin);
+const view = Astro.url.searchParams.get("view") === "list" ? "list" : "calendar";
+const todayMonth = dateInTimeZone().slice(0, 7);
+const subscriptionUrl = new URL("/calendar.ics", getEnv().SITE_URL || Astro.url.origin);
 const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
 ---
-<SiteLayout title={t(locale, "calendar.title")} description={`${monthLabel} · ${t(locale, "calendar.title")}`}>
-  <header class="page-head">
-    <div><p class="eyebrow">FRIPSIDE EVENT CALENDAR</p><h1>{monthLabel}</h1></div>
-    <div class="page-actions">
-      <a class="button secondary subscribe-button" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" />{t(locale, "home.subscribe")}</a>
-      <details
-        class="month-picker"
-        data-month-picker
-        data-selected-month={month}
-        data-today-month={today.slice(0, 7)}
-        data-min-year={firstPickerYear}
-        data-max-year={lastPickerYear}
-        data-category={category || undefined}
-      >
-        <summary aria-label={t(locale, "calendar.openPicker")}>
-          <Icon name="calendar3" />
-          <span>{monthLabel}</span>
-          <Icon name="chevron-right" class="picker-caret" />
-        </summary>
-        <div class="month-picker-panel">
-          <div class="year-switcher">
-            <button class="year-step" type="button" data-year-delta="-1" aria-label={t(locale, "calendar.previousYear")}><Icon name="chevron-left" /></button>
-            <label class="year-select-wrap">
-              <span class="visually-hidden">{t(locale, "calendar.selectYear")}</span>
-              <select aria-label={t(locale, "calendar.selectYear")} data-picker-year>
-                {pickerYears.map((year) => <option value={year} selected={year === selectedYear}>{formatYearLabel(locale, year)}</option>)}
-              </select>
-            </label>
-            <button class="year-step" type="button" data-year-delta="1" aria-label={t(locale, "calendar.nextYear")}><Icon name="chevron-right" /></button>
-          </div>
-          <div class="month-grid" aria-label={t(locale, "calendar.selectMonth")}>
-            {Array.from({ length: 12 }, (_, index) => {
-              const value = `${selectedYear}-${String(index + 1).padStart(2, "0")}`;
-              return (
-                <a
-                  class:list={["month-option", { active: value === month, current: value === today.slice(0, 7) }]}
-                  href={`/calendar?month=${value}${filterQuery}`}
-                  data-picker-month={index + 1}
-                  aria-current={value === month ? "date" : undefined}
-                >{formatMonthOption(locale, index + 1)}</a>
-              );
-            })}
-          </div>
-        </div>
-      </details>
-      <div class="month-nav">
-        <a href={`/calendar?month=${shiftMonth(month, -1)}${filterQuery}`} aria-label={t(locale, "calendar.previousMonth")}><Icon name="chevron-left" /></a>
-        <a class="today" href={`/calendar?month=${today.slice(0, 7)}${filterQuery}`}>{t(locale, "common.today")}</a>
-        <a href={`/calendar?month=${shiftMonth(month, 1)}${filterQuery}`} aria-label={t(locale, "calendar.nextMonth")}><Icon name="chevron-right" /></a>
-      </div>
-    </div>
+<SiteLayout title={t(locale, "calendar.title")} clientRouting>
+  <header class="events-head">
+    <h1>{t(locale, "nav.calendar")}</h1>
+    <a class="button secondary subscribe-button" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" />{t(locale, "home.subscribe")}</a>
   </header>
-  <div class="filters" aria-label={t(locale, "calendar.categoryFilter")}>
-    <a class:list={{ active: !category }} href={`/calendar?month=${month}`}>{t(locale, "common.all")}</a>
-    {Object.entries(categoryLabels).map(([value, label]) => <a class:list={{ active: category === value }} href={`/calendar?month=${month}&category=${value}`}>{label}</a>)}
-  </div>
-
-  <section class="calendar-grid" aria-label={t(locale, "calendar.grid", { month: monthLabel })}>
-    {t(locale, "calendar.weekdays").split(",").map((day) => <div class="weekday">{day}</div>)}
-    {weeks.map((day) => (
-      <div class:list={["day", { outside: day < 1 || day > days, current: `${month}-${String(day).padStart(2, "0")}` === today }]}>
-        {day >= 1 && day <= days && <>
-          <span class="day-number">{day}</span>
-          <div class="day-events">
-            {(byDay.get(day) ?? []).map((event) => {
-              const displayStatus = displayEventStatus(event, today);
-              return (
-                <a class:list={["calendar-event", event.category.toLowerCase(), displayStatus]} href={`/events/${event.slug}`} title={event.title}>
-                  <small>{event.start_time ?? "ALL"}</small>{event.title}
-                  {displayStatus !== "scheduled" && <b>{statusLabel(locale, displayStatus)}</b>}
-                </a>
-              );
-            })}
-          </div>
-        </>}
-      </div>
-    ))}
-  </section>
-
-  <section class="mobile-timeline stack">
-    {events.map((event) => <EventCard event={event} compact />)}
-    {!events.length && <div class="empty panel">{t(locale, "calendar.empty")}</div>}
-  </section>
+  <nav class="event-views" aria-label={t(locale, "calendar.views")} data-event-views data-today-month={todayMonth}>
+    <a href={calendarViewHref(Astro.url.searchParams, "calendar", todayMonth)} aria-current={view === "calendar" ? "page" : undefined} data-calendar-view="calendar"><Icon name="calendar3" />{t(locale, "calendar.calendarView")}</a>
+    <a href={calendarViewHref(Astro.url.searchParams, "list", todayMonth)} aria-current={view === "list" ? "page" : undefined} data-calendar-view="list"><Icon name="list" />{t(locale, "calendar.listView")}</a>
+  </nav>
+  {view === "list" ? <EventListView /> : <EventCalendarView />}
 </SiteLayout>
 
-<script>
-  document.querySelectorAll<HTMLElement>("[data-month-picker]").forEach((picker) => {
-    const yearSelect = picker.querySelector("[data-picker-year]") as (Element & { value: string }) | null;
-    const yearSteps = picker.querySelectorAll<HTMLElement>("[data-year-delta]");
-    const monthLinks = picker.querySelectorAll<HTMLElement>("[data-picker-month]");
-    const selectedMonth = picker.dataset.selectedMonth ?? "";
-    const todayMonth = picker.dataset.todayMonth ?? "";
-    const minYear = Number(picker.dataset.minYear);
-    const maxYear = Number(picker.dataset.maxYear);
-    const categoryQuery = picker.dataset.category ? `&category=${encodeURIComponent(picker.dataset.category)}` : "";
-    let displayYear = Number(selectedMonth.slice(0, 4));
-
-    const renderPickerYear = () => {
-      if (yearSelect) yearSelect.value = String(displayYear);
-      yearSteps.forEach((button) => {
-        const delta = Number(button.dataset.yearDelta);
-        button.toggleAttribute("disabled", displayYear + delta < minYear || displayYear + delta > maxYear);
-      });
-      monthLinks.forEach((link) => {
-        const monthNumber = String(link.dataset.pickerMonth).padStart(2, "0");
-        const value = `${displayYear}-${monthNumber}`;
-        link.setAttribute("href", `/calendar?month=${value}${categoryQuery}`);
-        link.classList.toggle("active", value === selectedMonth);
-        link.classList.toggle("current", value === todayMonth);
-        if (value === selectedMonth) link.setAttribute("aria-current", "date");
-        else link.removeAttribute("aria-current");
-      });
-    };
-
-    yearSteps.forEach((button) => button.addEventListener("click", () => {
-      displayYear = Math.min(maxYear, Math.max(minYear, displayYear + Number(button.dataset.yearDelta)));
-      renderPickerYear();
-    }));
-    yearSelect?.addEventListener("change", () => {
-      displayYear = Math.min(maxYear, Math.max(minYear, Number(yearSelect.value)));
-      renderPickerYear();
-    });
-    document.addEventListener("click", (event) => {
-      if (event.target instanceof Node && !picker.contains(event.target)) picker.removeAttribute("open");
-    });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") picker.removeAttribute("open");
-    });
-    renderPickerYear();
-  });
-</script>
-
 <style>
-  .page-head { display: flex; align-items: end; justify-content: space-between; gap: 2rem; }
-  .page-head h1 { font-size: var(--heading-1-size); margin-bottom: 0; }
-  .page-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; justify-content: flex-end; }
-  .subscribe-button { min-height: 42px; font-size: .85rem; }
-  .month-picker { position: relative; }
-  .month-picker summary { display: flex; align-items: center; gap: .55rem; min-width: 10.5rem; height: 42px; padding: 0 .8rem; color: var(--text); background: rgba(7,16,28,.82); border: 1px solid var(--line); border-radius: 10px; list-style: none; cursor: pointer; user-select: none; }
-  .month-picker summary::-webkit-details-marker { display: none; }
-  .month-picker summary :global(.icon:first-child) { color: var(--accent); }
-  .month-picker summary span { flex: 1; font-size: .82rem; font-weight: 650; }
-  .month-picker summary :global(.picker-caret) { color: var(--muted); transition: transform .2s ease; }
-  .month-picker[open] summary { border-color: rgba(var(--accent-rgb), .45); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .07); }
-  .month-picker[open] summary :global(.picker-caret) { transform: rotate(90deg); }
-  .month-picker-panel { position: absolute; z-index: 20; top: calc(100% + .65rem); right: 0; width: 19rem; padding: 1rem; background: linear-gradient(145deg, rgba(15,30,49,.98), rgba(8,18,31,.98)); border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.45); backdrop-filter: blur(20px); }
-  .year-switcher { display: grid; grid-template-columns: 38px 1fr 38px; align-items: center; gap: .5rem; padding-bottom: .85rem; border-bottom: 1px solid var(--line); }
-  .year-step { min-height: 38px; padding: 0; color: var(--accent); background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 9px; }
-  .year-step:disabled { opacity: .28; cursor: not-allowed; transform: none; }
-  .year-select-wrap { display: block; }
-  .year-select-wrap select { height: 38px; padding: 0 2rem 0 .75rem; color: var(--text); text-align: center; background: rgba(4,11,20,.58); border-color: transparent; font-weight: 750; cursor: pointer; }
-  .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .45rem; margin-top: .9rem; }
-  .month-option { position: relative; display: grid; min-height: 42px; place-items: center; color: var(--muted); border: 1px solid transparent; border-radius: 9px; text-decoration: none; font-size: .8rem; transition: color .16s, border-color .16s, background .16s; }
-  .month-option:hover { color: var(--text); border-color: var(--line); background: rgba(255,255,255,.045); }
-  .month-option.current::after { content: ""; position: absolute; bottom: .3rem; width: 3px; height: 3px; background: var(--accent); border-radius: 50%; }
-  .month-option.active { color: #07101c; background: var(--accent); border-color: var(--accent); font-weight: 800; }
-  .month-option.active::after { background: #07101c; }
-  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-  .month-nav { display: flex; align-items: center; gap: .35rem; }
-  .month-nav a { display: grid; place-items: center; min-width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--accent); }
-  .month-nav .today { color: var(--text); width: auto; padding: 0 .8rem; }
-  .filters { display: flex; gap: .35rem; margin: 2rem 0 1rem; overflow-x: auto; }
-  .filters a { white-space: nowrap; padding: .5rem .8rem; text-decoration: none; color: var(--muted); border: 1px solid transparent; border-radius: 999px; font-size: .8rem; }
-  .filters a.active { color: var(--accent); border-color: rgba(var(--accent-rgb), .28); background: rgba(var(--accent-rgb), .06); }
-  .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border: 1px solid rgba(159,180,211,.3); border-radius: var(--radius); overflow: hidden; background: rgba(7,16,28,.55); }
-  .weekday { padding: .7rem; color: var(--muted); text-align: center; font-size: .68rem; border-right: 1px solid rgba(159,180,211,.25); border-bottom: 1px solid rgba(159,180,211,.3); background: rgba(7,16,28,.18); }
-  .weekday:nth-child(7) { border-right: 0; }
-  .day { min-height: 132px; padding: .55rem; border-right: 1px solid rgba(159,180,211,.25); border-bottom: 1px solid rgba(159,180,211,.25); overflow: hidden; }
-  .day:nth-child(7n + 7) { border-right: 0; }
-  .day.outside { background: rgba(0,0,0,.24); }
-  .day.current .day-number { color: #07101c; background: var(--accent); }
-  .day-number { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; color: var(--muted); font-size: .72rem; }
-  .day-events { display: grid; gap: .3rem; margin-top: .45rem; }
-  .calendar-event { display: block; padding: .38rem .42rem; overflow: hidden; color: #dceaf3; background: rgba(156,134,255,.1); border-left: 2px solid var(--purple); border-radius: 4px; text-decoration: none; font-size: .8rem; line-height: 1.5; }
-  .calendar-event:hover, .calendar-event:focus-visible { background: rgba(var(--accent-rgb), .2); }
-  .calendar-event.live { border-color: var(--accent); background: rgba(var(--accent-rgb), .08); }
-  .calendar-event.release { border-color: #70a7ff; }
-  .calendar-event.cancelled { text-decoration: line-through; opacity: .7; }
-  .calendar-event small, .calendar-event b { display: block; color: var(--muted); font: .75rem/1.5 ui-monospace; }
-  .calendar-event b { color: var(--warning); }
-  .mobile-timeline { display: none; }
-  @media (max-width: 800px) { .calendar-grid { display: none; } .mobile-timeline { display: grid; } .page-head { align-items: flex-start; flex-direction: column; } .page-actions { width: 100%; justify-content: flex-start; } .month-picker { order: 3; flex: 1 1 100%; } .month-picker summary { width: 100%; } .month-picker-panel { right: auto; left: 0; width: min(19rem, calc(100vw - 2rem)); } }
+  .events-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+  .events-head h1 { margin: 0; font-size: clamp(1.5rem, 3.5vw, 2rem); }
+  .subscribe-button { min-height: 44px; font-size: .8125rem; }
+  .event-views { display: inline-flex; gap: .25rem; max-width: 100%; margin: 1.25rem 0 1.5rem; padding: .25rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(7,16,28,.75); }
+  .event-views a { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 44px; padding: .6rem 1rem; color: var(--muted); border-radius: 8px; text-decoration: none; font-size: .875rem; font-weight: 600; }
+  .event-views a:hover { color: var(--text); background: rgba(255,255,255,.05); }
+  .event-views a[aria-current="page"] { color: var(--accent); background: rgba(var(--accent-rgb),.12); }
+  @media (max-width: 480px) { .events-head { align-items: flex-start; flex-wrap: wrap; } .event-views { display: flex; } .event-views a { flex: 1; } }
 </style>

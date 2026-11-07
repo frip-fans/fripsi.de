@@ -6,11 +6,11 @@ import {
   searchEvents,
   type AdministrativeArea,
 } from "@frip-fan/core";
-import EventCard from "../components/EventCard.astro";
-import Icon from "../components/Icon.astro";
+import EventCard from "./EventCard.astro";
+import Icon from "./Icon.astro";
 import { archiveLocationCounts, archiveYearCounts } from "../lib/archive-filter";
-import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
+import { eventListYear } from "../lib/calendar-navigation";
 import { getLocale, t } from "../lib/i18n";
 
 const db = getEnv().DB;
@@ -51,6 +51,7 @@ const archiveItems = archiveEntries.map((entry) => {
 const locationCounts = archiveLocationCounts(archiveItems);
 const validCategories = new Set(["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"]);
 const query = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 200);
+const sort = Astro.url.searchParams.get("sort") === "desc" ? "desc" : "asc";
 const selectedCategories = [...new Set(Astro.url.searchParams.getAll("category"))]
   .filter((value) => validCategories.has(value));
 const selectedLocations = [...new Set(Astro.url.searchParams.getAll("location"))]
@@ -64,9 +65,11 @@ const matchedYears = archiveYearCounts(archiveItems, filterState);
 const years = !filtering && !matchedYears.some((item) => item.year === currentYear)
   ? [...matchedYears, { year: currentYear, count: 0 }].sort((left, right) => right.year.localeCompare(left.year))
   : matchedYears;
-const requested = Astro.url.searchParams.get("year");
-const year = requested && /^\d{4}$/.test(requested) && years.some((item) => item.year === requested)
-  ? requested : years.find((item) => item.year === currentYear)?.year ?? years[0]?.year ?? currentYear;
+const year = eventListYear(Astro.url.searchParams.get("year"), currentYear, years);
+if (!years.some((item) => item.year === year)) {
+  years.push({ year, count: 0 });
+  years.sort((left, right) => right.year.localeCompare(left.year));
+}
 const events = await searchEvents(db, { date_from: `${year}-01-01`, date_to: `${year}-12-31`, limit: 500 }, true);
 const categoryOptions = [
   { value: "LIVE", label: "Live" },
@@ -81,21 +84,25 @@ const japaneseLocationOptions = locationOptions.filter((option) => option.value.
 const overseasLocationOptions = locationOptions.filter((option) => option.value.startsWith("country:"));
 const locationKeysByEventId = new Map(archiveItems.map((item) => [item.id, item.locationKeys]));
 const archiveHref = (targetYear: string): string => {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams(Astro.url.searchParams);
+  params.set("view", "list");
   params.set("year", targetYear);
+  params.delete("q");
+  params.delete("category");
+  params.delete("location");
   if (query) params.set("q", query);
   for (const category of selectedCategories) params.append("category", category);
   for (const location of selectedLocations) params.append("location", location);
-  return `/archive?${params}`;
+  return `/calendar?${params}`;
 };
 ---
-<SiteLayout title={t(locale, "archive.title")} clientRouting>
-  <header class="archive-head">
-    <h1>{t(locale, "archive.title")}</h1>
-  </header>
+<section class="archive-head" data-event-list-view>
   {archiveEntries.length > 0 && (
-    <form class="list-toolbar" method="get" action="/archive" data-archive-filter-form>
+    <form class="list-toolbar" method="get" action="/calendar" data-archive-filter-form>
+      <input type="hidden" name="view" value="list" />
       <input type="hidden" name="year" value={year} />
+      {Astro.url.searchParams.has("month") && <input type="hidden" name="month" value={Astro.url.searchParams.get("month")!} />}
+      {Astro.url.searchParams.has("lang") && <input type="hidden" name="lang" value={locale} />}
       <label class="event-search">
         <span class="visually-hidden">{t(locale, "archive.searchLabel")}</span>
         <Icon name="search" />
@@ -183,7 +190,7 @@ const archiveHref = (targetYear: string): string => {
             >
               <Icon name="arrow-down-up" />
               <span>{t(locale, "archive.sort")}</span>
-              <span class="control-value" data-sort-button-label>{t(locale, "archive.sortAsc")}</span>
+              <span class="control-value" data-sort-button-label>{t(locale, sort === "desc" ? "archive.sortDesc" : "archive.sortAsc")}</span>
             </button>
             <div class="control-card sort-card" id="event-sort-panel" data-sort-panel hidden>
               <div class="control-card-head">
@@ -192,11 +199,11 @@ const archiveHref = (targetYear: string): string => {
               </div>
               <div class="sort-options">
                 <label class="sort-choice">
-                  <input type="radio" name="event-sort" value="asc" data-sort-option data-sort-label={t(locale, "archive.sortAsc")} checked />
+                  <input type="radio" name="sort" value="asc" data-sort-option data-sort-label={t(locale, "archive.sortAsc")} checked={sort === "asc"} />
                   <span><strong>{t(locale, "archive.sortAsc")}</strong><small>{t(locale, "archive.sortAscHelp")}</small></span>
                 </label>
                 <label class="sort-choice">
-                  <input type="radio" name="event-sort" value="desc" data-sort-option data-sort-label={t(locale, "archive.sortDesc")} />
+                  <input type="radio" name="sort" value="desc" data-sort-option data-sort-label={t(locale, "archive.sortDesc")} checked={sort === "desc"} />
                   <span><strong>{t(locale, "archive.sortDesc")}</strong><small>{t(locale, "archive.sortDescHelp")}</small></span>
                 </label>
               </div>
@@ -220,6 +227,7 @@ const archiveHref = (targetYear: string): string => {
     class="stack"
     data-event-list
     data-current-year-page={year === currentYear ? "true" : "false"}
+    data-year={year}
     data-today={today}
   >
     {events.map((event, index) => (
@@ -261,9 +269,10 @@ const archiveHref = (targetYear: string): string => {
     <Icon name="chevron-up" class="jump-direction jump-up" />
     <span>{t(locale, "archive.jumpNow")}</span>
   </button>
-</SiteLayout>
+</section>
 
 <script>
+  import { calendarViewHref } from "../lib/calendar-navigation";
   const yearTabsScrollKey = "frip-fan:archive-year-tabs-scroll";
   let archivePageController: AbortController | undefined;
 
@@ -419,6 +428,27 @@ const archiveHref = (targetYear: string): string => {
         if (!item.hidden) visibleCount += 1;
       });
 
+      const url = new URL(location.href);
+      url.searchParams.set("view", "list");
+      if (eventList?.dataset.year) url.searchParams.set("year", eventList.dataset.year);
+      for (const key of ["q", "category", "location", "sort"]) url.searchParams.delete(key);
+      const query = searchInput?.value.trim() ?? "";
+      if (query) url.searchParams.set("q", query);
+      for (const category of selectedCategories) url.searchParams.append("category", category);
+      for (const location of selectedLocations) url.searchParams.append("location", location);
+      if (sortDirection === -1) url.searchParams.set("sort", "desc");
+      history.replaceState(history.state, "", url);
+      yearTabs.querySelectorAll<HTMLAnchorElement>("a").forEach(link => {
+        const year = new URL(link.href).searchParams.get("year");
+        const params = new URLSearchParams(url.searchParams);
+        if (year) params.set("year", year);
+        link.href = `/calendar?${params}`;
+      });
+      document.querySelectorAll<HTMLAnchorElement>("[data-calendar-view]").forEach(link => {
+        const view = link.dataset.calendarView === "list" ? "list" : "calendar";
+        const fallbackMonth = document.querySelector<HTMLElement>("[data-event-views]")?.dataset.todayMonth ?? new Date().toISOString().slice(0, 7);
+        link.href = calendarViewHref(url.searchParams, view, fallbackMonth);
+      });
       const filtering = terms.length > 0 || selectedCategories.size > 0 || selectedLocations.size > 0;
       if (currentTimeMarker && eventList) {
         currentTimeMarker.hidden = !isCurrentYearPage || (filtering && visibleCount === 0);
@@ -507,7 +537,6 @@ const archiveHref = (targetYear: string): string => {
 </script>
 
 <style>
-  .archive-head h1 { margin-bottom: 0; }
   .year-tabs { display: flex; gap: .7rem; margin: 1.25rem 0; overflow-x: auto; padding-bottom: .5rem; }
   .year-tabs a { min-width: 120px; display: grid; gap: .2rem; text-decoration: none; border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; transition: color .16s, border-color .16s, background .16s, opacity .16s; }
   .year-tabs a.active { border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .06); }
@@ -515,7 +544,7 @@ const archiveHref = (targetYear: string): string => {
   .year-tabs strong { font-size: 1.2rem; }
   .year-tabs small { color: var(--muted); }
   @keyframes year-tab-pulse { to { opacity: .58; } }
-  .list-toolbar { display: grid; gap: .75rem; margin-top: 2.5rem; }
+  .list-toolbar { display: grid; gap: .75rem; margin-top: 0; }
   .event-search { position: relative; display: flex; align-items: center; width: 100%; color: var(--muted); }
   .event-search :global(.icon) { position: absolute; left: .9rem; pointer-events: none; }
   .event-search input { height: 46px; padding-left: 2.65rem; background: rgba(7,16,28,.74); border-color: var(--line); }
@@ -602,4 +631,5 @@ const archiveHref = (targetYear: string): string => {
     .current-time-marker { gap: .55rem; }
     .jump-current-time { right: .85rem; min-height: 48px; padding: .76rem 1rem; font-size: .82rem; }
   }
+  @media (prefers-reduced-motion: reduce) { .year-tabs a.is-pending { animation: none; } }
 </style>

@@ -46,7 +46,8 @@
     "test:release-covers": "node --test scripts/release-cover-import.test.mjs",
     "scrape:release-covers": "node scripts/scrape-release-covers.mjs",
     "build:release-covers": "node scripts/build-release-cover-import.mjs",
-    "import:release-covers:r2": "tsx scripts/import-release-covers-r2.ts"
+    "import:release-covers:r2": "tsx scripts/import-release-covers-r2.ts",
+    "build:web:node": "npm run build:node --workspace @frip-fan/web && node scripts/build-node-sync.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",
@@ -55,7 +56,8 @@
     "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12",
-    "wrangler": "^4.158.0"
+    "wrangler": "^4.158.0",
+    "esbuild": "0.28.2"
   },
   "overrides": {
     "fast-uri": "^3.1.9",

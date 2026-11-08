@@ -1,3 +1,9 @@
+# 测试环境
+
+OCI 迁移目标：`https://staging.fripsi.de`。独立主机、SQLite、部署 runner、Tunnel 与 Access AUD；迁移与验收见 [OCI 自托管部署](oci-deployment.md)。测试站默认关闭自动同步，不调用模型。旧 Workers 入口在验收期间保留，切换后不再作为更新入口。
+
+以下为原 Cloudflare staging 配置与历史记录，保留用于迁移核对与回退。
+
 # Cloudflare staging
 
 测试站地址：`https://frip-fan-web-staging.rklee.workers.dev`。

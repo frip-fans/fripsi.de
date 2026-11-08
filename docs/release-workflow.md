@@ -104,3 +104,7 @@ XDG_CONFIG_HOME="$PWD/.cache/xdg" npx wrangler d1 migrations apply frip-fan-prod
 ## OCI SQLite 备份
 
 OCI 部署采用主机 systemd 定时备份，独立于 GitHub Actions/部署 runner。脚本、受限配置、180 天 R2 生命周期、离线解密与恢复验收见 [SQLite 备份与恢复](sqlite-backups.md)。先完成真实 R2 和隔离恢复演练，再启用生产 timer；应用部署不得自动覆盖数据库或启用未验收的备份任务。此备份仅覆盖数据库，图片、配置和密钥另行安排。
+
+## OCI 发布链路
+
+OCI 切换后，源仓库 CI 保留完整验证，私有 `frip-fans/fripside-deploy` 托管构建与主机部署流程接替 Workers Builds，详见 [OCI 自托管部署](oci-deployment.md)。自托管 runner 仅注册到该私有仓库；不将主机 SSH 密钥或数据库放入 GitHub。代码部署与数据 migration、同步启用、备份 timer 启用分别执行并验收。

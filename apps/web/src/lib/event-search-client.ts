@@ -1,3 +1,4 @@
+import { replacePublicUrl, publicUrl } from "./public-navigation";
 let mounted: HTMLElement | null = null;
 let dispose: (() => void) | undefined;
 const snapshotsKey = "frip:event-search:v1";
@@ -56,7 +57,7 @@ export function setupEventSearch() {
     if (!root.isConnected || root.closest<HTMLElement>("[data-search-pane]")?.hidden || results().getAttribute("aria-busy") === "true") return;
     const html = results().outerHTML;
     if (html.length > 512_000) return;
-    try { sessionStorage.setItem(snapshotsKey, JSON.stringify({ url: location.href, html, scroll: window.scrollY,
+    try { sessionStorage.setItem(snapshotsKey, JSON.stringify({ url: publicUrl(), html, scroll: window.scrollY,
       revision: results().dataset.revision, expires: Date.now() + (results().dataset.revision ? 600_000 : 60_000) })); } catch { /* Storage can be unavailable/full. */ }
   };
   const restore = () => {
@@ -130,7 +131,7 @@ export function setupEventSearch() {
         const url = new URL(location.href);
         for (const key of ["q", "year", "category", "location", "sort", "after"]) url.searchParams.delete(key);
         for (const [key, value] of nextParams) if (!["month", "lang", "view"].includes(key)) url.searchParams.append(key, value);
-        history.replaceState(history.state, "", url);
+        replacePublicUrl(url);
       }
       setBusy(false, more);
       save();
@@ -180,19 +181,8 @@ export function setupEventSearch() {
     }
   }, { signal });
   document.addEventListener("astro:before-preparation", save, { signal });
-  document.addEventListener("astro:before-swap", () => { request?.abort(); ++serial; clearTimeout(timer); }, { signal });
+  document.addEventListener("astro:before-swap", () => { dispose?.(); mounted = null; }, { signal });
   window.addEventListener("pagehide", save, { signal });
-  document.addEventListener("frip:search-leaving", () => {
-    if (results().getAttribute("aria-busy") === "true") {
-      request?.abort(); ++serial; clearTimeout(timer); setBusy(false, false);
-      const committed = new URLSearchParams(location.search);
-      input.value = committed.get("q") ?? ""; year.value = committed.get("year") ?? "";
-      form.querySelectorAll<HTMLInputElement>('input[type="checkbox"]').forEach(item => { item.checked = committed.getAll(item.name).includes(item.value); });
-      form.querySelectorAll<HTMLInputElement>('input[name="sort"]').forEach(item => { item.checked = item.value === (committed.get("sort") === "asc" ? "asc" : "desc"); });
-      syncControls();
-    }
-    save();
-  }, { signal });
   restore(); syncControls();
   dispose = () => { lifetime.abort(); request?.abort(); clearTimeout(timer); };
 }

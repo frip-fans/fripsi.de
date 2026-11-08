@@ -1,5 +1,7 @@
 # fripSi.de
 
+> OCI 移行：Web と MCP は Node 24 / SQLite で実行し、非公開リポジトリの runner からデプロイします。Cloudflare Tunnel / Access / CDN は維持します。[運用手順](docs/oci-deployment.md)・[DB バックアップ](docs/sqlite-backups.md)。
+
 [简体中文](./README.md) | [日本語](./README.ja.md) | [English](./README.en.md)
 
 [fripSi.de](https://fripsi.de) は、ファンが運営する非公式の fripSide イベントカレンダー兼ライブセットリスト資料庫です。

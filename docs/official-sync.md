@@ -1,5 +1,7 @@
 # 官方活动自动同步
 
+> OCI 当前部署见 [OCI 部署](oci-deployment.md)。Web：`https://fripsi.de`；MCP：`https://fripsi.de/mcp`；测试 Web：`https://staging.fripsi.de`；测试 MCP：`https://mcp-staging.fripsi.de/mcp`。以下 Cloudflare 部署命令与旧 workers.dev 地址仅供历史核对和回退；旧公开入口将在切换后关闭，避免写入旧 D1。
+
 `apps/sync` 每天启动 OpenAI Agents API 任务。Agent 在 OpenAI 端交替使用官方网页搜索和本站 Remote MCP，自行查询已有活动、提案、预览并发布。`apps/mcp` 在 Cloudflare 执行工具，通过共享 `ChangeService` 写入同一个 D1。活动更新不需要重建网站。
 
 ## 运行流程

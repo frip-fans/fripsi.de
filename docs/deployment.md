@@ -1,5 +1,7 @@
 # 部署与运维
 
+> OCI 当前部署见 [OCI 部署](oci-deployment.md)。Web：`https://fripsi.de`；MCP：`https://fripsi.de/mcp`；测试 Web：`https://staging.fripsi.de`；测试 MCP：`https://mcp-staging.fripsi.de/mcp`。以下 Cloudflare 部署命令与旧 workers.dev 地址仅供历史核对和回退；旧公开入口将在切换后关闭，避免写入旧 D1。
+
 ## 1. Cloudflare 资源
 
 生产环境计划使用：

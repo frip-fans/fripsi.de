@@ -62,3 +62,5 @@ Node CLI 复用现有同步代码、预算、数据库 lease 与通知状态；�
 真实 R2 隔离演练期间正常后台 HTTP 完成 38 次写入，快照上传/下载/解密恢复后六张关键表计数一致，恢复后首页、日历和歌曲页均 200；失效凭据、锁冲突、容量和 25 小时过期检查非零并触发通知，重复备份生成独立对象。仅本次验收对象在结束后清理。恢复私钥仅保存在管理员本机配置目录，不上生产。
 
 默认 `npm run deploy:web[:staging]` 已切换至私有部署流水线；旧 Workers 命令保留为显式 `deploy:web:workers:*:legacy`，仅用于人工回退。旧 sync 配置中的 cron 已移除，防止未来误部署重启旧 D1 写入。生产切换和首份生产备份状态以实际运维记录为准。
+
+测试 MCP 子域名列入 Astro 的精确代理主机允许列表，保持 HTTPS Origin/Host 校验。切换验收后，旧 Web staging 与 MCP 的 workers.dev/preview 入口关闭，防止旧书签继续编辑 D1；原 Worker 版本和数据仍保留，可按单独维护流程恢复。旧 Builds 触发器改为仅匹配未使用的保留分支 `disabled-oci-migration-no-auto-build`，原配置保存用于回退。

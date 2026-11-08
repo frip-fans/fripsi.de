@@ -16,6 +16,7 @@ export default defineConfig({
   security: selfHosted ? { allowedDomains: [
     { hostname: "fripsi.de", protocol: "https" },
     { hostname: "staging.fripsi.de", protocol: "https" },
+    { hostname: "mcp-staging.fripsi.de", protocol: "https" },
     { hostname: "localhost", protocol: "http" },
     { hostname: "127.0.0.1", protocol: "http" },
   ] } : undefined,

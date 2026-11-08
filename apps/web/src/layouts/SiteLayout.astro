@@ -145,6 +145,18 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 </html>
 
 <script>
+  import { setupMusicBrowser } from "../lib/music-browse-client";
+  setupMusicBrowser();
+
+  // Record the exact source URL (including filters and fragment) before opening a music detail.
+  document.addEventListener("click", event => {
+    const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+    if (!anchor) return;
+    const target = new URL(anchor.href, location.origin);
+    if (target.origin !== location.origin || !/^\/music\/(lives|songs|releases)\/[^/]+\/?$/.test(target.pathname)) return;
+    try { sessionStorage.setItem("music:detail-source", JSON.stringify({ destination: target.pathname, source: location.href })); } catch { /* optional navigation context */ }
+  });
+
   import "../lib/event-navigation-client";
   let navigationController: AbortController | undefined;
   const setupNavigation = () => {

@@ -1,5 +1,6 @@
 ---
-import Icon from "./Icon.astro";
+import BackLink from "./BackLink.astro";
+import { getLocale, t } from "../lib/i18n";
 
 interface Props {
   href: string;
@@ -8,25 +9,17 @@ interface Props {
 }
 
 const { href, storageKey, label } = Astro.props;
+const locale = getLocale(Astro.request);
+const sourceLabels = JSON.stringify({
+  lives: t(locale, "music.return.lives"), songs: t(locale, "music.return.songs"),
+  releases: t(locale, "music.return.releases"), event: t(locale, "music.return.event"),
+  livesList: t(locale, "music.backLives"), songsList: t(locale, "music.backSongs"),
+  releasesList: t(locale, "music.backReleases"), calendar: t(locale, "event.return.calendar"),
+});
 ---
-<a class="music-back" href={href} data-music-back data-storage-key={storageKey} data-list-path={href}>
-  <Icon name="arrow-left" />{label}
-</a>
+<BackLink href={href} label={label} musicStorageKey={storageKey} sourceLabels={sourceLabels} />
 
 <script>
-  for (const link of document.querySelectorAll<HTMLAnchorElement>("[data-music-back]")) {
-    const storageKey = link.dataset.storageKey;
-    const listPath = link.dataset.listPath;
-    if (!storageKey || !listPath) continue;
-    try {
-      const saved = sessionStorage.getItem(storageKey);
-      if (!saved) continue;
-      const target = new URL(saved, location.origin);
-      if (target.origin === location.origin && target.pathname === listPath) {
-        link.href = `${target.pathname}${target.search}${target.hash}`;
-      }
-    } catch {
-      // Keep the safe list-page fallback.
-    }
-  }
+  import { setupMusicBackLink } from "../lib/music-navigation";
+  setupMusicBackLink();
 </script>

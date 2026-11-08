@@ -1,10 +1,11 @@
 ---
-import type { EventRecord } from "@frip-fan/core";
+import { eventDetailHref } from "../lib/event-navigation";
+import type { EventSummary } from "@frip-fan/core";
 import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../lib/format";
 import { getLocale } from "../lib/i18n";
 import Icon from "./Icon.astro";
 
-interface Props { event: EventRecord; compact?: boolean; timeInHeader?: boolean; dateInGroup?: boolean }
+interface Props { event: EventSummary; compact?: boolean; timeInHeader?: boolean; dateInGroup?: boolean }
 const { event, compact = false, timeInHeader = false, dateInGroup = false } = Astro.props;
 const locale = getLocale(Astro.request);
 const displayStatus = displayEventStatus(event);
@@ -22,7 +23,7 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
       {displayStatus !== "scheduled" && <span class:list={["tag", displayStatus]}>{statusLabel(locale, displayStatus)}</span>}
       {event.classification && <span class="tag">{event.classification}</span>}
     </div>
-    <h3><a href={`/events/${event.slug}`}>{event.title}</a></h3>
+    <h3><a href={eventDetailHref(event.slug, Astro.url, locale)}>{event.title}</a></h3>
     <div class="event-details">
       <div class="event-detail-text">
         <p class="event-time"><span class="event-day">{formatDate(event.start_date, event.end_date, locale)} · </span>{formatTime(event, locale)}</p>

@@ -46,7 +46,7 @@ export function formatDate(date: string, endDate?: string | null, locale: Locale
   return endDate && endDate !== date ? `${render(date)} — ${render(endDate)}` : render(date);
 }
 
-export function formatTime(event: EventRecord, locale: Locale = "zh-CN"): string {
+export function formatTime(event: Pick<EventRecord, "start_time" | "end_time">, locale: Locale = "zh-CN"): string {
   if (!event.start_time) return t(locale, "date.allDay");
   return event.end_time ? `${event.start_time}–${event.end_time}` : event.start_time;
 }

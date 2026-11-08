@@ -1,113 +1,35 @@
 ---
-import {
-  dateInTimeZone,
-  listAdministrativeAreas,
-  listArchiveFilterEntries,
-  searchEvents,
-  type AdministrativeArea,
-} from "@frip-fan/core";
-import EventCard from "./EventCard.astro";
+import { parsePublicEventSearch } from "@frip-fan/core";
+import EventSearchResults from "./EventSearchResults.astro";
 import Icon from "./Icon.astro";
-import { archiveLocationCounts, archiveYearCounts } from "../lib/archive-filter";
+import { publicEventFilters } from "../lib/event-search";
 import { getEnv } from "../lib/env";
-import { eventListYear } from "../lib/calendar-navigation";
 import { getLocale, t } from "../lib/i18n";
-
-const db = getEnv().DB;
 const locale = getLocale(Astro.request);
-const [areas, archiveEntries] = await Promise.all([
-  listAdministrativeAreas(db),
-  listArchiveFilterEntries(db),
-]);
-const areaById = new Map(areas.map((area) => [area.id, area]));
-const countryAreas = new Map(areas.filter((area) => area.level === "country").map((area) => [area.country_code, area]));
-const localizedAreaName = (area: AdministrativeArea): string => locale === "en" ? area.name_en ?? area.name_local : locale === "ja" ? area.name_ja ?? area.name_local : area.name_zh ?? area.name_local;
-
-const areaLocationKey = (areaId: string): string | null => {
-  let area = areaById.get(areaId);
-  if (!area) return null;
-  if (area.country_code !== "JP") return `country:${area.country_code}`;
-  const visited = new Set<string>();
-  while (area && area.level !== "subdivision") {
-    if (!area.parent_id || visited.has(area.id)) return null;
-    visited.add(area.id);
-    area = areaById.get(area.parent_id);
-  }
-  return area?.level === "subdivision" ? `jp:${area.id}` : null;
-};
-
-const locationLabel = (key: string): string => {
-  const area = key.startsWith("jp:") ? areaById.get(key.slice(3)) : countryAreas.get(key.slice(8));
-  return area ? localizedAreaName(area) : key;
-};
-const archiveItems = archiveEntries.map((entry) => {
-  const locationKeys = [...new Set(entry.area_ids.map(areaLocationKey).filter((key): key is string => Boolean(key)))];
-  const searchText = [
-    entry.title, entry.category, entry.classification, entry.location_note, entry.remark,
-    ...entry.venue_names, ...entry.area_names, ...entry.channel_names,
-  ].filter(Boolean).join(" ").toLocaleLowerCase();
-  return { id: entry.id, startDate: entry.start_date, category: entry.category, searchText, locationKeys };
-});
-const locationCounts = archiveLocationCounts(archiveItems);
-const validCategories = new Set(["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"]);
-const query = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 200);
-const sort = Astro.url.searchParams.get("sort") === "desc" ? "desc" : "asc";
-const selectedCategories = [...new Set(Astro.url.searchParams.getAll("category"))]
-  .filter((value) => validCategories.has(value));
-const selectedLocations = [...new Set(Astro.url.searchParams.getAll("location"))]
-  .filter((value) => locationCounts.has(value));
-const filterState = { query, categories: selectedCategories, locations: selectedLocations };
-const filtering = Boolean(query || selectedCategories.length || selectedLocations.length);
-
-const today = dateInTimeZone();
-const currentYear = today.slice(0, 4);
-const matchedYears = archiveYearCounts(archiveItems, filterState);
-const years = !filtering && !matchedYears.some((item) => item.year === currentYear)
-  ? [...matchedYears, { year: currentYear, count: 0 }].sort((left, right) => right.year.localeCompare(left.year))
-  : matchedYears;
-const year = eventListYear(Astro.url.searchParams.get("year"), currentYear, years);
-if (!years.some((item) => item.year === year)) {
-  years.push({ year, count: 0 });
-  years.sort((left, right) => right.year.localeCompare(left.year));
-}
-const events = await searchEvents(db, { date_from: `${year}-01-01`, date_to: `${year}-12-31`, limit: 500 }, true);
-const categoryOptions = [
-  { value: "LIVE", label: "Live" },
-  { value: "EVENT", label: "Event" },
-  { value: "RELEASE", label: "Release" },
-  { value: "MEDIA", label: "Media" },
-  { value: "OTHER", label: "Other" },
-].map((option) => ({ ...option, count: archiveItems.filter((event) => event.category === option.value).length }));
-const locationOptions = [...locationCounts].map(([value, count]) => ({ value, count, label: locationLabel(value) }))
-  .sort((left, right) => left.label.localeCompare(right.label, locale));
-const japaneseLocationOptions = locationOptions.filter((option) => option.value.startsWith("jp:"));
-const overseasLocationOptions = locationOptions.filter((option) => option.value.startsWith("country:"));
-const locationKeysByEventId = new Map(archiveItems.map((item) => [item.id, item.locationKeys]));
-const archiveHref = (targetYear: string): string => {
-  const params = new URLSearchParams(Astro.url.searchParams);
-  params.set("view", "list");
-  params.set("year", targetYear);
-  params.delete("q");
-  params.delete("category");
-  params.delete("location");
-  if (query) params.set("q", query);
-  for (const category of selectedCategories) params.append("category", category);
-  for (const location of selectedLocations) params.append("location", location);
-  return `/calendar?${params}`;
-};
+const filters = await publicEventFilters(getEnv().DB);
+const { query, sort, year, categories: selectedCategories, locations: selectedLocations } = parsePublicEventSearch(Astro.url.searchParams);
+const categoryOptions = ["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"].map(value => ({
+  value, label: value === "LIVE" ? "Live" : value[0] + value.slice(1).toLowerCase(),
+  count: filters.categories.find(item => item.category === value)?.count ?? 0,
+}));
+const locationOptions = filters.locations.map(area => ({
+  value: area.key, count: area.count,
+  label: (locale === "en" ? area.name_en : locale === "ja" ? area.name_ja : area.name_zh) ?? area.name_local,
+})).sort((a, b) => a.label.localeCompare(b.label, locale));
+const japaneseLocationOptions = locationOptions.filter(item => item.value.startsWith("jp:"));
+const overseasLocationOptions = locationOptions.filter(item => item.value.startsWith("country:"));
 ---
-<section class="archive-head" data-event-list-view>
-  <p class="search-scope">{t(locale, "calendar.searchYear", { year })}</p>
-  {archiveEntries.length > 0 && (
+<section class="archive-head" data-event-list-view data-locale={locale} data-loading={t(locale, "search.loading")}>
+  <p class="search-error" role="alert" data-search-error hidden>{t(locale, "search.error")} <button type="button" class="clear-control" data-search-retry>{t(locale, "search.retry")}</button></p>
+
     <form class="list-toolbar" method="get" action="/calendar" data-archive-filter-form>
       <input type="hidden" name="view" value="list" />
-      <input type="hidden" name="year" value={year} />
       {Astro.url.searchParams.has("month") && <input type="hidden" name="month" value={Astro.url.searchParams.get("month")!} />}
       {Astro.url.searchParams.has("lang") && <input type="hidden" name="lang" value={locale} />}
       <label class="event-search">
-        <span class="visually-hidden">{t(locale, "calendar.searchYear", { year })}</span>
+        <span class="visually-hidden">{t(locale, "archive.searchLabel")}</span>
         <Icon name="search" />
-        <input type="search" name="q" value={query} placeholder={t(locale, "archive.searchPlaceholder")} autocomplete="off" data-event-search-input />
+        <input type="search" name="q" value={query} placeholder={t(locale, "archive.searchPlaceholder")} autocomplete="off" data-event-search-input maxlength="200" />
       </label>
       <div class="list-control-row">
         <div class="list-controls">
@@ -126,8 +48,15 @@ const archiveHref = (targetYear: string): string => {
             <div class="control-card filter-card" id="event-filter-panel" data-filter-panel hidden>
               <div class="control-card-head">
                 <div><strong>{t(locale, "archive.activityType")}</strong><span>{t(locale, "archive.multiple")}</span></div>
-                <small>FILTER</small>
+                <button type="button" class="panel-close" data-panel-close="filter" aria-label={t(locale, "search.closeFilters")}><Icon name="x-lg" /></button>
               </div>
+              <label class="year-filter">{t(locale, "calendar.selectYear")}
+                <select name="year" data-year-filter>
+                  <option value="">{t(locale, "search.allYears")}</option>
+                  {year && !filters.years.some(item => item.year === year) && <option value={year} selected>{year}</option>}
+                  {filters.years.map(item => <option value={item.year} selected={item.year === year}>{item.year} · {item.count}</option>)}
+                </select>
+              </label>
               <div class="filter-options">
                 {categoryOptions.map((option) => (
                   <label class:list={["filter-choice", { disabled: option.count === 0 }]}>
@@ -196,7 +125,7 @@ const archiveHref = (targetYear: string): string => {
             <div class="control-card sort-card" id="event-sort-panel" data-sort-panel hidden>
               <div class="control-card-head">
                 <div><strong>{t(locale, "archive.sortTitle")}</strong><span>{t(locale, "archive.sortHelp")}</span></div>
-                <small>SORT</small>
+                <button type="button" class="panel-close" data-panel-close="sort" aria-label={t(locale, "search.closeSort")}><Icon name="x-lg" /></button>
               </div>
               <div class="sort-options">
                 <label class="sort-choice">
@@ -211,346 +140,16 @@ const archiveHref = (targetYear: string): string => {
             </div>
           </div>
         </div>
-        <span
-          class="search-count"
-          data-search-count
-          data-total-template={t(locale, "archive.total", { count: "{count}" })}
-          data-filtered-template={t(locale, "archive.filtered", { visible: "{visible}", total: "{total}" })}
-          aria-live="polite"
-        >{t(locale, "archive.total", { count: events.length })}</span>
       </div>
     </form>
-  )}
-  <div class="year-tabs" data-year-tabs>
-    {years.map((item) => <a class:list={{ active: item.year === year }} href={archiveHref(item.year)} data-astro-prefetch="viewport"><strong>{item.year}</strong><small>{t(locale, "archive.yearCount", { count: item.count })}</small></a>)}
-  </div>
-  <section
-    class="stack"
-    data-event-list
-    data-current-year-page={year === currentYear ? "true" : "false"}
-    data-year={year}
-    data-today={today}
-  >
-    {events.map((event, index) => (
-      <div
-        class="event-item"
-        data-event-item
-        data-event-index={index}
-        data-event-category={event.category}
-        data-event-locations={(locationKeysByEventId.get(event.id) ?? []).join(" ")}
-        data-event-sort={`${event.start_date}T${event.start_time ?? "00:00"}`}
-        data-search-text={[event.title, event.category, event.classification, event.location_label, event.remark].filter(Boolean).join(" ").toLocaleLowerCase()}
-      >
-        <EventCard event={event} />
-      </div>
-    ))}
-    <div
-      class="current-time-marker"
-      id="archive-current-time"
-      role="separator"
-      aria-label={t(locale, "archive.now")}
-      data-current-time-marker
-      hidden={year !== currentYear}
-    >
-      <span class="current-time-line" aria-hidden="true"></span>
-      <span class="current-time-label"><i aria-hidden="true"></i>{t(locale, "archive.now")}<time datetime={today}>{today.slice(5).replace("-", ".")}</time></span>
-      <span class="current-time-line" aria-hidden="true"></span>
-    </div>
-    <div class="empty panel" data-search-empty hidden>{t(locale, "archive.noMatch")}</div>
-    {!events.length && <div class="empty panel">{t(locale, "archive.empty")}</div>}
-  </section>
-  <button
-    type="button"
-    class="jump-current-time"
-    aria-controls="archive-current-time"
-    data-jump-current-time
-    hidden
-  >
-    <Icon name="chevron-down" class="jump-direction jump-down" />
-    <Icon name="chevron-up" class="jump-direction jump-up" />
-    <span>{t(locale, "archive.jumpNow")}</span>
-  </button>
+  <EventSearchResults />
 </section>
-
-<script>
-  import { calendarAgendaHref, calendarViewHref } from "../lib/calendar-navigation";
-  const yearTabsScrollKey = "frip-fan:archive-year-tabs-scroll";
-  let archivePageController: AbortController | undefined;
-
-  const setupArchivePage = () => {
-    archivePageController?.abort();
-    archivePageController = undefined;
-
-    const yearTabs = document.querySelector<HTMLElement>("[data-year-tabs]");
-    if (!yearTabs) return;
-
-    const controller = new AbortController();
-    const { signal } = controller;
-    archivePageController = controller;
-    const searchInput = document.querySelector<HTMLInputElement>("[data-event-search-input]");
-    const eventItems = [...document.querySelectorAll<HTMLElement>("[data-event-item]")];
-    const eventList = document.querySelector<HTMLElement>("[data-event-list]");
-    const searchCount = document.querySelector<HTMLElement>("[data-search-count]");
-    const searchEmpty = document.querySelector<HTMLElement>("[data-search-empty]");
-    const filterToggle = document.querySelector<HTMLButtonElement>("[data-filter-toggle]");
-    const filterPanel = document.querySelector<HTMLElement>("[data-filter-panel]");
-    const categoryFilterInputs = [...document.querySelectorAll<HTMLInputElement>("[data-category-filter]")];
-    const locationFilterInputs = [...document.querySelectorAll<HTMLInputElement>("[data-location-filter]")];
-    const filterCount = document.querySelector<HTMLElement>("[data-filter-count]");
-    const filterClear = document.querySelector<HTMLButtonElement>("[data-filter-clear]");
-    const filterDone = document.querySelector<HTMLButtonElement>("[data-filter-done]");
-    const sortToggle = document.querySelector<HTMLButtonElement>("[data-sort-toggle]");
-    const sortPanel = document.querySelector<HTMLElement>("[data-sort-panel]");
-    const sortInputs = [...document.querySelectorAll<HTMLInputElement>("[data-sort-option]")];
-    const sortButtonLabel = document.querySelector<HTMLElement>("[data-sort-button-label]");
-    const currentTimeMarker = document.querySelector<HTMLElement>("[data-current-time-marker]");
-    const jumpCurrentTime = document.querySelector<HTMLButtonElement>("[data-jump-current-time]");
-    const isCurrentYearPage = eventList?.dataset.currentYearPage === "true";
-    const currentSortBoundary = `${eventList?.dataset.today ?? ""}T00:00`;
-    let jumpUpdateFrame = 0;
-
-    const updateJumpButton = () => {
-      cancelAnimationFrame(jumpUpdateFrame);
-      jumpUpdateFrame = requestAnimationFrame(() => {
-        if (!jumpCurrentTime || !currentTimeMarker || !eventList || currentTimeMarker.hidden || !isCurrentYearPage) {
-          if (jumpCurrentTime) jumpCurrentTime.hidden = true;
-          return;
-        }
-        const markerBounds = currentTimeMarker.getBoundingClientRect();
-        const markerInViewport = markerBounds.bottom > 0 && markerBounds.top < window.innerHeight;
-        if (markerInViewport) {
-          jumpCurrentTime.hidden = true;
-          return;
-        }
-
-        jumpCurrentTime.hidden = false;
-        const listBounds = eventList.getBoundingClientRect();
-        const buttonBounds = jumpCurrentTime.getBoundingClientRect();
-        const viewportGap = window.innerWidth <= 560 ? 14 : 20;
-        const visibleListTop = Math.max(viewportGap, listBounds.top);
-        const visibleListBottom = Math.min(window.innerHeight - viewportGap, listBounds.bottom);
-        if (visibleListBottom - visibleListTop < buttonBounds.height) {
-          jumpCurrentTime.hidden = true;
-          return;
-        }
-
-        const preferredTop = window.innerHeight - buttonBounds.height - viewportGap;
-        const clampedTop = Math.min(
-          Math.max(preferredTop, visibleListTop),
-          visibleListBottom - buttonBounds.height
-        );
-        jumpCurrentTime.style.top = `${clampedTop}px`;
-
-        const sideGap = 16;
-        const rightRailWidth = window.innerWidth - listBounds.right;
-        if (window.innerWidth >= 900 && rightRailWidth >= buttonBounds.width + sideGap) {
-          jumpCurrentTime.style.left = `${listBounds.right + sideGap}px`;
-          jumpCurrentTime.style.right = "auto";
-        } else {
-          jumpCurrentTime.style.left = "auto";
-          jumpCurrentTime.style.right = `${Math.max(viewportGap, window.innerWidth - listBounds.right)}px`;
-        }
-        jumpCurrentTime.dataset.direction = markerBounds.top >= window.innerHeight ? "down" : "up";
-      });
-    };
-
-    const saveYearTabsScroll = () => {
-      const max = Math.max(0, yearTabs.scrollWidth - yearTabs.clientWidth);
-      try {
-        sessionStorage.setItem(yearTabsScrollKey, JSON.stringify({
-          left: yearTabs.scrollLeft,
-          max,
-          progress: max > 0 ? yearTabs.scrollLeft / max : 0
-        }));
-      } catch {
-        // The archive remains usable when browser storage is unavailable.
-      }
-    };
-
-    const restoreYearTabsScroll = () => {
-      try {
-        const saved = JSON.parse(sessionStorage.getItem(yearTabsScrollKey) ?? "null") as {
-          left?: number;
-          max?: number;
-          progress?: number;
-        } | null;
-        if (!saved) return;
-        const max = Math.max(0, yearTabs.scrollWidth - yearTabs.clientWidth);
-        const sameTrackWidth = Number.isFinite(saved.max) && Math.abs(max - (saved.max ?? 0)) < 1;
-        const target = sameTrackWidth
-          ? saved.left ?? 0
-          : max * Math.min(1, Math.max(0, saved.progress ?? 0));
-        yearTabs.scrollLeft = Math.min(max, Math.max(0, target));
-      } catch {
-        // Ignore invalid or inaccessible session storage.
-      }
-    };
-
-    const closePanel = (button: HTMLButtonElement | null, panel: HTMLElement | null) => {
-      if (!button || !panel || panel.hidden) return;
-      panel.hidden = true;
-      button.setAttribute("aria-expanded", "false");
-    };
-
-    const closeControlPanels = () => {
-      closePanel(filterToggle, filterPanel);
-      closePanel(sortToggle, sortPanel);
-    };
-
-    const togglePanel = (button: HTMLButtonElement | null, panel: HTMLElement | null) => {
-      if (!button || !panel) return;
-      const shouldOpen = panel.hidden;
-      closeControlPanels();
-      panel.hidden = !shouldOpen;
-      button.setAttribute("aria-expanded", String(shouldOpen));
-    };
-
-    const applyListState = () => {
-      const terms = searchInput?.value.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean) ?? [];
-      const selectedCategories = new Set(categoryFilterInputs.filter((input) => input.checked).map((input) => input.value));
-      const selectedLocations = new Set(locationFilterInputs.filter((input) => input.checked).map((input) => input.value));
-      const sortDirection = sortInputs.find((input) => input.checked)?.value === "desc" ? -1 : 1;
-
-      const sortedItems = [...eventItems].sort((left, right) => {
-        const byTime = (left.dataset.eventSort ?? "").localeCompare(right.dataset.eventSort ?? "") * sortDirection;
-        if (byTime !== 0) return byTime;
-        return Number(left.dataset.eventIndex ?? 0) - Number(right.dataset.eventIndex ?? 0);
-      });
-      sortedItems.forEach((item) => eventList?.insertBefore(item, searchEmpty));
-
-      let visibleCount = 0;
-      eventItems.forEach((item) => {
-        const searchText = item.dataset.searchText ?? "";
-        const matchesSearch = terms.every((term) => searchText.includes(term));
-        const matchesCategory = selectedCategories.size === 0 || selectedCategories.has(item.dataset.eventCategory ?? "");
-        const itemLocations = (item.dataset.eventLocations ?? "").split(" ").filter(Boolean);
-        const matchesLocation = selectedLocations.size === 0 || itemLocations.some((location) => selectedLocations.has(location));
-        item.hidden = !(matchesSearch && matchesCategory && matchesLocation);
-        if (!item.hidden) visibleCount += 1;
-      });
-
-      const url = new URL(location.href);
-      url.searchParams.set("view", "list");
-      if (eventList?.dataset.year) url.searchParams.set("year", eventList.dataset.year);
-      for (const key of ["q", "category", "location", "sort"]) url.searchParams.delete(key);
-      const query = searchInput?.value.trim() ?? "";
-      if (query) url.searchParams.set("q", query);
-      for (const category of selectedCategories) url.searchParams.append("category", category);
-      for (const location of selectedLocations) url.searchParams.append("location", location);
-      if (sortDirection === -1) url.searchParams.set("sort", "desc");
-      history.replaceState(history.state, "", url);
-      yearTabs.querySelectorAll<HTMLAnchorElement>("a").forEach(link => {
-        const year = new URL(link.href).searchParams.get("year");
-        const params = new URLSearchParams(url.searchParams);
-        if (year) params.set("year", year);
-        link.href = `/calendar?${params}`;
-      });
-      document.querySelectorAll<HTMLAnchorElement>("[data-calendar-view]").forEach(link => {
-        const view = link.dataset.calendarView === "list" ? "list" : "calendar";
-        const fallbackMonth = document.querySelector<HTMLElement>("[data-event-views]")?.dataset.todayMonth ?? new Date().toISOString().slice(0, 7);
-        link.href = calendarViewHref(url.searchParams, view, fallbackMonth);
-      });
-      document.querySelectorAll<HTMLAnchorElement>("[data-agenda-return]").forEach((link) => {
-        link.href = calendarAgendaHref(url.searchParams, link.dataset.todayMonth ?? "");
-      });
-      const filtering = terms.length > 0 || selectedCategories.size > 0 || selectedLocations.size > 0;
-      if (currentTimeMarker && eventList) {
-        currentTimeMarker.hidden = !isCurrentYearPage || (filtering && visibleCount === 0);
-        if (!currentTimeMarker.hidden) {
-          const visibleItems = sortedItems.filter((item) => !item.hidden);
-          const insertionPoint = sortDirection === 1
-            ? visibleItems.find((item) => (item.dataset.eventSort ?? "") >= currentSortBoundary)
-            : visibleItems.find((item) => (item.dataset.eventSort ?? "") < currentSortBoundary);
-          eventList.insertBefore(currentTimeMarker, insertionPoint ?? searchEmpty);
-        }
-      }
-      if (searchCount) {
-        const totalTemplate = searchCount.dataset.totalTemplate ?? "{count}";
-        const filteredTemplate = searchCount.dataset.filteredTemplate ?? "{visible} / {total}";
-        searchCount.textContent = filtering
-          ? filteredTemplate.replaceAll("{visible}", String(visibleCount)).replaceAll("{total}", String(eventItems.length))
-          : totalTemplate.replaceAll("{count}", String(eventItems.length));
-      }
-      if (searchEmpty) searchEmpty.hidden = !filtering || visibleCount > 0;
-      const japanCount = [...selectedLocations].filter((value) => value.startsWith("jp:")).length;
-      const japanSelected = document.querySelector<HTMLElement>("[data-japan-selected]");
-      if (japanSelected) {
-        japanSelected.hidden = japanCount === 0;
-        japanSelected.textContent = (japanSelected.dataset.template ?? "{count}").replaceAll("{count}", String(japanCount));
-      }
-      const selectedFilterCount = selectedCategories.size + selectedLocations.size;
-      if (filterCount) {
-        filterCount.textContent = String(selectedFilterCount);
-        filterCount.hidden = selectedFilterCount === 0;
-      }
-      if (filterClear) filterClear.disabled = selectedFilterCount === 0;
-      filterToggle?.classList.toggle("active", selectedFilterCount > 0);
-      updateJumpButton();
-    };
-
-    restoreYearTabsScroll();
-    requestAnimationFrame(() => { if (!signal.aborted) restoreYearTabsScroll(); });
-    yearTabs.addEventListener("scroll", saveYearTabsScroll, { passive: true, signal });
-    yearTabs.addEventListener("click", (event) => {
-      if (!(event.target instanceof Element)) return;
-      const link = event.target.closest<HTMLAnchorElement>("a");
-      if (!link) return;
-      saveYearTabsScroll();
-      if (!link.classList.contains("active")) {
-        link.classList.add("is-pending");
-        link.setAttribute("aria-busy", "true");
-      }
-    }, { signal });
-    window.addEventListener("pagehide", saveYearTabsScroll, { signal });
-    window.addEventListener("pageshow", restoreYearTabsScroll, { signal });
-    window.addEventListener("scroll", updateJumpButton, { passive: true, signal });
-    window.addEventListener("resize", updateJumpButton, { passive: true, signal });
-    searchInput?.addEventListener("input", applyListState, { signal });
-    filterToggle?.addEventListener("click", () => togglePanel(filterToggle, filterPanel), { signal });
-    sortToggle?.addEventListener("click", () => togglePanel(sortToggle, sortPanel), { signal });
-    [...categoryFilterInputs, ...locationFilterInputs].forEach((input) => input.addEventListener("change", applyListState, { signal }));
-    filterClear?.addEventListener("click", () => {
-      categoryFilterInputs.forEach((input) => { input.checked = false; });
-      locationFilterInputs.forEach((input) => { input.checked = false; });
-      applyListState();
-    }, { signal });
-    filterDone?.addEventListener("click", () => closePanel(filterToggle, filterPanel), { signal });
-    sortInputs.forEach((input) => input.addEventListener("change", () => {
-      if (sortButtonLabel) sortButtonLabel.textContent = input.dataset.sortLabel ?? sortInputs[0]?.dataset.sortLabel ?? "";
-      applyListState();
-      closePanel(sortToggle, sortPanel);
-    }, { signal }));
-    // Dismiss on click, after Safari has decided to activate the tapped link.
-    document.addEventListener("click", (event) => {
-      const target = event.target;
-      if (target instanceof Element && !target.closest("[data-control-popover]")) closeControlPanels();
-    }, { signal });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeControlPanels();
-    }, { signal });
-    jumpCurrentTime?.addEventListener("click", () => {
-      currentTimeMarker?.scrollIntoView({
-        block: "center",
-        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
-      });
-    }, { signal });
-    applyListState();
-  };
-
-  document.addEventListener("astro:page-load", setupArchivePage);
-  setupArchivePage();
-</script>
-
 <style>
-  .search-scope { margin: 0 0 .75rem; color: var(--muted); font-size: .8125rem; }
-  .year-tabs { display: flex; gap: .7rem; margin: 1.25rem 0; overflow-x: auto; padding-bottom: .5rem; }
-  .year-tabs a { min-width: 120px; display: grid; gap: .2rem; text-decoration: none; border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; transition: color .16s, border-color .16s, background .16s, opacity .16s; }
-  .year-tabs a.active { border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .06); }
-  .year-tabs a.is-pending { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .08); animation: year-tab-pulse .8s ease-in-out infinite alternate; }
-  .year-tabs strong { font-size: 1.2rem; }
-  .year-tabs small { color: var(--muted); }
-  @keyframes year-tab-pulse { to { opacity: .58; } }
-  .list-toolbar { display: grid; gap: .75rem; margin-top: 0; }
+  [hidden] { display: none !important; }
+  .year-filter { display: grid; gap: .5rem; margin-bottom: 1rem; font-size: .875rem; }
+  .search-error { color: var(--text); }
+  .list-toolbar { position: sticky; top: 0; z-index: 20; display: grid; gap: .75rem; margin: 0 0 1.25rem; padding: calc(.75rem + var(--safe-area-top, 0px)) 0 .75rem; background: #07101c; border-bottom: 1px solid var(--line); }
+  :global([data-event-item] a) { scroll-margin-block-start: calc(9rem + var(--safe-area-top, 0px)); }
   .event-search { position: relative; display: flex; align-items: center; width: 100%; color: var(--muted); }
   .event-search :global(.icon) { position: absolute; left: .9rem; pointer-events: none; }
   .event-search input { height: 46px; padding-left: 2.65rem; background: rgba(7,16,28,.74); border-color: var(--line); }
@@ -563,14 +162,16 @@ const archiveHref = (targetYear: string): string => {
   .control-value { color: var(--muted); font-weight: 540; padding-left: .25rem; border-left: 1px solid var(--line); }
   .active-filter-count { display: inline-grid; place-items: center; min-width: 1.25rem; height: 1.25rem; padding: 0 .28rem; color: #07101c; background: var(--accent); border-radius: 999px; font-size: .66rem; font-weight: 850; }
   .active-filter-count[hidden] { display: none; }
-  .control-card { position: absolute; z-index: 30; top: calc(100% + .65rem); left: 0; width: min(20rem, calc(100vw - 2rem)); padding: 1rem; background: linear-gradient(145deg, rgba(15,30,49,.98), rgba(7,16,28,.98)); border: 1px solid rgba(var(--accent-rgb),.28); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.5); backdrop-filter: blur(24px); }
+  .control-card { position: absolute; z-index: 30; min-width: 0; overflow-x: hidden; top: calc(100% + .65rem); left: 0; width: min(20rem, calc(100vw - 2rem)); padding: 1rem; background: linear-gradient(145deg, rgba(15,30,49,.98), rgba(7,16,28,.98)); border: 1px solid rgba(var(--accent-rgb),.28); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.5); backdrop-filter: blur(24px); }
   .control-card[hidden] { display: none; }
   .filter-card { width: min(38rem, calc(100vw - 2rem)); max-height: min(75vh, 48rem); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
   .control-card-head { display: flex; align-items: start; justify-content: space-between; gap: 1rem; padding: .15rem .15rem .85rem; border-bottom: 1px solid var(--line); }
-  .control-card-head div { display: grid; gap: .2rem; }
+  .control-card-head div { display: grid; flex: 1; min-width: 0; gap: .2rem; overflow-wrap: anywhere; }
   .control-card-head strong { font-size: .92rem; }
   .control-card-head span { color: var(--muted); font-size: .7rem; }
-  .control-card-head > small { color: var(--accent); font-size: .58rem; letter-spacing: .18em; }
+  .panel-close { display: inline-flex; flex: 0 0 44px; align-items: center; justify-content: center; width: 44px; height: 44px; margin: -.65rem -.65rem 0 0; padding: 0; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 8px; }
+  .panel-close:hover { color: var(--text); background: rgba(255,255,255,.06); border-color: var(--line); }
+  .panel-close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .location-filter-section { padding-top: .9rem; border-top: 1px solid var(--line); }
   .filter-section-head { display: grid; gap: .2rem; }
   .filter-section-head strong { font-size: .92rem; }
@@ -585,8 +186,8 @@ const archiveHref = (targetYear: string): string => {
   .location-filter-group { margin-top: .9rem; }
   .location-options { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: .45rem 0 0; }
   .filter-options { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; padding: .9rem 0; }
-  .filter-choice { display: block; min-width: 0; cursor: pointer; }
-  .filter-choice input, .sort-choice input { position: absolute; opacity: 0; pointer-events: none; }
+  .filter-choice { position: relative; display: block; min-width: 0; cursor: pointer; }
+  .filter-choice input, .sort-choice input { position: absolute; width: 1px; height: 1px; margin: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .filter-pill { display: flex; min-width: 0; align-items: center; justify-content: space-between; min-height: 40px; padding: .55rem .7rem; color: var(--muted); background: rgba(255,255,255,.025); border: 1px solid var(--line); border-radius: 10px; transition: color .16s, border-color .16s, background .16s; }
   .filter-pill > span { min-width: 0; overflow-wrap: anywhere; font-size: .78rem; font-weight: 680; }
   .filter-pill small { min-width: 1.45rem; text-align: center; color: var(--muted); font-size: .65rem; }
@@ -600,7 +201,7 @@ const archiveHref = (targetYear: string): string => {
   .done-control { color: #07101c; background: var(--accent); }
   .sort-card { width: min(17rem, calc(100vw - 2rem)); }
   .sort-options { display: grid; gap: .45rem; padding-top: .85rem; }
-  .sort-choice { display: block; cursor: pointer; }
+  .sort-choice { position: relative; min-width: 0; display: block; cursor: pointer; }
   .sort-choice > span { position: relative; display: grid; gap: .15rem; padding: .72rem .8rem .72rem 2rem; color: var(--muted); border: 1px solid transparent; border-radius: 11px; transition: color .16s, border-color .16s, background .16s; }
   .sort-choice > span::before { content: ""; position: absolute; left: .75rem; top: .95rem; width: .55rem; height: .55rem; border: 1px solid #66778a; border-radius: 50%; box-shadow: inset 0 0 0 2px rgba(7,16,28,.98); }
   .sort-choice strong { font-size: .78rem; }
@@ -609,18 +210,6 @@ const archiveHref = (targetYear: string): string => {
   .sort-choice input:checked + span { color: var(--accent); border-color: rgba(var(--accent-rgb),.26); background: rgba(var(--accent-rgb),.065); }
   .sort-choice input:checked + span::before { border-color: var(--accent); background: var(--accent); }
   .search-count { margin-left: auto; padding-right: .15rem; color: var(--muted); font-size: .72rem; white-space: nowrap; }
-  .event-item[hidden], [data-search-empty][hidden] { display: none; }
-  .current-time-marker { display: grid; grid-template-columns: minmax(1rem, 1fr) auto minmax(1rem, 1fr); align-items: center; gap: .8rem; margin: .15rem 0; color: var(--accent); }
-  .current-time-marker[hidden], .jump-current-time[hidden] { display: none; }
-  .current-time-line { height: 1px; background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), .72)); box-shadow: 0 0 10px rgba(var(--accent-rgb), .14); }
-  .current-time-line:last-child { background: linear-gradient(90deg, rgba(var(--accent-rgb), .72), transparent); }
-  .current-time-label { display: inline-flex; align-items: center; gap: .46rem; color: var(--accent); font-size: .76rem; font-weight: 720; letter-spacing: .04em; white-space: nowrap; }
-  .current-time-label i { width: .5rem; height: .5rem; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .11), 0 0 16px rgba(var(--accent-rgb), .28); }
-  .current-time-label time { color: rgba(var(--accent-rgb), .76); font: 600 .68rem/1 ui-monospace, monospace; }
-  .jump-current-time { position: fixed; z-index: 24; top: calc(100vh - 4.5rem); right: max(1rem, calc((100% - 1180px) / 2)); bottom: auto; display: inline-flex; align-items: center; gap: .58rem; min-height: 50px; padding: .8rem 1.1rem; color: var(--accent); background: rgba(7, 16, 28, .9); border: 1px solid rgba(var(--accent-rgb), .48); border-radius: 999px; box-shadow: 0 14px 40px rgba(0, 0, 0, .36), inset 0 0 0 1px rgba(var(--accent-rgb), .04); backdrop-filter: blur(18px); font-size: .9rem; font-weight: 720; }
-  .jump-current-time :global(.jump-direction) { display: none; }
-  .jump-current-time[data-direction="down"] :global(.jump-down) { display: inline-block; }
-  .jump-current-time[data-direction="up"] :global(.jump-up) { display: inline-block; }
   .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
   @media (hover: none), (pointer: coarse) { .event-search input { font-size: 1rem; } }
   @media (hover: hover) and (pointer: fine) {
@@ -628,17 +217,14 @@ const archiveHref = (targetYear: string): string => {
     .filter-choice:hover .filter-pill { color: var(--text); border-color: rgba(var(--accent-rgb),.25); }
     .clear-control:not(:disabled):hover { color: var(--text); border-color: var(--line); background: rgba(255,255,255,.035); }
     .sort-choice:hover > span { color: var(--text); background: rgba(255,255,255,.025); }
-    .jump-current-time:hover { color: #08111d; background: var(--accent); border-color: var(--accent); transform: translateY(-1px); }
   }
   @media (max-width: 560px) {
-    .list-control-row { align-items: flex-start; }
+    .list-control-row { position: relative; align-items: flex-start; }
+    .control-popover { position: static; }
     .list-controls { flex-wrap: wrap; }
-    .control-card { position: fixed; top: auto; left: 1rem; right: 1rem; bottom: 1rem; width: auto; }
-    .control-card.filter-card { right: auto; width: calc(100vw - 2rem); max-width: calc(100vw - 2rem); }
+    .control-card { position: absolute; top: calc(100% + .65rem); left: 0; right: 0; bottom: auto; width: auto; max-height: calc(100dvh - 10rem - var(--safe-area-top, 0px)); overflow-y: auto; overscroll-behavior: contain; }
+    .control-card.filter-card { right: 0; width: auto; max-width: 100%; }
     .location-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .control-value { display: none; }
-    .current-time-marker { gap: .55rem; }
-    .jump-current-time { right: .85rem; min-height: 48px; padding: .76rem 1rem; font-size: .82rem; }
   }
-  @media (prefers-reduced-motion: reduce) { .year-tabs a.is-pending { animation: none; } }
 </style>

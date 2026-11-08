@@ -107,7 +107,9 @@ export function physicalLocationLabel(event: Pick<EventRecord, "venues" | "area_
   return event.location_note;
 }
 
-function setLocationLabels(event: EventRecord): void {
+type LocatedEvent = Pick<EventRecord, "id" | "location_mode" | "location_note" | "venues" | "channels" | "venue_label" | "area_label" | "location_label">;
+
+function setLocationLabels(event: LocatedEvent): void {
   const venueNames = event.venues.map((venue) => venue.display_name_snapshot ?? venue.canonical_name);
   const areaNames = [...new Set(event.venues.map((venue) => venue.area_name).filter((value): value is string => Boolean(value)))];
   const channelNames = event.channels.map((channel) => channel.name);
@@ -121,7 +123,7 @@ function setLocationLabels(event: EventRecord): void {
   else event.location_label = event.location_note;
 }
 
-export async function hydrateEventLocations(db: D1Database, events: EventRecord[]): Promise<EventRecord[]> {
+export async function hydrateEventLocations<T extends LocatedEvent>(db: D1Database, events: T[]): Promise<T[]> {
   if (!events.length) return events;
   const byId = new Map(events.map((event) => {
     event.venues = [];

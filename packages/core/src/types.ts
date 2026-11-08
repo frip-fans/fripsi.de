@@ -158,3 +158,9 @@ export interface ChangePreview {
   warnings: string[];
   public_path: string | null;
 }
+
+/** Public card projection; full records remain available to detail and editing flows. */
+export type EventSummary = Pick<EventRecord,
+  "id" | "slug" | "title" | "start_date" | "end_date" | "start_time" | "end_time" | "timezone"
+  | "category" | "classification" | "location_mode" | "location_note" | "status"
+  | "venues" | "channels" | "venue_label" | "area_label" | "location_label">;

@@ -1,5 +1,7 @@
 ---
 import { getPublicEventBySlug, listPublicSetlistsForEvent } from "@frip-fan/core";
+import BackLink from "../../components/BackLink.astro";
+import { eventReturnLink } from "../../lib/event-navigation";
 import Icon from "../../components/Icon.astro";
 import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../../lib/format";
 import SiteLayout from "../../layouts/SiteLayout.astro";
@@ -11,9 +13,11 @@ const event = await getPublicEventBySlug(getEnv().DB, Astro.params.slug!);
 if (!event) return Astro.redirect("/404", 302);
 const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
 const displayStatus = displayEventStatus(event);
+const returnLink = eventReturnLink(Astro.url, event.start_date.slice(0, 7), locale);
 ---
 <SiteLayout title={event.title} description={`${formatDate(event.start_date, event.end_date, locale)} ${event.title}`}>
-  <a class="back" href="/calendar"><Icon name="arrow-left" />{t(locale, "event.back")}</a>
+  <div class="event-page">
+  <BackLink href={returnLink.href} label={t(locale, returnLink.label)} eventReturn />
   <article class="event-detail">
     <header>
       <div class="meta">
@@ -52,11 +56,12 @@ const displayStatus = displayEventStatus(event);
       </section>
     </div>
   </article>
+  </div>
 </SiteLayout>
 
 <style>
-  .back { display: inline-flex; align-items: center; gap: .35rem; color: var(--muted); text-decoration: none; font-size: .85rem; }
-  .event-detail { max-width: 1000px; margin: 3rem auto 0; }
+  .event-page { max-width: 1000px; margin: 0 auto; }
+  .event-detail { margin-top: 1.5rem; }
   .meta { display: flex; gap: .4rem; flex-wrap: wrap; }
   h1 { margin: 1.2rem 0; max-width: 1000px; }
   .date { color: var(--accent); font-size: 1.1rem; }

@@ -122,6 +122,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 </html>
 
 <script>
+  import "../lib/event-navigation-client";
   let navigationController: AbortController | undefined;
   const setupNavigation = () => {
     navigationController?.abort();

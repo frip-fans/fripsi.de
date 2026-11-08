@@ -1,4 +1,5 @@
 ---
+import { eventDetailHref } from "../lib/event-navigation";
 import { dateInTimeZone, listSetlists, searchEvents } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import CommunityDiscussion from "../components/CommunityDiscussion.astro";
@@ -47,7 +48,7 @@ const nextCountdown = !next
           <h2>{next.title}</h2>
           <div class="signal-footer">
             <p>{next.location_label || t(locale, "common.locationPending")}</p>
-            <a href={`/events/${next.slug}`} aria-label={t(locale, "common.view", { title: next.title })}><Icon name="chevron-right" size=".85rem" /></a>
+            <a href={eventDetailHref(next.slug, Astro.url, locale)} aria-label={t(locale, "common.view", { title: next.title })}><Icon name="chevron-right" size=".85rem" /></a>
           </div>
         </>
       ) : (

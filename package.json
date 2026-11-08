@@ -20,7 +20,7 @@
     "test": "vitest run && npm run test:release-covers",
     "test:watch": "vitest",
     "visual:check": "node scripts/visual-check.mjs",
-    "deploy:web": "npm run deploy --workspace @frip-fan/web",
+    "deploy:web": "gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production",
     "deploy:mcp": "npm run deploy --workspace @frip-fan/mcp",
     "db:migrate:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 migrations apply frip-fan-dev --local --config apps/web/wrangler.jsonc",
     "db:seed:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 execute frip-fan-dev --local --config apps/web/wrangler.jsonc --file scripts/seed.sql",
@@ -42,12 +42,14 @@
     "build:phase2-archive": "node scripts/build-phase2-archive-import.mjs",
     "build:phase2-early-archive": "node scripts/build-phase2-archive-import.mjs --early",
     "build:web:staging": "npm run build:staging --workspace @frip-fan/web",
-    "deploy:web:staging": "npm run deploy:staging --workspace @frip-fan/web",
+    "deploy:web:staging": "gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=staging",
     "test:release-covers": "node --test scripts/release-cover-import.test.mjs",
     "scrape:release-covers": "node scripts/scrape-release-covers.mjs",
     "build:release-covers": "node scripts/build-release-cover-import.mjs",
     "import:release-covers:r2": "tsx scripts/import-release-covers-r2.ts",
-    "build:web:node": "npm run build:node --workspace @frip-fan/web && node scripts/build-node-sync.mjs"
+    "build:web:node": "npm run build:node --workspace @frip-fan/web && node scripts/build-node-sync.mjs",
+    "deploy:web:workers:legacy": "npm run deploy --workspace @frip-fan/web",
+    "deploy:web:workers:staging:legacy": "npm run deploy:staging --workspace @frip-fan/web"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",

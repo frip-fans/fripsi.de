@@ -16,7 +16,7 @@ PrivateTmp=true
 PrivateDevices=true
 NoNewPrivileges=true
 CapabilityBoundingSet=
-RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 MemoryMax=192M
 UMask=0077
 

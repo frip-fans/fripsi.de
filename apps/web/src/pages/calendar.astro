@@ -50,6 +50,8 @@ const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
     .mobile-find, .mobile-back { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; color: var(--text); text-decoration: none; font-size: .8125rem; }
     .mobile-find { padding: .55rem .65rem; border: 1px solid var(--line); border-radius: 10px; background: rgba(7,16,28,.75); }
     .mobile-back { margin: -.25rem 0 .75rem; }
+  }
+  @media (hover: hover) and (pointer: fine) {
     .mobile-find:hover, .mobile-back:hover { color: var(--accent); background: rgba(var(--accent-rgb), .08); }
   }
   @media (max-width: 480px) { .events-head { align-items: center; flex-wrap: wrap; } }

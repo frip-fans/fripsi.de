@@ -1,0 +1,25 @@
+[Unit]
+Description=Check remote SQLite backup freshness and capacity
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/opt/fripside-backup/venv/bin/python /opt/fripside-backup/sqlite_backup.py --config /etc/fripside-backup/monitor.json monitor
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+TimeoutStartSec=5min
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

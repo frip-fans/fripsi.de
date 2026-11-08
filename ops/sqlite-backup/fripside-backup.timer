@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily SQLite backup at 04:00 Singapore time
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 Asia/Singapore
+Persistent=true
+AccuracySec=1min
+Unit=fripside-backup.service
+
+[Install]
+WantedBy=timers.target

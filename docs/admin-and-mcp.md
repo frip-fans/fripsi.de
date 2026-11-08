@@ -1,5 +1,7 @@
 # 管理后台与 MCP
 
+> OCI 当前部署见 [OCI 部署](oci-deployment.md)。Web：`https://fripsi.de`；MCP：`https://fripsi.de/mcp`；测试 Web：`https://staging.fripsi.de`；测试 MCP：`https://mcp-staging.fripsi.de/mcp`。以下 Cloudflare 部署命令与旧 workers.dev 地址仅供历史核对和回退；旧公开入口将在切换后关闭，避免写入旧 D1。
+
 ## 1. 共同业务层
 
 管理后台和 MCP 是两种操作界面，但必须调用同一套服务：

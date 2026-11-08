@@ -1,6 +1,8 @@
 import { authenticateAdmin, ServiceError } from "@frip-fan/core";
 import { defineMiddleware } from "astro:middleware";
 import { getEnv } from "./lib/env";
+import { publicResponse } from "#public-cache";
+import { OFFICIAL_SITE_NOTICE_COOKIE } from "./lib/site-notice";
 import { getLocale, type Locale } from "./lib/i18n";
 
 function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale, allowGiscus = false, allowVectorMap = false, allowCoverPreview = false): Response {
@@ -29,10 +31,20 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const path = context.url.pathname;
   const env = getEnv();
   const staging = env.APP_ENV === "staging";
+  // MCP retains its own bearer/automation authorization, separate from the web admin session.
+  if (env.FRIP_RUNTIME === "node" && ["/mcp", "/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp", "/healthz"].includes(path)) {
+    return secure(await next(), true);
+  }
   const privateRoute = staging || path.startsWith("/admin") || path.startsWith("/api/admin");
   if (!privateRoute) {
     const cacheControl = path === "/archive" || (path === "/calendar" && context.url.searchParams.get("view") === "list") ? "private, max-age=60, stale-while-revalidate=30" : undefined;
-    return secure(await next(), false, cacheControl, getLocale(context.request), path === "/" || path === "/discuss", path === "/journey");
+    const locale = getLocale(context.request);
+    const render = async () => secure(await next(), false, cacheControl, locale, path === "/" || path === "/discuss", path === "/journey");
+    const eligible = env.FRIP_RUNTIME === "node" && context.request.method === "GET"
+      && !context.request.headers.has("authorization") && context.url.href.length <= 2048
+      && !path.startsWith("/api/admin") && !path.startsWith("/media/");
+    const notice = eligible && context.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value === "yes";
+    return eligible ? publicResponse(`${context.url.href}|${locale}|${notice}`, render) : render();
   }
 
   try {

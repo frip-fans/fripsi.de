@@ -1,0 +1,34 @@
+[Unit]
+Description=Consistent encrypted fripsi.de SQLite backup to private R2
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Root can read owner-only SQLite WAL files. The runner cannot edit this script/config.
+User=root
+UMask=0077
+ExecStart=/opt/fripside-backup/venv/bin/python /opt/fripside-backup/sqlite_backup.py --config /etc/fripside-backup/config.json backup
+StateDirectory=fripside-backup
+StateDirectoryMode=0700
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/fripside-backup
+# SQLite read-only WAL access may need to create/update SHM; no raw file copying.
+ReadWritePaths=/var/lib/fripside
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH CAP_DAC_OVERRIDE
+TimeoutStartSec=15min
+Nice=10
+IOSchedulingClass=idle
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

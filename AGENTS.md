@@ -52,3 +52,9 @@
 - [架构](docs/architecture.md)：应用与共享业务逻辑边界。
 
 共享规则统一修改本文件；`CLAUDE.md` 只保留导入入口，发布文档与本文件保持一致。
+
+## OCI SQLite 数据保护
+
+- 数据库备份遵循 [SQLite 备份与恢复](docs/sqlite-backups.md)，生产 timer 独立于 GitHub Actions 和部署 runner。先完成脚本、配置模板、测试和真实隔离恢复验收，再启用生产 timer。
+- 活跃 WAL 库只能通过 SQLite Online Backup API 或 `.backup` 生成快照，禁止直接复制主数据库文件。数据库、备份密文、R2 凭据及恢复私钥不得提交 Git 或上传 Actions artifact。
+- 恢复必须显式指定备份，先验证隔离库和应用读取；不能自动覆盖线上库。生产机只保存 age 加密公钥，恢复私钥留在生产机之外。

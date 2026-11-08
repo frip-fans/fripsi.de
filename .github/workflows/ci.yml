@@ -37,3 +37,18 @@ jobs:
         run: npm run build:production --workspace @frip-fan/web
       - name: Build staging web
         run: npm run build:web:staging
+
+  sqlite-backup:
+    name: SQLite backup safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install isolated backup test dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install --yes age python3-venv
+          python3 -m venv "$RUNNER_TEMP/backup-tests"
+          "$RUNNER_TEMP/backup-tests/bin/pip" install -r ops/sqlite-backup/requirements-test.txt
+      - name: Exercise online snapshots, encryption, restore and failures
+        run: '"$RUNNER_TEMP/backup-tests/bin/python" -m unittest discover -s ops/sqlite-backup -v'

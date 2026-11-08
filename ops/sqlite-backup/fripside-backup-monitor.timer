@@ -1,0 +1,11 @@
+[Unit]
+Description=Hourly independent remote backup freshness check
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+AccuracySec=1min
+Unit=fripside-backup-monitor.service
+
+[Install]
+WantedBy=timers.target

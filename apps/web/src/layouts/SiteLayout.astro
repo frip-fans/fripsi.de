@@ -9,6 +9,7 @@ import { ClientRouter } from "astro:transitions";
 import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
 import Icon from "../components/Icon.astro";
+import NavigationLoading from "../components/NavigationLoading.astro";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import OfficialSiteGate from "../components/OfficialSiteGate.astro";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
@@ -65,7 +66,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     <title>{title === siteName ? title : `${title} · ${siteName}`}</title>
     {clientRouting && <ClientRouter fallback="swap" />}
   </head>
-  <body class:list={{ admin }} transition:animate={clientRouting ? "none" : undefined}>
+  <body class:list={{ admin }}>
     <div class="safe-area-top" aria-hidden="true"></div>
     <a class="skip-link" href="#main-content">{t(locale, "nav.skip")}</a>
     <div class="background-rotator" data-background-rotator={rotateHomeBackground || undefined} aria-hidden="true">
@@ -131,6 +132,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     </dialog>
     {!admin && <OfficialSiteGate autoOpen={autoOpenOfficialSiteGate} />}
     <main id="main-content" tabindex="-1"><slot /></main>
+    {!admin && <NavigationLoading />}
     <footer>
       <span>{admin ? "fripSide 名称、标识、作品及其他相关内容的权利归各自权利人所有。" : t(locale, "footer.rights")}</span>
       {admin ? <span>本站并非 fripSide 官方网站</span> : (
@@ -292,7 +294,9 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     color: var(--text);
   }
   * { box-sizing: border-box; }
-  html { min-width: 320px; background: var(--bg); scroll-behavior: smooth; scrollbar-gutter: stable; scroll-padding-top: var(--safe-area-top); }
+  /* Navigation uses a loading skeleton; avoid native full-page snapshots,
+     which can stall WebKit compositing even with animation="none". */
+  html { view-transition-name: none; min-width: 320px; background: var(--bg); scroll-behavior: smooth; scrollbar-gutter: stable; scroll-padding-top: var(--safe-area-top); }
   body { position: relative; isolation: isolate; margin: 0; min-height: 100vh; min-height: 100svh; padding: var(--safe-area-top) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); background: var(--bg); }
   .safe-area-top { display: none; }
   @media (pointer: coarse) {

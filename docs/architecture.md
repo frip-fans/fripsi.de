@@ -214,3 +214,7 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 `public-navigation.ts` 只保存来源、列表入口及显式返回的滚动/焦点上下文，不抓取页面、不替换 DOM、不自行处理 popstate。页面替换、标题/元信息、样式与浏览器历史由 ClientRouter 管理。模块修改筛选 URL 时使用 `replacePublicUrl`，保留 Astro 的 history state 并同步正在显示的 URL；popstate 时地址已变，不能拿新地址保存旧页面的状态。活动搜索继续使用带内容版本与期限的快照恢复加载深度；音乐列表的累积页数保存在 URL。
 
 组件在 `astro:page-load` 初始化，在 `astro:before-swap` 取消请求、监听器与定时器。公共布局避免导入音乐搜索模块，详情页进入列表时再加载所需脚本。新增公开交互时需验收首次访问、跨页进入及再次返回三种情况。来源返回位置的内存记录最多保留 40 个 URL，整页刷新或超出上限后使用正常链接及锚点退路。
+
+公开导航的即时反馈由 `NavigationLoading` 与 `navigation-loading.ts` 统一管理。ClientRouter 在 `astro:before-preparation` 显示骨架/进度条，在 swap、取消、失败和 pageshow/pagehide 清理；不创建导航请求、不增加最短等待时间。音乐库切换保留 Tab 可操作，遮挡区域临时 inert，清理时恢复原属性。原生整页链接也显示反馈，取消原生加载时最多 15 秒恢复旧页面。骨架复用四语言 loading 文案，遵循 reduced-motion。
+
+公共布局不对 body 添加 `transition:animate="none"` 的命名快照，html 使用 `view-transition-name: none`。仅将动画设为 none 仍会创建原生整页快照，在 WebKit 中可引入显著的合成等待；导航继续使用 ClientRouter，加载动画只发生在骨架上。验收 Safari 导航时应区分请求、after-preparation → after-swap 与 page-load 三段时序，不能用 Chromium 的手机 viewport 代替 WebKit 检查。

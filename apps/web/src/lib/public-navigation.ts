@@ -36,7 +36,7 @@ function setupContext() {
   }
   const locale = document.documentElement.lang;
   const assign = (link: HTMLAnchorElement, target: URL) => {
-    if (locale) target.searchParams.set("lang", locale);
+    if (target.searchParams.has("lang")) target.searchParams.set("lang", locale);
     link.href = target.href;
   };
   for (const link of document.querySelectorAll<HTMLAnchorElement>("[data-music-tabs] a")) {

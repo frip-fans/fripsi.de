@@ -1,0 +1,28 @@
+[Unit]
+Description=fripsi.de official activity sync tick
+After=network-online.target fripside-web.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=frip-app
+Group=fripside
+WorkingDirectory=/opt/fripside/current
+Environment=NODE_ENV=production
+Environment=FRIP_DB_PATH=/var/lib/fripside/site.sqlite
+EnvironmentFile=/etc/fripside/sync.env
+ExecStart=/usr/local/bin/node --max-old-space-size=192 /opt/fripside/current/server/sync-cli.mjs
+UMask=0077
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/fripside
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=256M
+TimeoutStartSec=4min
+
+[Install]
+WantedBy=multi-user.target

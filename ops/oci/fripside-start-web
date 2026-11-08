@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+export FRIP_RELEASE_SHA
+FRIP_RELEASE_SHA=$(cat /opt/fripside/current/REVISION)
+exec /usr/local/bin/node --max-old-space-size=384 /opt/fripside/current/server/entry.mjs

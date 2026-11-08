@@ -1,0 +1,24 @@
+[Unit]
+Description=fripsi.de outbound Cloudflare Tunnel
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=true
+LoadCredential=tunnel-token:/etc/cloudflared/fripside-token
+ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate --metrics 127.0.0.1:20241 run --token-file %d/tunnel-token
+Restart=on-failure
+RestartSec=5
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+NoNewPrivileges=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=192M
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

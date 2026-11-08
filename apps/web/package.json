@@ -11,20 +11,30 @@
     "typecheck": "XDG_CONFIG_HOME=../../.cache/xdg ASTRO_TELEMETRY_DISABLED=1 astro check",
     "deploy": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=production ASTRO_TELEMETRY_DISABLED=1 astro build && XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy",
     "build:staging": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=staging ASTRO_TELEMETRY_DISABLED=1 astro build",
-    "deploy:staging": "npm run build:staging && XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy"
+    "deploy:staging": "npm run build:staging && XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy",
+    "build:node": "FRIP_RUNTIME=node ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "dev:node": "FRIP_RUNTIME=node ASTRO_TELEMETRY_DISABLED=1 astro dev"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.4.6",
+    "@astrojs/node": "11.1.11",
     "@frip-fan/core": "*",
     "astro": "^7.4.7",
     "bootstrap-icons": "^1.13.1",
     "leaflet": "^1.9.4",
-    "maplibre-gl": "^6.16.0"
+    "maplibre-gl": "^6.16.0",
+    "@frip-fan/node-runtime": "*",
+    "@frip-fan/mcp": "*"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@cloudflare/workers-types": "^5.20260718.1",
     "@types/leaflet": "^1.9.22",
     "wrangler": "^4.158.0"
+  },
+  "imports": {
+    "#runtime-env": "./src/lib/env-cloudflare.ts",
+    "#runtime-mcp": "./src/lib/mcp-disabled.ts",
+    "#public-cache": "./src/lib/public-cache-cloudflare.ts"
   }
 }

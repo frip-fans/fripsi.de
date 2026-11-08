@@ -11,3 +11,5 @@ data/raw/
 data/normalized/
 data/reports/
 !data/**/.gitkeep
+
+dist-node/

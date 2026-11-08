@@ -58,3 +58,9 @@
 - 数据库备份遵循 [SQLite 备份与恢复](docs/sqlite-backups.md)，生产 timer 独立于 GitHub Actions 和部署 runner。先完成脚本、配置模板、测试和真实隔离恢复验收，再启用生产 timer。
 - 活跃 WAL 库只能通过 SQLite Online Backup API 或 `.backup` 生成快照，禁止直接复制主数据库文件。数据库、备份密文、R2 凭据及恢复私钥不得提交 Git 或上传 Actions artifact。
 - 恢复必须显式指定备份，先验证隔离库和应用读取；不能自动覆盖线上库。生产机只保存 age 加密公钥，恢复私钥留在生产机之外。
+
+## OCI 部署
+
+- OCI 迁移/发布按 [OCI 自托管部署](docs/oci-deployment.md) 执行；生产仍遵循 release 快照与 master rebase PR。
+- 私有部署仓库拥有部署专用 runner；公共 PR 只运行 GitHub 托管 CI。源码/私有工作流只部署受保护 staging/master 的精确 SHA，并要求源码 push CI 成功。
+- 主机 root 配置与应用/runner 用户隔离，部署产物只包含构建代码，不包括数据库、备份或环境密钥。部署不隐式迁移/覆盖数据库，不自动启用未验收 timer。

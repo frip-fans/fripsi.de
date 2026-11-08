@@ -1,4 +1,4 @@
-import { isMusicPath, setupMusicBackLink } from "./music-navigation";
+import { replacePublicUrl } from "./public-navigation";
 import { setupReleaseCovers } from "../scripts/release-cover";
 
 let mounted: HTMLElement | null = null;
@@ -136,7 +136,7 @@ export function setupMusicBrowser() {
         if (key === "page" && value === "1") continue;
         url.searchParams.set(key, value);
       }
-      history.replaceState(history.state, "", url);
+      replacePublicUrl(url);
       root.dataset.musicUrl = url.href;
       document.querySelectorAll<HTMLAnchorElement>("[data-music-entry]").forEach(entry => { entry.href = url.href; });
       try { sessionStorage.setItem(`music:list:${root.dataset.kind}`, `${url.pathname}${url.search}`); } catch { /* storage can be unavailable */ }
@@ -207,112 +207,6 @@ export function setupMusicBrowser() {
 }
 
 
-// One document for the music lists and details; normal links remain the fallback.
-const viewCache = new Map<string, { element: HTMLElement; title: string; scroll: number; source: string | null; description: string; canonical: string }>();
-let navigationRequest: AbortController | undefined;
-let navigationSerial = 0;
-let renderedUrl = location.href;
-let renderedSource: string | null = history.state?.musicSource ?? (document.referrer || null);
-const musicRoot = () => document.querySelector<HTMLElement>("[data-music-browser], [data-music-detail]");
-
-async function navigateMusicView(target: URL, push: boolean, returning = false) {
-  const current = musicRoot();
-  if (!current) { location.assign(target.href); return; }
-  const currentUrl = current.dataset.musicUrl || renderedUrl;
-  if (target.href === currentUrl && push) return;
-  navigationRequest?.abort();
-  const serial = ++navigationSerial;
-  navigationRequest = new AbortController();
-  current.setAttribute("aria-busy", "true");
-  try {
-    const cached = viewCache.get(target.href);
-    let next: HTMLElement;
-    let title: string;
-    let scroll = 0;
-    let description = cached?.description ?? "";
-    let canonical = cached?.canonical ?? "";
-    let source = push ? (returning ? cached?.source ?? null : new URL(currentUrl).pathname === target.pathname ? renderedSource : currentUrl) : history.state?.musicSource ?? cached?.source ?? null;
-    if (cached) {
-      next = cached.element; title = cached.title; scroll = cached.scroll;
-    } else {
-      const response = await fetch(target, { signal: navigationRequest.signal });
-      if (!response.ok) throw new Error("Music view failed");
-      const parsed = new DOMParser().parseFromString(await response.text(), "text/html");
-      const element = parsed.querySelector<HTMLElement>("[data-music-browser], [data-music-detail]");
-      if (!element) throw new Error("Missing music view");
-      element.querySelectorAll("noscript, script").forEach(node => node.remove());
-      // Page-specific Astro CSS must be available before showing the next view.
-      const styles: Promise<void>[] = [];
-      for (const style of parsed.head.querySelectorAll('link[rel="stylesheet"], style')) {
-        if (style instanceof HTMLLinkElement) {
-          const href = style.getAttribute("href")!;
-          if ([...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].some(existing => existing.getAttribute("href") === href)) continue;
-          const link = style.cloneNode(true) as HTMLLinkElement;
-          styles.push(new Promise((resolve, reject) => { link.onload = () => resolve(); link.onerror = () => reject(new Error("Music styles failed")); }));
-          document.head.appendChild(link);
-        } else if (![...document.head.querySelectorAll("style")].some(existing => existing.textContent === style.textContent)) {
-          document.head.appendChild(style.cloneNode(true));
-        }
-      }
-      await Promise.all(styles);
-      next = element; title = parsed.title;
-      description = parsed.querySelector<HTMLMetaElement>('meta[name="description"]')?.content ?? "";
-      canonical = parsed.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href ?? "";
-    }
-    if (serial !== navigationSerial) return;
-    if (current.querySelector("[data-music-results]")?.getAttribute("aria-busy") !== "true") {
-      viewCache.set(currentUrl, { element: current, title: document.title, scroll: window.scrollY, source: renderedSource, description: document.querySelector<HTMLMetaElement>('meta[name="description"]')?.content ?? "", canonical: document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.href ?? "" });
-      if (viewCache.size > 20) viewCache.delete(viewCache.keys().next().value!);
-    }
-    dispose?.(); mounted = null;
-    if (push) history.pushState({ musicView: true, musicSource: source }, "", target);
-    current.replaceWith(next);
-    next.removeAttribute("aria-busy");
-    document.title = title;
-    document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute("content", description);
-    if (canonical) document.querySelector<HTMLLinkElement>('link[rel="canonical"]')?.setAttribute("href", canonical);
-    renderedUrl = target.href; renderedSource = source;
-    setupMusicBrowser();
-    setupMusicBackLink(source);
-    setupReleaseCovers();
-    const heading = next.querySelector<HTMLElement>("h1");
-    if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
-    requestAnimationFrame(() => {
-      const anchor = target.hash ? document.getElementById(decodeURIComponent(target.hash.slice(1))) : null;
-      if (anchor) anchor.scrollIntoView({ block: "start" });
-      else window.scrollTo({ top: scroll, behavior: "instant" });
-    });
-  } catch (cause) {
-    if (serial === navigationSerial && !(cause instanceof DOMException && cause.name === "AbortError")) location.assign(target.href);
-  } finally {
-    current.removeAttribute("aria-busy");
-  }
-}
-
-document.addEventListener("click", event => {
-  if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !(event.target instanceof Element)) return;
-  const link = event.target.closest<HTMLAnchorElement>("a[href]");
-  if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self") || !musicRoot()) return;
-  let target = new URL(link.href);
-  if (target.origin !== location.origin || !isMusicPath(target.pathname)) return;
-  if (target.pathname === location.pathname && target.search === location.search && target.hash) return;
-  if (link.closest("[data-music-tabs]")) {
-    try {
-      const kind = target.pathname.split("/").at(-1);
-      const saved = sessionStorage.getItem(`music:list:${kind}`);
-      if (saved) {
-        const remembered = new URL(saved, location.origin);
-        if (remembered.origin === location.origin && remembered.pathname === target.pathname) target = remembered;
-      }
-    } catch { /* retain the ordinary link target */ }
-  }
-  const locale = new URL(location.href).searchParams.get("lang");
-  if (locale && !target.searchParams.has("lang")) target.searchParams.set("lang", locale);
-  // Locale changes also update the site chrome through ordinary navigation.
-  if (target.searchParams.has("lang") && target.searchParams.get("lang") !== document.documentElement.lang) return;
-  event.preventDefault();
-  void navigateMusicView(target, true, link.hasAttribute("data-music-back"));
-});
-window.addEventListener("popstate", () => {
-  if (isMusicPath(location.pathname) && musicRoot()) void navigateMusicView(new URL(location.href), false);
-});
+document.addEventListener("astro:page-load", setupMusicBrowser);
+document.addEventListener("astro:before-swap", () => { dispose?.(); mounted = null; });
+setupMusicBrowser();

@@ -125,88 +125,99 @@ const nextCountdown = !next
 </SiteLayout>
 
 <script>
-  const rotator = document.querySelector<HTMLElement>("[data-lyric-rotator]");
-  const lead = rotator?.querySelector<HTMLElement>("[data-lyric-lead]");
-  const lineOne = rotator?.querySelector<HTMLElement>("[data-lyric-line-one]");
-  const lineTwo = rotator?.querySelector<HTMLElement>("[data-lyric-line-two]");
-  const lineBreak = rotator?.querySelector<HTMLElement>("[data-lyric-break]");
-  const lyrics = [
-    { lead: "This desire", lineOne: "is bound", lineTwo: "in the melody.", variant: "" },
-    { lead: "Did my song arrive？", lineOne: "Up to that far", lineTwo: "distant moon.", variant: "english" },
-    { lead: "変わりゆく季節が今、", lineOne: "迷いながら", lineTwo: "景色を染めてく", variant: "japanese" },
-    { lead: "ずっと忘れることのない", lineOne: "深く刻まれたこの記憶", lineTwo: "", variant: "japanese" },
-    { lead: "君と出会った必然が", lineOne: "無限の宇宙に解き放たれて輝く", lineTwo: "その絆だけが　unlimited destiny", variant: "japanese-long" }
-  ];
-  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const smallScreen = window.matchMedia("(max-width: 800px)");
-  let activeIndex = 0;
-  let rotationTimer: number | undefined;
-  let transitionTimer: number | undefined;
-  let cleanupTimer: number | undefined;
+  let cleanupHome: (() => void) | undefined;
+  const setupHome = () => {
+    cleanupHome?.();
+    if (!document.querySelector("[data-lyric-rotator]")) return;
+    const controller = new AbortController();
+    const { signal } = controller;
+    const rotator = document.querySelector<HTMLElement>("[data-lyric-rotator]");
+    const lead = rotator?.querySelector<HTMLElement>("[data-lyric-lead]");
+    const lineOne = rotator?.querySelector<HTMLElement>("[data-lyric-line-one]");
+    const lineTwo = rotator?.querySelector<HTMLElement>("[data-lyric-line-two]");
+    const lineBreak = rotator?.querySelector<HTMLElement>("[data-lyric-break]");
+    const lyrics = [
+      { lead: "This desire", lineOne: "is bound", lineTwo: "in the melody.", variant: "" },
+      { lead: "Did my song arrive？", lineOne: "Up to that far", lineTwo: "distant moon.", variant: "english" },
+      { lead: "変わりゆく季節が今、", lineOne: "迷いながら", lineTwo: "景色を染めてく", variant: "japanese" },
+      { lead: "ずっと忘れることのない", lineOne: "深く刻まれたこの記憶", lineTwo: "", variant: "japanese" },
+      { lead: "君と出会った必然が", lineOne: "無限の宇宙に解き放たれて輝く", lineTwo: "その絆だけが　unlimited destiny", variant: "japanese-long" }
+    ];
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const smallScreen = window.matchMedia("(max-width: 800px)");
+    let activeIndex = 0;
+    let rotationTimer: number | undefined;
+    let transitionTimer: number | undefined;
+    let cleanupTimer: number | undefined;
 
-  const renderLyric = () => {
-    const lyric = lyrics[activeIndex];
-    if (!rotator || !lead || !lineOne || !lineTwo || !lyric) return;
-    lead.textContent = lyric.lead;
-    lineOne.textContent = lyric.lineOne;
-    lineTwo.textContent = lyric.lineTwo;
-    if (lineBreak) lineBreak.hidden = !lyric.lineTwo;
-    lineTwo.hidden = !lyric.lineTwo;
-    rotator.dataset.variant = lyric.variant;
-    rotator.lang = lyric.variant.startsWith("japanese") ? "ja" : "en";
-  };
+    const renderLyric = () => {
+      const lyric = lyrics[activeIndex];
+      if (!rotator || !lead || !lineOne || !lineTwo || !lyric) return;
+      lead.textContent = lyric.lead;
+      lineOne.textContent = lyric.lineOne;
+      lineTwo.textContent = lyric.lineTwo;
+      if (lineBreak) lineBreak.hidden = !lyric.lineTwo;
+      lineTwo.hidden = !lyric.lineTwo;
+      rotator.dataset.variant = lyric.variant;
+      rotator.lang = lyric.variant.startsWith("japanese") ? "ja" : "en";
+    };
 
-  const showNextLyric = () => {
-    if (!rotator) return;
-    rotator.classList.add("is-glitching");
-    transitionTimer = window.setTimeout(() => {
-      activeIndex = (activeIndex + 1) % lyrics.length;
-      renderLyric();
+    const showNextLyric = () => {
+      if (!rotator) return;
+      rotator.classList.add("is-glitching");
+      transitionTimer = window.setTimeout(() => {
+        activeIndex = (activeIndex + 1) % lyrics.length;
+        renderLyric();
+        transitionTimer = undefined;
+      }, 260);
+      cleanupTimer = window.setTimeout(() => {
+        rotator.classList.remove("is-glitching");
+        cleanupTimer = undefined;
+      }, 560);
+    };
+
+    const stopRotation = () => {
+      if (rotationTimer !== undefined) window.clearInterval(rotationTimer);
+      if (transitionTimer !== undefined) window.clearTimeout(transitionTimer);
+      if (cleanupTimer !== undefined) window.clearTimeout(cleanupTimer);
+      rotationTimer = undefined;
       transitionTimer = undefined;
-    }, 260);
-    cleanupTimer = window.setTimeout(() => {
-      rotator.classList.remove("is-glitching");
       cleanupTimer = undefined;
-    }, 560);
-  };
+      rotator?.classList.remove("is-glitching");
+    };
 
-  const stopRotation = () => {
-    if (rotationTimer !== undefined) window.clearInterval(rotationTimer);
-    if (transitionTimer !== undefined) window.clearTimeout(transitionTimer);
-    if (cleanupTimer !== undefined) window.clearTimeout(cleanupTimer);
-    rotationTimer = undefined;
-    transitionTimer = undefined;
-    cleanupTimer = undefined;
-    rotator?.classList.remove("is-glitching");
-  };
+    const startRotation = () => {
+      stopRotation();
+      if (!smallScreen.matches && !reducedMotion.matches && lyrics.length > 1 && !document.hidden && document.documentElement.dataset.homeMotionPaused !== "true") {
+        rotationTimer = window.setInterval(showNextLyric, 8000);
+      }
+    };
 
-  const startRotation = () => {
-    stopRotation();
-    if (!smallScreen.matches && !reducedMotion.matches && lyrics.length > 1 && !document.hidden && document.documentElement.dataset.homeMotionPaused !== "true") {
-      rotationTimer = window.setInterval(showNextLyric, 8000);
-    }
-  };
-
-  const motionToggle = document.querySelector<HTMLButtonElement>("[data-home-motion]");
-  const updateMotionToggle = () => {
-    if (!motionToggle) return;
-    const paused = document.documentElement.dataset.homeMotionPaused === "true";
-    motionToggle.setAttribute("aria-pressed", String(paused));
-    motionToggle.querySelector("span")!.textContent = (paused ? motionToggle.dataset.resumeLabel : motionToggle.dataset.pauseLabel) ?? "";
-    motionToggle.hidden = reducedMotion.matches;
-  };
-  motionToggle?.addEventListener("click", () => {
-    document.documentElement.dataset.homeMotionPaused = String(document.documentElement.dataset.homeMotionPaused !== "true");
+    const motionToggle = document.querySelector<HTMLButtonElement>("[data-home-motion]");
+    const updateMotionToggle = () => {
+      if (!motionToggle) return;
+      const paused = document.documentElement.dataset.homeMotionPaused === "true";
+      motionToggle.setAttribute("aria-pressed", String(paused));
+      motionToggle.querySelector("span")!.textContent = (paused ? motionToggle.dataset.resumeLabel : motionToggle.dataset.pauseLabel) ?? "";
+      motionToggle.hidden = reducedMotion.matches;
+    };
+    motionToggle?.addEventListener("click", () => {
+      document.documentElement.dataset.homeMotionPaused = String(document.documentElement.dataset.homeMotionPaused !== "true");
+      updateMotionToggle();
+      startRotation();
+      document.dispatchEvent(new Event("home-motion-change"));
+    }, { signal });
     updateMotionToggle();
+    reducedMotion.addEventListener("change", updateMotionToggle, { signal });
+    reducedMotion.addEventListener("change", startRotation, { signal });
+    smallScreen.addEventListener("change", startRotation, { signal });
+    document.addEventListener("visibilitychange", startRotation, { signal });
     startRotation();
-    document.dispatchEvent(new Event("home-motion-change"));
-  });
-  updateMotionToggle();
-  reducedMotion.addEventListener("change", updateMotionToggle);
-  reducedMotion.addEventListener("change", startRotation);
-  smallScreen.addEventListener("change", startRotation);
-  document.addEventListener("visibilitychange", startRotation);
-  startRotation();
+    cleanupHome = () => { stopRotation(); controller.abort(); };
+  };
+  document.addEventListener("astro:before-swap", () => cleanupHome?.());
+  document.addEventListener("astro:page-load", setupHome);
+  setupHome();
 </script>
 
 <style>

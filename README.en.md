@@ -1,5 +1,7 @@
 # fripSi.de
 
+> OCI hosting: Web and MCP run on Node 24 / SQLite, deployed through private deployment runners with Cloudflare Tunnel / Access / CDN. See [deployment](docs/oci-deployment.md) and [database backups](docs/sqlite-backups.md).
+
 [简体中文](./README.md) | [日本語](./README.ja.md) | [English](./README.en.md)
 
 [fripSi.de](https://fripsi.de) is an unofficial, fan-maintained fripSide event calendar and live setlist archive.

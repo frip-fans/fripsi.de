@@ -16,7 +16,7 @@
   "env": {
     "staging": {
       "name": "frip-fan-sync-staging",
-      "triggers": { "crons": ["*/5 * * * *"] },
+      "triggers": { "crons": [] },
       "d1_databases": [{
         "binding": "DB", "database_name": "frip-fan-staging",
         "database_id": "32c5a88c-bbd1-4bda-9814-b8cce16fc7c4",
@@ -26,7 +26,7 @@
     },
     "production": {
       "name": "frip-fan-sync",
-      "triggers": { "crons": ["*/5 * * * *"] },
+      "triggers": { "crons": [] },
       "d1_databases": [{
         "binding": "DB", "database_name": "frip-fan-prod",
         "database_id": "f35ee3c1-3f65-44ed-988b-e6cbf2c187f6",

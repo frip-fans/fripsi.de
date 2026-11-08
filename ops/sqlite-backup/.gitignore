@@ -1,0 +1,8 @@
+__pycache__/
+.venv/
+*.sqlite*
+*.age
+*.agekey
+config.json
+monitor.json
+restore.json

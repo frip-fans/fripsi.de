@@ -1,0 +1,13 @@
+{
+  "database": "/var/lib/fripside/site.sqlite",
+  "release_sha_file": "/opt/fripside/current/REVISION",
+  "state_dir": "/var/lib/fripside-backup",
+  "endpoint": "https://ACCOUNT_ID.r2.cloudflarestorage.com",
+  "bucket": "fripside-production-db-backups",
+  "prefix": "sqlite/production/",
+  "access_key_id": "BUCKET_SCOPED_R2_ACCESS_KEY",
+  "secret_access_key": "BUCKET_SCOPED_R2_SECRET_KEY",
+  "age_recipient": "age1_REPLACE_WITH_OFFLINE_PUBLIC_RECIPIENT",
+  "notify_url": "https://YOUR_NOTIFICATION_ENDPOINT",
+  "capacity_warn_bytes": 1073741824
+}

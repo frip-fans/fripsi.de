@@ -1,0 +1,126 @@
+name: OCI deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, production, all]
+        default: staging
+        description: Deploy the latest protected branch head after successful source CI
+  schedule:
+    - cron: '17,47 * * * *'
+
+permissions:
+  contents: read
+  actions: read
+  deployments: write
+
+concurrency:
+  group: oci-deployment
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.probe.outputs.matrix }}
+      changed: ${{ steps.probe.outputs.changed }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: probe
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUEST_ENVIRONMENT: ${{ inputs.environment || 'all' }}
+        run: python3 probe.py
+
+  build:
+    needs: plan
+    if: needs.plan.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: frip-fans/fripsi.de
+          ref: ${{ matrix.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npm run build:web:node
+        env:
+          ASTRO_TELEMETRY_DISABLED: '1'
+      - name: Package code-only standalone release
+        env:
+          SOURCE_SHA: ${{ matrix.sha }}
+        run: |
+          python3 ops/oci/package-release.py --sha "$SOURCE_SHA" --output release.tgz
+          sha256sum release.tgz > release.tgz.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: node-${{ matrix.environment }}-${{ matrix.sha }}
+          path: |
+            release.tgz
+            release.tgz.sha256
+          retention-days: 3
+          if-no-files-found: error
+
+  deploy:
+    needs: [plan, build]
+    if: needs.plan.outputs.changed == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: [self-hosted, Linux, X64, deploy-only, '${{ matrix.runner }}']
+    timeout-minutes: 10
+    env:
+      SOURCE_SHA: ${{ matrix.sha }}
+      SOURCE_BRANCH: ${{ matrix.branch }}
+      DEPLOY_ENVIRONMENT: ${{ matrix.environment }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: node-${{ matrix.environment }}-${{ matrix.sha }}
+          path: incoming
+      - name: Reject superseded source heads and create deployment record
+        id: record
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request
+          def api(path,data=None):
+              request=urllib.request.Request('https://api.github.com/'+path,data=json.dumps(data).encode() if data else None,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+              with urllib.request.urlopen(request,timeout=30) as response: return json.load(response)
+          head=api('repos/frip-fans/fripsi.de/commits/'+os.environ['SOURCE_BRANCH'])['sha']
+          if head!=os.environ['SOURCE_SHA']: raise SystemExit('Source head advanced; refusing a stale deployment')
+          deployment=api('repos/frip-fans/fripside-deploy/deployments',{'ref':os.environ['GITHUB_SHA'],'auto_merge':False,'required_contexts':[],'environment':os.environ['DEPLOY_ENVIRONMENT'],'task':'deploy_node','payload':{'source_sha':head,'source_repository':'frip-fans/fripsi.de'}})
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('id='+str(deployment['id'])+'\n')
+          PY
+      - name: Verify and activate release
+        run: |
+          cd incoming
+          sha256sum --check release.tgz.sha256
+          python3 /usr/local/bin/fripside-install-release --archive release.tgz --sha "$SOURCE_SHA"
+      - name: Record deployment result
+        if: always() && steps.record.outputs.id
+        env:
+          DEPLOYMENT_ID: ${{ steps.record.outputs.id }}
+          DEPLOY_RESULT: ${{ job.status }}
+        run: |
+          python3 - <<'PY'
+          import json,os,urllib.request
+          state='success' if os.environ['DEPLOY_RESULT']=='success' else 'failure'
+          body={'state':state,'auto_inactive':True,'environment_url':'https://'+('staging.fripsi.de' if os.environ['DEPLOY_ENVIRONMENT']=='staging' else 'fripsi.de'),'log_url':os.environ['GITHUB_SERVER_URL']+'/'+os.environ['GITHUB_REPOSITORY']+'/actions/runs/'+os.environ['GITHUB_RUN_ID']}
+          request=urllib.request.Request('https://api.github.com/repos/frip-fans/fripside-deploy/deployments/'+os.environ['DEPLOYMENT_ID']+'/statuses',data=json.dumps(body).encode(),headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
+          with urllib.request.urlopen(request,timeout=30) as response: print('Deployment result recorded:',state)
+          PY
+      - name: Remove downloaded artifact
+        if: always()
+        run: rm -rf incoming

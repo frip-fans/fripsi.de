@@ -1,5 +1,7 @@
 # fripSi.de
 
+> OCI 迁移：Web 与 MCP 使用 Node 24 / SQLite，部署由私有仓库 runner 执行，Cloudflare 保留 Tunnel / Access / CDN。操作见 [OCI 部署](docs/oci-deployment.md) 与 [数据库备份](docs/sqlite-backups.md)。
+
 [简体中文](./README.md) | [日本語](./README.ja.md) | [English](./README.en.md)
 
 [fripSi.de](https://fripsi.de) 是一个由粉丝维护的非官方 fripSide 活动日历与 Live 歌单资料库。

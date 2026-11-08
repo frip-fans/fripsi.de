@@ -4,8 +4,9 @@ export function calendarViewHref(params: URLSearchParams, view: CalendarView, fa
   const next = new URLSearchParams(params);
   const month = next.get("month");
   const year = next.get("year");
-  if (view === "list" && params.get("view") !== "list" && /^\d{4}-(0[1-9]|1[0-2])$/.test(month ?? "")) {
-    next.set("year", month!.slice(0, 4));
+  if (view === "list" && params.get("view") !== "list") {
+    next.delete("year");
+    next.delete("after");
   }
   if (view === "calendar" && params.get("view") === "list" && /^\d{4}$/.test(year ?? "")) {
     const selectedMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(month ?? "") ? month! : fallbackMonth;
@@ -32,7 +33,7 @@ export function calendarAgendaHref(params: URLSearchParams, fallbackMonth: strin
   const month = next.get("month");
   next.set("month", /^\d{4}-(0[1-9]|1[0-2])$/.test(month ?? "") ? month! : fallbackMonth);
   next.set("view", "calendar");
-  for (const key of ["year", "q", "location", "sort", "date"]) next.delete(key);
+  for (const key of ["year", "q", "location", "sort", "date", "after"]) next.delete(key);
   if (next.get("calendar") !== "1") next.delete("calendar");
   return `/calendar?${next}`;
 }

@@ -18,3 +18,5 @@ export * from "./official-publish";
 export * from "./automation-auth";
 export * from "./automation-service";
 export * from "./sync-policy";
+
+export * from "./public-event-search";

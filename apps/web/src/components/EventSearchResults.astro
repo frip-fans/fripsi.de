@@ -1,0 +1,29 @@
+---
+import EventCard from "./EventCard.astro";
+import { getEnv } from "../lib/env";
+import { eventSearchRevision, publicEventResults } from "../lib/event-search";
+import { getLocale, t } from "../lib/i18n";
+const locale = getLocale(Astro.request);
+const results = await publicEventResults(getEnv().DB, Astro.url.searchParams);
+const next = new URLSearchParams(Astro.url.searchParams);
+next.set("after", results.nextCursor);
+next.set("lang", locale);
+const nextUrl = results.nextCursor ? `/api/events?${next}` : "";
+---
+<div data-search-results data-total={results.total} data-next={nextUrl} data-revision={eventSearchRevision(getEnv().DB)}>
+  <div class="stack" data-event-items>
+    {results.events.map(event => <div data-event-item><EventCard event={event} /></div>)}
+  </div>
+  {!results.events.length && <p class="empty panel">{t(locale, "archive.noMatch")}</p>}
+  <div class="search-pagination">
+    <p data-results-count aria-live="polite" data-template={t(locale, "search.shown", { shown: "{shown}", total: "{total}" })}>{t(locale, "search.shown", { shown: results.events.length, total: results.total })}</p>
+    <button type="button" class="button secondary" data-load-more hidden={!nextUrl}>{t(locale, "search.loadMore")}</button>
+    <noscript>{nextUrl && <a class="button secondary" href={`/calendar?view=list&${next}`}>{t(locale, "search.loadMore")}</a>}</noscript>
+  </div>
+</div>
+<style>
+  [hidden] { display: none !important; }
+  .search-pagination { display: grid; justify-items: center; gap: .75rem; margin-top: 1.5rem; }
+  .search-pagination p { margin: 0; color: var(--muted); font-size: .875rem; }
+  [data-load-more] { min-width: 10rem; min-height: 44px; }
+</style>

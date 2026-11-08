@@ -15,9 +15,9 @@ describe("unified event calendar navigation", () => {
     expect(target.hash).toBe("#archive-current-time");
   });
 
-  it("opens the selected month in the matching list year", () => {
+  it("opens search across all years while preserving the month for returning", () => {
     const target = new URL(calendarViewHref(new URLSearchParams("month=2024-06&category=LIVE"), "list", "2026-11"), "https://fripsi.de");
-    expect(target.searchParams.get("year")).toBe("2024");
+    expect(target.searchParams.has("year")).toBe(false);
     expect(target.searchParams.get("month")).toBe("2024-06");
     expect(target.searchParams.get("category")).toBe("LIVE");
   });
@@ -37,9 +37,9 @@ describe("unified event calendar navigation", () => {
     const target = new URL(calendarViewHref(new URLSearchParams("view=list&year=2022"), "calendar", "2026-11"), "https://fripsi.de");
     expect(target.searchParams.get("month")).toBe("2022-11");
   });
-  it("updates an old list year when switching after navigating to another calendar year", () => {
+  it("clears an old year restriction when opening search from the calendar", () => {
     const target = new URL(calendarViewHref(new URLSearchParams("view=calendar&year=2023&month=2025-06&q=live"), "list", "2026-11"), "https://fripsi.de");
-    expect(target.searchParams.get("year")).toBe("2025");
+    expect(target.searchParams.has("year")).toBe(false);
     expect(target.searchParams.get("q")).toBe("live");
   });
 

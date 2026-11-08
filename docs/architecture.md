@@ -206,3 +206,11 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 - 每次内容修改后重新构建整个网站。
 - MCP 通用 `execute_sql`、`fetch_url`、`delete_event` 工具。
 - 在第一版实现站内聊天机器人；MCP 由已有 AI Client 调用即可。
+
+## 10. 公开页面导航
+
+首页、音乐库列表及详情、活动日历/搜索与活动详情、关于页统一使用 `SiteLayout` 中的 Astro `ClientRouter`。正常链接与 SSR 页面仍支持直接访问、分享和无 JavaScript 浏览；地图旅程、校准工具、讨论页和后台保留整页导航。`prefetch: false` 禁用预取，页面 HTML/CSS/脚本在导航时加载，搜索与加载更多的 API 请求继续由对应组件按需发起。
+
+`public-navigation.ts` 只保存来源、列表入口及显式返回的滚动/焦点上下文，不抓取页面、不替换 DOM、不自行处理 popstate。页面替换、标题/元信息、样式与浏览器历史由 ClientRouter 管理。模块修改筛选 URL 时使用 `replacePublicUrl`，保留 Astro 的 history state 并同步正在显示的 URL；popstate 时地址已变，不能拿新地址保存旧页面的状态。活动搜索继续使用带内容版本与期限的快照恢复加载深度；音乐列表的累积页数保存在 URL。
+
+组件在 `astro:page-load` 初始化，在 `astro:before-swap` 取消请求、监听器与定时器。公共布局避免导入音乐搜索模块，详情页进入列表时再加载所需脚本。新增公开交互时需验收首次访问、跨页进入及再次返回三种情况。来源返回位置的内存记录最多保留 40 个 URL，整页刷新或超出上限后使用正常链接及锚点退路。

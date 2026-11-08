@@ -1,3 +1,4 @@
+import { replacePublicUrl } from "./public-navigation";
 import { calendarAgendaHref } from "./calendar-navigation";
 let calendarController: AbortController | undefined;
 export const setupCalendar = () => {
@@ -30,7 +31,7 @@ export const setupCalendar = () => {
     const url = new URL(location.href);
     if (overview.open) url.searchParams.set("calendar", "1");
     else url.searchParams.delete("calendar");
-    history.replaceState(history.state, "", url);
+    replacePublicUrl(url);
     const form = calendar.querySelector<HTMLFormElement>(".category-panel");
     const expandedInput = form?.querySelector<HTMLInputElement>('input[name="calendar"]');
     if (expandedInput) expandedInput.value = overview.open ? "1" : "0";
@@ -45,11 +46,9 @@ export const setupCalendar = () => {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const target = document.getElementById(link.hash.slice(1));
     if (!target) return;
-    event.preventDefault();
-    if (location.hash !== link.hash) history.pushState(history.state, "", link.href);
     target.focus({ preventScroll: true });
-    target.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-    syncAnchor();
+    // Astro updates same-page fragments after the target listener has run.
+    requestAnimationFrame(() => { if (!signal.aborted) syncAnchor(); });
   }, { signal }));
   window.addEventListener("hashchange", syncAnchor, { signal });
   // Old shared day links now locate a group instead of filtering the month.
@@ -58,9 +57,9 @@ export const setupCalendar = () => {
   if (oldDate) {
     url.searchParams.delete("date");
     if (!url.hash && document.getElementById(`agenda-${oldDate}`)) url.hash = `agenda-${oldDate}`;
-    history.replaceState(history.state, "", url);
+    replacePublicUrl(url);
   }
-  if (matchMedia("(max-width: 800px)").matches && /^#agenda-\d{4}-\d{2}-\d{2}$/.test(location.hash)) {
+  if (oldDate && /^#agenda-\d{4}-\d{2}-\d{2}$/.test(location.hash)) {
     document.getElementById(location.hash.slice(1))?.scrollIntoView({ block: "start", behavior: "instant" });
   }
   syncAnchor();
@@ -78,3 +77,5 @@ export const setupCalendar = () => {
     });
   }, { signal });
 };
+
+document.addEventListener("astro:before-swap", () => calendarController?.abort());

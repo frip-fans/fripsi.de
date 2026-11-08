@@ -6,6 +6,8 @@ const selfHosted = process.env.FRIP_RUNTIME === "node";
 
 export default defineConfig({
   output: "server",
+  // Fetch pages on navigation only, including when ClientRouter is installed.
+  prefetch: false,
   devToolbar: { enabled: false },
   integrations: selfHosted ? [{
     name: "node-workspace-dependencies",

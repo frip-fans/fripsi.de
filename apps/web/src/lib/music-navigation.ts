@@ -4,7 +4,7 @@ export const publicSource = (url: URL) => url.origin === location.origin && (/^\
 export function setupMusicBackLink(source?: string | null) {
   for (const link of document.querySelectorAll<HTMLAnchorElement>("[data-music-back]")) {
     try {
-      const sourceUrl = source === undefined ? history.state?.musicSource ?? document.referrer : source;
+      const sourceUrl = source === undefined ? history.state?.fripSource ?? document.referrer : source;
       const referrer = sourceUrl ? new URL(sourceUrl, location.origin) : null;
       if (referrer && publicSource(referrer) && referrer.pathname !== location.pathname) {
         let target = referrer;

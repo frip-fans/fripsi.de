@@ -19,7 +19,7 @@ const {
   title = "fripSi.de Fan Site",
   description,
   admin = false,
-  clientRouting = false
+  clientRouting = !admin && !/^\/(journey|discuss|yaginuma-intensity-calibrator)(?:\/|$)/.test(Astro.url.pathname)
 } = Astro.props;
 const current = Astro.url.pathname;
 const locale = admin ? "zh-CN" : getLocale(Astro.request);
@@ -145,8 +145,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 </html>
 
 <script>
-  import { setupMusicBrowser } from "../lib/music-browse-client";
-  setupMusicBrowser();
+  import "../lib/public-navigation";
 
   // Record the exact source URL (including filters and fragment) before opening a music detail.
   document.addEventListener("click", event => {
@@ -225,54 +224,50 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   setupNavigation();
   document.addEventListener("astro:page-load", setupNavigation);
 
-  const backgroundRotator = document.querySelector<HTMLElement>("[data-background-rotator]");
-  const backgroundSlides = [...(backgroundRotator?.querySelectorAll<HTMLElement>("[data-background-slide]") ?? [])];
-  const reducedBackgroundMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  let activeBackgroundIndex = 0;
-  let backgroundTimer: number | undefined;
+  let cleanupBackground: (() => void) | undefined;
+  const setupBackground = () => {
+    cleanupBackground?.();
+    const controller = new AbortController();
+    const { signal } = controller;
+    const backgroundRotator = document.querySelector<HTMLElement>("[data-background-rotator]");
+    const backgroundSlides = [...(backgroundRotator?.querySelectorAll<HTMLElement>("[data-background-slide]") ?? [])];
+    const reducedBackgroundMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let activeBackgroundIndex = 0;
+    let backgroundTimer: number | undefined;
 
-  const showBackground = (index: number) => {
-    backgroundSlides.forEach((slide, slideIndex) => slide.classList.toggle("is-active", slideIndex === index));
-    activeBackgroundIndex = index;
-  };
+    const showBackground = (index: number) => {
+      backgroundSlides.forEach((slide, slideIndex) => slide.classList.toggle("is-active", slideIndex === index));
+      activeBackgroundIndex = index;
+    };
 
-  const stopBackgroundRotation = () => {
-    if (backgroundTimer !== undefined) window.clearInterval(backgroundTimer);
-    backgroundTimer = undefined;
-  };
+    const stopBackgroundRotation = () => {
+      if (backgroundTimer !== undefined) window.clearInterval(backgroundTimer);
+      backgroundTimer = undefined;
+    };
 
-  const startBackgroundRotation = () => {
-    stopBackgroundRotation();
-    if (backgroundSlides.length > 1 && !reducedBackgroundMotion.matches && !document.hidden && document.documentElement.dataset.homeMotionPaused !== "true") {
-      backgroundTimer = window.setInterval(() => {
-        showBackground((activeBackgroundIndex + 1) % backgroundSlides.length);
-      }, 16000);
-    }
-  };
+    const startBackgroundRotation = () => {
+      stopBackgroundRotation();
+      if (backgroundSlides.length > 1 && !reducedBackgroundMotion.matches && !document.hidden && document.documentElement.dataset.homeMotionPaused !== "true") {
+        backgroundTimer = window.setInterval(() => {
+          showBackground((activeBackgroundIndex + 1) % backgroundSlides.length);
+        }, 16000);
+      }
+    };
 
-  reducedBackgroundMotion.addEventListener("change", startBackgroundRotation);
-  document.addEventListener("visibilitychange", startBackgroundRotation);
-  document.addEventListener("home-motion-change", () => {
-    if (document.documentElement.dataset.homeMotionPaused === "true") {
-      backgroundSlides.forEach(slide => slide.getAnimations().forEach(animation => animation.finish()));
-    }
+    reducedBackgroundMotion.addEventListener("change", startBackgroundRotation, { signal });
+    document.addEventListener("visibilitychange", startBackgroundRotation, { signal });
+    document.addEventListener("home-motion-change", () => {
+      if (document.documentElement.dataset.homeMotionPaused === "true") {
+        backgroundSlides.forEach(slide => slide.getAnimations().forEach(animation => animation.finish()));
+      }
+      startBackgroundRotation();
+    }, { signal });
     startBackgroundRotation();
-  });
-  startBackgroundRotation();
-</script>
-
-<script>
-  const musicViews = ["/music/lives", "/music/songs", "/music/releases"];
-  for (const entry of document.querySelectorAll<HTMLAnchorElement>("[data-music-entry]")) {
-    try {
-      const view = localStorage.getItem("music:last-view");
-      if (!view || !musicViews.includes(view)) continue;
-      const kind = view.split("/").at(-1);
-      const saved = sessionStorage.getItem(`music:list:${kind}`);
-      const target = new URL(saved || view, location.origin);
-      entry.href = target.origin === location.origin && target.pathname === view ? `${target.pathname}${target.search}` : view;
-    } catch { /* keep the default music entry when storage is unavailable */ }
-  }
+    cleanupBackground = () => { stopBackgroundRotation(); controller.abort(); };
+  };
+  document.addEventListener("astro:before-swap", () => cleanupBackground?.());
+  document.addEventListener("astro:page-load", setupBackground);
+  setupBackground();
 </script>
 
 <style is:global>

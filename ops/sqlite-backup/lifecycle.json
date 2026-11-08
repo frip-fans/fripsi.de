@@ -1,0 +1,11 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-database-snapshots-after-180-days",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "sqlite/production/" },
+      "Expiration": { "Days": 180 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}

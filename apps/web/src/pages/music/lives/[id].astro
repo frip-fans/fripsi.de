@@ -64,12 +64,11 @@ let previousSection = "";
       </div>
     </header>
 
-    <section class="music-section">
-      <div class="panel setlist-facts">
-        <div><small>EVENT</small><a href={`/events/${encodeURIComponent(setlist.event_slug)}`}>{setlist.event_title} <Icon name="arrow-up-right" /></a></div>
-        <div><small>VENUE</small><strong>{setlist.venue || t(locale, "common.pending")}</strong></div>
-        <div><small>REGION</small><strong>{setlist.region || t(locale, "common.pending")}</strong></div>
-      </div>
+    <section class="music-section setlist-overview">
+      <dl class="panel setlist-facts">
+        <div><dt>EVENT</dt><dd><a href={`/events/${encodeURIComponent(setlist.event_slug)}`}>{setlist.event_title} <Icon name="arrow-up-right" /></a></dd></div>
+        <div><dt>LOCATION</dt><dd>{[setlist.venue, setlist.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending")}</dd></div>
+      </dl>
     </section>
 
     <section class="music-section" aria-labelledby="setlist-heading">
@@ -99,12 +98,7 @@ let previousSection = "";
                             {medleyEntry.notes && <small class="setlist-entry-note">{medleyEntry.notes}</small>}
                           </div>
                           {medleyEntry.release_titles && (
-                            <span
-                              class="setlist-entry-release"
-                              data-full-title={medleyEntry.release_titles}
-                              title={medleyEntry.release_titles}
-                              tabindex="0"
-                            ><span>{medleyEntry.release_titles}</span></span>
+                            <span class="setlist-entry-release"><span>{medleyEntry.release_titles}</span></span>
                           )}
                         </div>
                       ))}
@@ -119,12 +113,7 @@ let previousSection = "";
                       {entry.notes && <small class="setlist-entry-note">{entry.notes}</small>}
                     </div>
                     {entry.release_titles && (
-                      <span
-                        class="setlist-entry-release"
-                        data-full-title={entry.release_titles}
-                        title={entry.release_titles}
-                        tabindex="0"
-                      ><span>{entry.release_titles}</span></span>
+                      <span class="setlist-entry-release"><span>{entry.release_titles}</span></span>
                     )}
                   </article>
                 )}
@@ -149,10 +138,16 @@ let previousSection = "";
 </SiteLayout>
 
 <style>
-  .setlist-facts { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 1.5rem; }
-  .setlist-facts div { display: grid; align-content: start; gap: .4rem; }
-  .setlist-facts small { color: var(--muted); font: .62rem/1 ui-monospace, monospace; letter-spacing: .12em; }
+  .setlist-overview { margin-top: 1.5rem; }
+  .setlist-overview + .music-section { margin-top: 2rem; }
+  .setlist-facts { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1rem; margin: 0; }
+  .setlist-facts div { display: grid; min-width: 0; align-content: start; gap: .4rem; }
+  .setlist-facts dd { margin: 0; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
+  .setlist-facts dt { color: var(--muted); font: .62rem/1 ui-monospace, monospace; letter-spacing: .12em; }
   .setlist-facts a { color: var(--text); text-decoration: none; font-weight: 700; }
   .setlist-facts a:hover { color: var(--accent); }
-  @media (max-width: 700px) { .setlist-facts { grid-template-columns: 1fr; } }
+  @media (max-width: 700px) {
+    .setlist-facts { grid-template-columns: 1fr; gap: .85rem; }
+    .setlist-overview { margin-top: 1.25rem; }
+  }
 </style>

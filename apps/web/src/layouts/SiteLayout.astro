@@ -10,6 +10,7 @@ import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
 import Icon from "../components/Icon.astro";
 import NavigationLoading from "../components/NavigationLoading.astro";
+import routerBootstrap from "../scripts/router-bootstrap.js?url";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import OfficialSiteGate from "../components/OfficialSiteGate.astro";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
@@ -64,6 +65,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={new URL(Astro.url.pathname, canonicalBase)} />
     <title>{title === siteName ? title : `${title} · ${siteName}`}</title>
+    {clientRouting && <script is:inline src={routerBootstrap}></script>}
     {clientRouting && <ClientRouter fallback="swap" />}
   </head>
   <body class:list={{ admin }}>

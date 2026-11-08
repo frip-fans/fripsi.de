@@ -54,3 +54,11 @@ Node CLI 复用现有同步代码、预算、数据库 lease 与通知状态；�
 - SQLite 备份按 [备份与恢复](sqlite-backups.md) 验收：真实 R2 上传下载、离线解密、隔离库和应用读取、失败/过期告警通过后才启用生产 timer。
 
 日常查看：`systemctl status fripside-web fripside-tunnel`、`journalctl -u fripside-web`、私有部署 Actions/Deployments。日志不得打印配置内容、API Key、Tunnel Token 或恢复私钥。
+
+## 迁移验收记录
+
+2026-11-08：staging 已通过私有流水线部署 a99eab41e1e52b2c36451b949af385587ccc1a9f；原测试库 538 条活动、279 首歌曲、64 个发行物、166 个歌单、845 条审计记录及 59 张封面独立迁移。Web 域名匿名请求进入 Access；测试 MCP 发现返回正确资源 URL，匿名 MCP 401，MCP 域名后台路径 404。两个 OpenAI Key 仅通过无模型调用的认证检查，Bark 验证回执成功。
+
+真实 R2 隔离演练期间正常后台 HTTP 完成 38 次写入，快照上传/下载/解密恢复后六张关键表计数一致，恢复后首页、日历和歌曲页均 200；失效凭据、锁冲突、容量和 25 小时过期检查非零并触发通知，重复备份生成独立对象。仅本次验收对象在结束后清理。恢复私钥仅保存在管理员本机配置目录，不上生产。
+
+默认 `npm run deploy:web[:staging]` 已切换至私有部署流水线；旧 Workers 命令保留为显式 `deploy:web:workers:*:legacy`，仅用于人工回退。旧 sync 配置中的 cron 已移除，防止未来误部署重启旧 D1 写入。生产切换和首份生产备份状态以实际运维记录为准。

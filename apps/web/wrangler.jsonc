@@ -61,7 +61,7 @@
     },
     "staging": {
       "name": "frip-fan-web-staging",
-      "workers_dev": true,
+      "workers_dev": false,
       "preview_urls": false,
       "routes": [],
       "d1_databases": [

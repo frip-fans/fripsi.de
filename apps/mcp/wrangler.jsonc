@@ -23,7 +23,7 @@
   "env": {
     "production": {
       "name": "frip-fan-mcp",
-      "workers_dev": true,
+      "workers_dev": false,
       "preview_urls": false,
       "d1_databases": [
         {
@@ -43,7 +43,7 @@
     },
     "staging": {
       "name": "frip-fan-mcp-staging",
-      "workers_dev": true,
+      "workers_dev": false,
       "preview_urls": false,
       "d1_databases": [{
         "binding": "DB", "database_name": "frip-fan-staging",

@@ -21,7 +21,7 @@
     "test:watch": "vitest",
     "visual:check": "node scripts/visual-check.mjs",
     "deploy:web": "gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production",
-    "deploy:mcp": "npm run deploy --workspace @frip-fan/mcp",
+    "deploy:mcp": "gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production",
     "db:migrate:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 migrations apply frip-fan-dev --local --config apps/web/wrangler.jsonc",
     "db:seed:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 execute frip-fan-dev --local --config apps/web/wrangler.jsonc --file scripts/seed.sql",
     "import:notion": "tsx scripts/import-notion-export.ts",
@@ -49,7 +49,8 @@
     "import:release-covers:r2": "tsx scripts/import-release-covers-r2.ts",
     "build:web:node": "npm run build:node --workspace @frip-fan/web && node scripts/build-node-sync.mjs",
     "deploy:web:workers:legacy": "npm run deploy --workspace @frip-fan/web",
-    "deploy:web:workers:staging:legacy": "npm run deploy:staging --workspace @frip-fan/web"
+    "deploy:web:workers:staging:legacy": "npm run deploy:staging --workspace @frip-fan/web",
+    "deploy:mcp:workers:legacy": "npm run deploy --workspace @frip-fan/mcp"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",

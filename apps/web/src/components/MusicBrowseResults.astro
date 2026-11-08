@@ -1,0 +1,60 @@
+---
+import ReleaseCover from "./ReleaseCover.astro";
+import { getEnv } from "../lib/env";
+import { eventSearchRevision } from "../lib/event-search";
+import { getMusicBrowseResults, type MusicBrowseKind } from "../lib/music-browse";
+import { formatMusicDate, setlistCompletenessLabel, setlistDisplayTitle, setlistEventTypeLabel, releaseTypeLabels } from "../lib/music";
+import { getLocale, t } from "../lib/i18n";
+interface Props { kind: MusicBrowseKind; append?: boolean; }
+const { kind, append = false } = Astro.props;
+const locale = getLocale(Astro.request);
+const db = getEnv().DB;
+const results = await getMusicBrowseResults(db, kind, Astro.url.searchParams, append);
+const next = new URLSearchParams(Astro.url.searchParams);
+next.set("page", String(results.page + 1));
+next.set("lang", locale);
+const nextHref = `/music/${kind}?${next}`;
+---
+<div data-music-results data-total={results.total} data-shown={results.shown} data-page={results.page} data-batch={results.batch} data-has-more={results.hasMore} data-revision={eventSearchRevision(db)}>
+  <div class:list={["music-grid", { "music-release-grid": kind === "releases" }]} data-music-items>
+    {results.lives.map(setlist => (
+      <a class="music-card" data-music-id={setlist.id} href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
+        <div class="music-card-top">
+          <time class="music-card-date" datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
+          <span class:list={["music-event-type", { "is-solo": setlist.event_classification === "专场", "is-festival": setlist.event_classification === "拼盘" }]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
+        </div>
+        <h2>{setlistDisplayTitle(setlist)}</h2>
+        <div class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span>·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></div>
+        <div class="music-card-stats"><span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span><span>{setlistCompletenessLabel(setlist.completeness, locale)}</span></div>
+      </a>
+    ))}
+    {results.songs.map(song => (
+      <a class="music-card" data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`}>
+        <span class="music-artist">{song.original_artist}</span>
+        <h2>{song.title}</h2>
+        <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
+      </a>
+    ))}
+    {results.releases.map(release => (
+      <a class="music-card" data-music-id={release.id} href={`/music/releases/${encodeURIComponent(release.slug)}`}>
+        <ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
+        <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
+        <h2>{release.title}</h2>
+        <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
+        <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span><span>{t(locale, "music.performedSongs", { count: release.performed_song_count })}</span></div>
+      </a>
+    ))}
+  </div>
+  {!results.total && <div class="music-empty panel">{t(locale, kind === "lives" ? "music.noLives" : kind === "songs" ? "music.noSongs" : "music.noReleases")}</div>}
+  <div class="music-more">
+    <p aria-live="polite" data-music-count data-template={t(locale, "music.browseShown", { shown: "{shown}", total: "{total}" })}>{t(locale, "music.browseShown", { shown: results.shown, total: results.total })}</p>
+    <a class="button secondary" href={nextHref} data-music-more hidden={!results.hasMore}>{t(locale, "search.loadMore")}</a>
+  </div>
+</div>
+<style>
+  [hidden] { display: none !important; }
+  .music-more { display: grid; justify-items: center; gap: .75rem; margin-top: 1.5rem; }
+  .music-more p { margin: 0; color: var(--muted); font-size: .8125rem; }
+  [data-music-more] { min-width: 10rem; min-height: 44px; }
+  [data-music-more][aria-disabled="true"] { opacity: .55; cursor: wait; }
+</style>

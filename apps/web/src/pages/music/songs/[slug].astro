@@ -4,7 +4,6 @@ import ReleaseCover from "../../../components/ReleaseCover.astro";
 import Pagination from "../../../components/Pagination.astro";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
-import MusicNav from "../../../components/MusicNav.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { formatMusicDate, releaseTypeLabels, setlistSectionLabels, versionRelationLabel } from "../../../lib/music";
@@ -25,8 +24,7 @@ const sortHref = (order: "asc" | "desc") => {
 };
 ---
 <SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
-  <div class="music-page">
-    <MusicNav />
+  <div class="music-page" data-music-detail>
     <MusicBackLink href="/music/songs" storageKey="music:list:songs" label={t(locale, "music.backSongs")} />
     <header class="music-detail-head">
       <p class="eyebrow">Song · {song.original_artist}</p>

@@ -99,7 +99,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
               {link.children.map(child => <a href={child.href} aria-current={child.active ? "page" : undefined}>{child.label}</a>)}
             </div>
           </details>
-        ) : <a class:list={{ active: link.active }} aria-current={link.active ? "page" : undefined} href={link.href}>{link.label}</a>)}
+        ) : <a class:list={{ active: link.active }} aria-current={link.active ? "page" : undefined} href={link.href} data-music-entry={!admin && link.href === "/music/lives" || undefined}>{link.label}</a>)}
         {admin && <a href="/" target="_blank">查看网站 <Icon name="box-arrow-up-right" /></a>}
       </nav>
       {!admin && <a class:list={["nav-community", { active: current.startsWith("/discuss") }]} href="/discuss" aria-label={t(locale, "nav.community")}><Icon name="chat-dots" /><span>{t(locale, "nav.community")}</span></a>}
@@ -145,6 +145,18 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 </html>
 
 <script>
+  import { setupMusicBrowser } from "../lib/music-browse-client";
+  setupMusicBrowser();
+
+  // Record the exact source URL (including filters and fragment) before opening a music detail.
+  document.addEventListener("click", event => {
+    const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
+    if (!anchor) return;
+    const target = new URL(anchor.href, location.origin);
+    if (target.origin !== location.origin || !/^\/music\/(lives|songs|releases)\/[^/]+\/?$/.test(target.pathname)) return;
+    try { sessionStorage.setItem("music:detail-source", JSON.stringify({ destination: target.pathname, source: location.href })); } catch { /* optional navigation context */ }
+  });
+
   import "../lib/event-navigation-client";
   let navigationController: AbortController | undefined;
   const setupNavigation = () => {
@@ -247,6 +259,20 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     startBackgroundRotation();
   });
   startBackgroundRotation();
+</script>
+
+<script>
+  const musicViews = ["/music/lives", "/music/songs", "/music/releases"];
+  for (const entry of document.querySelectorAll<HTMLAnchorElement>("[data-music-entry]")) {
+    try {
+      const view = localStorage.getItem("music:last-view");
+      if (!view || !musicViews.includes(view)) continue;
+      const kind = view.split("/").at(-1);
+      const saved = sessionStorage.getItem(`music:list:${kind}`);
+      const target = new URL(saved || view, location.origin);
+      entry.href = target.origin === location.origin && target.pathname === view ? `${target.pathname}${target.search}` : view;
+    } catch { /* keep the default music entry when storage is unavailable */ }
+  }
 </script>
 
 <style is:global>

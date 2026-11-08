@@ -1,9 +1,9 @@
 ---
 import Icon from "./Icon.astro";
-interface Props { href: string; label: string; hidden?: boolean; eventReturn?: boolean; agendaReturn?: boolean }
-const { href, label, hidden = false, eventReturn = false, agendaReturn = false } = Astro.props;
+interface Props { href: string; label: string; hidden?: boolean; eventReturn?: boolean; agendaReturn?: boolean; musicStorageKey?: string; sourceLabels?: string }
+const { href, label, hidden = false, eventReturn = false, agendaReturn = false, musicStorageKey, sourceLabels } = Astro.props;
 ---
-<a class="back-link" href={href} hidden={hidden} data-event-return={eventReturn || undefined} data-agenda-return={agendaReturn || undefined}>
+<a class="back-link" href={href} hidden={hidden} data-event-return={eventReturn || undefined} data-agenda-return={agendaReturn || undefined} data-source-labels={sourceLabels} data-music-back={musicStorageKey ? "" : undefined} data-storage-key={musicStorageKey} data-list-path={musicStorageKey ? href : undefined}>
   <Icon name="chevron-left" /><span>{label}</span>
 </a>
 <style>

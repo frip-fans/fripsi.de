@@ -1,0 +1,8 @@
+---
+import MusicBrowseResults from "../../../components/MusicBrowseResults.astro";
+import type { MusicBrowseKind } from "../../../lib/music-browse";
+const kind = Astro.url.searchParams.get("kind");
+if (!["lives", "songs", "releases"].includes(kind ?? "")) return new Response(null, { status: 400 });
+Astro.response.headers.set("Cache-Control", "no-store");
+---
+<MusicBrowseResults kind={kind as MusicBrowseKind} append />

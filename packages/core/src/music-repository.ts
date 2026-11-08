@@ -344,7 +344,7 @@ export async function listSetlists(db: D1Database, options: SetlistSearchOptions
 
   const result = await db.prepare(`${setlistSummarySelect}
     ${where}
-    ORDER BY e.start_date ${direction}, e.start_time ${direction}, sl.performance_label ASC
+    ORDER BY e.start_date ${direction}, e.start_time ${direction}, sl.performance_label ASC, sl.id ASC
     LIMIT ? OFFSET ?
   `).bind(...bindings, safeLimit(options.limit), safeOffset(options.offset)).all<SetlistSummary>();
   return result.results;

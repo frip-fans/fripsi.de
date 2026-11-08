@@ -27,7 +27,17 @@ const resolvedDescription = description ?? t(locale, "site.description");
 const rotateHomeBackground = !admin && current === "/";
 const siteName = admin ? "Calendar Studio" : "fripSi.de Fan Site";
 const autoOpenOfficialSiteGate = !admin && current === "/" && Astro.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value !== "yes";
-const navigationLinks = admin ? [
+interface NavigationItem {
+  href?: string;
+  label: string;
+  active: boolean;
+  children?: { href: string; label: string; active: boolean }[];
+}
+const funLinks = [
+  { href: "/journey", label: t(locale, "nav.journey"), active: current.startsWith("/journey") },
+  { href: "/yaginuma-intensity-calibrator", label: t(locale, "nav.yaginuma"), active: current.startsWith("/yaginuma-intensity-calibrator") },
+];
+const navigationLinks: NavigationItem[] = admin ? [
   { href: "/admin", label: "概览", active: current === "/admin" },
   { href: "/admin/events", label: "活动", active: current.startsWith("/admin/events") },
   { href: "/admin/music/setlists", label: "音乐库", active: current.startsWith("/admin/music") },
@@ -37,9 +47,8 @@ const navigationLinks = admin ? [
 ] : [
   { href: "/", label: t(locale, "nav.home"), active: current === "/" },
   { href: "/calendar", label: t(locale, "nav.calendar"), active: current.startsWith("/calendar") || current.startsWith("/archive") },
-  { href: "/journey", label: t(locale, "nav.journey"), active: current.startsWith("/journey") },
   { href: "/music/lives", label: t(locale, "nav.music"), active: current.startsWith("/music") },
-  { href: "/yaginuma-intensity-calibrator", label: t(locale, "nav.yaginuma"), active: current.startsWith("/yaginuma-intensity-calibrator") },
+  { label: t(locale, "nav.fun"), active: funLinks.some(link => link.active), children: funLinks },
   { href: "/about", label: t(locale, "nav.about"), active: current.startsWith("/about") },
 ];
 const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
@@ -83,7 +92,14 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
       </a>
       <div class="header-actions">
       <nav data-main-nav aria-label={admin ? "主导航" : t(locale, "nav.main")}>
-        {navigationLinks.map(link => <a class:list={{ active: link.active }} aria-current={link.active ? "page" : undefined} href={link.href}>{link.label}</a>)}
+        {navigationLinks.map(link => link.children ? (
+          <details class="nav-group" data-nav-group>
+            <summary class:list={{ active: link.active }}>{link.label}<Icon name="chevron-down" /></summary>
+            <div class="nav-submenu">
+              {link.children.map(child => <a href={child.href} aria-current={child.active ? "page" : undefined}>{child.label}</a>)}
+            </div>
+          </details>
+        ) : <a class:list={{ active: link.active }} aria-current={link.active ? "page" : undefined} href={link.href}>{link.label}</a>)}
         {admin && <a href="/" target="_blank">查看网站 <Icon name="box-arrow-up-right" /></a>}
       </nav>
       {!admin && <a class:list={["nav-community", { active: current.startsWith("/discuss") }]} href="/discuss" aria-label={t(locale, "nav.community")}><Icon name="chat-dots" /><span>{t(locale, "nav.community")}</span></a>}
@@ -101,7 +117,14 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         </button>
       </div>
       <nav class="mobile-menu-links" aria-label={t(locale, "nav.main")}>
-        {navigationLinks.map(link => <a href={link.href} aria-current={link.active ? "page" : undefined}><span>{link.label}</span><Icon name="chevron-right" /></a>)}
+        {navigationLinks.map(link => link.children ? (
+          <details class="mobile-nav-group" open={link.active}>
+            <summary>{link.label}<Icon name="chevron-down" /></summary>
+            <div class="mobile-nav-submenu">
+              {link.children.map(child => <a href={child.href} aria-current={child.active ? "page" : undefined}><span>{child.label}</span><Icon name="chevron-right" /></a>)}
+            </div>
+          </details>
+        ) : <a href={link.href} aria-current={link.active ? "page" : undefined}><span>{link.label}</span><Icon name="chevron-right" /></a>)}
         {admin ? <a href="/">查看网站 <Icon name="chevron-right" /></a> : <a class="mobile-menu-community" href="/discuss" aria-current={current.startsWith("/discuss") ? "page" : undefined}><span><Icon name="chat-dots" />{t(locale, "nav.community")}</span><Icon name="chevron-right" /></a>}
       </nav>
       {!admin && <div class="mobile-menu-language"><span>{t(locale, "language.label")}</span><LanguageSwitcher /></div>}
@@ -128,6 +151,25 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     navigationController?.abort();
     navigationController = new AbortController();
     const { signal } = navigationController;
+    const groups = [...document.querySelectorAll<HTMLDetailsElement>("[data-nav-group]")];
+    const closeGroups = () => groups.forEach(group => { group.open = false; });
+    document.addEventListener("click", event => {
+      if (event.target instanceof Node) groups.forEach(group => {
+        if (!group.contains(event.target as Node)) group.open = false;
+      });
+    }, { signal });
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Escape") return;
+      const openGroup = groups.find(group => group.open);
+      if (!openGroup) return;
+      event.preventDefault();
+      closeGroups();
+      openGroup.querySelector("summary")?.focus();
+    }, { signal });
+    groups.forEach(group => group.addEventListener("focusout", event => {
+      if (!group.contains(event.relatedTarget as Node | null)) group.open = false;
+    }, { signal }));
+    document.addEventListener("astro:before-swap", closeGroups, { signal });
     const menu = document.querySelector<HTMLDialogElement>("[data-mobile-menu]");
     const trigger = document.querySelector<HTMLButtonElement>("[data-menu-open]");
     const close = document.querySelector<HTMLButtonElement>("[data-menu-close]");
@@ -151,7 +193,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     menu.addEventListener("close", () => setOpenState(false), { signal });
     menu.addEventListener("keydown", event => {
       if (event.key !== "Tab") return;
-      const items = [...menu.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), select:not(:disabled), [tabindex="0"]')].filter(item => item.checkVisibility());
+      const items = [...menu.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), select:not(:disabled), summary, [tabindex="0"]')].filter(item => item.checkVisibility());
       const first = items[0], last = items.at(-1);
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault(); last?.focus();
@@ -289,6 +331,19 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .header-actions nav a.active { color: #fff; background: rgba(var(--accent-rgb), .24); box-shadow: none; }
   .header-actions nav a.active:hover { background: rgba(var(--accent-rgb), .32); }
   .nav-community { display: inline-flex; align-items: center; justify-content: center; gap: .38rem; flex: 0 0 auto; min-height: 38px; padding: .55rem .72rem; color: #08111d; background: var(--accent); border-radius: 9px; box-shadow: 0 8px 22px rgba(var(--accent-rgb), .14); font-size: .84rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
+  .nav-group { position: relative; }
+  .nav-group > summary, .mobile-nav-group > summary { display: flex; align-items: center; justify-content: space-between; gap: .6rem; cursor: pointer; list-style: none; border-radius: 12px; }
+  .nav-group > summary::-webkit-details-marker, .mobile-nav-group > summary::-webkit-details-marker { display: none; }
+  .nav-group > summary { padding: .6rem .72rem; color: var(--muted); font-size: .92rem; }
+  .nav-group > summary:hover { color: var(--text); background: rgba(255,255,255,.07); }
+  .nav-group > summary.active { color: #fff; background: rgba(var(--accent-rgb), .24); }
+  .nav-group summary > .icon, .mobile-nav-group summary > .icon { font-size: .75rem; transition: transform .15s; }
+  .nav-group[open] > summary > .icon, .mobile-nav-group[open] > summary > .icon { transform: rotate(180deg); }
+  .nav-submenu { position: absolute; top: calc(100% + .5rem); right: 0; z-index: 30; min-width: 11rem; display: grid; gap: .25rem; padding: .5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-solid); box-shadow: 0 12px 32px #0006; }
+  .nav-submenu a[aria-current="page"] { color: var(--accent); }
+  .mobile-nav-group > summary { min-height: 56px; padding: .85rem 1rem; font-size: 1.125rem; font-weight: 650; }
+  .mobile-nav-group > summary:hover { background: rgba(255,255,255,.07); }
+  .mobile-nav-submenu { margin-left: 1rem; padding-left: .5rem; border-left: 1px solid var(--line); }
   .nav-community:hover, .nav-community.active { color: #050b12; background: rgb(244, 145, 80); box-shadow: 0 10px 28px rgba(var(--accent-rgb), .22), inset 0 -1px rgba(255,255,255,.34); }
   main { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; min-height: calc(100vh - 180px); }
   footer { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; border-top: 1px solid var(--line); padding: 1.5rem 0 2.5rem; display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .78rem; }

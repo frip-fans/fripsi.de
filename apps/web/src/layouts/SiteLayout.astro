@@ -238,8 +238,9 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   a { color: inherit; }
   :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   #main-content:focus { outline: none; }
-  .skip-link { position: fixed; z-index: 1100; top: 1rem; left: 1rem; padding: .8rem 1rem; color: var(--bg); background: var(--accent); border-radius: 8px; transform: translateY(calc(-100% - 2rem)); }
-  .skip-link:focus { transform: none; }
+  /* Keep the unfocused link unpainted; an offscreen fixed box can bleed into Safari chrome. */
+  .skip-link { position: fixed; z-index: 1100; top: calc(var(--safe-area-top) + 1rem); left: max(1rem, env(safe-area-inset-left, 0px)); width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; pointer-events: none; }
+  .skip-link:focus { width: auto; height: auto; padding: .8rem 1rem; overflow: visible; clip-path: none; color: var(--bg); background: var(--accent); border-radius: 8px; pointer-events: auto; }
   h1, h2, h3 { text-wrap: balance; overflow-wrap: anywhere; }
   [id] { scroll-margin-top: 1rem; }
   button, .button, nav a { touch-action: manipulation; }

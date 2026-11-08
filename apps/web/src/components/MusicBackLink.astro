@@ -22,4 +22,5 @@ const sourceLabels = JSON.stringify({
 <script>
   import { setupMusicBackLink } from "../lib/music-navigation";
   setupMusicBackLink();
+  document.addEventListener("astro:page-load", () => setupMusicBackLink());
 </script>

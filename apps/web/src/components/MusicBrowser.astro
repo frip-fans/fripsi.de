@@ -1,0 +1,98 @@
+---
+import { listSetlistYears } from "@frip-fan/core";
+import Icon from "./Icon.astro";
+import MusicListState from "./MusicListState.astro";
+import MusicNav from "./MusicNav.astro";
+import MusicBrowseResults from "./MusicBrowseResults.astro";
+import SiteLayout from "../layouts/SiteLayout.astro";
+import { getEnv } from "../lib/env";
+import { getLocale, t, type TranslationKey } from "../lib/i18n";
+import { parseMusicBrowse, musicSorts, type MusicBrowseKind } from "../lib/music-browse";
+import { releaseTypeLabels } from "../lib/music";
+import "../styles/music.css";
+import "../styles/music-browser.css";
+import "../styles/release-cover.css";
+interface Props { kind: MusicBrowseKind; }
+const { kind } = Astro.props;
+const locale = getLocale(Astro.request);
+const input = parseMusicBrowse(kind, Astro.url.searchParams);
+const titles = { lives: "music.nav.lives", songs: "music.nav.songs", releases: "music.nav.releases" } as const;
+const searchLabels = { lives: "music.searchLive", songs: "music.searchSong", releases: "music.searchRelease" } as const;
+const placeholders = { lives: "music.searchLivePlaceholder", songs: "music.searchSongPlaceholder", releases: "music.searchReleasePlaceholder" } as const;
+const sortKeys: Record<string, TranslationKey> = {
+  desc: "music.newestFirst", asc: "music.oldestFirst",
+  "live-desc": "music.mostPerformed", "live-asc": "music.leastPerformed",
+  "title-asc": "music.titleAZ", "title-desc": "music.titleZA",
+  "release-desc": "music.firstReleaseNewest", "release-asc": "music.firstReleaseOldest",
+  "date-desc": "music.releaseNewest", "date-asc": "music.releaseOldest",
+};
+const sortOptions = musicSorts[kind].map(value => ({ value, label: t(locale, sortKeys[value]) }));
+const years = kind === "lives" ? await listSetlistYears(getEnv().DB) : [];
+const typeOptions = kind === "lives"
+  ? [{ value: "专场", label: t(locale, "music.solo") }, { value: "拼盘", label: t(locale, "music.festival") }]
+  : Object.entries(releaseTypeLabels).map(([value, label]) => ({ value, label }));
+const filterSummary = kind === "lives"
+  ? [input.year || t(locale, "music.allYears"), typeOptions.find(option => option.value === input.classification)?.label || t(locale, "music.allTypes")]
+  : kind === "releases" ? [typeOptions.find(option => option.value === input.type)?.label || t(locale, "music.allTypes")] : [];
+const filterCount = Number(Boolean(input.year)) + Number(Boolean(input.classification || input.type));
+---
+<SiteLayout title={t(locale, titles[kind])}>
+  <div class="music-page music-browser" data-music-browser data-kind={kind} data-locale={locale} data-loading={t(locale, "search.loading")}>
+    <MusicListState storageKey={`music:list:${kind}`} detailPrefix={`/music/${kind}/`} />
+    <MusicNav />
+    <section class="music-section music-list-section" aria-label={t(locale, titles[kind])}>
+      <h1 class="visually-hidden">{t(locale, titles[kind])}</h1>
+      <form class="music-browser-form" method="get" action={`/music/${kind}`} data-music-form>
+        <input type="hidden" name="lang" value={locale} />
+        <div class="music-toolbar music-browser-toolbar">
+          <label class="music-search">
+            <span class="visually-hidden">{t(locale, searchLabels[kind])}</span>
+            <Icon name="search" />
+            <input type="search" name="q" value={input.query} placeholder={t(locale, placeholders[kind])} maxlength="200" autocomplete="off" enterkeyhint="search" data-music-search />
+          </label>
+          <button type="submit" class="secondary">{t(locale, "common.search")}</button>
+        </div>
+        <div class="music-control-row">
+          <div class="music-list-controls">
+            {kind !== "songs" && <div class="music-control-popover" data-music-popover>
+              <button type="button" class:list={["music-control-button", { active: filterCount > 0 }]} aria-expanded="false" aria-controls="music-filter-panel" data-music-toggle="filter">
+                <Icon name="funnel" /><span>{t(locale, "common.filter")}</span><span class="music-filter-count" data-music-filter-count hidden={!filterCount}>{filterCount}</span>
+              </button>
+              <div class="music-control-card music-filter-card" id="music-filter-panel" data-music-panel="filter" role="dialog" aria-labelledby="music-filter-heading" hidden>
+                <div class="music-control-card-head"><strong id="music-filter-heading">{t(locale, "common.filter")}</strong><button type="button" class="music-panel-close" data-music-close aria-label={t(locale, "search.closeFilters")}><Icon name="x-lg" /></button></div>
+                <div class="music-filter-fields">
+                  {kind === "lives" && <label><span>{t(locale, "music.year")}</span><select name="year" data-music-filter data-default="">
+                    <option value="">{t(locale, "music.allYears")}</option>
+                    {input.year && !years.some(item => item.year === input.year) && <option value={input.year} selected>{input.year}</option>}
+                    {years.map(item => <option value={item.year} selected={input.year === item.year} data-summary={item.year}>{item.year} · {item.count}</option>)}
+                  </select></label>}
+                  <label><span>{t(locale, kind === "lives" ? "music.performanceType" : "music.releaseType")}</span><select name={kind === "lives" ? "classification" : "type"} data-music-filter data-default="">
+                    <option value="">{t(locale, "music.allTypes")}</option>
+                    {typeOptions.map(option => <option value={option.value} selected={option.value === (kind === "lives" ? input.classification : input.type)}>{option.label}</option>)}
+                  </select></label>
+                </div>
+                <div class="music-control-card-actions"><button type="button" class="music-clear-control" data-music-clear disabled={!filterCount}>{t(locale, "archive.clear")}</button><button type="button" class="music-done-control" data-music-close>{t(locale, "archive.done")}</button></div>
+              </div>
+            </div>}
+            <div class="music-control-popover" data-music-popover>
+              <button type="button" class="music-control-button" aria-expanded="false" aria-controls="music-sort-panel" data-music-toggle="sort"><Icon name="arrow-down-up" /><span>{t(locale, "archive.sort")}</span><span class="music-control-value" data-music-sort-label>{sortOptions.find(option => option.value === input.sort)?.label}</span></button>
+              <div class="music-control-card music-sort-card" id="music-sort-panel" data-music-panel="sort" role="dialog" aria-labelledby="music-sort-heading" hidden>
+                <div class="music-control-card-head"><strong id="music-sort-heading">{t(locale, "music.sortOrder")}</strong><button type="button" class="music-panel-close" data-music-close aria-label={t(locale, "search.closeSort")}><Icon name="x-lg" /></button></div>
+                <div class="music-sort-options">{sortOptions.map(option => <label class="music-sort-choice"><input type="radio" name="sort" value={option.value} checked={input.sort === option.value} data-sort-label={option.label} /><span>{option.label}</span></label>)}</div>
+              </div>
+            </div>
+          </div>
+          <p class="music-scope" data-music-scope>{[...filterSummary, sortOptions.find(option => option.value === input.sort)?.label].filter(Boolean).join(" · ")}</p>
+        </div>
+        <noscript><style>.music-browser [data-music-toggle] { display: none; } .music-browser [data-music-panel][hidden] { display: block !important; position: static; width: 100%; margin-block: .75rem; } .music-browser .music-control-row, .music-browser .music-list-controls, .music-browser .music-control-popover { display: block; } .music-browser [data-music-close], .music-browser [data-music-clear] { display: none; }</style><button type="submit" class="secondary">{t(locale, "common.filter")}</button></noscript>
+      </form>
+      <p class="music-browse-error" role="alert" data-music-error hidden>{t(locale, "music.browseError")} <button type="button" class="music-clear-control" data-music-retry>{t(locale, "search.retry")}</button></p>
+      <p class="visually-hidden" role="status" data-music-status></p>
+      <MusicBrowseResults kind={kind} />
+    </section>
+  </div>
+</SiteLayout>
+<script>
+  import { setupMusicBrowser } from "../lib/music-browse-client";
+  setupMusicBrowser();
+</script>

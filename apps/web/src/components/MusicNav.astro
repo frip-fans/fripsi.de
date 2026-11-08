@@ -26,6 +26,11 @@ const links = [
     if (!tabs || !active || tabs.scrollWidth <= tabs.clientWidth) return;
     tabs.scrollTo({ left: active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2, behavior: "instant" });
   };
+  const activeMusicView = document.querySelector<HTMLAnchorElement>("[data-music-tabs] a.active");
+  if (activeMusicView) {
+    document.querySelectorAll<HTMLAnchorElement>("[data-music-entry]").forEach(entry => { entry.href = activeMusicView.href; });
+    try { localStorage.setItem("music:last-view", new URL(activeMusicView.href).pathname); } catch { /* storage can be unavailable */ }
+  }
   revealActiveMusicTab();
 </script>
 

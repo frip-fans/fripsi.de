@@ -77,36 +77,21 @@ const nextCountdown = !next
       : t(locale, "home.countdownDays", { count: daysUntilNext });
 ---
 <SiteLayout structuredData={structuredData}>
-  <h1 class="site-title" translate="no">fripSide Fan Site</h1>
   <section class="hero" data-page-entry>
-    <article class="today panel" aria-labelledby="today-label">
-      <div class="panel-top">
-        <span id="today-label">{t(locale, "home.onThisDay")}</span>
-        {onThisDay && onThisDay.total > 1 && <b class="today-count">{t(locale, "home.onThisDayCount", { count: onThisDay.total })}</b>}
-        <Icon name="archive" size=".85rem" />
-      </div>
-      {onThisDay ? (
-        <>
-          <strong class="today-date">
-            <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
-          </strong>
-          <p class="today-ago">{onThisDay.years_ago > 0 ? t(locale, "home.yearsAgo", { count: onThisDay.years_ago }) : t(locale, "home.yearsAgoSame")}</p>
-          <h2 class="today-event"><a href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)}>{onThisDay.event.title}</a></h2>
-          <div class="today-footer">
-            {onThisDay.event.setlist_id ? (
-              <a class="today-setlist" href={`/music/lives/${encodeURIComponent(onThisDay.event.setlist_id)}`}>
-                <Icon name="list-music" size=".85rem" />{t(locale, "home.viewSetlist")}
-              </a>
-            ) : <span class="today-setlist is-empty">{t(locale, "home.noSetlistYet")}</span>}
-          </div>
-        </>
-      ) : (
-        <div class="today-empty">
-          <h2>{t(locale, "home.heroTagline")}</h2>
-          <p>{t(locale, "home.description")}</p>
-        </div>
+    <div class="hero-copy">
+      {onThisDay && (
+        <a class="today-pill" href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)} title={onThisDay.event.title}>
+          <Icon name="archive" size=".8rem" />
+          <span class="today-pill-label">{t(locale, "home.onThisDay")}</span>
+          <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
+          <span class="today-pill-event"><span>{onThisDay.event.title}</span></span>
+          <Icon name="chevron-right" size=".7rem" />
+        </a>
       )}
-    </article>
+      <h1 class="hero-title">{t(locale, "home.heroTitle")}</h1>
+      <p class="hero-subtitle">{t(locale, "home.heroSubtitle")}</p>
+      <p class="hero-scale">{t(locale, "home.archiveScale", { events: eventCount, setlists: libraryStats.setlist_count, songs: libraryStats.song_count })}</p>
+    </div>
 
     <aside class="signal panel">
       <div class="panel-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
@@ -125,13 +110,12 @@ const nextCountdown = !next
       )}
     </aside>
 
-    <div class="hero-foot">
+    <div class="hero-actions">
       <div class="actions">
-        <a class="button nav-action" href="/calendar"><Icon name="calendar3" />{t(locale, "nav.calendar")}</a>
-        <a class="button secondary setlist-button nav-action" href="/music/lives"><Icon name="music-note-list" />{t(locale, "nav.music")}</a>
+        <a class="button" href="/calendar"><Icon name="calendar3" />{t(locale, "nav.calendar")}</a>
+        <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" />{t(locale, "nav.music")}</a>
         <a class="button secondary subscribe-action" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" /><span class="label-full">{t(locale, "home.subscribe")}</span><span class="label-short">{t(locale, "calendar.subscribeShort")}</span></a>
       </div>
-      <p class="hero-scale">{t(locale, "home.archiveScale", { events: eventCount, setlists: libraryStats.setlist_count, songs: libraryStats.song_count })}</p>
       <button class="motion-toggle" type="button" data-home-motion aria-label={t(locale, "home.motionLabel")} aria-pressed="false" data-pause-label={t(locale, "home.pauseMotion")} data-resume-label={t(locale, "home.resumeMotion")}>
         <Icon name="pause-fill" /><span>{t(locale, "home.pauseMotion")}</span>
       </button>
@@ -236,52 +220,52 @@ const nextCountdown = !next
 </script>
 
 <style>
-  /* The page needs one real heading; the cards below carry their own titles. */
-  .site-title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-  .hero { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 1rem; padding: 2rem 0 .5rem; }
-  .hero-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; margin-top: .35rem; }
-  .hero-foot .actions { margin: 0; }
-  .hero-scale { margin: 0; margin-left: auto; color: var(--muted); font-size: .78rem; letter-spacing: .01em; }
-  /* Past on the left, next on the right: same panel, same rhythm. */
-  .today, .signal { position: relative; min-height: 320px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; overflow: hidden; }
+  .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: start; gap: 0 clamp(1.5rem, 5vw, 4rem); padding: 2rem 0 .5rem; }
+  .hero-copy { grid-column: 1; grid-row: 1; min-width: 0; position: relative; isolation: isolate; }
+  /* The shade keeps the headline readable over the photo backdrop. */
+  .hero-copy::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -2rem -3rem;
+    pointer-events: none;
+    background: radial-gradient(ellipse closest-side at center, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%);
+  }
+  .signal { grid-column: 2; grid-row: 1 / span 2; }
+  .hero-actions { grid-column: 1; grid-row: 2; align-self: start; margin-top: 1.6rem; }
+  /* Today's archive entry rides above the headline: real content, but never the main event. */
+  .today-pill { display: inline-flex; align-items: center; gap: .45rem; max-width: 100%; margin-bottom: 1.1rem; padding: .4rem .8rem; color: var(--muted); border: 1px solid rgba(159, 180, 211, .22); border-radius: 999px; background: rgba(7, 16, 28, .72); font-size: .78rem; text-decoration: none; backdrop-filter: blur(10px); transition: border-color .18s, color .18s; }
+  .today-pill:hover { color: var(--text); border-color: rgba(var(--accent-rgb), .55); }
+  .today-pill :global(.icon) { flex: 0 0 auto; color: var(--accent); }
+  .today-pill-label { flex: 0 0 auto; font-weight: 650; }
+  .today-pill time { flex: 0 0 auto; color: var(--text); font-variant-numeric: tabular-nums; }
+  /* The event name is clipped to keep the pill small, and scrolls into view on hover.
+     min(0px, …) means a title that already fits never moves. */
+  .today-pill-event { --pill-window: 15rem; max-width: var(--pill-window); overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, #000 85%, transparent); }
+  .today-pill-event > span { display: inline-block; }
+  .today-pill:hover .today-pill-event, .today-pill:focus-visible .today-pill-event { mask-image: none; }
+  .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span {
+    animation: pill-marquee 5s linear .4s infinite alternate;
+  }
+  @keyframes pill-marquee { to { transform: translateX(min(0px, calc(var(--pill-window) - 100%))); } }
+  @media (prefers-reduced-motion: reduce) {
+    .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span { animation: none; }
+  }
+  .hero-title { margin: 0; font-size: clamp(2.1rem, 4.4vw, 3.4rem); line-height: 1.12; letter-spacing: -.035em; }
+  .hero-subtitle { max-width: 32rem; margin: 1rem 0 0; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
+  .hero-scale { margin: .9rem 0 0; color: var(--muted); font-size: .78rem; letter-spacing: .01em; }
+  .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
+  .motion-toggle:hover { color: var(--text); transform: none; }
+  .motion-toggle[hidden] { display: none; }
+  .motion-toggle[aria-pressed="true"] { color: var(--accent); }
+  .hero .actions .button { min-height: 50px; padding: .78rem 1.15rem; border-radius: 12px; font-size: .92rem; }
+  .hero .actions .button.secondary { background: rgba(7,16,28,.76); border-color: rgba(200,220,237,.22); box-shadow: 0 10px 28px rgba(0,0,0,.18); backdrop-filter: blur(16px); }
+  .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
+  .setlist-button :global(.icon) { color: var(--accent); }
+  .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
+  .signal { position: relative; min-height: 340px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; overflow: hidden; }
   .panel-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
   .panel-top span { margin-right: auto; }
-  .panel-top :global(.icon) { color: var(--accent); opacity: .65; }
-  /* Flat strata behind the archive card, answering the radar rings on the next-show card. */
-  .today::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 13px, rgba(159, 180, 211, .07) 14px 15px); }
-  .today-count { color: var(--muted); font-weight: 400; letter-spacing: .06em; white-space: nowrap; }
-  .today-date { position: relative; color: var(--text); font-size: clamp(2.5rem, 5vw, 3.6rem); font-weight: 800; line-height: 1; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
-  .today-ago { position: relative; margin: .4rem 0 0; color: var(--muted); font-size: .8125rem; }
-  .today-event { position: relative; margin: 1rem 0 .4rem; font-size: 1.25rem; line-height: 1.45; overflow-wrap: anywhere; }
-  .today-event a { color: inherit; text-decoration: none; }
-  .today-event a:hover { color: var(--accent); }
-  .today-footer { display: flex; align-items: center; gap: .65rem; margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--line); }
-  .today-setlist { display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; color: var(--accent); font-size: .8125rem; text-decoration: none; }
-  .today-setlist:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .today-setlist.is-empty { color: var(--muted); }
-  .today-empty h2 { margin: 0 0 .5rem; font-size: 1.35rem; line-height: 1.4; }
-  .today-empty p { margin: 0; color: var(--muted); line-height: 1.7; }
-  .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
-  .motion-toggle:hover { color: var(--text); transform: none; }
-  .motion-toggle[hidden] { display: none; }
-  .motion-toggle[aria-pressed="true"] { color: var(--accent); }
-  .hero .actions .button { min-height: 48px; padding: .72rem 1.1rem; border-radius: 12px; font-size: .9rem; }
-  .hero .actions .button.secondary { background: rgba(7,16,28,.76); border-color: rgba(200,220,237,.22); box-shadow: 0 10px 28px rgba(0,0,0,.18); backdrop-filter: blur(16px); }
-  .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
-  .setlist-button :global(.icon) { color: var(--accent); }
-  .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
-  /* The top navigation already links these two, so desktop keeps only the subscription. */
-  @media (min-width: 761px) { .hero .actions .nav-action { display: none; } }
-  .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
-  .motion-toggle:hover { color: var(--text); transform: none; }
-  .motion-toggle[hidden] { display: none; }
-  .motion-toggle[aria-pressed="true"] { color: var(--accent); }
-  .hero .actions { margin-top: 1.1rem; }
-  .hero .actions .button { min-height: 52px; padding: .82rem 1.25rem; border-radius: 12px; font-size: .95rem; }
-  .hero .actions .button.secondary { background: rgba(7,16,28,.76); border-color: rgba(200,220,237,.22); box-shadow: 0 10px 28px rgba(0,0,0,.18); backdrop-filter: blur(16px); }
-  .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
-  .setlist-button :global(.icon) { color: var(--accent); }
-  .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
   .hero + .section-heading { margin-top: 2rem; }
   /* Section headings sit above cards that carry their own titles, so they stay quieter than h2. */
   .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; font-size: clamp(1.15rem, 1.7vw, 1.4rem); }
@@ -354,15 +338,16 @@ const nextCountdown = !next
     .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 800px) {
-    .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: .9rem; padding-top: 0; }
-    /* The next show leads on a phone; today's archive entry follows it. */
-    .signal { order: -1; }
-    .today, .signal { min-height: 0; padding: 1rem 1.1rem 1.1rem; }
-    .today-date { font-size: clamp(2rem, 9vw, 2.375rem); }
-    .today-event { margin: .75rem 0 .3rem; font-size: 1.0625rem; font-weight: 600; }
-    .today-empty h2 { font-size: 1.25rem; }
-    .hero-foot { flex-direction: column; align-items: stretch; gap: .6rem; margin-top: .25rem; }
-    .hero-scale { margin-left: 0; font-size: .72rem; }
+    /* One column, in source order: headline, next show, then the ways in. */
+    .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
+    .hero-copy, .signal, .hero-actions { grid-column: auto; grid-row: auto; }
+    .hero-copy::before { inset: -1rem -1.25rem; }
+    .hero-actions { margin-top: 0; }
+    .today-pill { margin-bottom: .85rem; padding: .35rem .7rem; font-size: .72rem; }
+    .today-pill-event { --pill-window: 7rem; }
+    .hero-title { font-size: clamp(1.6rem, 7.5vw, 2.1rem); }
+    .hero-subtitle { margin-top: .7rem; font-size: .9375rem; line-height: 1.65; }
+    .hero-scale { margin-top: .7rem; font-size: .72rem; }
     .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }
     .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
     .label-full { display: none; }

@@ -26,7 +26,7 @@ const sortHref = (order: "asc" | "desc") => {
 <SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
   <div class="music-page" data-music-detail>
     <MusicBackLink href="/music/songs" storageKey="music:list:songs" label={t(locale, "music.backSongs")} />
-    <header class="music-detail-head">
+    <header class="music-detail-head" data-page-entry>
       <p class="eyebrow">Song · {song.original_artist}</p>
       <h1>{song.title}</h1>
       <div class="music-detail-meta">

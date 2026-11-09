@@ -55,7 +55,7 @@
 ## 文档入口
 
 - [发布流程](docs/release-workflow.md)：PR、环境构建、发布与 migration 顺序。
-- [测试环境](docs/staging.md)：测试站地址、访问控制和自动部署。
+- [测试环境](docs/staging.md)：测试站地址、访问控制和部署触发方式。
 - [架构](docs/architecture.md)：应用与共享业务逻辑边界。
 
 共享规则统一修改本文件；`CLAUDE.md` 只保留导入入口，发布文档与本文件保持一致。

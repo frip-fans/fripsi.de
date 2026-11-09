@@ -6,6 +6,7 @@ export * from "./locations";
 export * from "./music-repository";
 export * from "./setlist-highlights";
 export * from "./song-spotlight";
+export * from "./event-updates";
 export * from "./music-admin-repository";
 export * from "./content-admin";
 export * from "./music-types";

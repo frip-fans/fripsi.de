@@ -1,6 +1,6 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { dateInTimeZone, getMusicLibraryStats, getSongSpotlight, listSetlists, searchEvents } from "@frip-fan/core";
+import { dateInTimeZone, eventUpdateWindowStart, getMusicLibraryStats, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
@@ -41,6 +41,20 @@ const structuredData = {
 };
 const next = upcoming[0];
 const moreEvents = upcoming.slice(1);
+// What actually changed recently, read from the audit log: events.updated_at also moves for bulk
+// archive imports, which would announce a 2005 show as freshly updated.
+const eventUpdates = await listEventUpdates(db, upcoming.map((event) => event.id), eventUpdateWindowStart(today));
+const updateLabels: Record<EventUpdateKind, Parameters<typeof t>[1]> = {
+  new: "home.updateNew",
+  status: "home.updateStatus",
+  time: "home.updateTime",
+  venue: "home.updateVenue",
+  details: "home.updateDetails",
+};
+const updateLabel = (eventId: string) => {
+  const update = eventUpdates.get(eventId);
+  return update ? t(locale, updateLabels[update.kind]) : null;
+};
 const daysUntilNext = next ? Math.max(0, Math.round((Date.parse(next.start_date) - Date.parse(today)) / 86_400_000)) : 0;
 const nextStatus = next ? displayEventStatus(next, today) : "scheduled";
 const nextCountdown = !next
@@ -62,6 +76,7 @@ const nextCountdown = !next
         <>
           <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
           <h2>{next.title}</h2>
+          {updateLabel(next.id) && <p class="signal-update"><span class="tag update">{updateLabel(next.id)}</span></p>}
           <div class="signal-footer">
             <p>{next.location_label || t(locale, "common.locationPending")}</p>
             <a href={eventDetailHref(next.slug, Astro.url, locale)} aria-label={t(locale, "common.view", { title: next.title })}><Icon name="chevron-right" size=".85rem" /></a>
@@ -100,22 +115,18 @@ const nextCountdown = !next
         <a class="section-link all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="chevron-right" size=".75rem" /></a>
       </div>
       <section class:list={["event-list", "event-grid", `count-${moreEvents.length}`]}>
-        {moreEvents.map((event) => <EventCard event={event} timeInHeader />)}
+        {moreEvents.map((event) => <EventCard event={event} timeInHeader updateLabel={updateLabel(event.id)} />)}
       </section>
     </>
   )}
 
-  {spotlight && (
-    <div class="home-spotlight">
-      <SongSpotlight spotlight={spotlight} locale={locale} archiveShows={libraryStats.setlist_count} />
-    </div>
-  )}
-
-  <section class="recent-setlists" aria-labelledby="recent-setlists-title">
+  <section class="recent-setlists" aria-labelledby="music-library-title">
     <div class="section-heading">
-      <h2 id="recent-setlists-title"><Icon name="list-music" />{t(locale, "home.latestSetlists")}</h2>
+      <h2 id="music-library-title"><Icon name="list-music" />{t(locale, "home.musicLibrary")}</h2>
       <a class="section-link recent-setlists-all" href="/music/lives">{t(locale, "home.allSetlists")} <Icon name="chevron-right" size=".75rem" /></a>
     </div>
+    {spotlight && <SongSpotlight spotlight={spotlight} locale={locale} archiveShows={libraryStats.setlist_count} />}
+    <h3 class="subsection-title">{t(locale, "home.latestSetlists")}</h3>
     {recentSetlists.length > 0 ? (
       <div class="recent-setlist-grid">
         {recentSetlists.map((setlist) => (
@@ -312,7 +323,9 @@ const nextCountdown = !next
   .setlist-button :global(.icon) { color: var(--accent); }
   .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
   .hero + .section-heading { margin-top: 1.5rem; }
-  .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; }
+  /* Section headings sit above cards that carry their own titles, so they stay quieter than h2. */
+  .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; font-size: clamp(1.15rem, 1.7vw, 1.4rem); }
+  .subsection-title { margin: 2.25rem 0 1rem; color: #d3dce8; font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
   .latest-events-heading h2 > :global(.icon), .recent-setlists .section-heading h2 > :global(.icon) { color: var(--accent); font-size: .9em; }
   .latest-events-heading, .recent-setlists .section-heading { align-items: center; }
   .section-link { display: inline-flex; align-items: center; justify-content: flex-end; gap: .3rem; min-height: 44px; padding: .5rem .125rem; border-radius: 6px; color: var(--muted); font-size: .8125rem; font-weight: 400; text-decoration: none; touch-action: manipulation; }
@@ -322,7 +335,6 @@ const nextCountdown = !next
   .event-grid.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   /* Three cards side by side need the footer line on one level, whatever the title wraps to. */
   .event-grid :global(.event-card) { height: 100%; grid-template-rows: auto 1fr auto; }
-  .home-spotlight { margin-top: 4.5rem; }
   .journey-teaser { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; margin-top: 4.5rem; padding: 1.35rem 1.5rem; color: inherit; text-decoration: none; transition: border-color .18s, transform .18s, background .18s; }
   .journey-teaser:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }
   .journey-teaser-text { display: grid; gap: .3rem; min-width: 0; }
@@ -360,7 +372,9 @@ const nextCountdown = !next
   .recent-setlist-meta { display: flex; align-items: center; gap: .65rem; padding-top: .75rem; color: var(--muted); border-top: 1px solid rgba(159, 180, 211, .12); font-size: .8125rem; }
   .recent-setlist-meta :global(.icon) { margin-left: auto; color: var(--accent); }
   .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
-  .signal::before { content: ""; position: absolute; inset: -20% -40% 35%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 17px, rgba(var(--accent-rgb),.12) 18px 19px); transform: rotate(-10deg); }
+  /* Rings are spaced in percent and centred below the card, so the arcs sweep the whole panel
+     at any height instead of stopping part way down a tall one. */
+  .signal::before { content: ""; position: absolute; inset: 0 -45% -18%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 calc(6% - 1px), rgba(var(--accent-rgb),.13) 6% calc(6% + 1px)); transform: rotate(-8deg); }
   .signal-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
   .signal-top span { margin-right: auto; }
   .signal-countdown { color: var(--accent); font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
@@ -368,6 +382,8 @@ const nextCountdown = !next
   .signal-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
   .signal > strong, .no-signal strong { color: var(--accent); font-size: clamp(3.7rem, 8vw, 6rem); line-height: 1; letter-spacing: -.08em; position: relative; }
   .signal h2 { font-size: 1.25rem; line-height: 1.45; overflow-wrap: anywhere; margin: 1rem 0 .4rem; position: relative; }
+  .signal-update { position: relative; margin: .1rem 0 0; }
+  .signal-update .tag.update { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .1); }
   .signal-footer { display: flex; align-items: center; gap: .65rem; margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--line); }
   .signal p { flex: 1; min-width: 0; margin: 0; color: var(--muted); position: relative; overflow-wrap: anywhere; }
   .signal a { flex: 0 0 auto; color: var(--muted); opacity: .55; margin: 0; padding: 0; font-size: .85rem; text-decoration: none; }
@@ -412,11 +428,11 @@ const nextCountdown = !next
     .signal h2 { grid-column: 1 / -1; margin: .5rem 0 .2rem; font-size: 1.0625rem; font-weight: 600; line-height: 1.45; letter-spacing: -.015em; }
     .signal-footer { grid-column: 1 / -1; margin-top: .65rem; }
     .signal p { font-size: .8125rem; line-height: 1.55; }
-    .latest-events-heading h2, .recent-setlists .section-heading h2 { color: #d3dce8; font-size: 1.375rem; font-weight: 600; }
+    .latest-events-heading h2, .recent-setlists .section-heading h2 { color: #d3dce8; font-size: 1.125rem; font-weight: 600; }
+    .subsection-title { margin: 1.75rem 0 .85rem; font-size: .9375rem; }
     .event-list { --event-title-color: #d3dce8; --event-title-weight: 600; --event-title-size: 1.0625rem; --event-time-color: #a8b6c8; --event-venue-color: #8f9fb4; --event-year-color: #8998ac; }
     .event-grid, .event-grid.count-1, .event-grid.count-2 { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
     .event-grid :global(.event-card) { height: auto; }
-    .home-spotlight { margin-top: 3rem; }
     .journey-teaser { margin-top: 3rem; padding: 1.15rem; }
     .recent-setlists { margin-top: 3rem; }
     .recent-setlist-grid { grid-template-columns: 1fr; }
@@ -431,7 +447,7 @@ const nextCountdown = !next
     }
   }
   @media (max-width: 480px) {
-    .latest-events-heading h2, .recent-setlists .section-heading h2 { font-size: 1.25rem; }
+    .latest-events-heading h2, .recent-setlists .section-heading h2 { font-size: 1.0625rem; }
   }
   @media (max-width: 560px) {
     .event-list { --event-title-size: .9375rem; --event-title-line-height: 1.5; }

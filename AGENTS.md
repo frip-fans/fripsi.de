@@ -25,7 +25,8 @@
 - 保留 `staging` 长期分支，不对 `staging` / `master` 本身做 rebase 或强推。rebase merge 会改变生产提交 SHA，发布后核对源代码文件树与生产部署提交，不要求两条长期分支具有相同提交历史。新的发布仍从最新 master 创建。
 - 如 master 有尚未进入 staging 的生产修复，先通过独立任务 PR 回补 staging 并重新验收，避免发布快照覆盖生产修复。
 - 不强推或删除 `staging`、`master`。修复发布问题仍走独立 worktree 和 PR 流程。
-- 代码合并不等于内容数据同步。数据库 migration、内容导入和跨环境数据写入按发布文档单独处理，不随代码发布擅自执行。
+- 代码合并不等于内容数据同步。内容导入和跨环境数据写入按发布文档单独处理，不随代码发布执行。
+- Schema migration 优先写成增量变更（只加表、索引、视图或列）。staging 部署自动执行增量 migration；生产部署只在手动触发并勾选 `apply_production_migrations` 时执行；非增量 migration 由管理员按发布文档单独执行。PR 说明须写明 migration 是否为增量。
 
 ## 验证与预览
 
@@ -71,4 +72,4 @@
 
 - OCI 迁移/发布按 [OCI 自托管部署](docs/oci-deployment.md) 执行；生产仍遵循 release 快照与 master rebase PR。
 - 私有部署仓库拥有部署专用 runner；公共 PR 只运行 GitHub 托管 CI。源码/私有工作流只部署受保护 staging/master 的精确 SHA，并要求源码 push CI 成功。
-- 主机 root 配置与应用/runner 用户隔离，部署产物只包含构建代码，不包括数据库、备份或环境密钥。部署不隐式迁移/覆盖数据库，不自动启用未验收 timer。
+- 主机 root 配置与应用/runner 用户隔离，部署产物只包含构建代码和 migration SQL，不包括数据库、备份或环境密钥。部署只按上述规则执行增量 migration（先快照），不覆盖数据库，不自动启用未验收 timer。

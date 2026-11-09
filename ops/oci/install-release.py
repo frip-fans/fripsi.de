@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify a hosted CI artifact, activate it, health-check and roll back code only."""
+"""Verify a hosted CI artifact, apply additive migrations, activate it, health-check and roll back code only."""
 import argparse
 import fcntl
 import hashlib
@@ -27,7 +27,7 @@ def verify(archive, output, sha):
             if path.is_absolute() or '..' in path.parts or not path.parts or item.name in seen:
                 raise ValueError('Unsafe or duplicate artifact path')
             seen.add(item.name)
-            if path.parts[0] not in ('server','client','REVISION','release.json') or not (item.isfile() or item.isdir()):
+            if path.parts[0] not in ('server','client','migrations','REVISION','release.json') or not (item.isfile() or item.isdir()):
                 raise ValueError('Artifact contains forbidden entries')
         tar.extractall(output,filter='data')
     output=Path(output)
@@ -43,7 +43,19 @@ def verify(archive, output, sha):
     output.chmod(0o750)
     return manifest
 
-def activate(archive,sha):
+def migrate(target,sha,mode):
+    """Run fripside-migrate as the database owner; pending or non-additive migrations stop activation."""
+    if mode=='skip':
+        return
+    result=subprocess.run(['sudo','-n','-u','frip-app','/usr/local/bin/fripside-migrate','--release',str(target),'--sha',sha,'--mode',mode])
+    if result.returncode==3:
+        raise RuntimeError('Pending migrations: rerun the production deployment with apply_production_migrations')
+    if result.returncode==4:
+        raise RuntimeError('A migration is not additive; an administrator must apply it over SSH first')
+    if result.returncode!=0:
+        raise RuntimeError('Migration step failed')
+
+def activate(archive,sha,migrate_mode='check'):
     root=Path('/opt/fripside')
     releases=root/'releases'
     with open('/var/lib/fripside-deploy/deploy.lock','a') as lock:
@@ -61,6 +73,9 @@ def activate(archive,sha):
             else:
                 shutil.copytree(temporary,target)
                 target.chmod(0o750)
+        # Schema first: only additive changes run here, so the previous code still works if
+        # the health check below rolls the code back.
+        migrate(target,sha,migrate_mode)
         current=root/'current'
         previous=current.resolve() if current.is_symlink() else None
         temporary_link=root/'current.new'
@@ -91,5 +106,7 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive',required=True)
     parser.add_argument('--sha',required=True)
+    parser.add_argument('--migrate',choices=('skip','check','apply'),default='check',
+        help='check refuses activation while migrations are pending; apply runs additive ones first')
     args=parser.parse_args()
-    activate(args.archive,args.sha)
+    activate(args.archive,args.sha,args.migrate)

@@ -8,6 +8,10 @@ on:
         options: [staging, production, all]
         default: staging
         description: Deploy the latest protected branch head after successful source CI
+      apply_production_migrations:
+        type: boolean
+        default: false
+        description: Apply pending additive schema migrations on production before activating the release
   schedule:
     - cron: '17,47 * * * *'
 
@@ -85,6 +89,9 @@ jobs:
       SOURCE_BRANCH: ${{ matrix.branch }}
       DEPLOY_ENVIRONMENT: ${{ matrix.environment }}
       GH_TOKEN: ${{ github.token }}
+      # Staging applies additive migrations automatically. Production only checks unless a person
+      # starts this run with apply_production_migrations; pending migrations then block activation.
+      MIGRATE_MODE: ${{ (matrix.environment == 'staging' || inputs.apply_production_migrations) && 'apply' || 'check' }}
     steps:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -103,11 +110,11 @@ jobs:
           deployment=api('repos/frip-fans/fripside-deploy/deployments',{'ref':os.environ['GITHUB_SHA'],'auto_merge':False,'required_contexts':[],'environment':os.environ['DEPLOY_ENVIRONMENT'],'task':'deploy_node','payload':{'source_sha':head,'source_repository':'frip-fans/fripsi.de'}})
           with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('id='+str(deployment['id'])+'\n')
           PY
-      - name: Verify and activate release
+      - name: Verify, migrate and activate release
         run: |
           cd incoming
           sha256sum --check release.tgz.sha256
-          python3 /usr/local/bin/fripside-install-release --archive release.tgz --sha "$SOURCE_SHA"
+          python3 /usr/local/bin/fripside-install-release --archive release.tgz --sha "$SOURCE_SHA" --migrate "$MIGRATE_MODE"
       - name: Record deployment result
         if: always() && steps.record.outputs.id
         env:

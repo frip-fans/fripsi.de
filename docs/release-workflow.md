@@ -81,20 +81,28 @@ Cloudflare 构建与 GitHub CI 独立触发，因此 Cloudflare 的 Build comman
 
 ## 数据库结构变更
 
-新建顺序递增的 `migrations/*.sql`，不要修改已应用的 migration。
+新建顺序递增的 `migrations/*.sql`，不要修改已应用的 migration。优先写成**增量 migration**：只新建表、索引、视图或给表加列，旧代码在新结构上照常运行。需要改数据、删列或改名时，拆成「先增量、后清理」两步。
 
-1. 本地验证 migration。
-2. 对 staging 应用新增 migration，部署测试代码并验收。
-3. 发布 PR 中写明生产 migration 和代码部署顺序。
-4. 合并到 master 前，按兼容性要求先执行生产 migration；破坏性变更另行安排切换，不依赖普通自动部署。
+部署流程按下面的规则执行 migration（实现见 `ops/oci/migrate.py`，细节见 [OCI 自托管部署](oci-deployment.md#schema-migration)）：
 
-```bash
-# 在仓库根目录运行，只应用尚未执行的迁移
-XDG_CONFIG_HOME="$PWD/.cache/xdg" npx wrangler d1 migrations apply frip-fan-staging --remote --env staging --config apps/web/wrangler.jsonc
-XDG_CONFIG_HOME="$PWD/.cache/xdg" npx wrangler d1 migrations apply frip-fan-prod --remote --env production --config apps/web/wrangler.jsonc
-```
+| 环境 | 增量 migration | 其他 migration |
+|---|---|---|
+| staging | 部署时自动执行 | 部署中止，由管理员通过 SSH 执行 |
+| production | 只检查；有待执行的 migration 时部署中止。用 `apply_production_migrations=true` 手动触发部署才执行 | 同上 |
 
-当前自动部署不执行生产 migration。回滚 Worker 代码也不会撤销数据库 migration；执行前应确认恢复方案。
+每次执行前都会先生成本机 SQLite 快照（保留最近 5 份），然后逐个在事务中执行并写入 `d1_migrations`；任何一步失败都会整体回滚，新代码不会上线。代码健康检查失败时只回退代码，增量 migration 保留，因为旧代码兼容。
+
+1. 本地验证 migration，PR 说明里写清楚是否为增量 migration。
+2. 合并到 staging 后，部署自动执行增量 migration；在测试站验收。
+3. 发布 PR 中写明生产 migration。合并到 master、源码 CI 通过后，手动触发生产部署：
+
+   ```bash
+   gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production -f apply_production_migrations=true
+   ```
+
+4. 非增量 migration（如 `0004_structured_locations.sql`、`0006_journey_coordinate_data.sql` 这类改数据或删结构的变更）另行安排：先备份并在副本上演练，再由管理员在主机上执行，最后部署代码。
+
+旧 Workers/D1 回退环境仍使用 `wrangler d1 migrations apply`，见 [部署文档](deployment.md#5-数据库-migration)。
 
 ## 内容变更
 

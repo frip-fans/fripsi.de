@@ -64,7 +64,7 @@ MCP Tools ──> EventService / ChangeService ───> SQLite
 - 分类和细分类。
 - 状态、地点形态、一个或多个实体场馆、行政区、线上/广播渠道和备注。
 - 多个来源 URL。
-- 别名（显示名）、所属巡演和场次，规则见 [数据模型](./data-model.md#显示名与巡演0015_event_alias_tourssql)。
+- 别名（显示名）、所属巡演和场次，规则见 [数据模型](./data-model.md#显示名与巡演0016_event_alias_tourssql)。
 - 直接保存；关闭“公开显示”后记录只在后台可见。
 
 `/admin/tours` 维护巡演的名称、slug、说明和是否公开，并列出各站、歌单是否已补；同一巡演中显示名重复的站会被标出，需要在活动里填写场次。

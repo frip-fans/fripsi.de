@@ -145,7 +145,7 @@ location_migration_backlog    无法安全自动拆分的旧地点待办
 
 `0005_journey_coordinates.sql` 为行政区增加中心点坐标，并为场馆/行政区坐标建立部分索引。Live Journey 查询优先使用场馆坐标；缺失时回退到行政区中心点，API 会通过 `coordinate_precision` 明确返回 `venue` 或 `area`，避免把近似位置伪装成精确地址。
 
-#### 显示名与巡演（`0015_event_alias_tours.sql`）
+#### 显示名与巡演（`0016_event_alias_tours.sql`）
 
 官方名称（`events.title`）常带「@地区・场馆」，这是区分同一巡演各站的关键信息，原样保留。页面另用显示名作标题，按顺序取第一个有值的：
 

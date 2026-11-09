@@ -49,10 +49,16 @@
   .quiz-next { width: 100%; margin-left: 0; }
 }
 
-/* Floating entry. Desktop only: the bottom-right corner is the thumb zone on phones and
-   already carries the menu trigger, so small screens keep the menu entry instead. */
+/* Floating entry on every public page. The visitor can drag the mascot to either side; the side
+   and height are remembered (quiz-launcher.ts sets data-side and --quiz-dock-bottom). */
 .quiz-launcher-root { position: relative; z-index: 60; }
-.quiz-launcher-dock { position: fixed; right: 1.4rem; bottom: 1.4rem; display: flex; flex-direction: column; align-items: flex-end; gap: .55rem; }
+.quiz-launcher-dock { --quiz-dock-edge: 1.4rem; position: fixed; right: var(--quiz-dock-edge); bottom: var(--quiz-dock-bottom, 1.4rem); display: flex; flex-direction: column; align-items: flex-end; gap: .55rem; }
+.quiz-launcher-dock[data-side="left"] { right: auto; left: var(--quiz-dock-edge); align-items: flex-start; }
+.quiz-launcher-dock[data-dragging="true"] { transition: none !important; }
+/* Pause rather than stop the idle bob: removing the animation restarts it and she hops on release. */
+.quiz-launcher-dock[data-dragging="true"] :is(.quiz-chibi, .quiz-coin, .quiz-sparks) { animation-play-state: paused; }
+.quiz-invite-art { touch-action: none; cursor: grab; }
+.quiz-launcher-dock[data-dragging="true"] .quiz-invite-art { cursor: grabbing; }
 .quiz-launcher-dock[hidden] { display: none !important; }
 .quiz-launcher-bar { display: inline-flex; align-items: center; max-width: min(20rem, calc(100vw - 3rem)); height: 2.9rem; background: linear-gradient(145deg, rgba(20,38,60,.97), rgba(7,17,30,.97)); border: 1px solid rgba(159,180,211,.28); border-radius: 999px; box-shadow: 0 10px 26px rgba(0,0,0,.42); }
 
@@ -84,8 +90,30 @@
 .quiz-dialog .quiz-card, .quiz-dialog .quiz-finish { border: 0; background: transparent; padding: 0; }
 .quiz-dialog .quiz-finish { padding: 1rem 0 .3rem; }
 
+/* Phones: the mascot alone is the button (her label stays for screen readers), she slides away
+   while the page scrolls down and comes back on scroll up or when scrolling stops. */
 @media (max-width: 760px) {
-  .quiz-launcher-dock { display: none; }
+  .quiz-launcher-dock { --quiz-dock-edge: max(.4rem, env(safe-area-inset-right, 0px)); bottom: calc(var(--quiz-dock-bottom, .6rem) + env(safe-area-inset-bottom, 0px)); transition: transform .32s ease, bottom .4s ease; }
+  .quiz-launcher-dock[data-away="true"]:not([data-dragging="true"]) { transform: translateY(calc(100% + 1.5rem + env(safe-area-inset-bottom, 0px))); }
+  .quiz-launcher-dock .quiz-invite { width: 8.5rem; height: 4rem; margin: 0; background: none; border: 0; box-shadow: none; }
+  .quiz-launcher-dock .quiz-invite-art { top: auto; bottom: 0; }
+  .quiz-launcher-dock .quiz-invite-open { position: absolute; left: 22%; right: 22%; bottom: 0; width: auto; height: 3.9rem; padding: 0; border-radius: 40% 40% 12px 12px; touch-action: none; }
+  .quiz-launcher-dock .quiz-invite-open:hover { background: transparent; }
+  .quiz-launcher-dock .quiz-invite-text, .quiz-launcher-dock .quiz-invite-cta { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* A light glyph by her crown rather than a dark badge; the 32px box keeps it tappable. */
+  .quiz-launcher-dock .quiz-invite-dismiss { top: -.6rem; right: 22%; width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: rgba(239,248,255,.55); }
+  .quiz-launcher-dock[data-side="left"] .quiz-invite-dismiss { right: auto; left: 22%; }
+  .quiz-launcher-dock .quiz-invite-dismiss svg { width: 10px; height: 10px; stroke-width: 2; filter: drop-shadow(0 1px 2px rgba(0,0,0,.6)); }
+  .quiz-launcher-dock .quiz-invite-dismiss:active { color: var(--text); background: rgba(255,255,255,.08); }
+  /* Tucked on a phone: only her crown above the bottom edge, scaled for the smaller drawing. */
+  .quiz-launcher-dock[data-tucked="true"] { bottom: 0; }
+  .quiz-launcher-dock[data-tucked="true"] .quiz-invite { height: 34px; }
+  .quiz-launcher-dock[data-tucked="true"] .quiz-invite-art { transform: translateY(46px); }
+  .quiz-launcher-dock .quiz-peek-restore { left: 25%; width: 50%; height: 34px; }
+  .quiz-invite:has(.quiz-peek-restore:focus-visible) .quiz-invite-art { transform: translateY(24px); }
+}
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .quiz-launcher-dock { transition: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .quiz-launcher-dock { transition: none; }

@@ -86,7 +86,7 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
       </figcaption>
       <div class="spotlight-chart" style={`--years: ${chartYears.length}`} role="img" aria-label={chartYears.map(barLabel).join("；")}>
         {chartYears.map((year) => (
-          <div class="spotlight-bar" title={barLabel(year)} style={`--total: ${(year.total / maxTotal) * 100}%; --sung: ${(year.sung / maxTotal) * 100}%`}>
+          <div class="spotlight-bar" data-chip={`${year.year} · ${year.sung}/${year.total}`} aria-label={barLabel(year)} style={`--total: ${(year.total / maxTotal) * 100}%; --sung: ${(year.sung / maxTotal) * 100}%`}>
             <span class:list={["spotlight-bar-total", { "is-gap": !year.total }]}></span>
             {year.sung > 0 && <span class="spotlight-bar-sung"></span>}
           </div>
@@ -130,6 +130,30 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
   /* Cap the bar width so a short archive reads as a chart, not as colour blocks. */
   .spotlight-chart { display: grid; grid-template-columns: repeat(var(--years), minmax(0, 2.5rem)); justify-content: start; gap: 3px; height: 4.5rem; border-bottom: 1px solid var(--line); }
   .spotlight-bar { position: relative; min-width: 0; height: 100%; }
+  /* Hovering a bar names its year and count; the axis only labels the ends. */
+  .spotlight-bar::after {
+    content: attr(data-chip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + .3rem);
+    z-index: 2;
+    padding: .2rem .45rem;
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: rgba(7, 16, 28, .95);
+    font-size: .6875rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateX(-50%);
+    transition: opacity .12s;
+    pointer-events: none;
+  }
+  .spotlight-bar:first-child::after { left: 0; transform: none; }
+  .spotlight-bar:last-child::after { left: auto; right: 0; transform: none; }
+  .spotlight-bar:hover::after { opacity: 1; }
+  @media (hover: none) { .spotlight-bar::after { content: none; } }
   .spotlight-bar-total, .spotlight-bar-sung { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px 4px 1px 1px; }
   .spotlight-bar-total { height: var(--total); background: rgba(159, 180, 211, .22); }
   .spotlight-bar-total.is-gap { height: 100%; background: repeating-linear-gradient(135deg, rgba(159, 180, 211, .09) 0 5px, transparent 5px 10px); }

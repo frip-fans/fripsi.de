@@ -1,6 +1,6 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { countEvents, dateInTimeZone, eventUpdateWindowStart, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
+import { dateInTimeZone, eventUpdateWindowStart, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
@@ -20,16 +20,15 @@ const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay, eventCount] = await Promise.all([
+const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay] = await Promise.all([
   searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 4 }, true),
   listSetlists(db, { order: "desc", limit: 3 }),
   // The date is the seed, so the spotlight holds for the whole day and for every visitor and language.
   getSongSpotlight(db, today),
   getMusicLibraryStats(db),
   getLastOfficialSyncAt(db),
-  // The hero leads with what happened on this calendar day instead of decorative lyrics.
+  // The pill above the headline leads with what happened on this calendar day.
   getOnThisDay(db, today),
-  countEvents(db, {}, true),
 ]);
 // Claim the daily sync only while it is actually running: the line disappears once the last
 // completed run falls out of the window, rather than promising something that stopped.
@@ -37,6 +36,9 @@ const SYNC_NOTE_DAYS = 7;
 const lastSyncDate = lastSyncAt ? dateInTimeZone(new Date(lastSyncAt)) : null;
 const showSyncNote = Boolean(lastSyncDate && Date.parse(today) - Date.parse(lastSyncDate) <= SYNC_NOTE_DAYS * 86_400_000);
 const siteUrl = env.SITE_URL || Astro.url.origin;
+const SOURCE_URL = "https://github.com/frip-fans/fripsi.de";
+// Split rather than interpolate markup, so the sentence stays one translatable string.
+const [subtitleBefore, subtitleAfter] = t(locale, "home.heroSubtitle").split("{link}");
 const subscriptionUrl = new URL("/calendar.ics", siteUrl);
 const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
 const structuredData = {
@@ -88,9 +90,13 @@ const nextCountdown = !next
           <Icon name="chevron-right" size=".7rem" />
         </a>
       )}
-      <h1 class="hero-title" lang="en" translate="no">{t(locale, "home.heroTitle")}</h1>
-      <p class="hero-subtitle">{t(locale, "home.heroSubtitle")}</p>
-      <p class="hero-scale">{t(locale, "home.archiveScale", { events: eventCount, setlists: libraryStats.setlist_count, songs: libraryStats.song_count })}</p>
+      <h1 class="hero-title" lang="en" translate="no">
+        <span class="title-lead">This desire</span>
+        <span class="title-solid">is bound in the melody.</span>
+      </h1>
+      <p class="hero-subtitle">
+        {subtitleBefore}<a class="hero-source" href={SOURCE_URL} target="_blank" rel="external noopener noreferrer">{t(locale, "home.openSource")}</a>{subtitleAfter}
+      </p>
     </div>
 
     <aside class="signal panel">
@@ -221,15 +227,21 @@ const nextCountdown = !next
 
 <style>
   .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: start; gap: 0 clamp(1.5rem, 5vw, 4rem); padding: 2rem 0 .5rem; }
-  .hero-copy { grid-column: 1; grid-row: 1; min-width: 0; position: relative; isolation: isolate; }
-  /* The shade keeps the headline readable over the photo backdrop. */
-  .hero-copy::before {
+  .hero-copy { grid-column: 1; grid-row: 1; min-width: 0; }
+  /* One shade for the whole left column — headline, subtitle and buttons alike — so no edge of
+     it cuts across the copy while the backdrop rotates to the busier photo. */
+  .hero { position: relative; isolation: isolate; }
+  .hero::before {
     content: "";
     position: absolute;
     z-index: -1;
-    inset: -2rem -3rem;
+    inset: -2.5rem auto -2rem -6rem;
+    width: min(64rem, 82%);
     pointer-events: none;
-    background: radial-gradient(ellipse closest-side at center, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%);
+    background: radial-gradient(ellipse 70% 62% at 40% 50%, rgba(7,16,28,.92) 0%, rgba(7,16,28,.78) 42%, rgba(7,16,28,.34) 70%, transparent 100%);
+    /* The radial alone still meets the viewport edge as a hard line; this fades that edge out. */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16%);
+    mask-image: linear-gradient(to right, transparent 0, #000 16%);
   }
   .signal { grid-column: 2; grid-row: 1 / span 2; }
   .hero-actions { grid-column: 1; grid-row: 2; align-self: start; margin-top: 1.6rem; }
@@ -239,22 +251,30 @@ const nextCountdown = !next
   .today-pill :global(.icon) { flex: 0 0 auto; color: var(--accent); }
   .today-pill-label { flex: 0 0 auto; font-weight: 650; }
   .today-pill time { flex: 0 0 auto; color: var(--text); font-variant-numeric: tabular-nums; }
-  /* The event name is clipped to keep the pill small, and scrolls into view on hover — no title
-     attribute, so no native tooltip covers the headline. The full name stays in the DOM for
-     screen readers. min(0px, …) means a name that already fits never moves. */
-  .today-pill-event { --pill-window: 15rem; max-width: var(--pill-window); overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, #000 85%, transparent); }
+  /* Collapsed the pill is just label and date; hovering widens it and scrolls the event name
+     past the window. No title attribute, so no native tooltip covers the headline, and the full
+     name stays in the DOM for screen readers. min(0px, …) keeps a short name still. */
+  .today-pill-event { --pill-window: 17rem; max-width: 0; margin-left: -.45rem; overflow: hidden; white-space: nowrap; transition: max-width .32s ease, margin-left .32s ease; }
   .today-pill-event > span { display: inline-block; }
-  .today-pill:hover .today-pill-event, .today-pill:focus-visible .today-pill-event { mask-image: none; }
+  .today-pill:hover .today-pill-event, .today-pill:focus-visible .today-pill-event { max-width: var(--pill-window); margin-left: 0; mask-image: linear-gradient(to right, #000 88%, transparent); }
   .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span {
-    animation: pill-marquee 5s linear .4s infinite alternate;
+    animation: pill-marquee 5s linear .8s infinite alternate;
   }
   @keyframes pill-marquee { to { transform: translateX(min(0px, calc(var(--pill-window) - 100%))); } }
   @media (prefers-reduced-motion: reduce) {
+    .today-pill-event { transition: none; }
     .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span { animation: none; }
   }
-  .hero-title { max-width: 14ch; margin: 0; font-size: clamp(2.1rem, 4.6vw, 3.6rem); line-height: 1.08; letter-spacing: -.04em; }
+  .hero-title { display: grid; width: fit-content; max-width: 100%; align-content: start; gap: .14em; margin: 0; font-size: clamp(2rem, 4.2vw, 3.4rem); line-height: 1.06; letter-spacing: -.045em; }
+  .title-lead, .title-solid { display: block; }
+  .title-lead { color: var(--text); }
+  .title-solid { color: var(--text); font-size: .72em; line-height: 1.08; letter-spacing: -.045em; }
+  @supports (-webkit-text-stroke: 1px currentColor) {
+    .title-solid { color: transparent; -webkit-text-stroke: 1.5px var(--text); }
+  }
   .hero-subtitle { max-width: 32rem; margin: 1rem 0 0; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
-  .hero-scale { margin: .9rem 0 0; color: var(--muted); font-size: .78rem; letter-spacing: .01em; }
+  .hero-source { color: inherit; text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), .6); text-underline-offset: 3px; }
+  .hero-source:hover { color: var(--accent); }
   .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
   .motion-toggle:hover { color: var(--text); transform: none; }
   .motion-toggle[hidden] { display: none; }
@@ -342,13 +362,15 @@ const nextCountdown = !next
     /* One column, in source order: headline, next show, then the ways in. */
     .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
     .hero-copy, .signal, .hero-actions { grid-column: auto; grid-row: auto; }
-    .hero-copy::before { inset: -1rem -1.25rem; }
+    .hero::before { inset: -1rem -1.5rem auto; width: auto; height: 60%; background: radial-gradient(ellipse 90% 70% at 50% 40%, rgba(7,16,28,.92) 0%, rgba(7,16,28,.74) 48%, rgba(7,16,28,.24) 76%, transparent 100%); }
     .hero-actions { margin-top: 0; }
     .today-pill { margin-bottom: .85rem; padding: .35rem .7rem; font-size: .72rem; }
-    .today-pill-event { --pill-window: 7rem; }
+    .today-pill-event { --pill-window: 9rem; }
     .hero-title { max-width: none; font-size: clamp(1.6rem, 7.5vw, 2.1rem); }
+    @supports (-webkit-text-stroke: 1px currentColor) {
+      .title-solid { color: rgba(239, 248, 255, .4); -webkit-text-stroke: 1px rgba(239, 248, 255, .95); text-shadow: 0 2px 18px rgba(0, 0, 0, .45); }
+    }
     .hero-subtitle { margin-top: .7rem; font-size: .9375rem; line-height: 1.65; }
-    .hero-scale { margin-top: .7rem; font-size: .72rem; }
     .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }
     .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
     .label-full { display: none; }

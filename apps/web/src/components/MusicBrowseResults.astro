@@ -43,11 +43,12 @@ for (const setlist of results.lives) {
           return (
             <a class:list={["music-card live-card", { "is-solo": solo, "is-festival": setlist.event_classification === "拼盘" }]} data-music-id={setlist.id} href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
               <time class="live-date" datetime={setlist.start_date}>
-                {date ? <><span class="live-date-month">{date.month}</span><span class="live-date-day">{date.day}</span><span class="live-date-weekday">{date.weekday}</span></> : <span class="live-date-month">{formatMusicDate(setlist.start_date, locale)}</span>}
+                {date ? <><span class="live-date-month">{date.month}</span><span class="live-date-day">{date.day}</span></> : <span class="live-date-month">{formatMusicDate(setlist.start_date, locale)}</span>}
               </time>
               <div class="live-card-main">
                 <h3>{setlistDisplayTitle(setlist)}</h3>
-                <p class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span aria-hidden="true">·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></p>
+                {/* Solo and festival differ by color only; screen readers get the type as text. */}
+                <span class="visually-hidden">{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
                 {festivalSongs.length > 0 && <p class="live-card-songs" translate="no">{festivalSongs.join(" / ")}</p>}
                 {(debuts.length > 0 || returns.length > 0) && (
                   <ul class="live-highlights" aria-label={t(locale, "music.highlights")}>
@@ -58,7 +59,6 @@ for (const setlist of results.lives) {
               </div>
               <div class="live-card-side">
                 <span class="live-card-count"><strong>{setlist.entry_count}</strong> <small>{t(locale, "music.songsUnit")}</small></span>
-                <span class:list={["music-event-type", { "is-solo": solo, "is-festival": setlist.event_classification === "拼盘" }]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
                 {setlist.completeness !== "complete" && <span class="music-card-flag">{setlistCompletenessLabel(setlist.completeness, locale)}</span>}
               </div>
             </a>

@@ -103,9 +103,9 @@
 .live-year { display: flex; align-items: baseline; gap: .75rem; margin: 1.75rem 0 .35rem; font-size: clamp(1.375rem, 2.6vw, 1.875rem); line-height: 1.1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .live-year:first-child { margin-top: .25rem; }
 .live-year small { color: var(--muted); font-size: .8125rem; font-weight: 600; letter-spacing: 0; }
-.music-card.live-card { grid-template-columns: 4.75rem minmax(0, 1fr) auto; align-items: center; gap: 1.1rem; padding: .8rem 1.1rem .8rem .8rem; }
-.live-date { display: grid; justify-items: center; align-content: center; gap: .15rem; min-height: 4.75rem; padding: .4rem .25rem; color: var(--text); background: rgba(5,13,23,.55); border: 1px solid var(--line); border-radius: 12px; text-align: center; font-variant-numeric: tabular-nums; }
-.live-date-month, .live-date-weekday { color: var(--muted); font-size: .75rem; font-weight: 700; line-height: 1.1; letter-spacing: .03em; }
+.music-card.live-card { grid-template-columns: 4.25rem minmax(0, 1fr) auto; align-items: center; gap: 1.1rem; padding: .8rem 1.1rem .8rem .8rem; }
+.live-date { display: grid; justify-items: center; align-content: center; gap: .2rem; min-height: 4rem; padding: .4rem .25rem; color: var(--text); background: rgba(5,13,23,.55); border: 1px solid var(--line); border-radius: 12px; text-align: center; font-variant-numeric: tabular-nums; }
+.live-date-month { color: var(--muted); font-size: .75rem; font-weight: 700; line-height: 1.1; letter-spacing: .03em; }
 .live-date-day { font-size: 1.625rem; font-weight: 800; line-height: 1; }
 .live-card-main { display: grid; gap: .35rem; min-width: 0; }
 .live-card-main h3 { font-size: 1.02rem; }
@@ -123,16 +123,13 @@
 .live-highlight.is-debut { color: #08111d; background: var(--accent); border-color: var(--accent); }
 .music-card.live-card.is-solo { border-color: rgba(var(--accent-rgb), .42); background: linear-gradient(100deg, rgba(var(--accent-rgb), .13), var(--music-panel) 42%); box-shadow: 0 10px 30px rgba(var(--accent-rgb), .07); }
 .live-card.is-solo .live-date { color: #08111d; background: var(--accent); border-color: transparent; box-shadow: 0 6px 20px rgba(var(--accent-rgb), .28); }
-.live-card.is-solo .live-date-month, .live-card.is-solo .live-date-weekday { color: rgba(8,17,29,.72); }
-.live-card.is-solo .music-event-type { color: var(--accent); border-color: rgba(var(--accent-rgb), .42); }
+.live-card.is-solo .live-date-month { color: rgba(8,17,29,.72); }
 @media (hover: hover) and (pointer: fine) {
   .music-card.live-card.is-solo:hover { border-color: rgba(var(--accent-rgb), .65); }
 }
 @media (max-width: 560px) {
-  .music-card.live-card { grid-template-columns: 3.75rem minmax(0, 1fr); gap: .8rem; padding: .7rem .8rem .7rem .7rem; }
-  .live-date { min-height: 4.1rem; }
+  .music-card.live-card { grid-template-columns: 3.5rem minmax(0, 1fr) auto; gap: .75rem; padding: .7rem .85rem .7rem .7rem; }
+  .live-date { min-height: 3.6rem; }
   .live-date-day { font-size: 1.375rem; }
-  .live-card-side { grid-column: 2; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .65rem; }
-  .live-date { grid-row: span 2; align-self: start; }
   .live-card-count strong { font-size: 1.375rem; }
 }

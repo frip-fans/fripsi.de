@@ -11,6 +11,7 @@ function loadCover(image: HTMLImageElement): void {
 function setupReleaseCover(image: HTMLImageElement): void {
   if (!image.dataset.coverBound) {
     image.dataset.coverBound = "true";
+    image.addEventListener("load", () => { image.dataset.coverLoaded = "true"; });
     image.addEventListener("error", () => { image.hidden = true; });
   }
   if (image.dataset.coverSrc) {
@@ -28,8 +29,9 @@ function setupReleaseCover(image: HTMLImageElement): void {
     }, { rootMargin: "200px 0px" });
     // Observe the sized wrapper: the deferred image stays hidden until requested.
     coverObserver.observe(image.parentElement!);
-  } else if (image.complete && image.naturalWidth === 0) {
-    image.hidden = true;
+  } else if (image.complete) {
+    if (image.naturalWidth > 0) image.dataset.coverLoaded = "true";
+    else image.hidden = true;
   }
 }
 

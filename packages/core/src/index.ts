@@ -27,3 +27,5 @@ export * from "./sync-policy";
 
 export * from "./public-event-search";
 export * from "./streaming-ids";
+export * from "./setlist-quiz";
+export * from "./setlist-quiz-repository";

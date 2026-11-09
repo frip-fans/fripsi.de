@@ -16,6 +16,9 @@ import NavigationDiagnostics from "../components/NavigationDiagnostics.astro";
 import routerBootstrap from "../scripts/router-bootstrap.js?url";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import OfficialSiteGate from "../components/OfficialSiteGate.astro";
+import QuizBoard from "../components/QuizBoard.astro";
+import QuizInvite from "../components/QuizInvite.astro";
+import "../styles/quiz.css";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
 import moonBackground from "../../../../images/A_New_View_of_the_Moon-no-earth.webp?url";
 import issBackground from "../../../../images/ISS.jpg?url";
@@ -32,6 +35,8 @@ const locale = admin ? "zh-CN" : getLocale(Astro.request);
 const resolvedDescription = description ?? t(locale, "site.description");
 const rotateHomeBackground = !admin && current === "/";
 const siteName = admin ? "Calendar Studio" : "fripSi.de Fan Site";
+// The /quiz page already shows the board, so the floating entry would duplicate it.
+const showQuizLauncher = !admin && !current.startsWith("/quiz");
 const autoOpenOfficialSiteGate = !admin && current === "/" && Astro.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value !== "yes";
 interface NavigationItem {
   href?: string;
@@ -40,6 +45,7 @@ interface NavigationItem {
   children?: { href: string; label: string; active: boolean }[];
 }
 const funLinks = [
+  { href: "/quiz", label: t(locale, "nav.quiz"), active: current.startsWith("/quiz") },
   { href: "/journey", label: t(locale, "nav.journey"), active: current.startsWith("/journey") },
   { href: "/yaginuma-intensity-calibrator", label: t(locale, "nav.yaginuma"), active: current.startsWith("/yaginuma-intensity-calibrator") },
 ];
@@ -174,6 +180,22 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
     </div>
     {!admin && <OfficialSiteGate autoOpen={autoOpenOfficialSiteGate} />}
     <main id="main-content" tabindex="-1"><slot /></main>
+    {showQuizLauncher && (
+      <div class="quiz-launcher-root" transition:persist="quiz-launcher">
+        <div class="quiz-launcher-dock" data-quiz-launcher-bar hidden>
+        <QuizInvite locale={locale} />
+        </div>
+        <dialog class="quiz-dialog" data-quiz-dialog aria-label={t(locale, "quiz.title")}>
+          <div class="quiz-dialog-inner">
+            <header class="quiz-dialog-head">
+              <p class="quiz-eyebrow">{t(locale, "quiz.todayLabel")}</p>
+              <button class="quiz-dialog-close" type="button" data-quiz-close aria-label={t(locale, "quiz.close")}><Icon name="x-lg" /></button>
+            </header>
+            <QuizBoard locale={locale} />
+          </div>
+        </dialog>
+      </div>
+    )}
     {!admin && <NavigationLoading />}
     {!admin && ["staging", "development"].includes(getEnv().APP_ENV ?? "") && <NavigationDiagnostics />}
     <footer>
@@ -190,6 +212,9 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
 </html>
 
 <script>
+  import { setupQuizLauncher } from "../lib/quiz-launcher";
+  setupQuizLauncher();
+  document.addEventListener("astro:page-load", () => setupQuizLauncher());
   import "../lib/public-navigation";
   import { setupPageEntryTransitions } from "../lib/page-entry-navigation";
   setupPageEntryTransitions();

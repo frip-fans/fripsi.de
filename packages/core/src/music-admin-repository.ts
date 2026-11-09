@@ -240,7 +240,9 @@ export async function getAdminSetlistById(db: D1Database, id: string): Promise<A
 
 export async function getMusicEditorOptions(db: D1Database): Promise<MusicEditorOptions> {
   const [songs, versions, events] = await Promise.all([
-    db.prepare("SELECT id, slug, title FROM songs ORDER BY title COLLATE NOCASE ASC").all<MusicEditorOptions["songs"][number]>(),
+    db.prepare(`SELECT s.id, s.slug, s.title,
+      (SELECT GROUP_CONCAT(a.alias, char(10)) FROM song_aliases a WHERE a.song_id = s.id) AS aliases
+      FROM songs s ORDER BY s.title COLLATE NOCASE ASC`).all<MusicEditorOptions["songs"][number]>(),
     db.prepare(`
       SELECT id, song_id, slug, title, version_label
       FROM song_versions

@@ -51,6 +51,16 @@ describe("event repository pagination", () => {
     ]);
   });
 
+  it("keeps chronological order by default and sorts newest first on request", async () => {
+    const { db, calls } = fakeDb();
+
+    await searchEvents(db, { limit: 50 });
+    await searchEvents(db, { limit: 50 }, false, { newestFirst: true });
+
+    expect(calls[0].sql).toContain("ORDER BY start_date ASC, start_time ASC");
+    expect(calls[1].sql).toContain("ORDER BY start_date DESC, start_time DESC");
+  });
+
   it("counts the same filtered result set without pagination bindings", async () => {
     const { db, calls } = fakeDb({ count: 137 });
 

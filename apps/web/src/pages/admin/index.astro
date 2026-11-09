@@ -1,14 +1,16 @@
 ---
-import { listAuditLogs, listChangeSets, searchEvents } from "@frip-fan/core";
+import { countChangeSetsByStatus, listAuditLogs, listChangeSets, searchEvents } from "@frip-fan/core";
 import Icon from "../../components/Icon.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
+import { CHANGE_OPERATION_LABELS } from "../../lib/change-review";
 import { getEnv } from "../../lib/env";
 
 const db = getEnv().DB;
-const [proposed, recentEvents, audit] = await Promise.all([
+const [proposed, recentEvents, audit, changeCounts] = await Promise.all([
   listChangeSets(db, "proposed", 8),
-  searchEvents(db, { include_archived: true, limit: 8 }),
-  listAuditLogs(db, 6)
+  searchEvents(db, { include_archived: true, limit: 8 }, false, { newestFirst: true }),
+  listAuditLogs(db, 6),
+  countChangeSetsByStatus(db),
 ]);
 const actor = Astro.locals.actor!;
 ---
@@ -18,7 +20,7 @@ const actor = Astro.locals.actor!;
     <a class="button" href="/admin/events/new"><Icon name="plus" />新活动</a>
   </header>
   <section class="stats">
-    <div class="panel"><small>PENDING</small><strong>{proposed.length}</strong><span>待处理提案</span></div>
+    <div class="panel"><small>PENDING</small><strong>{changeCounts.proposed ?? 0}</strong><span>待处理提案</span></div>
     <div class="panel"><small>VISIBLE SET</small><strong>{recentEvents.filter((event) => event.published && !event.archived_at).length}</strong><span>本页公开记录</span></div>
     <div class="panel"><small>ROLE</small><strong>{actor.scopes.includes("events:publish") ? "P" : "E"}</strong><span>{actor.scopes.length} scopes</span></div>
   </section>
@@ -26,7 +28,7 @@ const actor = Astro.locals.actor!;
     <section class="panel">
       <div class="section-heading"><h2>待处理提案</h2><a href="/admin/changes">查看全部</a></div>
       {proposed.length ? <div class="stack compact-list">
-        {proposed.map((change) => <a href={`/admin/changes/${change.id}`}><span>{change.operation}</span><strong>{change.reason || change.id}</strong><small>{change.created_by} · {change.created_at.slice(0, 16).replace("T", " ")}</small></a>)}
+        {proposed.map((change) => <a href={`/admin/changes/${change.id}`}><span>{CHANGE_OPERATION_LABELS[change.operation] ?? change.operation}</span><strong>{change.reason || change.id}</strong><small>{change.created_by} · {change.created_at.slice(0, 16).replace("T", " ")}</small></a>)}
       </div> : <div class="empty">没有待处理提案。</div>}
     </section>
     <section class="panel">

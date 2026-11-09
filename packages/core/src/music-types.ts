@@ -284,6 +284,8 @@ export interface MusicSongOption {
   id: string;
   slug: string;
   title: string;
+  /** Newline-separated aliases, used for picker search and pasted setlist matching. */
+  aliases?: string | null;
 }
 
 export interface MusicVersionOption {

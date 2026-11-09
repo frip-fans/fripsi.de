@@ -2,6 +2,7 @@
 import type { AdminSetlistDetail, MusicEditorOptions } from "@frip-fan/core";
 import Icon from "./Icon.astro";
 import SearchSelect from "./SearchSelect.astro";
+import SetlistEntryRow from "./SetlistEntryRow.astro";
 
 interface Props {
   setlist?: AdminSetlistDetail;
@@ -25,11 +26,17 @@ const eventChoices = options.events.map((event) => {
 const songChoices = options.songs.map((song) => ({
   value: song.id,
   label: song.title,
-  searchText: `${song.title} ${song.slug}`,
+  searchText: `${song.title} ${song.slug} ${song.aliases ?? ""}`,
   title: song.title,
 }));
+const pasteData = JSON.stringify({
+  songs: options.songs.map(({ id, title, aliases }) => ({ id, title, aliases })),
+  versions: options.versions.map(({ id, song_id, title }) => ({ id, song_id, title })),
+  sections: sectionLabels,
+}).replaceAll("<", "\\u003c");
+const entries = setlist?.entries ?? [];
 ---
-<form class="panel catalog-form" method="post" action="/api/admin/music/setlists/save" data-setlist-editor>
+<form class="panel catalog-form view-compact" method="post" action="/api/admin/music/setlists/save" data-setlist-editor>
   {setlist && <input type="hidden" name="id" value={setlist.id} />}
   {setlist && <input type="hidden" name="expected_updated_at" value={setlist.updated_at} />}
   <input type="hidden" name="idempotency_key" value={`admin-setlist-${setlist?.id ?? "new"}-${crypto.randomUUID()}`} />
@@ -63,195 +70,526 @@ const songChoices = options.songs.map((song) => ({
         <option value="unverified" selected={setlist?.confidence === "unverified"}>待核验</option>
       </select>
     </label>
-    <label class="wide">说明<textarea name="notes" maxlength="4000">{setlist?.notes ?? ""}</textarea></label>
-    <label class="wide">来源<textarea name="sources" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea></label>
+    <label class="wide">说明<textarea name="notes" maxlength="4000" rows="3">{setlist?.notes ?? ""}</textarea></label>
+    <label class="wide">来源<textarea name="sources" rows="3" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea></label>
     <label class="publish-check wide"><input type="checkbox" name="published" checked={setlist?.published ?? true} />在公开歌单库显示</label>
   </div>
 
-  <section class="entry-editor">
+  <section class="entry-editor" aria-labelledby="entry-editor-title">
     <div class="editor-heading">
-      <div><p class="eyebrow">Setlist editor</p><h2>演唱顺序</h2><p class="muted">拖动暂未启用；使用上下按钮调整顺序，保存时按当前排列重新编号。</p></div>
-      <button type="button" class="secondary" data-add-entry><Icon name="plus" />添加歌曲</button>
+      <div>
+        <p class="eyebrow">Setlist editor</p>
+        <h2 id="entry-editor-title">演唱顺序 <span class="count" data-entry-count>{entries.length}</span></h2>
+        <p class="muted hint">拖动 <Icon name="grip-vertical" /> 排序，或直接改左侧序号后回车。保存时按当前排列重新编号。</p>
+      </div>
+      <div class="editor-tools">
+        <div class="view-toggle" role="group" aria-label="显示方式">
+          <button type="button" class="secondary" data-view="compact" aria-pressed="true">紧凑</button>
+          <button type="button" class="secondary" data-view="detailed" aria-pressed="false">显示标题与备注</button>
+        </div>
+        <button type="button" class="secondary" data-open-paste aria-expanded="false"><Icon name="list" />粘贴歌单</button>
+      </div>
+    </div>
+
+    <div class="paste-panel" data-paste-panel hidden>
+      <label for="setlist-paste-input"><strong>粘贴歌单文本</strong><span class="muted">每行一首；可带 “01.” “M-1” 等序号。单独一行 “Encore / アンコール” 之后的歌曲会归入 Encore。匹配不到的行会标黄，需要手动选择歌曲。</span></label>
+      <textarea id="setlist-paste-input" rows="8" data-paste-input placeholder={"01. only my railgun\n02. sky\nEncore\nEN1. LEVEL5-judgelight-"}></textarea>
+      <div class="paste-actions">
+        <span class="muted" data-paste-summary aria-live="polite"></span>
+        <button type="button" class="secondary" data-paste-cancel>取消</button>
+        <button type="button" data-paste-apply="append"><Icon name="plus" />追加到末尾</button>
+        {entries.length > 0 && <button type="button" class="danger" data-paste-apply="replace">替换全部</button>}
+      </div>
+    </div>
+
+    <div class="column-head" aria-hidden="true">
+      <span></span><span>#</span><span>歌曲</span><span>演唱版本</span><span>段落</span><span>Medley</span><span></span>
     </div>
     <div class="editor-rows" data-entry-rows>
-      {setlist?.entries.map((entry, index) => (
-        <div class="editor-row entry-row" data-entry-row>
-          <span class="row-index" data-row-index>{String(index + 1).padStart(2, "0")}</span>
-          <div class="form-field row-song">
-            <span class="field-label">歌曲 *</span>
-            <SearchSelect
-              name="entry_song_id"
-              choices={songChoices}
-              value={entry.song_id}
-              placeholder="选择歌曲…"
-              searchPlaceholder="搜索歌曲名"
-              emptyText="没有匹配的歌曲"
-              ariaLabel={`第 ${index + 1} 首歌曲`}
-              required
-            />
-          </div>
-          <label class="row-version">演唱版本
-            <select name="entry_version_id">
-              <option value="">未指定具体版本</option>
-              {options.versions.map((version) => <option value={version.id} data-song-id={version.song_id} data-title={version.title} selected={entry.performed_version_id === version.id}>{version.title}</option>)}
-            </select>
-          </label>
-          <label>段落
-            <select name="entry_section">
-              {Object.entries(sectionLabels).map(([value, label]) => <option value={value} selected={entry.section === value}>{label}</option>)}
-            </select>
-          </label>
-          <label>Medley 组<input name="entry_medley" maxlength="40" value={entry.medley_group ?? ""} placeholder="例如 01" /></label>
-          <label class="row-title">显示标题（可选）<input name="entry_title" maxlength="240" value={entry.display_title} placeholder="留空时使用演唱版本名或歌曲名" /></label>
-          <label class="row-note">备注<input name="entry_notes" maxlength="1000" value={entry.notes ?? ""} /></label>
-          <div class="row-actions">
-            <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
-            <button type="button" class="secondary icon-button" data-move-down aria-label="下移">↓</button>
-            <button type="button" class="danger icon-button" data-remove-row aria-label="删除"><Icon name="trash" /></button>
-          </div>
-        </div>
-      ))}
+      {entries.map((entry, index) => <SetlistEntryRow entry={entry} index={index} songChoices={songChoices} versions={options.versions} sectionLabels={sectionLabels} />)}
     </div>
-    <div class="empty editor-empty" data-entry-empty hidden={Boolean(setlist?.entries.length)}>还没有歌曲，请点击“添加歌曲”。</div>
+    <div class="empty editor-empty" data-entry-empty hidden={entries.length > 0}>还没有歌曲。点击“添加歌曲”，或用“粘贴歌单”一次导入。</div>
     <div class="editor-tail">
       <button type="button" class="secondary" data-add-entry><Icon name="plus" />添加歌曲</button>
     </div>
+    <p class="visually-hidden" aria-live="polite" data-live></p>
   </section>
 
-  <div class="actions form-actions">
-    <button type="submit" disabled={!canWrite}><Icon name="check-circle" />{setlist ? "保存 Setlist" : "创建 Setlist"}</button>
-    <a class="button secondary" href="/admin/music/setlists">取消</a>
+  <div class="save-bar" data-save-bar>
+    <span class="save-state" data-save-state>没有未保存的修改</span>
+    <span class="section-summary muted" data-section-summary></span>
+    <div class="save-actions">
+      <a class="button secondary" href="/admin/music/setlists">返回列表</a>
+      <button type="submit" disabled={!canWrite} title="Ctrl / ⌘ + S"><Icon name="check-circle" />{setlist ? "保存 Setlist" : "创建 Setlist"}</button>
+    </div>
     {!canWrite && <span class="muted">当前账号没有 music:write 权限。</span>}
   </div>
 
+  <div class="undo-toast" data-undo-toast hidden role="status">
+    <span data-undo-text></span>
+    <button type="button" class="secondary" data-undo><Icon name="arrow-counterclockwise" />撤销</button>
+  </div>
+
   <template data-entry-template>
-    <div class="editor-row entry-row" data-entry-row>
-      <span class="row-index" data-row-index>01</span>
-      <div class="form-field row-song">
-        <span class="field-label">歌曲 *</span>
-        <SearchSelect
-          name="entry_song_id"
-          choices={songChoices}
-          placeholder="选择歌曲…"
-          searchPlaceholder="搜索歌曲名"
-          emptyText="没有匹配的歌曲"
-          ariaLabel="新增歌曲"
-          required
-        />
-      </div>
-      <label class="row-version">演唱版本
-        <select name="entry_version_id">
-          <option value="">未指定具体版本</option>
-          {options.versions.map((version) => <option value={version.id} data-song-id={version.song_id} data-title={version.title}>{version.title}</option>)}
-        </select>
-      </label>
-      <label>段落<select name="entry_section">{Object.entries(sectionLabels).map(([value, label]) => <option value={value}>{label}</option>)}</select></label>
-      <label>Medley 组<input name="entry_medley" maxlength="40" placeholder="例如 01" /></label>
-      <label class="row-title">显示标题（可选）<input name="entry_title" maxlength="240" placeholder="留空时使用演唱版本名或歌曲名" /></label>
-      <label class="row-note">备注<input name="entry_notes" maxlength="1000" /></label>
-      <div class="row-actions">
-        <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
-        <button type="button" class="secondary icon-button" data-move-down aria-label="下移">↓</button>
-        <button type="button" class="danger icon-button" data-remove-row aria-label="删除"><Icon name="trash" /></button>
-      </div>
-    </div>
+    <SetlistEntryRow songChoices={songChoices} versions={options.versions} sectionLabels={sectionLabels} />
   </template>
+  <script type="application/json" data-paste-data set:html={pasteData} />
 </form>
 
 <script>
-  const setlistEditor = document.querySelector<HTMLElement>("[data-setlist-editor]");
-  const entryRows = setlistEditor?.querySelector<HTMLElement>("[data-entry-rows]");
-  const entryTemplate = setlistEditor?.querySelector<HTMLTemplateElement>("[data-entry-template]");
-  const entryEmpty = setlistEditor?.querySelector<HTMLElement>("[data-entry-empty]");
+  import { createSetlistMatcher, type PasteSong, type PasteVersion, type SetlistSection } from "../lib/setlist-paste";
 
-  const filterVersions = (row: HTMLElement) => {
-    const song = row.querySelector("[name=entry_song_id]");
-    const version = row.querySelector("[name=entry_version_id]");
-    if (!(song instanceof HTMLSelectElement) || !(version instanceof HTMLSelectElement)) return;
-    for (const option of version.options) {
-      if (!option.value) continue;
-      option.hidden = option.dataset.songId !== song.value;
-    }
-    const selected = version.selectedOptions[0];
-    if (selected?.value && selected.dataset.songId !== song.value) version.value = "";
-  };
+  const editorForm = document.querySelector<HTMLFormElement>("[data-setlist-editor]");
+  if (editorForm) initSetlistEditor(editorForm);
 
-  const refreshEntries = () => {
-    const rows = [...(entryRows?.querySelectorAll<HTMLElement>("[data-entry-row]") ?? [])];
-    if (entryEmpty) entryEmpty.hidden = rows.length > 0;
-    rows.forEach((row, index) => {
-      const label = row.querySelector<HTMLElement>("[data-row-index]");
-      if (label) label.textContent = String(index + 1).padStart(2, "0");
-      filterVersions(row);
+  function initSetlistEditor(form: HTMLFormElement) {
+    const rowsBox = form.querySelector<HTMLElement>("[data-entry-rows]")!;
+    const template = form.querySelector<HTMLTemplateElement>("[data-entry-template]")!;
+    const empty = form.querySelector<HTMLElement>("[data-entry-empty]");
+    const live = form.querySelector<HTMLElement>("[data-live]");
+    const countLabel = form.querySelector<HTMLElement>("[data-entry-count]");
+    const saveState = form.querySelector<HTMLElement>("[data-save-state]");
+    const saveBar = form.querySelector<HTMLElement>("[data-save-bar]");
+    const sectionSummary = form.querySelector<HTMLElement>("[data-section-summary]");
+    const toast = form.querySelector<HTMLElement>("[data-undo-toast]");
+    const toastText = form.querySelector<HTMLElement>("[data-undo-text]");
+    const data = JSON.parse(form.querySelector("[data-paste-data]")?.textContent ?? "{}") as { songs: PasteSong[]; versions: PasteVersion[]; sections: Record<SetlistSection, string> };
+    const sectionLabels = data.sections;
+    const versionsBySong = new Map<string, PasteVersion[]>();
+    for (const version of data.versions) versionsBySong.set(version.song_id, [...(versionsBySong.get(version.song_id) ?? []), version]);
+    const reducedMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const rows = () => [...rowsBox.querySelectorAll<HTMLElement>(":scope > [data-entry-row]")];
+    function field<T>(row: HTMLElement, name: string) { return row.querySelector(`[name=${name}]`) as T | null; }
+    const announce = (message: string) => { if (live) live.textContent = message; };
+    const songTitle = (row: HTMLElement) => {
+      const select = field<HTMLSelectElement>(row, "entry_song_id");
+      return select?.selectedOptions[0]?.value ? select.selectedOptions[0].textContent ?? "" : "未选择歌曲";
+    };
+
+    // Versions follow the chosen song; a song with a single version gets it picked automatically.
+    const filterVersions = (row: HTMLElement, autoPick = false) => {
+      const song = field<HTMLSelectElement>(row, "entry_song_id");
+      const version = field<HTMLSelectElement>(row, "entry_version_id");
+      if (!song || !version) return;
+      for (const option of version.options) if (option.value) option.hidden = option.dataset.songId !== song.value;
+      const selected = version.selectedOptions[0];
+      if (selected?.value && selected.dataset.songId !== song.value) version.value = "";
+      const candidates = versionsBySong.get(song.value) ?? [];
+      if (autoPick && !version.value && candidates.length === 1) version.value = candidates[0].id;
+    };
+    // A dot on the "…" button marks rows whose collapsed title or notes carry information.
+    const syncDetails = (row: HTMLElement) => {
+      const title = field<HTMLInputElement>(row, "entry_title")?.value.trim() ?? "";
+      const notes = field<HTMLInputElement>(row, "entry_notes")?.value.trim() ?? "";
+      const version = field<HTMLSelectElement>(row, "entry_version_id")?.selectedOptions[0];
+      const automatic = [version?.value ? version.dataset.title : "", songTitle(row)];
+      const custom = Boolean(title) && !automatic.includes(title);
+      row.classList.toggle("has-details", custom || Boolean(notes));
+      const toggle = row.querySelector<HTMLElement>("[data-toggle-details]");
+      if (toggle) toggle.title = [custom ? `显示标题：${title}` : "", notes ? `备注：${notes}` : ""].filter(Boolean).join("\n") || "显示标题与备注";
+    };
+
+    const refresh = () => {
+      const list = rows();
+      if (empty) empty.hidden = list.length > 0;
+      if (countLabel) countLabel.textContent = String(list.length);
+      const counts = new Map<string, number>();
+      let previous = "main";
+      list.forEach((row, index) => {
+        const position = row.querySelector<HTMLInputElement>("[data-row-position]");
+        if (position && document.activeElement !== position) position.value = String(index + 1).padStart(2, "0");
+        const section = (field<HTMLSelectElement>(row, "entry_section")?.value ?? "main") as SetlistSection;
+        row.dataset.section = section;
+        if (section !== previous) row.dataset.sectionStart = sectionLabels[section] ?? section;
+        else delete row.dataset.sectionStart;
+        previous = section;
+        counts.set(section, (counts.get(section) ?? 0) + 1);
+        row.querySelector<HTMLElement>("[data-search-select-trigger]")?.setAttribute("aria-label", `第 ${index + 1} 首歌曲`);
+      });
+      if (sectionSummary) sectionSummary.textContent = [...counts].map(([section, count]) => `${sectionLabels[section as SetlistSection] ?? section} ${count}`).join(" · ");
+      updateDirty();
+    };
+
+    // Unsaved-change guard: compares the serialized form with what the page loaded.
+    const snapshot = () => JSON.stringify([...new FormData(form)].filter(([name]) => name !== "idempotency_key"));
+    let initial = "";
+    let dirty = false;
+    let submitting = false;
+    const updateDirty = () => {
+      if (!initial) return;
+      dirty = snapshot() !== initial;
+      saveBar?.classList.toggle("dirty", dirty);
+      if (saveState) saveState.textContent = dirty ? "有未保存的修改" : "没有未保存的修改";
+    };
+    window.addEventListener("beforeunload", (event) => {
+      if (dirty && !submitting) { event.preventDefault(); event.returnValue = ""; }
     });
-  };
-
-  setlistEditor?.addEventListener("click", (event) => {
-    const target = event.target as HTMLElement;
-    if (target.closest("[data-add-entry]") && entryRows && entryTemplate) {
-      const clone = entryTemplate.content.firstElementChild?.cloneNode(true);
-      if (!(clone instanceof HTMLElement)) return;
-      const pickerPanel = clone.querySelector<HTMLElement>("[data-search-select-panel]");
-      const pickerTrigger = clone.querySelector<HTMLElement>("[data-search-select-trigger]");
-      if (pickerPanel && pickerTrigger) {
-        pickerPanel.id = `search-select-${crypto.randomUUID()}-panel`;
-        pickerTrigger.setAttribute("aria-controls", pickerPanel.id);
+    form.addEventListener("submit", () => { submitting = true; });
+    document.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        form.requestSubmit();
       }
-      entryRows.insertAdjacentElement("beforeend", clone);
-      refreshEntries();
-      const songPicker = clone.querySelector<HTMLElement>("[data-search-select-trigger]");
-      songPicker?.focus();
-      return;
-    }
-    const row = target.closest<HTMLElement>("[data-entry-row]");
-    if (!row || !entryRows) return;
-    if (target.closest("[data-remove-row]")) row.remove();
-    if (target.closest("[data-move-up]") && row.previousElementSibling) entryRows.insertBefore(row, row.previousElementSibling);
-    if (target.closest("[data-move-down]") && row.nextElementSibling) entryRows.insertBefore(row.nextElementSibling, row);
-    refreshEntries();
-  });
+    });
 
-  setlistEditor?.addEventListener("change", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLSelectElement)) return;
-    const row = target.closest<HTMLElement>("[data-entry-row]");
-    if (!row) return;
-    if (target.name === "entry_song_id") {
+    const createRow = () => {
+      const clone = template.content.firstElementChild?.cloneNode(true);
+      if (!(clone instanceof HTMLElement)) throw new Error("missing setlist row template");
+      const panel = clone.querySelector<HTMLElement>("[data-search-select-panel]");
+      const trigger = clone.querySelector<HTMLElement>("[data-search-select-trigger]");
+      if (panel && trigger) {
+        panel.id = `search-select-${crypto.randomUUID()}-panel`;
+        trigger.setAttribute("aria-controls", panel.id);
+      }
+      return clone;
+    };
+    const setSong = (row: HTMLElement, songId: string | null) => {
+      const select = field<HTMLSelectElement>(row, "entry_song_id");
+      if (!select || !songId) return;
+      select.value = songId;
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    const insertRow = (after: HTMLElement | null) => {
+      const row = createRow();
+      const neighbour = after ?? rows().at(-1);
+      const section = field<HTMLSelectElement>(row, "entry_section");
+      const inherited = neighbour ? field<HTMLSelectElement>(neighbour, "entry_section")?.value : undefined;
+      if (section && inherited) section.value = inherited;
+      if (after) after.insertAdjacentElement("afterend", row); else rowsBox.appendChild(row);
       filterVersions(row);
+      refresh();
+      row.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+      // Open the picker after this click finishes bubbling; the picker closes on outside clicks.
+      const trigger = row.querySelector<HTMLElement>("[data-search-select-trigger]");
+      window.setTimeout(() => trigger?.click(), 0);
+      return row;
+    };
+
+    // FLIP: rows slide to their new place instead of jumping.
+    const flip = (mutate: () => void, skip?: HTMLElement) => {
+      const before = new Map(rows().map((row) => [row, row.getBoundingClientRect().top]));
+      mutate();
+      if (reducedMotion()) return;
+      for (const row of rows()) {
+        if (row === skip) continue;
+        const delta = (before.get(row) ?? 0) - row.getBoundingClientRect().top;
+        if (Math.abs(delta) > 1) row.animate([{ transform: `translateY(${delta}px)` }, { transform: "translateY(0)" }], { duration: 160, easing: "ease-out" });
+      }
+    };
+    const moveTo = (row: HTMLElement, target: number) => {
+      const list = rows();
+      const from = list.indexOf(row);
+      const to = Math.max(0, Math.min(list.length - 1, target));
+      if (from < 0 || from === to) return false;
+      flip(() => {
+        const anchor = list.filter((item) => item !== row)[to];
+        if (anchor) rowsBox.insertBefore(row, anchor); else rowsBox.appendChild(row);
+      });
+      refresh();
+      announce(`${songTitle(row)} 已移到第 ${to + 1} 位`);
+      return true;
+    };
+    const flash = (row: HTMLElement) => {
+      row.classList.remove("flash");
+      void row.offsetWidth;
+      row.classList.add("flash");
+    };
+
+    // Deleting is immediate but undoable, so a misclick never costs a re-entry.
+    const removed: Array<{ row: HTMLElement; index: number }> = [];
+    let toastTimer = 0;
+    const showToast = () => {
+      if (!toast || !toastText) return;
+      const last = removed.at(-1);
+      if (!last) { toast.hidden = true; return; }
+      toastText.textContent = `已删除第 ${last.index + 1} 首「${songTitle(last.row)}」${removed.length > 1 ? `（还可撤销 ${removed.length} 次）` : ""}`;
+      toast.hidden = false;
+      window.clearTimeout(toastTimer);
+      toastTimer = window.setTimeout(() => { toast.hidden = true; removed.length = 0; }, 10000);
+    };
+    const undo = () => {
+      const last = removed.pop();
+      if (!last) return;
+      const anchor = rows()[last.index];
+      if (anchor) rowsBox.insertBefore(last.row, anchor); else rowsBox.appendChild(last.row);
+      refresh();
+      flash(last.row);
+      last.row.querySelector<HTMLElement>("[data-drag-handle]")?.focus();
+      announce(`已恢复「${songTitle(last.row)}」`);
+      showToast();
+    };
+    const removeRow = (row: HTMLElement) => {
+      const list = rows();
+      const index = list.indexOf(row);
+      const focusTarget = list[index + 1] ?? list[index - 1];
+      removed.push({ row, index });
+      row.remove();
+      refresh();
+      (focusTarget?.querySelector<HTMLElement>("[data-remove-row]") ?? form.querySelector<HTMLElement>("[data-add-entry]"))?.focus();
+      showToast();
+    };
+
+    form.addEventListener("click", (event) => {
+      const target = event.target as Element;
+      if (target.closest("[data-add-entry]")) { insertRow(null); return; }
+      if (target.closest("[data-undo]")) { undo(); return; }
+      const view = target.closest<HTMLElement>("[data-view]");
+      if (view) { setView(view.dataset.view === "detailed" ? "detailed" : "compact"); return; }
+      const row = target.closest<HTMLElement>("[data-entry-row]");
+      if (!row) return;
+      if (target.closest("[data-remove-row]")) removeRow(row);
+      else if (target.closest("[data-insert-below]")) insertRow(row);
+      else if (target.closest("[data-toggle-details]")) {
+        const expanded = row.classList.toggle("expanded");
+        row.querySelector("[data-toggle-details]")?.setAttribute("aria-expanded", String(expanded));
+        if (expanded) field<HTMLInputElement>(row, "entry_notes")?.focus();
+      }
+    });
+
+    form.addEventListener("change", (event) => {
+      const target = event.target;
+      const row = target instanceof Element ? target.closest<HTMLElement>("[data-entry-row]") : null;
+      if (row && target instanceof HTMLSelectElement && target.name === "entry_song_id") {
+        filterVersions(row, true);
+        row.classList.remove("unmatched");
+      }
+      if (row) syncDetails(row);
+      refresh();
+    });
+    form.addEventListener("input", (event) => {
+      const target = event.target as HTMLElement;
+      const row = target.closest<HTMLElement>("[data-entry-row]");
+      if (row && !target.matches("[data-row-position]")) syncDetails(row);
+      updateDirty();
+    });
+
+    // Typing a number into the position box moves the row there: fastest for long setlists.
+    const commitPosition = (input: HTMLInputElement) => {
+      const row = input.closest<HTMLElement>("[data-entry-row]");
+      if (!row) return;
+      const wanted = Number.parseInt(input.value, 10);
+      input.value = "";
+      input.blur();
+      if (Number.isFinite(wanted) && moveTo(row, wanted - 1)) {
+        row.scrollIntoView({ block: "center", behavior: reducedMotion() ? "auto" : "smooth" });
+        flash(row);
+      }
+      refresh();
+    };
+    form.addEventListener("keydown", (event) => {
+      const target = event.target as HTMLElement;
+      if (target.matches("[data-row-position]")) {
+        if (event.key === "Enter") { event.preventDefault(); commitPosition(target as HTMLInputElement); }
+        if (event.key === "Escape") { event.preventDefault(); (target as HTMLInputElement).value = ""; target.blur(); refresh(); }
+        return;
+      }
+      if (target.matches("[data-drag-handle]")) {
+        const row = target.closest<HTMLElement>("[data-entry-row]")!;
+        const index = rows().indexOf(row);
+        const moves: Record<string, number> = { ArrowUp: index - 1, ArrowDown: index + 1, Home: 0, End: rows().length - 1 };
+        if (event.key in moves) {
+          event.preventDefault();
+          moveTo(row, moves[event.key]);
+          target.focus();
+          row.scrollIntoView({ block: "nearest" });
+        }
+        return;
+      }
+      // Enter in a row's text field would submit the whole form.
+      if (event.key === "Enter" && target instanceof HTMLInputElement && target.closest("[data-entry-row]")) event.preventDefault();
+    });
+    form.addEventListener("focusin", (event) => {
+      const target = event.target as HTMLElement;
+      if (target.matches("[data-row-position]")) (target as HTMLInputElement).select();
+    });
+    form.addEventListener("focusout", (event) => {
+      const target = event.target as HTMLElement;
+      if (!target.matches("[data-row-position]")) return;
+      const input = target as HTMLInputElement;
+      const row = input.closest<HTMLElement>("[data-entry-row]");
+      if (row && input.value && Number.parseInt(input.value, 10) !== rows().indexOf(row) + 1) commitPosition(input);
+      else { input.value = ""; refresh(); }
+    });
+
+    // Pointer drag works for mouse, pen and touch; the handle has touch-action: none.
+    let drag: { row: HTMLElement; pointerId: number; startY: number; startScroll: number; startOffset: number; startIndex: number; lastY: number; frame: number } | null = null;
+    const updateDrag = () => {
+      if (!drag) return;
+      const { row } = drag;
+      const pointer = drag.lastY - rowsBox.getBoundingClientRect().top;
+      const before = rows().filter((item) => item !== row).find((item) => pointer < item.offsetTop + item.offsetHeight / 2) ?? null;
+      if (before !== row.nextElementSibling) flip(() => { if (before) rowsBox.insertBefore(row, before); else rowsBox.appendChild(row); }, row);
+      const travelled = drag.lastY - drag.startY + (window.scrollY - drag.startScroll);
+      row.style.transform = `translateY(${travelled - (row.offsetTop - drag.startOffset)}px)`;
+    };
+    const autoScroll = () => {
+      if (!drag) return;
+      const edge = 90;
+      const speed = drag.lastY < edge ? -(edge - drag.lastY) / 3 : drag.lastY > innerHeight - edge ? (drag.lastY - (innerHeight - edge)) / 3 : 0;
+      if (speed) { window.scrollBy(0, speed); updateDrag(); }
+      drag.frame = requestAnimationFrame(autoScroll);
+    };
+    rowsBox.addEventListener("pointerdown", (event) => {
+      const handle = (event.target as Element).closest<HTMLElement>("[data-drag-handle]");
+      if (!handle || event.button !== 0) return;
+      const row = handle.closest<HTMLElement>("[data-entry-row]")!;
+      event.preventDefault();
+      handle.focus({ preventScroll: true });
+      handle.setPointerCapture(event.pointerId);
+      drag = { row, pointerId: event.pointerId, startY: event.clientY, startScroll: window.scrollY, startOffset: row.offsetTop, startIndex: rows().indexOf(row), lastY: event.clientY, frame: 0 };
+      row.classList.add("dragging");
+      document.body.classList.add("setlist-dragging");
+      drag.frame = requestAnimationFrame(autoScroll);
+    });
+    rowsBox.addEventListener("pointermove", (event) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      drag.lastY = event.clientY;
+      updateDrag();
+    });
+    const endDrag = (event: PointerEvent) => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      const { row, startIndex } = drag;
+      cancelAnimationFrame(drag.frame);
+      drag = null;
+      row.classList.remove("dragging");
+      document.body.classList.remove("setlist-dragging");
+      const offset = row.style.transform;
+      row.style.transform = "";
+      if (offset && !reducedMotion()) row.animate([{ transform: offset }, { transform: "translateY(0)" }], { duration: 140, easing: "ease-out" });
+      refresh();
+      const index = rows().indexOf(row);
+      if (index !== startIndex) { announce(`${songTitle(row)} 已移到第 ${index + 1} 位`); flash(row); }
+    };
+    rowsBox.addEventListener("pointerup", endDrag);
+    rowsBox.addEventListener("pointercancel", endDrag);
+
+    const viewKey = "admin-setlist-view";
+    const setView = (view: "compact" | "detailed", persist = true) => {
+      form.classList.toggle("view-compact", view === "compact");
+      form.classList.toggle("view-detailed", view === "detailed");
+      for (const button of form.querySelectorAll<HTMLElement>("[data-view]")) button.setAttribute("aria-pressed", String(button.dataset.view === view));
+      if (persist) try { localStorage.setItem(viewKey, view); } catch { /* storage unavailable */ }
+    };
+    try { if (localStorage.getItem(viewKey) === "detailed") setView("detailed", false); } catch { /* storage unavailable */ }
+
+    // Paste import: one textarea instead of one picker interaction per song.
+    const pastePanel = form.querySelector<HTMLElement>("[data-paste-panel]");
+    const pasteToggle = form.querySelector<HTMLElement>("[data-open-paste]");
+    const pasteInput = form.querySelector<HTMLTextAreaElement>("[data-paste-input]");
+    const pasteSummary = form.querySelector<HTMLElement>("[data-paste-summary]");
+    const match = createSetlistMatcher(data.songs, data.versions);
+    const setPasteOpen = (open: boolean) => {
+      if (!pastePanel) return;
+      pastePanel.hidden = !open;
+      pasteToggle?.setAttribute("aria-expanded", String(open));
+      if (open) pasteInput?.focus();
+    };
+    pasteToggle?.addEventListener("click", () => setPasteOpen(Boolean(pastePanel?.hidden)));
+    form.querySelector("[data-paste-cancel]")?.addEventListener("click", () => setPasteOpen(false));
+    pasteInput?.addEventListener("input", () => {
+      if (!pasteSummary || !pasteInput) return;
+      const entries = match(pasteInput.value);
+      const unmatched = entries.filter((entry) => entry.match === "none").length;
+      const loose = entries.filter((entry) => entry.match === "loose").length;
+      pasteSummary.textContent = entries.length ? `识别 ${entries.length} 首${loose ? ` · ${loose} 首模糊匹配` : ""}${unmatched ? ` · ${unmatched} 首需要手动选择` : ""}` : "";
+    });
+    for (const button of form.querySelectorAll<HTMLElement>("[data-paste-apply]")) {
+      button.addEventListener("click", () => {
+        const entries = match(pasteInput?.value ?? "");
+        if (!entries.length) { pasteInput?.focus(); return; }
+        const replace = button.dataset.pasteApply === "replace";
+        if (replace && !confirm(`用粘贴的 ${entries.length} 首替换当前 ${rows().length} 首？保存前离开页面即可放弃。`)) return;
+        if (replace) for (const row of rows()) row.remove();
+        const added: HTMLElement[] = [];
+        for (const entry of entries) {
+          const row = createRow();
+          rowsBox.appendChild(row);
+          added.push(row);
+          setSong(row, entry.songId);
+          filterVersions(row);
+          const version = field<HTMLSelectElement>(row, "entry_version_id");
+          if (version && entry.versionId) version.value = entry.versionId;
+          const section = field<HTMLSelectElement>(row, "entry_section");
+          if (section) section.value = entry.section;
+          if (entry.match === "none") {
+            const title = field<HTMLInputElement>(row, "entry_title");
+            if (title) title.value = entry.line;
+            row.classList.add("unmatched", "expanded");
+            row.querySelector("[data-toggle-details]")?.setAttribute("aria-expanded", "true");
+          }
+          syncDetails(row);
+        }
+        refresh();
+        setPasteOpen(false);
+        if (pasteInput) pasteInput.value = "";
+        if (pasteSummary) pasteSummary.textContent = "";
+        const unmatched = entries.filter((entry) => entry.match === "none").length;
+        announce(`已导入 ${entries.length} 首${unmatched ? `，${unmatched} 首需要手动选择歌曲` : ""}`);
+        (added.find((row) => row.classList.contains("unmatched")) ?? added[0])?.scrollIntoView({ block: "center", behavior: reducedMotion() ? "auto" : "smooth" });
+      });
     }
-  });
-  refreshEntries();
+
+    for (const row of rows()) { filterVersions(row); syncDetails(row); }
+    refresh();
+    initial = snapshot();
+    updateDirty();
+  }
 </script>
 
 <style>
-  .catalog-form { display: grid; gap: 2rem; }
+  .catalog-form { --panel-pad: clamp(1rem, 3vw, 1.6rem); display: grid; gap: 2rem; padding-bottom: 0; }
   .form-field { display: grid; min-width: 0; gap: .4rem; }
   .field-label { color: var(--muted); font-size: .82rem; }
   .publish-check { display: flex; align-items: center; gap: .55rem; }
   .publish-check input { width: auto; }
-  .editor-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-  .editor-heading h2, .editor-heading p { margin-bottom: .35rem; }
-  .editor-rows { display: grid; gap: .7rem; }
-  .editor-row { display: grid; grid-template-columns: 46px minmax(210px, 1.15fr) minmax(210px, 1.15fr) 120px 100px auto; gap: .55rem; align-items: end; padding: .8rem; border: 1px solid var(--line); border-radius: 13px; background: rgba(4,11,20,.52); }
-  .row-index { align-self: center; color: var(--accent); font: 800 .78rem/1 ui-monospace, monospace; text-align: center; }
-  .row-title { grid-column: 2 / 4; }
-  .row-note { grid-column: 4 / 6; }
-  .row-actions { display: flex; gap: .25rem; grid-column: 6; grid-row: 1; }
-  .icon-button { width: 2.25rem; min-height: 2.25rem; padding: 0; }
+  .editor-heading { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+  .editor-heading h2 { display: flex; align-items: center; gap: .6rem; margin-bottom: .35rem; }
+  .editor-heading .count { padding: .1rem .55rem; color: #07101c; background: var(--accent); border-radius: 999px; font: 800 .8rem/1.5 ui-monospace, monospace; }
+  .hint { margin: 0; font-size: .85rem; }
+  .hint :global(.icon) { vertical-align: -.15em; }
+  .editor-tools { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .editor-tools button { min-height: 2.4rem; padding: .45rem .8rem; font-size: .82rem; }
+  .view-toggle { display: inline-flex; }
+  .view-toggle button { border-radius: 0; }
+  .view-toggle button:first-child { border-radius: 9px 0 0 9px; }
+  .view-toggle button:last-child { border-radius: 0 9px 9px 0; border-left: 0; }
+  .view-toggle button[aria-pressed="true"] { color: var(--accent); background: rgba(var(--accent-rgb), .12); border-color: rgba(var(--accent-rgb), .4); }
+
+  .paste-panel { display: grid; gap: .6rem; margin-bottom: 1rem; padding: 1rem; border: 1px dashed rgba(var(--accent-rgb), .4); border-radius: 12px; background: rgba(var(--accent-rgb), .04); }
+  .paste-panel label { display: grid; gap: .3rem; }
+  .paste-panel label .muted { font-size: .82rem; }
+  .paste-panel textarea { font: .88rem/1.55 ui-monospace, monospace; }
+  .paste-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: .5rem; }
+  .paste-actions .muted { margin-right: auto; font-size: .82rem; }
+  .paste-actions button { min-height: 2.3rem; padding: .4rem .8rem; font-size: .82rem; }
+
+  .column-head { display: grid; grid-template-columns: 2rem 2.8rem minmax(11rem, 1.35fr) minmax(10rem, 1.2fr) 7rem 4.6rem 6.9rem; gap: .5rem; padding: 0 .55rem .35rem calc(.35rem + 3px); color: var(--muted); font-size: .72rem; letter-spacing: .04em; }
+  .column-head span:nth-child(2) { text-align: center; }
+  .view-detailed .column-head { display: none; }
+  .editor-rows { position: relative; display: grid; gap: .4rem; }
   .editor-empty { padding: 2rem 1rem; }
-  .editor-tail { display: flex; justify-content: flex-end; margin-top: .8rem; padding-top: .8rem; border-top: 1px dashed var(--line); }
-  .form-actions { border-top: 1px solid var(--line); padding-top: 1.25rem; }
-  @media (max-width: 1050px) {
-    .editor-row { grid-template-columns: 46px 1fr 1fr auto; }
-    .row-song { grid-column: 2 / 3; }
-    .row-version { grid-column: 3 / 4; }
-    .row-title, .row-note { grid-column: 2 / -1; }
-    .row-actions { grid-column: 4; }
-  }
+  .editor-tail { display: flex; margin-top: .7rem; }
+  .editor-tail button { min-height: 2.4rem; }
+  :global(body.setlist-dragging) { cursor: grabbing; user-select: none; }
+
+  .save-bar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1rem; margin: 0 calc(-1 * var(--panel-pad)); padding: .85rem var(--panel-pad); border-top: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); background: rgba(7, 14, 25, .95); backdrop-filter: blur(10px); }
+  .save-state { display: inline-flex; align-items: center; gap: .45rem; color: var(--muted); font-size: .85rem; }
+  .save-state::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: rgba(255,255,255,.25); }
+  .save-bar.dirty .save-state { color: #ffd39a; }
+  .save-bar.dirty .save-state::before { background: #ffb35c; box-shadow: 0 0 0 3px rgba(255, 179, 92, .18); }
+  .section-summary { font-size: .8rem; }
+  .save-actions { display: flex; gap: .5rem; margin-left: auto; }
+
+  .undo-toast { position: fixed; left: 50%; bottom: 5.5rem; z-index: 60; display: flex; align-items: center; gap: .9rem; max-width: calc(100vw - 2rem); padding: .6rem .7rem .6rem 1rem; transform: translateX(-50%); color: var(--text); background: #142033; border: 1px solid rgba(var(--accent-rgb), .35); border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,.45); font-size: .86rem; }
+  .undo-toast button { min-height: 2.2rem; padding: .35rem .75rem; font-size: .82rem; white-space: nowrap; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  [hidden] { display: none !important; }
+
+  @media (max-width: 1050px) { .column-head { display: none; } }
   @media (max-width: 680px) {
     .editor-heading { align-items: stretch; flex-direction: column; }
-    .editor-row { grid-template-columns: 42px 1fr; }
-    .row-song, .row-version, .row-title, .row-note { grid-column: 1 / -1; }
-    .row-actions { grid-column: 1 / -1; grid-row: auto; }
+    .save-actions { width: 100%; margin-left: 0; }
+    .save-actions > * { flex: 1; white-space: nowrap; }
   }
 </style>

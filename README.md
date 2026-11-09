@@ -1,12 +1,10 @@
 # fripSi.de
 
-> OCI 迁移：Web 与 MCP 使用 Node 24 / SQLite，部署由私有仓库 runner 执行，Cloudflare 保留 Tunnel / Access / CDN。操作见 [OCI 部署](docs/oci-deployment.md) 与 [数据库备份](docs/sqlite-backups.md)。
-
 [简体中文](./README.md) | [日本語](./README.ja.md) | [English](./README.en.md)
 
 [fripSi.de](https://fripsi.de) 是一个由粉丝维护的非官方 fripSide 活动日历与 Live 歌单资料库。
 
-项目用于整理公开发布的活动、发行物、歌曲版本与演唱记录。内容保存在 Cloudflare D1 中，通过站内后台维护；更新资料不需要重新构建网站。
+项目用于整理公开发布的活动、发行物、歌曲版本与演唱记录。内容保存在 SQLite 数据库中，通过站内后台维护；更新资料不需要重新构建网站。
 
 > 本站并非 fripSide 官方网站，也不代表或隶属于 fripSide 及其相关机构。官方信息请以 [fripside.net](https://fripside.net) 为准。
 
@@ -21,14 +19,14 @@
 - 支持简体中文、繁体中文、日语和英语界面。
 - 通过 `/admin` 管理活动、歌曲、专辑和歌单。
 - 记录资料来源和管理操作，方便核查与修正。
-- 提供独立的 Remote MCP Worker，用于查询资料和提交待审核的内容变更。
-- 提供可选的 OpenAI Agents API 同步 Worker，每天检查官方活动公告，校验后自动发布，并可通过 Bark 接收有更新通知。
+- 提供 Remote MCP（`/mcp`），用于查询资料和提交待审核的内容变更。
+- 提供可选的 OpenAI Agents API 同步任务，每天检查官方活动公告，校验后自动发布，并可通过 Bark 接收有更新通知。
 
 ## 技术栈
 
-- [Astro](https://astro.build/) SSR
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
-- [Cloudflare D1](https://developers.cloudflare.com/d1/)
+- [Astro](https://astro.build/) SSR，生产使用 Node 24 standalone 运行
+- SQLite（Node 内置 `node:sqlite`）
+- Cloudflare DNS/CDN、Access 与 Tunnel
 - TypeScript、Vitest、Playwright
 - Bootstrap Icons（构建时作为本地 SVG 引入）
 - Leaflet + OpenStreetMap（交互地图与底图）
@@ -40,11 +38,13 @@
 ```text
 apps/
 ├── web/          Astro 网站、管理后台和 Web API
-├── mcp/          Remote MCP Worker
-└── sync/         官方活动自动同步 Worker（默认关闭）
+├── mcp/          Remote MCP 协议与工具（由网站进程在 /mcp 调用）
+└── sync/         官方活动自动同步任务（默认关闭）
 packages/
-└── core/         数据访问、校验、权限和共享业务逻辑
-migrations/       D1 数据库迁移
+├── core/         数据访问、校验、权限和共享业务逻辑
+└── node-runtime/ SQLite 与本地文件存储适配
+migrations/       数据库迁移
+ops/              主机部署脚本与数据库备份
 scripts/          数据抓取、清洗和导入脚本
 data/             导入模板与研究数据
 docs/             架构、数据模型和部署文档
@@ -52,49 +52,39 @@ docs/             架构、数据模型和部署文档
 
 ## 本地开发
 
-需要 Node.js 24 和 npm。
+需要 Node.js 24 和 npm。本地开发与生产使用同一套 Node 运行时和 SQLite。
 
 ```bash
 git clone https://github.com/frip-fans/fripsi.de.git
 cd fripsi.de
 npm install
 
-cp apps/web/.dev.vars.example apps/web/.dev.vars
-cp apps/mcp/.dev.vars.example apps/mcp/.dev.vars
+cp apps/web/.env.local.example apps/web/.env.local
 
-npm run db:migrate:local
-npm run db:seed:local
+npm run db:migrate:local   # 创建 apps/web/.cache/self-hosted/site.sqlite 并应用 migrations
+npm run db:seed:local      # 写入示例数据
 npm run dev:web
 ```
 
-默认情况下，网站运行在 `http://localhost:4321`，管理后台位于 `http://localhost:4321/admin`。本地示例配置通过 `DEV_AUTH_BYPASS` 提供测试身份；生产环境不得启用该选项。
-
-如需调试 MCP Worker，可另开一个终端运行：
-
-```bash
-npm run dev:mcp
-```
-
-MCP endpoint 默认为 `http://localhost:8787/mcp`，健康检查位于 `/health`。
+默认情况下，网站运行在 `http://localhost:4321`，管理后台位于 `http://localhost:4321/admin`，MCP 位于 `http://localhost:4321/mcp`。`.env.local` 中的 `DEV_AUTH_BYPASS` 只在开发模式下生效，用于提供本地测试身份；其他环境会被强制关闭。
 
 ## 常用命令
 
 | 命令 | 用途 |
 |---|---|
 | `npm run dev:web` | 启动网站开发服务器 |
-| `npm run dev:mcp` | 启动 MCP Worker 开发服务器 |
 | `npm run typecheck` | 检查所有 workspace 和数据脚本的类型 |
 | `npm test` | 运行测试 |
-| `npm run build` | 构建全部 workspace |
-| `npm run build:web` | 只构建网站 |
+| `npm run build` | 生成生产使用的 Node 构建（`apps/web/dist-node`，含同步任务） |
 | `npm run visual:check` | 使用 Playwright 检查首页视觉状态 |
 | `node scripts/visual-check-journey.mjs` | 检查 Journey 桌面端／移动端地图与播放交互 |
-| `npm run db:migrate:local` | 将 migrations 应用到本地 D1 |
+| `npm run db:migrate:local` | 将 migrations 应用到本地数据库 |
 | `npm run db:seed:local` | 写入本地示例数据 |
+| `npm run db:import:local -- <file.sql>` | 把生成的导入 SQL 写入本地数据库 |
 
 ## 数据维护
 
-活动、歌曲、发行物和歌单均以 D1 为准。批量资料先整理成仓库约定的 CSV，再通过导入脚本生成或写入结构化数据。提交资料修正时，请同时提供可公开访问的来源链接。
+活动、歌曲、发行物和歌单均以各环境的数据库为准。批量资料先整理成仓库约定的 CSV，再通过导入脚本生成或写入结构化数据。提交资料修正时，请同时提供可公开访问的来源链接。
 
 - [歌单库的数据结构与导入格式](./docs/music-library.md)
 - [数据库模型](./docs/data-model.md)
@@ -112,11 +102,9 @@ npm run import:sql
 
 ## 部署
 
-Web 与 MCP 是两个独立的 Cloudflare Worker，共用同一个 D1 数据库。仓库中的 `wrangler.jsonc` 保存 Worker、binding 和公开环境变量配置；令牌、Access 凭据等敏感值应使用 Cloudflare Secrets 或构建环境变量管理。
+生产站和测试站分别运行在独立的 OCI 主机上：Node 24 运行 Astro standalone 构建，网站进程同时提供 `/mcp`，数据保存在本机 SQLite，Cloudflare 负责 DNS/CDN、Access 和 Tunnel。构建和部署由私有部署仓库的工作流完成，配置与密钥只保存在主机上。
 
-代码先通过任务 PR 进入 staging，完成 CI 与测试站验收后，从最新 master 创建 `release/*` 分支并对齐已验收 staging 内容，再通过 **Rebase and merge** 合入 master。保留现有分支保护与 staging 长期分支，详见 [发布流程](./docs/release-workflow.md) 和 [项目协作约定](./AGENTS.md)。
-
-生产数据库迁移需要单独执行，不会随网站构建自动应用。Cloudflare Access 和环境配置见 [部署文档](./docs/deployment.md)。
+代码先通过任务 PR 进入 staging，完成 CI 与测试站验收后，从最新 master 创建 `release/*` 分支并对齐已验收 staging 内容，再通过 **Rebase and merge** 合入 master。增量数据库迁移在部署时执行（生产需要显式批准）。详见 [发布流程](./docs/release-workflow.md)、[部署与运维](./docs/oci-deployment.md)、[数据库备份](./docs/sqlite-backups.md) 和 [项目协作约定](./AGENTS.md)。
 
 ## 参与项目
 

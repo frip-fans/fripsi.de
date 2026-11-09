@@ -56,6 +56,6 @@ async function main() {
   }
   await mkdir("data/reports", { recursive: true });
   await writeFile("data/reports/fripside-release-covers.json", JSON.stringify({ checked_at: artwork.checked_at, matched, unmatched }, null, 2) + "\n");
-  console.log(`Matched ${matched.length} covers; ${unmatched.length} unmatched. Run import-release-covers-r2.ts to prepare and upload images before generating SQL.`);
+  console.log(`Matched ${matched.length} covers; ${unmatched.length} unmatched. Import covers through the admin release form, or prepare a scoped change package (see docs/release-covers.md).`);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) await main();

@@ -1,34 +1,42 @@
-# OCI 自托管部署
+# 部署与运维
 
-应用从 Workers/D1 迁移至两台独立 OCI 主机，Cloudflare 保留 DNS/CDN、Access 与 Tunnel。生产为 `fripsi.de`，测试为 `staging.fripsi.de`，测试 MCP 为 `mcp-staging.fripsi.de/mcp`（仅开放 MCP/发现路径，由 Bearer 验证）。旧 Worker、D1 和 R2 媒体桶在切换验收期间保留，用于核对与回退；不自动删除原数据。
+网站运行在两台独立的 OCI 主机上：生产 `https://fripsi.de`，测试 `https://staging.fripsi.de`。Cloudflare 只负责 DNS/CDN、Access 和 Tunnel。
+
+| 入口 | 生产 | 测试 |
+|---|---|---|
+| 网站 | `https://fripsi.de` | `https://staging.fripsi.de`（整站 Access 保护） |
+| 管理后台 | `https://fripsi.de/admin` | `https://staging.fripsi.de/admin` |
+| Remote MCP | `https://fripsi.de/mcp` | `https://mcp-staging.fripsi.de/mcp`（只开放 MCP 与发现路径） |
+| 健康检查 | `https://fripsi.de/healthz` | 主机内 `http://127.0.0.1:3000/healthz` |
 
 ## 架构
 
-- 运行时 Node 24：Astro standalone Web、内置 MCP、SQLite WAL 和本地封面目录。同步任务由独立 Node CLI/systemd timer 执行，与 Web 使用同一个本地 SQLite。
-- `packages/node-runtime` 实现现有 D1/R2 接口的本地适配。D1 batch 对应不可交错的 SQLite 事务；外部连接写入会使公开页面缓存失效。公开 HTML/JSON 缓存 TTL 60 秒，最多 8 MiB/256 项，按 URL、语言与首页提示状态区分；后台、测试站、错误和携带 Set-Cookie/private/no-store 的响应不进入缓存。
-- Web 只监听 `127.0.0.1:3000`，Tunnel 出站连接，指标只监听 `127.0.0.1:20241`。不为部署新增公网 SSH/应用端口；现有 SSH 保留管理员使用。
-- 原生产 `/admin`、`/api/admin` Access 应用和策略保留。测试域名使用独立 Access 应用，复用既有测试站邮箱与地区限制；应用继续验证 JWT/AUD，强制关闭 staging 身份绕过。
-- 数据在 `/var/lib/fripside/site.sqlite`，封面在 `/var/lib/fripside/media`。root:root 0600 的 `/etc/fripside/{web,sync}.env` 与应用版本分离。应用用户 `frip-app` 与 runner 用户 `frip-deploy` 分离，runner 无权直接读取数据库或配置。
+- **运行时**：Node 24 运行 Astro standalone 构建（`npm run build`，产物在 `apps/web/dist-node`，同步任务打包为其中的 `server/sync-cli.mjs`）。Web 进程同时提供 `/mcp`：`apps/web/src/lib/mcp-node.ts` 直接调用 `apps/mcp` 的处理函数。
+- **数据**：SQLite（WAL）位于 `/var/lib/fripside/site.sqlite`，封面位于 `/var/lib/fripside/media`。`packages/node-runtime` 把业务代码使用的 D1/R2 接口适配到本地 SQLite 和文件目录；D1 batch 对应不可交错的 SQLite 事务。
+- **缓存**：公开 HTML/JSON 在进程内缓存 60 秒（最多 8 MiB/256 项），按 URL、语言和首页提示状态区分；后台、测试站、错误响应以及带 Set-Cookie/private/no-store 的响应不缓存。外部连接写入会让公开缓存失效。
+- **网络**：Web 只监听 `127.0.0.1:3000`，经 Cloudflare Tunnel 出站连接；指标只监听 `127.0.0.1:20241`。不为部署开放新的公网端口，现有 SSH 只给管理员使用。
+- **用户隔离**：应用用户 `frip-app` 拥有数据库和媒体目录；runner 用户 `frip-deploy` 只能写 `/opt/fripside/releases`、重启 Web 服务和调用 migration 脚本，无法直接读取数据库或配置。`/etc/fripside/{web,sync}.env` 为 root:root 0600。
+- **同步任务**：`apps/sync` 打包为 `server/sync-cli.mjs`，由 `fripside-sync.timer` 每五分钟运行一次（见下文「官方活动同步」）。
 
 ## CI/CD
 
-源码仍按任务 PR → staging → 验收源快照 release/* → rebase PR 到 master 发布，长期分支不强推。源码 CI 同时验证 Workers 回退构建和 OCI Node 构建。
+源码按「任务 PR → staging → 验收源快照 release/* → rebase PR 到 master」发布，流程见 [发布流程](release-workflow.md)。
 
-私有部署仓库：`frip-fans/fripside-deploy`。自托管 runner 只注册到此仓库，标签分别为 `fripside-staging`、`fripside-production` 与 `deploy-only`。仓库不接收公共 PR 的自托管任务，不保存主机 SSH 私钥。
-
-私有 `OCI deploy` 工作流可通过 Actions 页面或下列命令立即触发：
+私有部署仓库 `frip-fans/fripside-deploy` 拥有部署专用 runner，标签为 `fripside-staging`、`fripside-production` 和 `deploy-only`；不接收公共 PR 的任务，不保存主机 SSH 私钥。部署工作流可以手动触发：
 
 ```bash
 gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=staging
-# 只有发布 PR 合并且源码 push CI 成功后，才部署生产：
-gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production
+# 发布 PR 合并且 master 源码 CI 成功后：
+gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production -f apply_production_migrations=true
 ```
 
-另有每半小时的受保护分支检查，避免跨仓库 PAT 或 GitHub App 密钥；GitHub cron 可能延迟，不保证精确触发时间。检查任务使用 GitHub 托管分钟数，仅在源 SHA 变化且源码 push CI 成功时构建。查询私有部署记录的 `payload.source_sha`，不能将私有部署仓库提交 SHA 当成应用 SHA。
+另有每半小时（`17,47 * * * *`）的受保护分支检查。GitHub cron 可能延迟；检查任务使用托管 runner 分钟数，只在源 SHA 变化且源码 push CI 成功时构建。应用版本以部署记录的 `payload.source_sha` 和 `/healthz` 为准，不要把私有部署仓库的提交 SHA 当作应用版本。
 
-托管 runner 检查源码分支、精确 SHA、成功的源码 push CI，再构建和生成代码产物。产物仅含 standalone 的 server/client、REVISION 与逐文件 SHA-256 清单，保留三天；禁止数据库、备份与配置密钥。机器上的 runner 下载同一工作流产物，验证归档哈希、来源 SHA、逐文件校验和与安全路径，拒绝链接和越界路径，原子切换 current 后仅 sudo 重启固定 Web 服务。
-
-新版本 `/healthz` 必须在 30 秒内返回正确 SHA；失败时回到前一个代码目录并重启。此回退不回滚数据库。部署只按下文规则执行增量 schema migration，不覆盖数据库、不启用同步或备份 timer。保留旧 release 以便回退，磁盘使用需管理员定期检查；不要清理当前或上一版本。
+1. **构建**（托管 runner）：检出精确源 SHA，`npm run build:web:node`（`npm run build` 的别名，保留给部署工作流），用 `ops/oci/package-release.py` 打包 server/client、`migrations/*.sql`、REVISION 和逐文件 SHA-256 清单。产物保留三天，打包时拒绝数据库、密钥和配置文件。
+2. **安装**（主机 runner）：`/usr/local/bin/fripside-install-release` 校验归档哈希、来源 SHA、逐文件校验和与安全路径，拒绝已被新提交取代的分支头。
+3. **migration**：在切换代码前执行，规则见下文「Schema migration」。
+4. **切换**：原子替换 `/opt/fripside/current` 后重启 `fripside-web.service`。新版本 `/healthz` 必须在 30 秒内返回正确 SHA，否则切回上一个代码目录。代码回退不回滚数据库。
+5. 保留旧 release 以便回退；不要清理当前或上一个版本，磁盘用量由管理员定期检查。
 
 ## Schema migration
 
@@ -62,39 +70,61 @@ sudo -u frip-deploy sudo -n -l   # 应列出上面两条规则
 
 先升级两台主机的脚本，再合并私有部署仓库中带 `--migrate` 的 workflow；顺序反过来时，旧安装脚本不认识这个参数，部署会失败（不会上线新代码）。
 
-## 主机初始化与首次数据迁移
+## 主机初始化
 
-`ops/oci/bootstrap-host.sh` 是管理员脚本，不由 runner 执行。安装固定版本并验证 SHA-256，创建用户、目录和 2 GiB swap；保留现有 Caddy/防火墙。首次安装服务文件与 root 所有启动/安装脚本，准备环境文件，再注册私有仓库 runner。Tunnel Token 经受限文件和 systemd LoadCredential 传递，不放命令参数或仓库。
+`ops/oci/bootstrap-host.sh` 是管理员通过 SSH 以 root 运行的脚本，不由 runner 执行。它安装固定版本的 Node、cloudflared 和 Actions runner（均验证 SHA-256），创建用户、目录和 2 GiB swap，写入 sudoers 规则；保留现有 Caddy/防火墙。之后由管理员安装 `ops/oci/*.service`/`*.timer`、root 所有的启动/安装脚本和环境文件，再把 runner 注册到私有部署仓库。Tunnel Token 通过受限文件和 systemd `LoadCredential` 传递，不放进命令参数或仓库。
 
-首次数据库通过 D1 导出导入独立 SQLite，执行完整性、FK、迁移记录与业务表计数核对。只允许向新环境的空路径导入；不能把测试库反向覆盖生产。封面通过临时只读 R2 凭据导出，逐个验证内容哈希，原 R2 对象保留。迁移数据只放在本机忽略目录或受限服务器目录，不经过 Git/Actions artifact。
+两套环境的数据库、凭据、runner 和 Tunnel 相互独立。不要把测试库覆盖到生产；测试库需要刷新时，只能把经授权的生产快照导入空路径，并核对完整性、外键、migration 记录和业务表计数。
 
-生产切换前准备更新的生产快照、冻结旧写入、停止旧同步计划，核对最后数据与未完成同步任务。切换后旧 D1 只保留，不再作为写入目标；恢复旧平台前必须先处理新 SQLite 上已产生的写入，不能直接切回旧数据。
+## 环境配置
 
-## 配置与同步
+`ops/oci/web.env.example` 和 `ops/oci/sync.env.example` 只列出变量名，真实值只保存在主机的 `/etc/fripside/*.env`。
 
-`web.env.example` 与 `sync.env.example` 只提供变量名。生产/测试 OpenAI Key、内部签名密钥和数据隔离。测试默认 `SYNC_ENABLED=false`、`BARK_ENABLED=false`。生产同步保持原模型、自动发布与软预算配置，API 密钥和 Bark Key 只存主机。停止旧 Worker cron 后才启用新 `fripside-sync.timer`，避免双写或重复调用模型；不为验收擅自启动付费模型任务。
+Web（`web.env`）：
 
-Node CLI 复用现有同步代码、预算、数据库 lease 与通知状态；每五分钟 tick，和原 Worker 调度一致。可手动 `sudo systemctl start fripside-sync.service`。启动前必须核对 MCP HTTPS 地址、Access 策略及共享内部签名密钥。
+| 变量 | 用途 |
+|---|---|
+| `APP_ENV` | `production` 或 `staging`；staging 整站要求 Access 并输出 `noindex` |
+| `SITE_URL` | 公开站点 canonical URL |
+| `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD` | Cloudflare Access issuer 与后台应用 audience |
+| `ADMIN_PUBLISHERS` | 逗号分隔的 publisher 邮箱 |
+| `DEV_AUTH_BYPASS` | 必须为 `false`；非 development 环境会被强制关闭 |
+| `MCP_RESOURCE_URL`、`MCP_AUTHORIZATION_SERVER`、`MCP_AUDIENCE` | MCP OAuth resource 配置 |
+| `AUTOMATION_AUDIENCE`、`AUTOMATION_SIGNING_SECRET` | 自动同步任务凭据；签名密钥与 `sync.env` 相同，只存主机 |
+
+数据库与媒体路径由 `fripside-web.service` 固定为 `FRIP_DB_PATH=/var/lib/fripside/site.sqlite`、`FRIP_MEDIA_DIR=/var/lib/fripside/media`。
+
+### 管理后台 Access
+
+在 Cloudflare Zero Trust 为 `fripsi.de/admin/*` 和 `fripsi.de/api/admin/*` 建立 self-hosted application；测试站使用独立的整站 Access 应用。外层 Access 策略和应用内 JWT/AUD 校验必须同时保留，缺少 AUD 时拒绝访问。
+
+### MCP OAuth resource
+
+Web 暴露 `GET /.well-known/oauth-protected-resource` 和 `POST /mcp`。测试 MCP 子域名列入 Astro 的精确代理主机允许列表，保持 HTTPS Origin/Host 校验。授权完成后至少用 MCP Inspector 或 Codex 验证 initialize、tools/list、只读查询和一次未发布提案，再授予 publish scope。
+
+## 官方活动同步
+
+`fripside-sync.timer` 每五分钟触发一次 `fripside-sync.service`（以 `frip-app` 运行 `sync-cli.mjs`，读取 `/etc/fripside/sync.env`）。`SYNC_ENABLED`、`SYNC_EVAL_ENABLED`、`BARK_ENABLED` 都为 `false` 时直接退出，不调用模型。测试站默认全部关闭；生产的 OpenAI Key 和 Bark Key 只存主机。手动运行一次：`sudo systemctl start fripside-sync.service`。启动前核对 `MCP_ENDPOINT_URL`、Access 策略和共享签名密钥。业务规则见 [官方活动自动同步](official-sync.md)。
 
 “未发现新公告”只在确实读到官网后才记录：新闻页首页不可访问（`official_source_unavailable`）、读到但没有带日期的公告链接（`official_layout_changed`，如验证页或改版）、或本次候选正文全部读取失败（`official_articles_unreadable`）时，当天任务保持待重试，每次 tick 重新读取官网，连续 5 次失败后标记失败并通过 Bark 推送“官网读取失败”。部分页面失败不阻止当天任务，但会推送失败页面数。这些检查不调用 OpenAI；被官网拦截时改为人工核对，不绕过拦截。
 
-## 验收与回退
+## 日常运维
 
-- CI、独立目录启动、公开页面和手机日历/搜索路由；封面与静态资源、无横向溢出。
-- Web 服务为非 root，监听回环；匿名后台/测试站拒绝，伪造 JWT 拒绝；MCP 匿名 401，元数据可读。
-- 用隔离数据库测试实际提案发布、审计和缓存失效；线上不制造验收内容。
-- 网站切换前保存旧 DNS、Worker 自定义域名/Builds 触发配置和 Access 对象。只切换 fripsi.de 相关对象，不改变其他域名或现有隧道。
-- 旧 Workers 自动构建在切换后停用，避免后续 push 抢回路由。旧代码与 D1 仍保留；回退需先评估 SQLite 新写入和版本兼容。
-- SQLite 备份按 [备份与恢复](sqlite-backups.md) 验收：真实 R2 上传下载、离线解密、隔离库和应用读取、失败/过期告警通过后才启用生产 timer。
+- 状态：`systemctl status fripside-web fripside-tunnel fripside-sync.timer`；日志：`journalctl -u fripside-web`、`journalctl -u fripside-sync`；部署记录看私有仓库的 Actions/Deployments。
+- 数据库备份由主机 systemd timer 执行，独立于 GitHub Actions 和部署 runner，见 [SQLite 备份与恢复](sqlite-backups.md)。
+- 日志可以包含 `request_id`、路由或工具名、actor ID、change set/活动 ID、耗时、结果和错误类别；不得包含配置内容、API Key、Tunnel Token、OAuth token、Access JWT、Cookie、完整 authorization header、恢复私钥或不必要的完整 AI prompt。
 
-日常查看：`systemctl status fripside-web fripside-tunnel`、`journalctl -u fripside-web`、私有部署 Actions/Deployments。日志不得打印配置内容、API Key、Tunnel Token 或恢复私钥。
+### 安全响应
 
-## 迁移验收记录
+**MCP OAuth 或凭据疑似泄漏**：立即撤销/轮换对应 token 或密钥；检查 MCP 和 audit log 中的异常调用；暂时移除 `events:publish`、`events:archive` scope；对可疑变更执行下线或恢复，必要时按 [SQLite 备份与恢复](sqlite-backups.md) 从快照恢复到隔离库核对。
 
-2026-11-08：staging 已通过私有流水线部署 a99eab41e1e52b2c36451b949af385587ccc1a9f；原测试库 538 条活动、279 首歌曲、64 个发行物、166 个歌单、845 条审计记录及 59 张封面独立迁移。Web 域名匿名请求进入 Access；测试 MCP 发现返回正确资源 URL，匿名 MCP 401，MCP 域名后台路径 404。两个 OpenAI Key 仅通过无模型调用的认证检查，Bark 验证回执成功。
+**误发布**：在后台下线活动，不硬删除；审查 change set 和 audit log；创建并发布修正 change set，保留完整历史。
 
-真实 R2 隔离演练期间正常后台 HTTP 完成 38 次写入，快照上传/下载/解密恢复后六张关键表计数一致，恢复后首页、日历和歌曲页均 200；失效凭据、锁冲突、容量和 25 小时过期检查非零并触发通知，重复备份生成独立对象。仅本次验收对象在结束后清理。恢复私钥仅保存在管理员本机配置目录，不上生产。
+## 发布检查清单
 
-默认 `npm run deploy:web[:staging]` 已切换至私有部署流水线；旧 Workers 命令保留为显式 `deploy:web:workers:*:legacy`，仅用于人工回退。旧 sync 配置中的 cron 已移除，防止未来误部署重启旧 D1 写入。生产切换和首份生产备份状态以实际运维记录为准。
-
-测试 MCP 子域名列入 Astro 的精确代理主机允许列表，保持 HTTPS Origin/Host 校验。切换验收后，旧 Web staging 与 MCP 的 workers.dev/preview 入口关闭，防止旧书签继续编辑 D1；原 Worker 版本和数据仍保留，可按单独维护流程恢复。旧 Builds 触发器改为仅匹配未使用的保留分支 `disabled-oci-migration-no-auto-build`，原配置保存用于回退。
+- [ ] 公开查询不返回 draft、unpublished、archived 记录。
+- [ ] `/admin`、`/api/admin` 未登录时被拦截，服务端验证 Access JWT；测试站整站拒绝匿名请求。
+- [ ] canonical URL、404、robots 和 sitemap 正确；手机日历和无未来活动状态正常。
+- [ ] `/mcp` 匿名请求返回 401，OAuth metadata、resource、audience 和 scopes 正确；写工具要求幂等键，publish/unpublish/archive 需要明确权限，不存在 SQL、任意 fetch 或硬删除工具。
+- [ ] PR 已说明 migration 是否为增量；生产部署按需勾选 `apply_production_migrations`。
+- [ ] 内容数据变更单独执行，并在执行前有快照。

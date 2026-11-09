@@ -66,7 +66,7 @@ failed
 
 ## 3. 表结构
 
-以下 SQL 是设计草案；实现时拆分为顺序编号的 D1 migration。
+以下 SQL 是设计草案；实现时拆分为顺序编号的 SQL migration（`migrations/`）。
 
 ### 3.1 `events`
 
@@ -294,8 +294,8 @@ Tags, Date, Name, Remark, Classification, Text
 6. 从标题中识别取消、延期等标记，生成候选 `status`，再人工核验。
 7. 排除仅用于旧 Gallery 展示的年度分隔记录，或将真实周年纪念归入 `OTHER`。
 8. 保留原始 Notion page ID 到迁移报告中，便于回查；不作为运行时依赖。
-9. 导入到 staging D1，生成统计和异常清单。
-10. 人工确认后导入 production D1。
+9. 导入到测试库，生成统计和异常清单。
+10. 人工确认后导入生产库。
 
 迁移验收至少包括：
 

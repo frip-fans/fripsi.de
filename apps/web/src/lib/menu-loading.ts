@@ -1,5 +1,5 @@
 /** Immediate feedback on the chosen menu item; Astro still owns navigation. */
-export function setupMobileMenuLoading(menu: HTMLElement, signal: AbortSignal) {
+export function setupMenuLoading(menu: HTMLElement, signal: AbortSignal) {
   const status = menu.querySelector<HTMLElement>("[data-menu-loading-status]");
   let active: { stop: () => void } | undefined;
   const clear = () => active?.stop();
@@ -55,7 +55,7 @@ export function setupMobileMenuLoading(menu: HTMLElement, signal: AbortSignal) {
     // ClientRouter prevents the click and supplies its own request signal above.
     queueMicrotask(() => { if (!event.defaultPrevented) begin(link); });
   }, { signal });
-  for (const event of ["astro:before-swap", "astro:page-load"]) document.addEventListener(event, clear, { signal });
+  for (const event of ["astro:after-swap", "astro:page-load"]) document.addEventListener(event, clear, { signal });
   for (const event of ["pagehide", "pageshow"]) window.addEventListener(event, clear, { signal });
   signal.addEventListener("abort", clear, { once: true });
   return clear;

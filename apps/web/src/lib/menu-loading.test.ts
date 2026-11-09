@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { setupMobileMenuLoading } from "./mobile-menu-loading";
+import { setupMenuLoading } from "./menu-loading";
 
 class Region extends EventTarget {
   hidden = false;
@@ -27,7 +27,7 @@ class Menu extends Region {
   querySelector() { return this.status; }
 }
 
-describe("mobile menu request feedback", () => {
+describe("menu request feedback", () => {
   let menu: Menu, doc: EventTarget, lifetime: AbortController;
   let clear: () => void;
   const prepare = (link: Link, loader: () => Promise<void> = async () => {}) => {
@@ -52,19 +52,36 @@ describe("mobile menu request feedback", () => {
     vi.stubGlobal("document", doc);
     vi.stubGlobal("window", new EventTarget());
     vi.stubGlobal("location", new URL("https://fripsi.de/about"));
-    clear = setupMobileMenuLoading(menu as unknown as HTMLElement, lifetime.signal);
+    clear = setupMenuLoading(menu as unknown as HTMLElement, lifetime.signal);
   });
   afterEach(() => { lifetime.abort(); vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
-  it("marks only the requested item immediately and clears before the new page is swapped", () => {
+  it("marks the requested item immediately and keeps feedback until the new page is swapped", () => {
     prepare(menu.links[0]);
     expect(menu.links[0].getAttribute("data-menu-loading")).toBe("");
     expect(menu.links[0].getAttribute("aria-busy")).toBe("true");
     expect(menu.links[1].hasAttribute("data-menu-loading")).toBe(false);
     expect(menu.status.textContent).toBe("Loading…");
     doc.dispatchEvent(new Event("astro:before-swap"));
+    expect(menu.links[0].hasAttribute("data-menu-loading")).toBe(true);
+    doc.dispatchEvent(new Event("astro:after-swap"));
     expect(menu.links[0].hasAttribute("aria-busy")).toBe(false);
     expect(menu.status.textContent).toBe("");
+  });
+
+  it("only marks the matching navigation region when desktop and mobile are both mounted", () => {
+    const desktop = new Menu(), desktopLifetime = new AbortController();
+    desktop.dataset.loadingLabel = "Loading…";
+    setupMenuLoading(desktop as unknown as HTMLElement, desktopLifetime.signal);
+    try {
+      const request = prepare(desktop.links[0]);
+      expect(desktop.links[0].hasAttribute("data-menu-loading")).toBe(true);
+      expect(desktop.status.textContent).toBe("Loading…");
+      expect(menu.links.some(link => link.hasAttribute("data-menu-loading"))).toBe(false);
+      expect(menu.status.textContent).toBe("");
+      request.controller.abort();
+      expect(desktop.links[0].hasAttribute("data-menu-loading")).toBe(false);
+    } finally { desktopLifetime.abort(); }
   });
 
   it("cleans rejected and aborted navigations", async () => {
@@ -75,7 +92,7 @@ describe("mobile menu request feedback", () => {
     expect(menu.links[0].hasAttribute("aria-busy")).toBe(false);
   });
 
-  it("moves the glow to a newer target without letting a late failure clear it", async () => {
+  it("moves request feedback to a newer target without letting a late failure clear it", async () => {
     let reject!: (error: Error) => void;
     const first = prepare(menu.links[0], () => new Promise((_, fail) => { reject = fail; }));
     const pending = first.event.loader();

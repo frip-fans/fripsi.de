@@ -1,0 +1,19 @@
+---
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+---
+<section class="contribution-intro" aria-labelledby="contribution-title" data-page-entry>
+  <h2 id="contribution-title">{t(locale, "community.title")}</h2>
+  <p>{t(locale, "community.lede")}</p>
+  <a class="button repository-button" href="https://github.com/frip-fans/fripsi.de" target="_blank" rel="external noopener noreferrer"><Icon name="github" />{t(locale, "community.github")}<Icon name="box-arrow-up-right" /></a>
+</section>
+
+<style>
+  .contribution-intro { max-width: 52rem; margin-top: clamp(3.5rem, 7vw, 6rem); }
+  .contribution-intro h2 { max-width: 42rem; margin-bottom: .8rem; font-size: clamp(1.65rem, 4vw, 2.55rem); line-height: 1.08; letter-spacing: -.04em; }
+  .contribution-intro p { max-width: 43rem; margin-bottom: 1.35rem; color: var(--muted); font-size: .94rem; line-height: 1.8; }
+  .repository-button { min-height: 48px; box-shadow: 0 12px 30px rgba(var(--accent-rgb), .16); }
+  @media (max-width: 680px) { .repository-button { width: 100%; } }
+</style>

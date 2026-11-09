@@ -77,10 +77,39 @@ const nextCountdown = !next
       : t(locale, "home.countdownDays", { count: daysUntilNext });
 ---
 <SiteLayout structuredData={structuredData}>
-  <h1 class="mobile-home-title" translate="no">fripSide Fan Site</h1>
+  <h1 class="site-title" translate="no">fripSide Fan Site</h1>
   <section class="hero" data-page-entry>
+    <article class="today panel" aria-labelledby="today-label">
+      <div class="panel-top">
+        <span id="today-label">{t(locale, "home.onThisDay")}</span>
+        {onThisDay && onThisDay.total > 1 && <b class="today-count">{t(locale, "home.onThisDayCount", { count: onThisDay.total })}</b>}
+        <Icon name="archive" size=".85rem" />
+      </div>
+      {onThisDay ? (
+        <>
+          <strong class="today-date">
+            <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
+          </strong>
+          <p class="today-ago">{onThisDay.years_ago > 0 ? t(locale, "home.yearsAgo", { count: onThisDay.years_ago }) : t(locale, "home.yearsAgoSame")}</p>
+          <h2 class="today-event"><a href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)}>{onThisDay.event.title}</a></h2>
+          <div class="today-footer">
+            {onThisDay.event.setlist_id ? (
+              <a class="today-setlist" href={`/music/lives/${encodeURIComponent(onThisDay.event.setlist_id)}`}>
+                <Icon name="list-music" size=".85rem" />{t(locale, "home.viewSetlist")}
+              </a>
+            ) : <span class="today-setlist is-empty">{t(locale, "home.noSetlistYet")}</span>}
+          </div>
+        </>
+      ) : (
+        <div class="today-empty">
+          <h2>{t(locale, "home.heroTagline")}</h2>
+          <p>{t(locale, "home.description")}</p>
+        </div>
+      )}
+    </article>
+
     <aside class="signal panel">
-      <div class="signal-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
+      <div class="panel-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
       {next ? (
         <>
           <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
@@ -95,41 +124,14 @@ const nextCountdown = !next
         <div class="no-signal"><strong>—</strong><h2>{t(locale, "home.waiting")}</h2><p>{t(locale, "home.noUpcoming")}</p></div>
       )}
     </aside>
-    <div class="hero-intro">
-      <div class="hero-copy">
-        <p class="eyebrow" lang="en" translate="no">fripSide Fan Site</p>
-        {onThisDay ? (
-          <div class="hero-today">
-            <p class="hero-today-label">
-              <Icon name="archive" />{t(locale, "home.onThisDay")}
-              {onThisDay.total > 1 && <span class="hero-today-count">{t(locale, "home.onThisDayCount", { count: onThisDay.total })}</span>}
-            </p>
-            <h1 class="hero-title">
-              <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
-              <span class="hero-today-ago">{onThisDay.years_ago > 0 ? t(locale, "home.yearsAgo", { count: onThisDay.years_ago }) : t(locale, "home.yearsAgoSame")}</span>
-            </h1>
-            <p class="hero-today-title">
-              <a href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)}>{onThisDay.event.title}</a>
-            </p>
-            {onThisDay.event.setlist_id && (
-              <a class="hero-today-setlist" href={`/music/lives/${encodeURIComponent(onThisDay.event.setlist_id)}`}>
-                <Icon name="list-music" size=".85rem" />{t(locale, "home.viewSetlist")}
-              </a>
-            )}
-          </div>
-        ) : (
-          <div class="hero-today">
-            <h1 class="hero-title hero-tagline">{t(locale, "home.heroTagline")}</h1>
-            <p class="hero-description">{t(locale, "home.description")}</p>
-          </div>
-        )}
-        <p class="hero-scale">{t(locale, "home.archiveScale", { events: eventCount, setlists: libraryStats.setlist_count, songs: libraryStats.song_count })}</p>
-      </div>
+
+    <div class="hero-foot">
       <div class="actions">
-        <a class="button" href="/calendar"><Icon name="calendar3" /><span class="label-full">{t(locale, "nav.calendar")}</span><span class="label-short">{t(locale, "nav.calendar")}</span></a>
-        <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" /><span class="label-full">{t(locale, "nav.music")}</span><span class="label-short">{t(locale, "nav.music")}</span></a>
+        <a class="button nav-action" href="/calendar"><Icon name="calendar3" />{t(locale, "nav.calendar")}</a>
+        <a class="button secondary setlist-button nav-action" href="/music/lives"><Icon name="music-note-list" />{t(locale, "nav.music")}</a>
         <a class="button secondary subscribe-action" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" /><span class="label-full">{t(locale, "home.subscribe")}</span><span class="label-short">{t(locale, "calendar.subscribeShort")}</span></a>
       </div>
+      <p class="hero-scale">{t(locale, "home.archiveScale", { events: eventCount, setlists: libraryStats.setlist_count, songs: libraryStats.song_count })}</p>
       <button class="motion-toggle" type="button" data-home-motion aria-label={t(locale, "home.motionLabel")} aria-pressed="false" data-pause-label={t(locale, "home.pauseMotion")} data-resume-label={t(locale, "home.resumeMotion")}>
         <Icon name="pause-fill" /><span>{t(locale, "home.pauseMotion")}</span>
       </button>
@@ -234,36 +236,42 @@ const nextCountdown = !next
 </script>
 
 <style>
-  .mobile-home-title { display: none; }
-  .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: center; gap: clamp(2rem, 7vw, 7rem); padding: 2rem 0 .5rem; }
-  .hero-intro { grid-column: 1; grid-row: 1; min-width: 0; }
-  .signal { grid-column: 2; grid-row: 1; min-width: 0; }
-  /* The shade keeps the hero text readable over the photo backdrop. */
-  .hero-today { position: relative; isolation: isolate; }
-  .hero-today::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset: -1.5rem -2.5rem;
-    pointer-events: none;
-    background: radial-gradient(ellipse closest-side at center, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%);
-  }
-  .hero-today-label { display: flex; align-items: center; gap: .4rem; margin: 0 0 .5rem; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
-  .hero-today-label :global(.icon) { color: var(--accent); }
-  .hero-today-count { color: var(--muted); font-weight: 400; letter-spacing: .04em; opacity: .85; }
-  .hero-today-count::before { content: "·"; margin-right: .4rem; }
-  .hero-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25em .6rem; margin-bottom: 0; font-size: clamp(2.4rem, 6vw, 4.25rem); line-height: 1.05; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
-  /* The accent date belongs to the next show on the right; this one stays in text ink. */
-  .hero-title time { color: var(--text); }
-  .hero-today-ago { color: var(--muted); font-size: .3em; font-weight: 500; letter-spacing: 0; }
-  .hero-tagline { font-size: clamp(1.9rem, 4.2vw, 3rem); letter-spacing: -.03em; }
-  .hero-today-title { max-width: 32rem; margin: .9rem 0 0; font-size: 1.0625rem; line-height: 1.55; }
-  .hero-today-title a { color: var(--text); text-decoration: none; }
-  .hero-today-title a:hover { color: var(--accent); }
-  .hero-today-setlist { display: inline-flex; align-items: center; gap: .35rem; min-height: 36px; margin-top: .35rem; color: var(--accent); font-size: .8125rem; text-decoration: none; }
-  .hero-today-setlist:hover { text-decoration: underline; text-underline-offset: 3px; }
-  .hero-scale { margin: 1.1rem 0 0; color: var(--muted); font-size: .78rem; letter-spacing: .01em; }
-  .hero-description { max-width: 34rem; margin: 1.15rem 0 .6rem; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
+  /* The page needs one real heading; the cards below carry their own titles. */
+  .site-title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .hero { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: 1rem; padding: 2rem 0 .5rem; }
+  .hero-foot { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; margin-top: .35rem; }
+  .hero-foot .actions { margin: 0; }
+  .hero-scale { margin: 0; margin-left: auto; color: var(--muted); font-size: .78rem; letter-spacing: .01em; }
+  /* Past on the left, next on the right: same panel, same rhythm. */
+  .today, .signal { position: relative; min-height: 320px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; overflow: hidden; }
+  .panel-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
+  .panel-top span { margin-right: auto; }
+  .panel-top :global(.icon) { color: var(--accent); opacity: .65; }
+  /* Flat strata behind the archive card, answering the radar rings on the next-show card. */
+  .today::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, transparent 0 13px, rgba(159, 180, 211, .07) 14px 15px); }
+  .today-count { color: var(--muted); font-weight: 400; letter-spacing: .06em; white-space: nowrap; }
+  .today-date { position: relative; color: var(--text); font-size: clamp(2.5rem, 5vw, 3.6rem); font-weight: 800; line-height: 1; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+  .today-ago { position: relative; margin: .4rem 0 0; color: var(--muted); font-size: .8125rem; }
+  .today-event { position: relative; margin: 1rem 0 .4rem; font-size: 1.25rem; line-height: 1.45; overflow-wrap: anywhere; }
+  .today-event a { color: inherit; text-decoration: none; }
+  .today-event a:hover { color: var(--accent); }
+  .today-footer { display: flex; align-items: center; gap: .65rem; margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--line); }
+  .today-setlist { display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; color: var(--accent); font-size: .8125rem; text-decoration: none; }
+  .today-setlist:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .today-setlist.is-empty { color: var(--muted); }
+  .today-empty h2 { margin: 0 0 .5rem; font-size: 1.35rem; line-height: 1.4; }
+  .today-empty p { margin: 0; color: var(--muted); line-height: 1.7; }
+  .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
+  .motion-toggle:hover { color: var(--text); transform: none; }
+  .motion-toggle[hidden] { display: none; }
+  .motion-toggle[aria-pressed="true"] { color: var(--accent); }
+  .hero .actions .button { min-height: 48px; padding: .72rem 1.1rem; border-radius: 12px; font-size: .9rem; }
+  .hero .actions .button.secondary { background: rgba(7,16,28,.76); border-color: rgba(200,220,237,.22); box-shadow: 0 10px 28px rgba(0,0,0,.18); backdrop-filter: blur(16px); }
+  .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
+  .setlist-button :global(.icon) { color: var(--accent); }
+  .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
+  /* The top navigation already links these two, so desktop keeps only the subscription. */
+  @media (min-width: 761px) { .hero .actions .nav-action { display: none; } }
   .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
   .motion-toggle:hover { color: var(--text); transform: none; }
   .motion-toggle[hidden] { display: none; }
@@ -274,7 +282,7 @@ const nextCountdown = !next
   .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
   .setlist-button :global(.icon) { color: var(--accent); }
   .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
-  .hero + .section-heading { margin-top: 1.5rem; }
+  .hero + .section-heading { margin-top: 2rem; }
   /* Section headings sit above cards that carry their own titles, so they stay quieter than h2. */
   .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; font-size: clamp(1.15rem, 1.7vw, 1.4rem); }
   .sync-note { margin: 1.1rem 0 0; color: var(--muted); font-size: .75rem; line-height: 1.6; }
@@ -324,15 +332,12 @@ const nextCountdown = !next
   .recent-setlist-card > p { margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.55; }
   .recent-setlist-meta { display: flex; align-items: center; gap: .65rem; padding-top: .75rem; color: var(--muted); border-top: 1px solid rgba(159, 180, 211, .12); font-size: .8125rem; }
   .recent-setlist-meta :global(.icon) { margin-left: auto; color: var(--accent); }
-  .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
   /* Rings are spaced in percent and centred below the card, so the arcs sweep the whole panel
      at any height instead of stopping part way down a tall one. */
   .signal::before { content: ""; position: absolute; inset: 0 -45% -18%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 calc(6% - 1px), rgba(var(--accent-rgb),.13) 6% calc(6% + 1px)); transform: rotate(-8deg); }
-  .signal-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
-  .signal-top span { margin-right: auto; }
   .signal-countdown { color: var(--accent); font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
   .label-short { display: none; }
-  .signal-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
+  .panel-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
   .signal > strong, .no-signal strong { color: var(--accent); font-size: clamp(3.7rem, 8vw, 6rem); line-height: 1; letter-spacing: -.08em; position: relative; }
   .signal h2 { font-size: 1.25rem; line-height: 1.45; overflow-wrap: anywhere; margin: 1rem 0 .4rem; position: relative; }
   .signal-update { position: relative; margin: .1rem 0 0; }
@@ -349,27 +354,25 @@ const nextCountdown = !next
     .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 800px) {
-    .mobile-home-title { display: block; position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-    .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
-    .hero-intro, .signal { grid-column: auto; grid-row: auto; }
-    .hero-intro { display: flex; flex-direction: column; }
-    .hero-copy { order: -1; margin-bottom: .35rem; }
-    .hero-today::before { inset: -1rem -1.25rem; }
-    .hero-title { font-size: clamp(1.75rem, 9vw, 2.25rem); }
-    .hero-today-ago { font-size: .42em; }
-    .hero-tagline { font-size: 1.5rem; }
-    .hero-today-title { margin-top: .6rem; font-size: .9375rem; line-height: 1.5; }
-    .hero-scale { margin-top: .8rem; font-size: .72rem; }
+    .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: .9rem; padding-top: 0; }
+    /* The next show leads on a phone; today's archive entry follows it. */
+    .signal { order: -1; }
+    .today, .signal { min-height: 0; padding: 1rem 1.1rem 1.1rem; }
+    .today-date { font-size: clamp(2rem, 9vw, 2.375rem); }
+    .today-event { margin: .75rem 0 .3rem; font-size: 1.0625rem; font-weight: 600; }
+    .today-empty h2 { font-size: 1.25rem; }
+    .hero-foot { flex-direction: column; align-items: stretch; gap: .6rem; margin-top: .25rem; }
+    .hero-scale { margin-left: 0; font-size: .72rem; }
     .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }
     .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
     .label-full { display: none; }
     .label-short { display: inline; overflow: hidden; text-overflow: ellipsis; }
     .hero .actions .subscribe-action { grid-column: 1 / -1; }
-    .motion-toggle { align-self: flex-start; margin-top: .25rem; }
+    .motion-toggle { align-self: flex-start; }
     .signal { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: .75rem; min-height: 0; padding: 1rem 1.1rem 1.1rem; transition: border-color .18s; }
     .signal:has(a:hover) { border-color: rgba(var(--accent-rgb), .42); }
     .signal:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .signal-top { grid-column: 1 / -1; margin-bottom: .6rem; font-size: .6875rem; letter-spacing: .08em; }
+    .panel-top { grid-column: 1 / -1; margin-bottom: .6rem; font-size: .6875rem; letter-spacing: .08em; }
     .signal > strong, .no-signal strong { font-size: clamp(2.125rem, 9vw, 2.5rem); letter-spacing: -.05em; }
     .signal > strong { grid-column: 1; }
     .no-signal { grid-column: 1 / -1; }

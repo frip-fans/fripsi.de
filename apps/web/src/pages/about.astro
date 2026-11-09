@@ -1,20 +1,22 @@
 ---
+import ContributionIntro from "../components/ContributionIntro.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getLocale, t } from "../lib/i18n";
 const locale = getLocale(Astro.request);
 ---
 <SiteLayout title={t(locale, "about.title")}>
   <section class="about">
-    <div>
+    <div data-page-entry>
       <p class="eyebrow">About</p>
       <h1><span class="domain-name">fripSi<span>.de</span></span><span class="fan-title">Fan Site</span></h1>
     </div>
-    <div class="copy">
+    <div class="copy" data-page-entry>
       <p class="lede">{t(locale, "about.intro")}</p>
       <h2>{t(locale, "about.rightsTitle")}</h2>
       <p>{t(locale, "about.rights")}</p>
     </div>
   </section>
+  <ContributionIntro locale={locale} />
 </SiteLayout>
 
 <style>

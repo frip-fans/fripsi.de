@@ -21,7 +21,7 @@ const cells = Array.from({ length: Math.ceil((offset + days) / 7) * 7 }, (_, ind
   return { day, date, events: byDay.get(day) ?? [], outside: day < 1 || day > days };
 });
 ---
-<section class:list={["calendar-grid", { compact }]} aria-label={t(locale, "calendar.grid", { month: monthLabel })}>
+<section data-calendar-entry-grid class:list={["calendar-grid", { compact }]} aria-label={t(locale, "calendar.grid", { month: monthLabel })}>
   {t(locale, "calendar.weekdays").split(",").map((day) => <div class="weekday">{day}</div>)}
   {cells.map(({ day, date, events, outside }) => (
     <div class:list={["day", { outside, current: date === today }]}>

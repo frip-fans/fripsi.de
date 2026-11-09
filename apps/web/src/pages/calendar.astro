@@ -18,7 +18,7 @@ const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
 <SiteLayout title={t(locale, "calendar.title")} clientRouting>
   <div data-calendar-shell data-mode={view} data-today-month={todayMonth} data-locale={locale} data-error={t(locale, "search.error")}>
   <BackLink hidden={view !== "list"} href={calendarAgendaHref(Astro.url.searchParams, todayMonth)} label={t(locale, "search.backCalendar")} agendaReturn />
-  <header class="events-head">
+  <header class="events-head" data-page-entry>
     <h1 data-calendar-title data-calendar-label={t(locale, "nav.calendar")} data-search-label={t(locale, "calendar.findEvents")}>{t(locale, view === "list" ? "calendar.findEvents" : "nav.calendar")}</h1>
     <div class="head-actions">
       <a hidden={view === "list"} data-calendar-subscribe class="button secondary subscribe-button" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" /><span class="desktop-label">{t(locale, "home.subscribe")}</span><span class="mobile-label">{t(locale, "calendar.subscribeShort")}</span></a>

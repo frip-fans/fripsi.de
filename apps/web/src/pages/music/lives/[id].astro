@@ -47,7 +47,7 @@ let previousSection = "";
 <SiteLayout title={t(locale, "music.setlistPageTitle", { title: setlistDisplayTitle(setlist) })} description={t(locale, "music.setlistDescription", { title: setlist.event_title, count: setlist.entry_count })}>
   <div class="music-page" data-music-detail>
     <MusicBackLink href="/music/lives" storageKey="music:list:lives" label={t(locale, "music.backLives")} />
-    <header class="music-detail-head">
+    <header class="music-detail-head" data-page-entry>
       <p class="music-detail-date">
         <time datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
         <span class:list={["music-event-type", {
@@ -64,7 +64,7 @@ let previousSection = "";
       </div>
     </header>
 
-    <section class="music-section setlist-overview">
+    <section class="music-section setlist-overview" data-page-entry>
       <dl class="panel setlist-facts">
         <div><dt>EVENT</dt><dd><a href={`/events/${encodeURIComponent(setlist.event_slug)}`}>{setlist.event_title} <Icon name="arrow-up-right" /></a></dd></div>
         <div><dt>LOCATION</dt><dd>{[setlist.venue, setlist.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending")}</dd></div>

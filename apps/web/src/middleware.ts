@@ -5,6 +5,8 @@ import { publicResponse } from "#public-cache";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "./lib/site-notice";
 import { getLocale, type Locale } from "./lib/i18n";
 
+const PUBLIC_DOCUMENT_CACHE = "private, max-age=60, stale-while-revalidate=30";
+
 function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale, allowGiscus = false, allowVectorMap = false, allowCoverPreview = false): Response {
   const headers = new Headers(response.headers);
   if (getEnv().APP_ENV === "staging") headers.set("x-robots-tag", "noindex, nofollow");
@@ -24,6 +26,13 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
   }
   if (privateRoute) headers.set("cache-control", "private, no-store");
   else if (cacheControl) headers.set("cache-control", cacheControl);
+  // Without this a prefetched document is fetched again by the navigation that
+  // asked for it, and every back or forward step repeats its whole request.
+  // Keep it private so no proxy shares a document that varies by cookie, leave
+  // a route that chose its own policy alone, and never retain a response that
+  // carries state: a reader is then at most one short window behind a publish.
+  else if (response.status === 200 && !headers.has("cache-control") && !headers.has("set-cookie")
+    && headers.get("content-type")?.includes("text/html")) headers.set("cache-control", PUBLIC_DOCUMENT_CACHE);
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
@@ -37,9 +46,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
   const privateRoute = staging || path.startsWith("/admin") || path.startsWith("/api/admin");
   if (!privateRoute) {
-    const cacheControl = path === "/archive" || (path === "/calendar" && context.url.searchParams.get("view") === "list") ? "private, max-age=60, stale-while-revalidate=30" : undefined;
+    // The archive entry redirects rather than rendering, so it states the
+    // policy a redirect would not pick up from the document rule below.
+    const cacheControl = path === "/archive" || (path === "/calendar" && context.url.searchParams.get("view") === "list") ? PUBLIC_DOCUMENT_CACHE : undefined;
     const locale = getLocale(context.request);
-    const render = async () => secure(await next(), false, cacheControl, locale, path === "/" || path === "/discuss", path === "/journey");
+    // A client-routed visit to the home discussion retains the initial document CSP.
+    // Every public entry page must allow its Giscus script and iframe.
+    const render = async () => secure(await next(), false, cacheControl, locale, true, path === "/journey");
     const eligible = env.FRIP_RUNTIME === "node" && context.request.method === "GET"
       && !context.request.headers.has("authorization") && context.url.href.length <= 2048
       && !path.startsWith("/api/admin") && !path.startsWith("/media/");
@@ -56,7 +69,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         throw new ServiceError("forbidden", "没有测试环境访问权限", 403);
       }
     }
-    return secure(await next(), true, undefined, getLocale(context.request), !staging && (path === "/" || path === "/discuss"), path === "/journey", path.startsWith("/admin/music/releases"));
+    return secure(await next(), true, undefined, getLocale(context.request), false, path === "/journey", path.startsWith("/admin/music/releases"));
   } catch (error) {
     const status = error instanceof ServiceError ? error.status : 401;
     const message = error instanceof Error ? error.message : "未授权";

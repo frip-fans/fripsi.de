@@ -215,6 +215,20 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 
 组件在 `astro:page-load` 初始化，在 `astro:before-swap` 取消请求、监听器与定时器。公共布局避免导入音乐搜索模块，详情页进入列表时再加载所需脚本。新增公开交互时需验收首次访问、跨页进入及再次返回三种情况。来源返回位置的内存记录最多保留 40 个 URL，整页刷新或超出上限后使用正常链接及锚点退路。
 
-公开导航的即时反馈由 `NavigationLoading` 与 `navigation-loading.ts` 统一管理。ClientRouter 在 `astro:before-preparation` 显示骨架/进度条，在 swap、取消、失败和 pageshow/pagehide 清理；不创建导航请求、不增加最短等待时间。音乐库切换保留 Tab 可操作，遮挡区域临时 inert，清理时恢复原属性。原生整页链接也显示反馈，取消原生加载时最多 15 秒恢复旧页面。骨架复用四语言 loading 文案，遵循 reduced-motion。
+公开导航的即时反馈由 `NavigationLoading` 与 `navigation-loading.ts` 统一管理。ClientRouter 在 `astro:before-preparation` 显示顶部进度条和独立的四语言 loading 状态，在 swap、取消、失败和 pageshow/pagehide 清理；不创建导航请求、不增加最短等待时间。等待期间保持旧页面可见、可交互，不设置 main/footer 的 inert、visibility 或 aria-busy，不读取旧页面几何尺寸，也不安装滚动/resize 定位监听器。再次选择链接仍由 Astro 取消并替换旧导航；加载状态不抢焦点、不拦截点击。原生整页链接保留相同轻量反馈，取消原生加载时最多 15 秒清理提示。唯一的进度条 transform 动画遵循 reduced-motion。此设计依据 Safari 真机对照：关闭旧反馈后，导航从约 2.5 秒恢复至约 180–267ms；静态骨架未消除停顿，因而整体移除原来的页面遮挡和交互状态切换，而不是只减少动画。
 
-公共布局在 ClientRouter 之前同步加载同源带 hash 的 `router-bootstrap.js`，对当前 document 关闭原生 startViewTransition，使 Astro 初始化时选择已有的 `fallback="swap"` 分支；不覆盖全局导航，不改变服务器 URL，不为 CSP 开启 inline script。仅去掉命名快照时 Chromium 仍可能等待原生合成，因此不能只依赖 CSS。已打开的旧版本标签页在 DOM swap 后首次收到引导脚本时会刷新一次，让路由重新检测能力，避免把旧模块缓存的 native=true 与新 API 混用；新打开的页面保持局部导航。公共布局不对 body 添加 `transition:animate="none"` 的命名快照，html 使用 `view-transition-name: none`。仅将动画设为 none 仍会创建原生整页快照，在 WebKit 中可引入显著的合成等待；导航继续使用 ClientRouter，加载动画只发生在骨架上。验收 Safari 导航时应区分请求、after-preparation → after-swap 与 page-load 三段时序，不能用 Chromium 的手机 viewport 代替 WebKit 检查。
+公共布局在 ClientRouter 之前同步加载同源带 hash 的 `router-bootstrap.js`，对当前 document 关闭原生 startViewTransition，使 Astro 初始化时选择已有的 `fallback="swap"` 分支；不覆盖全局导航，不改变服务器 URL，不为 CSP 开启 inline script。仅去掉命名快照时 Chromium 仍可能等待原生合成，因此不能只依赖 CSS。已打开的旧版本标签页在 DOM swap 后首次收到引导脚本时会刷新一次，让路由重新检测能力，避免把旧模块缓存的 native=true 与新 API 混用；新打开的页面保持局部导航。公共布局不对 body 添加 `transition:animate="none"` 的命名快照，html 使用 `view-transition-name: none`。仅将动画设为 none 仍会创建原生整页快照，在 WebKit 中可引入显著的合成等待；导航继续使用 ClientRouter，加载动画只发生在顶部进度条上。验收 Safari 导航时应区分请求、after-preparation → after-swap 与 page-load 三段时序，不能用 Chromium 的手机 viewport 代替 WebKit 检查。
+
+手机导航使用显式 hidden 的 role=dialog 对话层，背景通过 inert 暂停交互，手动管理 Tab/Escape/焦点恢复，避免 iPhone Safari 原生 modal top-layer 关闭或命中异常。菜单链接捕获阶段与 Astro before-preparation 捕获阶段立即关闭菜单，恢复背景 inert，再显示独立的进度提示；before-swap 仍兜底清理。菜单控制器重建前必须先清理旧状态。路由引导资源 URL 携带公开 release SHA，让不同发布的已持久化布局监听器在一次正常刷新后统一初始化，避免新旧菜单实现混用。
+
+导航真机诊断只在 staging/development 公共布局提供：用 `?navDebug=1` 显式开启，当前标签页通过 sessionStorage 保持启用；面板的关闭按钮或 `?navDebug=0` 停止。默认不加载诊断模块；生产不输出诊断入口。面板记录最多 200 条触摸/点击（含 dispatch delay）、Astro 五阶段、同源 Resource Timing 和交互期间超过 100ms 的 rAF 间隔，可手动复制记录，不发送遥测。URL 仅保留 pathname，不记录查询值、fragment、Cookie、请求头或请求/响应内容。rAF 条目仅表示回调执行时间，不等同于屏幕实际呈现时间。诊断不拦截事件、不替换 loader/swap、不改变导航策略；显式启用期间对 `fetch`、`Response.text` 和 `DOMParser.parseFromString` 添加转发原接收者/参数的计时包装，用于区分响应正文读取与同步 HTML 解析，关闭时恢复原方法且不覆盖其他代码随后安装的包装；不导出 HTML 内容；增加低频定时器间隔记录，辅助区分 rAF 暂停与整个事件循环的停顿；真实 Safari 的停顿仍须根据记录定位，不能把诊断功能当作性能修复。
+
+真机加载反馈对照只随显式诊断启用：`?navDebug=1&navLoading=off` 跳过加载遮罩、inert 和 visibility 处理，但保留 Astro 局部导航；`navLoading=on` 恢复轻量进度条与状态提示。选择只保存在当前标签页，复制记录包含 `loadingFeedback`，跨 DOM swap 保持，关闭诊断时清理。此对照用于验证 Safari 浏览器侧停顿是否由加载反馈的绘制/交互状态触发，不把本地结果当成真机修复证明。
+
+## 11. 内容入场动效
+
+`content-entry.ts` 仅对已到达的新内容播放一次 240ms ease-out 的 opacity .35→1 与 translateY(3px)→0 入场，最多同时两个小范围容器；不等待 Animation.finished、不写 resting inline styles、不改 hidden/inert/visibility，不读取页面几何。结束或取消后清除 effect，下一次导航、页面隐藏或 reduced-motion 启用时取消，保持交互和导航不受动画约束。
+
+`page-entry-navigation.ts` 在 Astro after-swap 对普通新页的显式 data-page-entry 首屏区域入场，页头、全局背景、旧页面不参与；音乐结果等 page-load 初始化后再入场，避免响应式批量刷新和临时 SSR 结果重复播放。音乐库列表之间切 Tab 只动画结果；日历同模式切月份/分类只动画可见日历网格或首个日程组，保留筛选区视觉稳定。页面内音乐/活动查询在成功替换结果后使用同一入场函数，等待期间不淡出旧结果；追加更多和大段累积列表不播放整片动画。
+
+首次直接加载、浏览器历史遍历、显式返回列表及锚点定位不播放跨页入场，滚动与焦点仍由既有逻辑恢复；API 结果更新按成功回调单独入场。地图、工具、讨论和后台仍遵循既有整页导航策略。仍需 Safari 真机同时验收过渡效果和已修复的导航耗时。

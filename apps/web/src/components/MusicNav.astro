@@ -10,9 +10,10 @@ const links = [
   { href: "/music/songs", label: t(locale, "music.nav.songs"), icon: "music-note-beamed", active: current.startsWith("/music/songs") },
 ] as const;
 ---
-<div class="music-tabs" role="navigation" aria-label={t(locale, "music.nav.label")} data-music-tabs>
+<div class="music-tabs" role="navigation" aria-label={t(locale, "music.nav.label")} data-music-tabs data-compact transition:persist="music-navigation">
+  <span class="music-tab-highlight" aria-hidden="true"></span>
   {links.map((link) => (
-    <a class:list={{ active: link.active }} href={link.href} aria-current={link.active ? "page" : undefined}>
+    <a class:list={{ active: link.active }} href={link.href} aria-label={link.label} aria-current={link.active ? "page" : undefined}>
       <Icon name={link.icon} />
       <span>{link.label}</span>
     </a>
@@ -20,28 +21,29 @@ const links = [
 </div>
 
 <script>
-  const setupMusicNav = () => {
-    const revealActiveMusicTab = () => {
-      const tabs = document.querySelector<HTMLElement>("[data-music-tabs]");
-      const active = tabs?.querySelector<HTMLElement>("a.active");
-      if (!tabs || !active || tabs.scrollWidth <= tabs.clientWidth) return;
-      tabs.scrollTo({ left: active.offsetLeft - (tabs.clientWidth - active.offsetWidth) / 2, behavior: "instant" });
-    };
-    const activeMusicView = document.querySelector<HTMLAnchorElement>("[data-music-tabs] a.active");
-    if (activeMusicView) {
-      document.querySelectorAll<HTMLAnchorElement>("[data-music-entry]").forEach(entry => { entry.href = activeMusicView.href; });
-      try { localStorage.setItem("music:last-view", new URL(activeMusicView.href).pathname); } catch { /* storage can be unavailable */ }
-    }
-    revealActiveMusicTab();
-  };
-  setupMusicNav();
-  document.addEventListener("astro:page-load", setupMusicNav);
+  import "../lib/music-nav-client";
 </script>
 
 <style>
-  .music-tabs { display: flex; align-items: center; gap: .45rem; margin: 0 0 1rem; padding: .4rem; width: fit-content; max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: rgba(5,13,23,.58); backdrop-filter: blur(18px); }
-  .music-tabs a { display: inline-flex; align-items: center; gap: .45rem; padding: .62rem .8rem; color: var(--muted); border-radius: 10px; text-decoration: none; white-space: nowrap; font-size: .84rem; font-weight: 650; }
+  .music-tabs { position: relative; isolation: isolate; display: flex; align-items: stretch; gap: .45rem; margin: 0 0 1rem; padding: .4rem; width: fit-content; max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; background: rgba(5,13,23,.58); backdrop-filter: blur(18px); }
+  .music-tabs a { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: .45rem; padding: .62rem .8rem; color: var(--muted); border-radius: 10px; text-decoration: none; white-space: nowrap; font-size: .84rem; font-weight: 650; transition: color 180ms ease, flex-grow 180ms ease, flex-basis 180ms ease; }
   .music-tabs a:hover { color: var(--text); background: rgba(255,255,255,.045); }
-  .music-tabs a.active { color: #08111d; background: var(--accent); box-shadow: 0 8px 26px rgba(var(--accent-rgb),.16); }
-  @media (max-width: 560px) { .music-tabs { width: 100%; } }
+  .music-tabs a.active { color: #08111d; background: var(--accent); }
+  .music-tabs[data-ready] a.active { background: transparent; }
+  .music-tabs a.active:hover { color: #08111d; }
+  .music-tab-highlight { display: none; position: absolute; left: 0; top: 0; width: var(--tab-width); height: var(--tab-height); transform: translate(var(--tab-x), var(--tab-y)); border-radius: 10px; background: var(--accent); box-shadow: 0 8px 26px rgba(var(--accent-rgb),.16); pointer-events: none; transition: transform 180ms ease, width 180ms ease, height 180ms ease; }
+  .music-tabs[data-ready] .music-tab-highlight { display: block; }
+  @media (max-width: 560px) {
+    .music-tabs { width: 100%; gap: .25rem; padding: .3rem; overflow: hidden; }
+    .music-tabs a { justify-content: center; min-width: 0; min-height: 48px; padding: .5rem .65rem; flex: 1 1 auto; }
+    .music-tabs a span { min-width: 0; overflow: hidden; text-overflow: ellipsis; transition: max-width 180ms ease, opacity 180ms ease; }
+    .music-tabs[data-compact] a { flex: 0 0 48px; gap: 0; }
+    .music-tabs[data-compact] a span { max-width: 0; opacity: 0; }
+    .music-tabs[data-compact] a.active { flex: 1 1 48px; gap: .45rem; }
+    .music-tabs[data-compact] a.active span { max-width: 24rem; opacity: 1; }
+  }
+  .music-tabs[data-resizing] a, .music-tabs[data-resizing] a span, .music-tabs[data-resizing] .music-tab-highlight { transition: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .music-tabs a, .music-tabs a span, .music-tab-highlight { transition: none; }
+  }
 </style>

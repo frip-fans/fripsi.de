@@ -19,7 +19,7 @@ const returnLink = eventReturnLink(Astro.url, event.start_date.slice(0, 7), loca
   <div class="event-page">
   <BackLink href={returnLink.href} label={t(locale, returnLink.label)} eventReturn />
   <article class="event-detail">
-    <header>
+    <header data-page-entry>
       <div class="meta">
         <span class="tag live">{categoryLabels[event.category]}</span>
         <span class:list={["tag", displayStatus]}>{statusLabel(locale, displayStatus)}</span>
@@ -29,7 +29,7 @@ const returnLink = eventReturnLink(Astro.url, event.start_date.slice(0, 7), loca
       <p class="date">{formatDate(event.start_date, event.end_date, locale)}</p>
     </header>
     <div class="detail-grid">
-      <section class="panel facts">
+      <section class="panel facts" data-page-entry>
         <div><small>TIME</small><strong>{formatTime(event, locale)}</strong></div>
         <div><small>LOCATION</small><strong>{event.location_label || t(locale, "common.pending")}</strong></div>
         <div><small>REGION</small><strong>{event.area_label || "—"}</strong></div>

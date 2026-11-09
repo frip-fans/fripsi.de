@@ -2,6 +2,16 @@
 
 OCI 迁移目标：`https://staging.fripsi.de`。独立主机、SQLite、部署 runner、Tunnel 与 Access AUD；迁移与验收见 [OCI 自托管部署](oci-deployment.md)。测试站默认关闭自动同步，不调用模型。旧 Workers 入口在验收期间保留，切换后不再作为更新入口。
 
+## 更新测试站
+
+合并 PR 到 `staging` 不会直接更新测试站。私有部署仓库 `frip-fans/fripside-deploy` 的 `OCI deploy` 只接受手动触发和每半小时的计划检查（`17,47 * * * *`）；两者都要求 `staging` 的源码 push CI 已成功，并只部署该分支当前 HEAD 的精确 SHA：
+
+```bash
+gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=staging
+```
+
+等待计划检查也可以，但 GitHub cron 可能延迟，不保证触发时间。是否更新成功以该工作流的运行结果和主机 `/healthz` 返回的 SHA 为准：合并成功、CI 通过与测试站已更新要分别核对，不能互相替代。
+
 以下为原 Cloudflare staging 配置与历史记录，保留用于迁移核对与回退。
 
 # Cloudflare staging
@@ -47,7 +57,7 @@ XDG_CONFIG_HOME="$PWD/.cache/xdg" npx wrangler login --device --browser=false
 
 导出和验证中间文件保存于被 Git 忽略的 `.cache/staging/`。
 
-Web 分支自动部署已配置：任务 PR 合入 staging 后更新测试站；验收后从最新 master 创建 release 分支，对齐验收源内容，通过 rebase PR 合入 master 后更新生产站。构建前均执行类型检查和测试。详见 [发布流程](./release-workflow.md)。MCP 和 sync 使用独立部署命令，不随 Web 分支自动发布。手动命令仍可用于部署当前服务器工作区代码。
+迁移前的 Cloudflare Builds 曾在任务 PR 合入 staging 后自动更新测试 Worker。该触发器已停用，现在的触发方式见上文[更新测试站](#更新测试站)。分支流程本身不变：验收后从最新 master 创建 release 分支，对齐验收源内容，通过 rebase PR 合入 master 后更新生产站；构建前均执行类型检查和测试，详见 [发布流程](./release-workflow.md)。MCP 和 sync 使用独立部署命令，不随 Web 分支发布。手动命令仍可用于部署当前服务器工作区代码。
 
 ## 2026-10-30 自动同步测试环境
 

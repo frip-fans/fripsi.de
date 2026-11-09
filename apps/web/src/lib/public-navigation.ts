@@ -32,7 +32,7 @@ function setupContext() {
   renderedUrl = location.href;
   renderedSource = history.state?.fripSource ?? null;
   for (const link of document.querySelectorAll<HTMLAnchorElement>("a[href]")) {
-    if (link.origin === location.origin && /^\/(admin|journey|discuss|yaginuma-intensity-calibrator)(?:\/|$)/.test(link.pathname)) link.setAttribute("data-astro-reload", "");
+    if (link.origin === location.origin && /^\/(admin|journey|yaginuma-intensity-calibrator)(?:\/|$)/.test(link.pathname)) link.setAttribute("data-astro-reload", "");
   }
   const locale = document.documentElement.lang;
   const assign = (link: HTMLAnchorElement, target: URL) => {

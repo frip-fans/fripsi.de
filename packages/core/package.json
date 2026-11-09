@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./auth": "./src/auth.ts"
+    "./auth": "./src/auth.ts",
+    "./streaming": "./src/streaming-ids.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json"

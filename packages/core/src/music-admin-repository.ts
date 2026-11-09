@@ -161,22 +161,33 @@ export async function getAdminReleaseById(db: D1Database, id: string): Promise<A
   const row = await db.prepare(`${adminReleaseSelect} WHERE r.id = ?`).bind(id).first<AdminReleaseRow>();
   if (!row) return null;
   const release = mapRelease(row);
-  const [tracksResult, sources] = await Promise.all([
+  const [tracksResult, sources, appleAlbum] = await Promise.all([
     db.prepare(`
       SELECT rt.id, rt.disc_number, rt.track_number, rt.display_title, rt.notes,
         s.id AS song_id, s.slug AS song_slug, s.title AS song_title,
         sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label,
         (SELECT COUNT(DISTINCT se.setlist_id) FROM setlist_entries se WHERE se.song_id = s.id) AS work_show_count,
-        (SELECT COUNT(DISTINCT se.setlist_id) FROM setlist_entries se WHERE se.performed_version_id = sv.id) AS exact_version_show_count
+        (SELECT COUNT(DISTINCT se.setlist_id) FROM setlist_entries se WHERE se.performed_version_id = sv.id) AS exact_version_show_count,
+        tam.external_id AS apple_music_track_id, tyt.external_id AS youtube_video_id
       FROM release_tracks rt
       JOIN song_versions sv ON sv.id = rt.song_version_id
       JOIN songs s ON s.id = sv.song_id
+      LEFT JOIN release_track_external_ids tam ON tam.release_track_id = rt.id AND tam.provider = 'apple_music'
+      LEFT JOIN release_track_external_ids tyt ON tyt.release_track_id = rt.id AND tyt.provider = 'youtube'
       WHERE rt.release_id = ?
       ORDER BY rt.disc_number ASC, rt.track_number ASC
     `).bind(id).all<ReleaseTrackRecord>(),
     listSources(db, "release", id),
+    db.prepare("SELECT external_id, storefront FROM release_external_ids WHERE release_id = ? AND provider = 'apple_music'")
+      .bind(id).first<{ external_id: string; storefront: string | null }>(),
   ]);
-  return { ...release, tracks: tracksResult.results, sources };
+  return {
+    ...release,
+    tracks: tracksResult.results,
+    sources,
+    apple_music_album_id: appleAlbum?.external_id ?? null,
+    apple_music_storefront: appleAlbum?.storefront ?? null,
+  };
 }
 
 export async function listAdminSetlists(db: D1Database, query?: string, limit = 500): Promise<AdminSetlistSummary[]> {

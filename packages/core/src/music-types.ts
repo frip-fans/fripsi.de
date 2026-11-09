@@ -105,6 +105,10 @@ export interface SongReleaseAppearance {
   version_slug: string;
   version_title: string;
   version_label: string | null;
+  apple_music_album_id: string | null;
+  apple_music_storefront: string | null;
+  apple_music_track_id: string | null;
+  youtube_video_id: string | null;
 }
 
 export interface SongPerformance {
@@ -186,7 +190,12 @@ export interface ReleaseTrackRecord {
   exact_version_show_count: number;
   /** 1 when this version is recorded as an instrumental of another version (public release pages only). */
   is_instrumental?: number;
+  /** Admin editor only. */
+  apple_music_track_id?: string | null;
+  youtube_video_id?: string | null;
 }
+
+export type StreamingProvider = "apple_music" | "youtube";
 
 export interface ReleaseDetail extends ReleaseSummary {
   tracks: ReleaseTrackRecord[];
@@ -202,6 +211,8 @@ export interface AdminReleaseSummary extends ReleaseSummary {
 export interface AdminReleaseDetail extends AdminReleaseSummary {
   tracks: ReleaseTrackRecord[];
   sources: CatalogSource[];
+  apple_music_album_id: string | null;
+  apple_music_storefront: string | null;
 }
 
 export interface SetlistSummary {

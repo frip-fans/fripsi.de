@@ -24,3 +24,4 @@ export * from "./automation-service";
 export * from "./sync-policy";
 
 export * from "./public-event-search";
+export * from "./streaming-ids";

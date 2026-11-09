@@ -37,10 +37,14 @@ import vinyl from "bootstrap-icons/icons/vinyl.svg?raw";
 import volumeMuteFill from "bootstrap-icons/icons/volume-mute-fill.svg?raw";
 import tickets from "../assets/icons/lucide/tickets.svg?raw";
 import listMusic from "../assets/icons/lucide/list-music.svg?raw";
+import audioLines from "../assets/icons/lucide/audio-lines.svg?raw";
+import tvMinimalPlay from "../assets/icons/lucide/tv-minimal-play.svg?raw";
 
 const icons = {
   tickets,
   "list-music": listMusic,
+  "audio-lines": audioLines,
+  "tv-minimal-play": tvMinimalPlay,
   archive,
   "arrow-down-up": arrowDownUp,
   "arrow-left": arrowLeft,
@@ -87,7 +91,7 @@ interface Props {
 }
 
 const { name, size = "1em", label, class: className } = Astro.props;
-const isLucide = name === "tickets" || name === "list-music";
+const isLucide = ["tickets", "list-music", "audio-lines", "tv-minimal-play"].includes(name);
 const content = icons[name].replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 ---
 <svg

@@ -1,6 +1,6 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { dateInTimeZone, eventUpdateWindowStart, getMusicLibraryStats, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
+import { dateInTimeZone, eventUpdateWindowStart, getLastOfficialSyncAt, getMusicLibraryStats, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
@@ -20,13 +20,19 @@ const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const [upcoming, recentSetlists, spotlight, libraryStats] = await Promise.all([
+const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt] = await Promise.all([
   searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 4 }, true),
   listSetlists(db, { order: "desc", limit: 3 }),
   // The date is the seed, so the spotlight holds for the whole day and for every visitor and language.
   getSongSpotlight(db, today),
   getMusicLibraryStats(db),
+  getLastOfficialSyncAt(db),
 ]);
+// Claim the daily sync only while it is actually running: the line disappears once the last
+// completed run falls out of the window, rather than promising something that stopped.
+const SYNC_NOTE_DAYS = 7;
+const lastSyncDate = lastSyncAt ? dateInTimeZone(new Date(lastSyncAt)) : null;
+const showSyncNote = Boolean(lastSyncDate && Date.parse(today) - Date.parse(lastSyncDate) <= SYNC_NOTE_DAYS * 86_400_000);
 const siteUrl = env.SITE_URL || Astro.url.origin;
 const subscriptionUrl = new URL("/calendar.ics", siteUrl);
 const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
@@ -118,6 +124,10 @@ const nextCountdown = !next
         {moreEvents.map((event) => <EventCard event={event} timeInHeader updateLabel={updateLabel(event.id)} />)}
       </section>
     </>
+  )}
+
+  {showSyncNote && lastSyncDate && (
+    <p class="sync-note">{t(locale, "home.syncNote", { date: formatMusicDate(lastSyncDate, locale) })}</p>
   )}
 
   <section class="recent-setlists" aria-labelledby="music-library-title">
@@ -325,6 +335,7 @@ const nextCountdown = !next
   .hero + .section-heading { margin-top: 1.5rem; }
   /* Section headings sit above cards that carry their own titles, so they stay quieter than h2. */
   .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; font-size: clamp(1.15rem, 1.7vw, 1.4rem); }
+  .sync-note { margin: 1.1rem 0 0; color: var(--muted); font-size: .75rem; line-height: 1.6; }
   .subsection-title { margin: 2.25rem 0 1rem; color: #d3dce8; font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
   .latest-events-heading h2 > :global(.icon), .recent-setlists .section-heading h2 > :global(.icon) { color: var(--accent); font-size: .9em; }
   .latest-events-heading, .recent-setlists .section-heading { align-items: center; }

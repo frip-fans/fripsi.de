@@ -80,6 +80,14 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
   .time-in-header h3, .time-in-header .event-details { grid-column: 1 / -1; min-width: 0; }
   .time-in-header h3 { margin: .65rem 0 .75rem; }
   .time-in-header.single-day .event-time { display: none; }
+  /* A narrow card cannot fit the date and several tags on one line; squeezing the tags into the
+     right-hand column stacks them vertically. Below this width they get their own row instead. */
+  .time-in-header { container: event-card / inline-size; }
+  @container event-card (max-width: 30rem) {
+    .time-in-header .meta { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; margin-top: .6rem; }
+    .time-in-header h3 { grid-row: 3; }
+    .time-in-header .event-details { grid-row: 4; }
+  }
   .time-in-header:not(.single-day) .event-time .event-day { display: inline; }
   .compact { grid-template-columns: 62px minmax(0, 1fr); padding: 1rem; }
   @media (max-width: 560px) {

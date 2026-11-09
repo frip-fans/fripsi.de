@@ -23,6 +23,8 @@ class Region {
   animate = vi.fn((_frames: Keyframe[], _options: KeyframeAnimationOptions) => {
     const animation = new EntryAnimation(); this.animations.push(animation); return animation;
   });
+  running: { animationName: string; currentTime: number }[] = [];
+  getAnimations = vi.fn((_options?: { subtree?: boolean }) => this.running);
 }
 const element = (region: Region) => region as unknown as HTMLElement;
 const root = () => ({ dataset: {} as Record<string, string>, style: { setProperty: vi.fn(), removeProperty: vi.fn() } });
@@ -114,9 +116,10 @@ describe("bounded content entry motion", () => {
     expect(oldRoot.dataset.pageShade).toBeUndefined();
     vi.advanceTimersByTime(1);
     expect(oldRoot.dataset.pageShade).toBe("dim");
+    main.running = [{ animationName: "release-cover-fade-in", currentTime: 40 }, { animationName: "page-shade-dim", currentTime: 66 }];
     doc.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument: { documentElement: newRoot } }));
     expect(newRoot.dataset.pageShade).toBe("reveal");
-    expect(newRoot.style.setProperty).toHaveBeenCalledWith("--page-shade-from", "0.31");
+    expect(newRoot.style.setProperty).toHaveBeenCalledWith("--page-shade-progress", "0.6");
     doc.dispatchEvent(new Event("astro:after-swap")); expect(main.animate).not.toHaveBeenCalled();
   });
 
@@ -131,9 +134,9 @@ describe("bounded content entry motion", () => {
     doc.dispatchEvent(Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal: new AbortController().signal }));
     vi.advanceTimersByTime(250);
     expect(oldRoot.dataset.pageShade).toBe("dim");
-    // The dim is up but has not painted yet, which is what a document arriving
-    // on the threshold sees: darkening to rest here would run after the swap.
-    window.getComputedStyle = vi.fn(() => ({ opacity: "0" })) as unknown as typeof window.getComputedStyle;
+    // The dim is up but its clock has not advanced, which is what a document
+    // arriving on the threshold sees: revealing here would run after the swap.
+    main.running = [{ animationName: "page-shade-dim", currentTime: 0 }];
     doc.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument: { documentElement: newRoot } }));
     expect(newRoot.dataset.pageShade).toBeUndefined();
     expect(newRoot.style.setProperty).not.toHaveBeenCalled();
@@ -153,8 +156,11 @@ describe("bounded content entry motion", () => {
     reduced.matches = false;
     const abandoned = new AbortController(); prepare(abandoned.signal); vi.advanceTimersByTime(250);
     expect(oldRoot.dataset.pageShade).toBe("dim");
+    // A dim that ran past its duration reveals from rest, not past it.
+    main.running = [{ animationName: "page-shade-dim", currentTime: 400 }];
     abandoned.abort();
     expect(oldRoot.dataset.pageShade).toBe("reveal");
+    expect(oldRoot.style.setProperty).toHaveBeenCalledWith("--page-shade-progress", "1");
   });
 
   it("keeps music controls static and waits for their setup before entering results", async () => {

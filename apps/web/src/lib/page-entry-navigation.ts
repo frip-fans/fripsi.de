@@ -28,6 +28,9 @@ function playCalendarEntry(shell: HTMLElement) {
   playContentEntry(target);
 }
 
+// Keep in step with the page-shade-dim duration in SiteLayout.astro.
+const SHADE_DIM_MS = 110;
+
 interface Shade { signal: AbortSignal; timer?: ReturnType<typeof setTimeout>; dimmed: boolean }
 
 let installed = false;
@@ -39,18 +42,20 @@ export function setupPageEntryTransitions() {
   let shade: Shade | undefined;
   let reducedMotion: MediaQueryList | undefined;
 
-  // Hand the reveal the opacity the dim actually reached so a document that
-  // arrives mid-dim fades out from there instead of darkening first. One style
-  // read on content that is about to be replaced; never a layout read.
+  // Hand the reveal how far the dim actually got, so a document that arrives
+  // mid-dim fades out from there instead of darkening first. The dim is linear,
+  // so its elapsed time is that fraction; a computed style would be cheaper to
+  // reach for but does not report an animated pseudo-element's value in every
+  // engine, and reading zero there turns the handover into the jump it exists
+  // to avoid. This reads the animation's own clock; never a layout read.
   const revealShade = (root: HTMLElement) => {
-    const main = document.querySelector("main");
-    const reached = main ? Number(window.getComputedStyle(main, "::after").opacity) : NaN;
-    root.style.removeProperty("--page-shade-from");
-    // A document that arrives as the dim begins has nothing to reveal, and an
-    // unreadable shade is better dropped than guessed at: revealing from the
-    // resting value would darken the page after its content is already there.
+    const dim = document.querySelector("main")?.getAnimations({ subtree: true })
+      .find(animation => (animation as CSSAnimation).animationName === "page-shade-dim");
+    const reached = dim ? Math.min(1, Number(dim.currentTime) / SHADE_DIM_MS) : 0;
+    root.style.removeProperty("--page-shade-progress");
+    // A document that arrives as the dim begins has nothing to reveal.
     if (!(reached > 0)) { delete root.dataset.pageShade; return; }
-    root.style.setProperty("--page-shade-from", String(reached));
+    root.style.setProperty("--page-shade-progress", String(reached));
     root.dataset.pageShade = "reveal";
   };
   const stopShade = (reveal = false) => {

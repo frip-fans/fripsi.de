@@ -46,27 +46,6 @@ export function formatDate(date: string, endDate?: string | null, locale: Locale
   return endDate && endDate !== date ? `${render(date)} — ${render(endDate)}` : render(date);
 }
 
-/**
- * Imported titles follow the source site's "「name」@area・venue" pattern. When the venue is shown
- * on its own, drop the "@…" tail and the single pair of brackets wrapping the whole name.
- */
-export function eventDisplayTitle(title: string, hasLocation: boolean): string {
-  let result = title.trim();
-  if (hasLocation) result = result.replace(/\s*@[^@「」『』]+$/u, "");
-  const wrapped = /^「(.+)」$/u.exec(result);
-  if (wrapped && balancedBrackets(wrapped[1])) result = wrapped[1].trim();
-  return result || title;
-}
-
-function balancedBrackets(value: string): boolean {
-  let depth = 0;
-  for (const char of value) {
-    if (char === "「") depth += 1;
-    else if (char === "」" && --depth < 0) return false;
-  }
-  return depth === 0;
-}
-
 export function formatTime(event: Pick<EventRecord, "start_time" | "end_time">, locale: Locale = "zh-CN"): string {
   if (!event.start_time) return t(locale, "date.allDay");
   return event.end_time ? `${event.start_time}–${event.end_time}` : event.start_time;

@@ -3,7 +3,7 @@ import { getPublicEventBySlug, listPublicSetlistsForEvent } from "@frip-fan/core
 import BackLink from "../../components/BackLink.astro";
 import { eventReturnLink } from "../../lib/event-navigation";
 import Icon from "../../components/Icon.astro";
-import { categoryLabels, displayEventStatus, eventDisplayTitle, formatDate, formatTime, statusLabel } from "../../lib/format";
+import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../../lib/format";
 import { setlistCompletenessLabel, setlistEventTypeLabel } from "../../lib/music";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { getEnv } from "../../lib/env";
@@ -17,8 +17,8 @@ const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
 const displayStatus = displayEventStatus(event);
 const returnLink = eventReturnLink(Astro.url, event.start_date.slice(0, 7), locale);
 
-// The venue has its own row below, so the heading drops the imported "@area・venue" tail.
-const title = eventDisplayTitle(event.title, Boolean(event.location_label));
+// Official titles often carry the venue, which is what tells tour stops apart, so they stay intact.
+const title = event.title;
 const remoteModes = { online: "event.mode.online", broadcast: "event.mode.broadcast", hybrid: "event.mode.hybrid" } as const;
 const modeKey = remoteModes[event.location_mode as keyof typeof remoteModes];
 // location_label folds channel names in for remote modes; channels get their own row instead.

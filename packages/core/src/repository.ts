@@ -223,6 +223,16 @@ export async function listAuditLogs(db: D1Database, limit = 100): Promise<AuditL
   return result.results;
 }
 
+/**
+ * When the daily official-announcement sync last finished a run. The homepage only states that
+ * events track fripside.net while this is recent, so a stopped sync stops making the claim.
+ */
+export async function getLastOfficialSyncAt(db: D1Database): Promise<string | null> {
+  const row = await db.prepare("SELECT MAX(updated_at) AS finished_at FROM official_sync_runs WHERE status = 'completed'")
+    .first<{ finished_at: string | null }>();
+  return row?.finished_at ?? null;
+}
+
 export async function requireEvent(db: D1Database, id: string): Promise<EventRecord> {
   const event = await getEventById(db, id);
   if (!event) throw new ServiceError("not_found", "没有找到活动", 404);

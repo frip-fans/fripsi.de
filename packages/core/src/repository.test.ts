@@ -43,12 +43,9 @@ describe("event repository pagination", () => {
       offset: 100,
     });
 
-    expect(calls).toHaveLength(1);
-    expect(calls[0].sql).toContain("LIMIT ? OFFSET ?");
-    expect(calls[0].bindings).toEqual([
-      "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%",
-      "LIVE", 50, 100,
-    ]);
+    // The text query resolves to matching ids first (see search-index); the page query binds them as JSON.
+    const page = calls.find((call) => call.sql.includes("LIMIT ? OFFSET ?"));
+    expect(page?.bindings).toEqual(["[]", "LIVE", 50, 100]);
   });
 
   it("keeps chronological order by default and sorts newest first on request", async () => {

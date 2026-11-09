@@ -153,6 +153,8 @@ export const releaseSaveSchema = z.object({
   published: z.boolean(),
   sources: z.array(catalogSourceSchema).max(10),
   tracks: z.array(releaseTrackSchema).max(80),
+  // Search aliases (Chinese/English titles, nicknames). Omitted keeps the stored aliases; [] clears them.
+  aliases: z.array(z.string().trim().min(1).max(240)).max(80).optional(),
   // undefined keeps the stored album id, null clears it.
   apple_music_album_id: appleMusicIdSchema.nullish(),
   apple_music_storefront: z.string().regex(/^[a-z]{2}$/).nullish(),
@@ -165,6 +167,12 @@ export const releaseSaveSchema = z.object({
     const slot = `${track.disc_number}:${track.track_number}`;
     if (slots.has(slot)) context.addIssue({ code: "custom", path: ["tracks", index], message: `Disc ${track.disc_number} Track ${track.track_number} 重复` });
     slots.add(slot);
+  }
+  const aliases = new Set<string>();
+  for (const [index, alias] of (input.aliases ?? []).entries()) {
+    const normalized = normalizeForDuplicate(alias);
+    if (aliases.has(normalized)) context.addIssue({ code: "custom", path: ["aliases", index], message: "别名重复" });
+    aliases.add(normalized);
   }
 });
 
@@ -597,6 +605,15 @@ export class ContentAdminService {
       this.db.prepare(`DELETE FROM release_tracks WHERE release_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),
       this.db.prepare(`DELETE FROM catalog_sources WHERE subject_type = 'release' AND subject_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),
     );
+    const aliases = input.aliases ?? before?.aliases ?? [];
+    if (input.aliases !== undefined) {
+      statements.push(this.db.prepare(`DELETE FROM release_aliases WHERE release_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings));
+      for (const alias of input.aliases) {
+        statements.push(this.db.prepare(`INSERT INTO release_aliases (id, release_id, alias, normalized_alias, created_at)
+          SELECT ?, ?, ?, ?, ? WHERE ${conditionSql}`)
+          .bind(makeId("mus_ralias"), id, alias, normalizeForDuplicate(alias), now, ...conditionBindings));
+      }
+    }
     const savedStreaming: Array<{ apple_music_track_id: string | null; youtube_video_id: string | null }> = [];
     for (const track of input.tracks) {
       const trackId = makeId("mus_track");
@@ -618,7 +635,7 @@ export class ContentAdminService {
     }
     for (const source of input.sources) statements.push(sourceInsertStatement(this.db, "release", id, source, actor, now, conditionSql, conditionBindings));
     const after = {
-      ...input, id, slug, cover_url: coverUrl, cover_source_url: coverSourceUrl, updated_at: now,
+      ...input, id, slug, aliases, cover_url: coverUrl, cover_source_url: coverSourceUrl, updated_at: now,
       apple_music_album_id: appleAlbumId, apple_music_storefront: appleAlbumId ? appleStorefront : null,
       tracks: input.tracks.map((track, index) => ({ ...track, ...savedStreaming[index] })),
     };

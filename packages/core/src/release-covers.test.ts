@@ -52,6 +52,7 @@ describe("release artwork persistence", () => {
     sqlite.exec("INSERT INTO releases (id,slug,title,release_type,published,created_at,updated_at) VALUES ('old','old-release','Old','album',1,'2026-01-01','2026-01-01')");
     sqlite.exec(migration("0007_release_covers.sql"));
     sqlite.exec(migration("0014_music_external_ids.sql"));
+    sqlite.exec(migration("0017_release_aliases.sql"));
     expect(sqlite.prepare("SELECT cover_url, cover_source_url FROM releases WHERE id = 'old'").get()).toMatchObject({ cover_url: null, cover_source_url: null });
     const db = new TestD1(sqlite) as unknown as D1Database;
     const service = new ContentAdminService(db);
@@ -78,7 +79,7 @@ describe("release artwork persistence", () => {
   it("keeps streaming ids across saves that recreate track rows, and clears or replaces them on request", async () => {
     const sqlite = new DatabaseSync(":memory:");
     sqlite.exec("PRAGMA foreign_keys = ON");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0007_release_covers.sql", "0014_music_external_ids.sql"]) sqlite.exec(migration(name));
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0007_release_covers.sql", "0014_music_external_ids.sql", "0017_release_aliases.sql"]) sqlite.exec(migration(name));
     sqlite.exec(`INSERT INTO songs (id,slug,title,normalized_title,created_at,updated_at) VALUES ('s1','omr','only my railgun','onlymyrailgun','2026-01-01','2026-01-01');
       INSERT INTO song_versions (id,song_id,slug,title,created_at,updated_at) VALUES ('v1','s1','omr-original','only my railgun','2026-01-01','2026-01-01'),('v2','s1','omr-inst','only my railgun (Instrumental)','2026-01-01','2026-01-01');`);
     const db = new TestD1(sqlite) as unknown as D1Database;

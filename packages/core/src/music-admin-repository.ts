@@ -1,4 +1,5 @@
 import { eventTourStopSql } from "./event-display";
+import { idInJson, matchReleaseIds, matchSetlistIds, matchSongIds } from "./search-index";
 import type {
   AdminReleaseDetail,
   AdminReleaseSummary,
@@ -29,9 +30,6 @@ interface AdminSongVersionRow extends Omit<AdminSongVersion, "published" | "sour
   published: number;
 }
 
-function likePattern(value: string): string {
-  return `%${value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-}
 
 const adminEventVenueDisplay = `(SELECT GROUP_CONCAT(COALESCE(ev.display_name_snapshot, v.canonical_name), ' / ')
   FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
@@ -78,12 +76,8 @@ const adminSongSelect = `
 
 export async function listAdminSongs(db: D1Database, query?: string, limit = 500): Promise<AdminSongSummary[]> {
   const search = query?.trim();
-  const pattern = search ? likePattern(search) : null;
-  const where = search ? `WHERE s.title LIKE ? ESCAPE '\\' OR s.original_artist LIKE ? ESCAPE '\\'
-    OR s.slug LIKE ? ESCAPE '\\' OR EXISTS (
-      SELECT 1 FROM song_aliases sa WHERE sa.song_id = s.id AND sa.alias LIKE ? ESCAPE '\\'
-    )` : "";
-  const bindings = pattern ? [pattern, pattern, pattern, pattern] : [];
+  const where = search ? `WHERE ${idInJson("s.id")}` : "";
+  const bindings = search ? [JSON.stringify(await matchSongIds(db, search, "all"))] : [];
   const result = await db.prepare(`${adminSongSelect}
     ${where}
     ORDER BY s.updated_at DESC, s.title COLLATE NOCASE ASC
@@ -148,8 +142,8 @@ const adminSetlistSelect = `
 
 export async function listAdminReleases(db: D1Database, query?: string, limit = 500): Promise<AdminReleaseSummary[]> {
   const search = query?.trim();
-  const where = search ? "WHERE r.title LIKE ? ESCAPE '\\' OR r.catalog_number LIKE ? ESCAPE '\\' OR r.slug LIKE ? ESCAPE '\\'" : "";
-  const bindings = search ? [likePattern(search), likePattern(search), likePattern(search)] : [];
+  const where = search ? `WHERE ${idInJson("r.id")}` : "";
+  const bindings = search ? [JSON.stringify(await matchReleaseIds(db, search, "all"))] : [];
   const result = await db.prepare(`${adminReleaseSelect}
     ${where}
     ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC
@@ -162,7 +156,7 @@ export async function getAdminReleaseById(db: D1Database, id: string): Promise<A
   const row = await db.prepare(`${adminReleaseSelect} WHERE r.id = ?`).bind(id).first<AdminReleaseRow>();
   if (!row) return null;
   const release = mapRelease(row);
-  const [tracksResult, sources, appleAlbum] = await Promise.all([
+  const [tracksResult, sources, appleAlbum, aliasesResult] = await Promise.all([
     db.prepare(`
       SELECT rt.id, rt.disc_number, rt.track_number, rt.display_title, rt.notes,
         s.id AS song_id, s.slug AS song_slug, s.title AS song_title,
@@ -181,9 +175,11 @@ export async function getAdminReleaseById(db: D1Database, id: string): Promise<A
     listSources(db, "release", id),
     db.prepare("SELECT external_id, storefront FROM release_external_ids WHERE release_id = ? AND provider = 'apple_music'")
       .bind(id).first<{ external_id: string; storefront: string | null }>(),
+    db.prepare("SELECT alias FROM release_aliases WHERE release_id = ? ORDER BY alias COLLATE NOCASE ASC").bind(id).all<{ alias: string }>(),
   ]);
   return {
     ...release,
+    aliases: aliasesResult.results.map((row) => row.alias),
     tracks: tracksResult.results,
     sources,
     apple_music_album_id: appleAlbum?.external_id ?? null,
@@ -193,12 +189,8 @@ export async function getAdminReleaseById(db: D1Database, id: string): Promise<A
 
 export async function listAdminSetlists(db: D1Database, query?: string, limit = 500): Promise<AdminSetlistSummary[]> {
   const search = query?.trim();
-  const pattern = search ? likePattern(search) : null;
-  const where = search ? `WHERE e.title LIKE ? ESCAPE '\\' OR sl.title LIKE ? ESCAPE '\\' OR EXISTS (
-    SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
-    WHERE ev.event_id = e.id AND v.canonical_name LIKE ? ESCAPE '\\'
-  )` : "";
-  const bindings = pattern ? [pattern, pattern, pattern] : [];
+  const where = search ? `WHERE ${idInJson("sl.id")}` : "";
+  const bindings = search ? [JSON.stringify(await matchSetlistIds(db, search, "all"))] : [];
   const result = await db.prepare(`${adminSetlistSelect}
     ${where}
     ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label ASC

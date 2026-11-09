@@ -1,5 +1,5 @@
 ---
-import { countPublicSetlistsSince, getSetlistHighlights, getSongBySlug, listSetlistYears } from "@frip-fan/core";
+import { buildSearchText, countPublicSetlistsSince, getSetlistHighlights, getSongBySlug, listSetlistYears, searchMatcher } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
 import MusicListen from "../../../components/MusicListen.astro";
@@ -128,7 +128,8 @@ for (const [year, counts] of versionsByYear) {
   const weight = keys.reduce((sum, key) => sum + (counts.get(key) ?? 0), 0) || 1;
   yearSegments.set(year, keys.map((key) => ({ key, share: ((counts.get(key) ?? 0) / weight) * 100, color: versionColor(key) })));
 }
-const searchText = (item: (typeof performances)[number]) => `${item.setlist_title ?? ""} ${item.event_title} ${item.performance_label} ${item.venue ?? ""} ${item.region ?? ""}`.toLocaleLowerCase();
+// Folded once on the server; the browser folds only the query (see @frip-fan/core/search-text).
+const searchText = (item: (typeof performances)[number]) => buildSearchText([item.setlist_title, item.event_alias, item.event_tour_title, item.event_title, item.performance_label, item.venue, item.venue_aliases, item.region]);
 
 // The server applies the URL filter and page too, so a shared link renders the right rows without JS.
 const requestedYear = Astro.url.searchParams.get("year") ?? "";
@@ -136,8 +137,8 @@ const filterYear = chartYears.some((year) => String(year) === requestedYear && (
 const filterQuery = (Astro.url.searchParams.get("q") ?? "").slice(0, 100).trim();
 const requestedVersion = Astro.url.searchParams.get("version") ?? "";
 const filterVersion = showVersionFilter && versionKeys.includes(requestedVersion) ? requestedVersion : "";
-const needle = filterQuery.toLocaleLowerCase();
-const matchingIds = new Set(performances.filter((item) => (!filterYear || item.start_date.startsWith(filterYear)) && (!filterVersion || performedKey(item) === filterVersion) && (!needle || searchText(item).includes(needle))).map((item) => item.setlist_id));
+const matchesQuery = searchMatcher(filterQuery);
+const matchingIds = new Set(performances.filter((item) => (!filterYear || item.start_date.startsWith(filterYear)) && (!filterVersion || performedKey(item) === filterVersion) && matchesQuery(searchText(item))).map((item) => item.setlist_id));
 const historyPages = Math.max(1, Math.ceil(matchingIds.size / HISTORY_PAGE_SIZE));
 const historyPage = clampPage(Number(Astro.url.searchParams.get("page") ?? "1"), historyPages);
 const visibleIds = new Set([...matchingIds].slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE));

@@ -17,8 +17,10 @@ const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
 const displayStatus = displayEventStatus(event);
 const returnLink = eventReturnLink(Astro.url, event.start_date.slice(0, 7), locale);
 
-// Official titles often carry the venue, which is what tells tour stops apart, so they stay intact.
-const title = event.title;
+// The display name (alias > tour · stop > official title) heads the page; the official title, which often
+// carries the venue, stays visible underneath and is what structured data reports.
+const title = event.display_title ?? event.title;
+const officialTitle = title !== event.title ? event.title : null;
 const remoteModes = { online: "event.mode.online", broadcast: "event.mode.broadcast", hybrid: "event.mode.hybrid" } as const;
 const modeKey = remoteModes[event.location_mode as keyof typeof remoteModes];
 // location_label folds channel names in for remote modes; channels get their own row instead.
@@ -44,7 +46,7 @@ const fallbackPlace = !schemaLocations.length && event.location_label ? { "@type
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "Event",
-  name: title,
+  name: event.title,
   url: new URL(`/events/${event.slug}`, getEnv().SITE_URL || Astro.url.origin).href,
   startDate: event.start_time ? `${event.start_date}T${event.start_time}` : event.start_date,
   ...(event.end_date ? { endDate: event.end_date } : {}),
@@ -55,7 +57,7 @@ const structuredData = {
   ...(event.remark ? { description: event.remark } : {}),
 };
 ---
-<SiteLayout title={title} description={[formatDate(event.start_date, event.end_date, locale), title, event.location_label].filter(Boolean).join(" · ")} structuredData={structuredData}>
+<SiteLayout title={title} description={[formatDate(event.start_date, event.end_date, locale), officialTitle ?? title, event.location_label].filter(Boolean).join(" · ")} structuredData={structuredData}>
   <div class="event-page">
   <BackLink href={returnLink.href} label={t(locale, returnLink.label)} eventReturn />
   <article class="event-detail">
@@ -71,6 +73,7 @@ const structuredData = {
         )}
       </div>
       <h1>{title}</h1>
+      {officialTitle && <p class="official-title">{officialTitle}</p>}
       <p class="date"><time datetime={event.start_date}>{formatDate(event.start_date, event.end_date, locale)}</time></p>
     </header>
     <div class="detail-grid">
@@ -130,6 +133,7 @@ const structuredData = {
   .event-detail { margin-top: 1.5rem; }
   .meta { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
   h1 { margin: 1rem 0 .8rem; max-width: 22em; font-size: clamp(1.75rem, 4.2vw, 2.9rem); line-height: 1.18; overflow-wrap: anywhere; text-wrap: balance; text-spacing-trim: trim-start; }
+  .official-title { margin: -.2rem 0 .8rem; max-width: 46em; color: var(--muted); font-size: .9rem; line-height: 1.55; overflow-wrap: anywhere; }
   .date { color: var(--accent); font-size: 1.05rem; }
   .detail-grid { display: grid; grid-template-columns: .72fr 1.28fr; align-items: start; gap: clamp(2rem, 7vw, 6rem); margin-top: 2.75rem; }
   .facts { display: grid; gap: 1.1rem; margin: 0; }

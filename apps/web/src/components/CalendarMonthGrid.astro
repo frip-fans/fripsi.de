@@ -42,7 +42,7 @@ const cells = Array.from({ length: Math.ceil((offset + days) / 7) * 7 }, (_, ind
             {events.map((event) => {
               const displayStatus = displayEventStatus(event, today);
               return <a class:list={["calendar-event", event.category.toLowerCase(), displayStatus]} href={eventDetailHref(event.slug, Astro.url, locale)} title={event.title}>
-                <small>{event.start_time ?? "ALL"}</small>{event.title}
+                <small>{event.start_time ?? "ALL"}</small>{event.display_title ?? event.title}
                 {displayStatus !== "scheduled" && <b>{statusLabel(locale, displayStatus)}</b>}
               </a>;
             })}

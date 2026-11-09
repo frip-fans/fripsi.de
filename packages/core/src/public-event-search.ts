@@ -60,13 +60,13 @@ function where(input: PublicEventSearch) {
   }
   for (const term of input.query.split(/\s+/).filter(Boolean)) {
     const pattern = `%${term.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-    const fields = ["e.title", "e.category", "e.classification", "e.location_note", "e.remark"];
+    const fields = ["e.title", "e.alias", "(SELECT t.name FROM tours t WHERE t.id = e.tour_id AND t.published = 1)", "e.category", "e.classification", "e.location_note", "e.remark"];
     clauses.push(`(${fields.map(field => `${field} LIKE ? ESCAPE '\\'`).join(" OR ")}
       OR EXISTS (SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
         LEFT JOIN administrative_areas a ON a.id = v.administrative_area_id
         WHERE ev.event_id = e.id AND (${["v.canonical_name", "ev.display_name_snapshot", "a.name_local", "a.name_zh", "a.name_ja", "a.name_en"].map(field => `${field} LIKE ? ESCAPE '\\'`).join(" OR ")}))
       OR EXISTS (SELECT 1 FROM event_channels ec WHERE ec.event_id = e.id AND ec.name LIKE ? ESCAPE '\\'))`);
-    bindings.push(...Array(12).fill(pattern));
+    bindings.push(...Array(14).fill(pattern));
   }
   return { clauses, bindings };
 }

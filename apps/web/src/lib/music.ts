@@ -114,8 +114,18 @@ export function versionRelationLabel(value: VersionRelationType, locale: Locale)
   return t(locale, `relation.${value}` as `relation.${VersionRelationType}`);
 }
 
-export function setlistDisplayTitle(setlist: { title: string | null; event_title: string; performance_label: string }): string {
-  return setlist.title || `${setlist.event_title} · ${setlist.performance_label}`;
+/**
+ * Setlist heading: the event alias, then the setlist's own title (older records), then
+ * "<tour> · <stop>", then the official event title. A non-default performance label
+ * (e.g. 昼公演) is appended unless the name already says it.
+ */
+export function setlistDisplayTitle(setlist: { title: string | null; event_title: string; performance_label: string; event_alias?: string | null; event_tour_title?: string | null }): string {
+  const own = setlist.title?.trim();
+  const alias = setlist.event_alias?.trim();
+  if (!alias && own) return own;
+  const base = alias || setlist.event_tour_title?.trim() || setlist.event_title;
+  const label = setlist.performance_label?.trim();
+  return label && label !== "本公演" && !base.includes(label) ? `${base} · ${label}` : base;
 }
 
 export function shouldShowPerformedVersion(displayTitle: string, performedVersionTitle: string | null): boolean {

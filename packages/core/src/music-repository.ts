@@ -1,3 +1,4 @@
+import { eventTourStopSql } from "./event-display";
 import type {
   CatalogSource,
   MusicLibraryOverview,
@@ -101,7 +102,7 @@ const releaseSummarySelect = `
 
 const setlistSummarySelect = `
   SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes,
-    e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
+    e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.category AS event_category,
     e.classification AS event_classification, e.start_date, e.start_time,
     ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
     (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count
@@ -274,7 +275,7 @@ export async function getSongBySlug(db: D1Database, slug: string, performancePag
       ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC, rt.disc_number ASC, rt.track_number ASC
     `).bind(song.id).all<SongReleaseAppearance>(),
     db.prepare(`
-      SELECT sl.id AS setlist_id, sl.title AS setlist_title, sl.performance_label, e.slug AS event_slug, e.title AS event_title, e.classification AS event_classification,
+      SELECT sl.id AS setlist_id, sl.title AS setlist_title, sl.performance_label, e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.classification AS event_classification,
         e.start_date, ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
         se.position, se.section, se.display_title,
         se.performed_version_id, pv.slug AS performed_version_slug, pv.title AS performed_version_title,
@@ -376,7 +377,7 @@ export async function listSetlistsForYear(
   const nextYear = String(Number(year) + 1).padStart(4, "0");
   const result = await db.prepare(`
     SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes,
-      e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
+      e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.category AS event_category,
       e.classification AS event_classification, e.start_date, e.start_time,
       ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
       (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count,

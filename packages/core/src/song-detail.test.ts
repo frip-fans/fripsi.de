@@ -6,7 +6,7 @@ import { countPublicSetlistsSince, getAdjacentSetlists, getSongBySlug, songPerfo
 
 function fixture() {
   const sqlite = new DatabaseSync(":memory:");
-  for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0007_release_covers.sql", "0014_music_external_ids.sql"]) {
+  for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0007_release_covers.sql", "0014_music_external_ids.sql", "0015_event_alias_tours.sql"]) {
     sqlite.exec(readFileSync(new URL(`../../../migrations/${name}`, import.meta.url), "utf8"));
   }
   sqlite.exec(`INSERT INTO songs (id,slug,title,normalized_title,created_at,updated_at) VALUES ('song','test-song','Test song','test song','now','now');

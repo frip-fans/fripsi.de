@@ -12,6 +12,7 @@ import type {
   SetlistSection,
 } from "./music-types";
 import { getEventById, requireEvent } from "./repository";
+import { getTourById, type TourDetail } from "./tours";
 import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { dateSchema, eventDraftSchema, sourceInputSchema, type EventDraft } from "./schema";
 import type { Actor, EventRecord } from "./types";
@@ -83,16 +84,36 @@ export const songSaveSchema = z.object({
   }
 });
 
+/** Admin-only display fields; omitted keeps the stored values (MCP proposals never send them). */
+const eventDisplaySchema = z.object({
+  alias: z.string().trim().max(240).nullish(),
+  tour_id: z.string().trim().min(1).max(160).nullish(),
+  tour_stop: z.string().trim().max(120).nullish(),
+});
+
 export const directEventSaveSchema = z.object({
   id: optionalIdSchema,
   expected_version: z.number().int().positive().optional(),
   published: z.boolean(),
   idempotency_key: idempotencyKeySchema,
   event: eventDraftSchema,
+  display: eventDisplaySchema.optional(),
 }).superRefine((input, context) => {
   if (input.id && !input.expected_version) {
     context.addIssue({ code: "custom", path: ["expected_version"], message: "编辑活动时缺少版本号" });
   }
+});
+
+export const tourSaveSchema = z.object({
+  id: optionalIdSchema,
+  expected_updated_at: z.string().trim().min(1).optional(),
+  idempotency_key: idempotencyKeySchema,
+  slug: slugSchema.optional(),
+  name: z.string().trim().min(1).max(240),
+  notes: z.string().trim().max(2000).nullish(),
+  published: z.boolean(),
+}).superRefine((input, context) => {
+  if (input.id && !input.expected_updated_at) context.addIssue({ code: "custom", path: ["expected_updated_at"], message: "编辑巡演时缺少并发校验值" });
 });
 
 export const eventArchiveSchema = z.object({
@@ -162,7 +183,8 @@ export const setlistSaveSchema = z.object({
   idempotency_key: idempotencyKeySchema,
   event_id: z.string().trim().min(1).max(160),
   performance_label: z.string().trim().min(1).max(160),
-  title: optionalText(240),
+  // Omitted (undefined) keeps the stored title; the admin form no longer sends it.
+  title: z.string().trim().max(240).nullish().transform((value) => value === undefined ? undefined : value || null),
   completeness: z.enum(["complete", "partial", "unknown"]),
   confidence: z.enum(["official", "reported", "unverified"]),
   notes: optionalText(4000),
@@ -176,6 +198,7 @@ export const setlistSaveSchema = z.object({
 });
 
 export type DirectEventSaveInput = z.infer<typeof directEventSaveSchema>;
+export type TourSaveInput = z.infer<typeof tourSaveSchema>;
 export type SongSaveInput = z.infer<typeof songSaveSchema>;
 export type ReleaseSaveInput = z.infer<typeof releaseSaveSchema>;
 export type SetlistSaveInput = z.infer<typeof setlistSaveSchema>;
@@ -293,6 +316,14 @@ export class ContentAdminService {
     }
     const id = existing?.id ?? makeId("evt");
     const event = normalizedEvent(input.event, id, existing);
+    const display = input.display ? {
+      alias: cleanNullable(input.display.alias),
+      tour_id: cleanNullable(input.display.tour_id),
+      tour_stop: cleanNullable(input.display.tour_stop),
+    } : null;
+    if (display?.tour_id && !await this.db.prepare("SELECT 1 FROM tours WHERE id = ?").bind(display.tour_id).first()) {
+      throw new ServiceError("validation_error", "所选巡演不存在", 400);
+    }
     const location = prepareEventLocation(event);
     const now = nextUpdatedAt(existing?.updated_at);
     const conditionSql = "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)";
@@ -303,23 +334,29 @@ export class ContentAdminService {
       statements.push(this.db.prepare(`UPDATE events SET
         slug = ?, title = ?, start_date = ?, end_date = ?, start_time = ?, end_time = ?, timezone = ?,
         category = ?, classification = ?, location_mode = ?, location_note = ?, remark = ?, status = ?, published = ?,
+        alias = CASE WHEN ? THEN ? ELSE alias END, tour_id = CASE WHEN ? THEN ? ELSE tour_id END,
+        tour_stop = CASE WHEN ? THEN ? ELSE tour_stop END,
         version = version + 1, updated_at = ?,
         published_at = CASE WHEN ? = 1 AND published_at IS NULL THEN ? ELSE published_at END
         WHERE id = ? AND version = ? AND updated_at = ?`)
         .bind(
           event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time, event.timezone,
           event.category, event.classification, event.location_mode, event.location_note, event.remark, event.status,
-          input.published ? 1 : 0, now, input.published ? 1 : 0, now, id, existing.version, existing.updated_at,
+          input.published ? 1 : 0,
+          display ? 1 : 0, display?.alias ?? null, display ? 1 : 0, display?.tour_id ?? null, display ? 1 : 0, display?.tour_stop ?? null,
+          now, input.published ? 1 : 0, now, id, existing.version, existing.updated_at,
         ));
     } else {
       statements.push(this.db.prepare(`INSERT INTO events (
         id, slug, title, start_date, end_date, start_time, end_time, timezone, category,
-        classification, location_mode, location_note, remark, status, published, version, created_at, updated_at, published_at, archived_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, NULL)`)
+        classification, location_mode, location_note, remark, status, published, alias, tour_id, tour_stop,
+        version, created_at, updated_at, published_at, archived_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, NULL)`)
         .bind(
           id, event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time,
           event.timezone, event.category, event.classification, event.location_mode, event.location_note, event.remark,
-          event.status, input.published ? 1 : 0, now, now, input.published ? now : null,
+          event.status, input.published ? 1 : 0, display?.alias ?? null, display?.tour_id ?? null, display?.tour_stop ?? null,
+          now, now, input.published ? now : null,
         ));
     }
 
@@ -336,7 +373,7 @@ export class ContentAdminService {
           now, now, actor.id, ...conditionBindings,
         ));
     }
-    const after = { ...event, id, published: input.published };
+    const after = { ...event, id, published: input.published, ...(display ?? {}) };
     statements.push(
       auditStatement(this.db, actor, requestId, existing ? "content.event.update" : "content.event.create", "event", id, existing, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.event.save", id, now, conditionSql, conditionBindings),
@@ -344,6 +381,38 @@ export class ContentAdminService {
     const results = await this.db.batch(statements);
     if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "活动在保存前已发生变化，请刷新页面", 409);
     return requireEvent(this.db, id);
+  }
+
+  async saveTour(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<TourDetail> {
+    assertScope(actor, "events:publish");
+    const input = tourSaveSchema.parse(raw);
+    const receiptId = await receiptTarget(this.db, input.idempotency_key, "admin.tour.save");
+    if (receiptId) return (await getTourById(this.db, receiptId))!;
+    const before = input.id ? await getTourById(this.db, input.id) : null;
+    if (input.id && !before) throw new ServiceError("not_found", "巡演不存在", 404);
+    if (before && before.updated_at !== input.expected_updated_at) throw new ServiceError("version_conflict", "巡演已经被修改，请刷新页面", 409);
+    const id = before?.id ?? makeId("tour");
+    const slug = input.slug ?? before?.slug ?? (slugify(input.name) || `tour-${id.slice(-10).toLowerCase()}`);
+    const clash = await this.db.prepare("SELECT id FROM tours WHERE slug = ? AND id <> ?").bind(slug, id).first<{ id: string }>();
+    if (clash) throw new ServiceError("duplicate_slug", "slug 已被其他巡演使用", 409);
+    const now = nextUpdatedAt(before?.updated_at);
+    const notes = cleanNullable(input.notes);
+    const conditionSql = "EXISTS (SELECT 1 FROM tours WHERE id = ? AND updated_at = ?)";
+    const conditionBindings = [id, now];
+    const write = before
+      ? this.db.prepare("UPDATE tours SET slug = ?, name = ?, notes = ?, published = ?, updated_at = ? WHERE id = ? AND updated_at = ?")
+        .bind(slug, input.name, notes, input.published ? 1 : 0, now, id, before.updated_at)
+      : this.db.prepare("INSERT INTO tours (id, slug, name, notes, published, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+        .bind(id, slug, input.name, notes, input.published ? 1 : 0, now, now);
+    const after = { id, slug, name: input.name, notes, published: input.published };
+    const results = await this.db.batch([
+      write,
+      auditStatement(this.db, actor, requestId, before ? "content.tour.update" : "content.tour.create", "tour", id,
+        before ? { id: before.id, slug: before.slug, name: before.name, notes: before.notes, published: before.published } : null, after, now, conditionSql, conditionBindings),
+      receiptStatement(this.db, input.idempotency_key, "admin.tour.save", id, now, conditionSql, conditionBindings),
+    ]);
+    if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "巡演在保存前已发生变化，请刷新页面", 409);
+    return (await getTourById(this.db, id))!;
   }
 
   async setEventArchived(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<EventRecord> {
@@ -582,14 +651,16 @@ export class ContentAdminService {
     const conditionBindings = [id, now];
     const statements: D1PreparedStatement[] = [];
     if (before) {
-      statements.push(this.db.prepare(`UPDATE setlists SET event_id = ?, performance_label = ?, title = ?, completeness = ?,
+      // The admin form no longer edits the title (the event alias names the show); omitted keeps it.
+      statements.push(this.db.prepare(`UPDATE setlists SET event_id = ?, performance_label = ?,
+        title = CASE WHEN ? THEN ? ELSE title END, completeness = ?,
         confidence = ?, notes = ?, published = ?, updated_at = ? WHERE id = ? AND updated_at = ?`)
-        .bind(input.event_id, input.performance_label, input.title, input.completeness, input.confidence, input.notes, input.published ? 1 : 0, now, id, before.updated_at));
+        .bind(input.event_id, input.performance_label, input.title === undefined ? 0 : 1, input.title ?? null, input.completeness, input.confidence, input.notes, input.published ? 1 : 0, now, id, before.updated_at));
     } else {
       statements.push(this.db.prepare(`INSERT INTO setlists (
         id, event_id, performance_label, title, completeness, confidence, notes, published, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .bind(id, input.event_id, input.performance_label, input.title, input.completeness, input.confidence, input.notes, input.published ? 1 : 0, now, now));
+        .bind(id, input.event_id, input.performance_label, input.title ?? null, input.completeness, input.confidence, input.notes, input.published ? 1 : 0, now, now));
     }
     statements.push(
       this.db.prepare(`DELETE FROM setlist_entries WHERE setlist_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),

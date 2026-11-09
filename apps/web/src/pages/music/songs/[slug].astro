@@ -149,7 +149,7 @@ const pageHref = (page: number) => {
 };
 const historyScope = [filterVersion ? versionLabel(filterVersion) : "", filterYear ? t(locale, "music.historyYear", { year: filterYear }) : "", filterQuery ? `“${filterQuery}”` : ""].filter(Boolean).join(" · ");
 
-const showTitle = (item: { setlist_title?: string | null; event_title: string; performance_label: string }) => setlistDisplayTitle({ title: item.setlist_title ?? null, event_title: item.event_title, performance_label: item.performance_label });
+const showTitle = (item: { setlist_title?: string | null; event_title: string; performance_label: string; event_alias?: string | null; event_tour_title?: string | null }) => setlistDisplayTitle({ title: item.setlist_title ?? null, event_title: item.event_title, performance_label: item.performance_label, event_alias: item.event_alias, event_tour_title: item.event_tour_title });
 ---
 <SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
   <div class="music-page" data-music-detail data-song-detail>

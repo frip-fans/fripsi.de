@@ -7,6 +7,8 @@ export * from "./music-repository";
 export * from "./setlist-highlights";
 export * from "./song-spotlight";
 export * from "./event-updates";
+export * from "./event-display";
+export * from "./tours";
 export * from "./on-this-day";
 export * from "./music-admin-repository";
 export * from "./content-admin";

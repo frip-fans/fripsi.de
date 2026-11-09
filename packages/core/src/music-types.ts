@@ -287,6 +287,10 @@ export interface ReleaseSearchOptions extends MusicSearchOptions {
 
 export interface SetlistSearchOptions extends MusicSearchOptions {
   year?: string;
+  /** Match any of these four-digit years; combined with `year` when both are set. */
+  years?: string[];
   classification?: string;
+  /** Match any of these event classifications; combined with `classification`. */
+  classifications?: string[];
   order?: "asc" | "desc";
 }

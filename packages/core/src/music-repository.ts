@@ -137,14 +137,15 @@ function buildSetlistFilter(options: SetlistSearchOptions): { where: string; bin
       ))`);
     bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
   }
-  if (options.year?.match(/^\d{4}$/)) {
-    const nextYear = String(Number(options.year) + 1).padStart(4, "0");
-    clauses.push("e.start_date >= ? AND e.start_date < ?");
-    bindings.push(`${options.year}-01-01`, `${nextYear}-01-01`);
+  const years = [...new Set([options.year, ...(options.years ?? [])].filter((year): year is string => Boolean(year?.match(/^\d{4}$/))))];
+  if (years.length) {
+    clauses.push(`(${years.map(() => "(e.start_date >= ? AND e.start_date < ?)").join(" OR ")})`);
+    for (const year of years) bindings.push(`${year}-01-01`, `${String(Number(year) + 1).padStart(4, "0")}-01-01`);
   }
-  if (options.classification?.trim()) {
-    clauses.push("e.classification = ?");
-    bindings.push(options.classification.trim());
+  const classifications = [...new Set([options.classification, ...(options.classifications ?? [])].map(value => value?.trim()).filter((value): value is string => Boolean(value)))];
+  if (classifications.length) {
+    clauses.push(`e.classification IN (${classifications.map(() => "?").join(", ")})`);
+    bindings.push(...classifications);
   }
   return { where: `WHERE ${clauses.join(" AND ")}`, bindings };
 }
@@ -394,7 +395,7 @@ export async function listSetlistYears(
   db: D1Database,
   options: SetlistSearchOptions = {},
 ): Promise<Array<{ year: string; count: number }>> {
-  const { where, bindings } = buildSetlistFilter({ ...options, year: undefined });
+  const { where, bindings } = buildSetlistFilter({ ...options, year: undefined, years: undefined });
   const result = await db.prepare(`
     SELECT substr(e.start_date, 1, 4) AS year, COUNT(*) AS count
     FROM setlists sl

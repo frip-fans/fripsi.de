@@ -76,6 +76,20 @@ export function formatMusicDate(value: string | null, locale: Locale = "zh-CN"):
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
+/** Month, day and weekday labels for a date block, formatted for the page locale. */
+export function musicDateParts(value: string | null, locale: Locale): { year: string; month: string; day: string; weekday: string } | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  const part = (options: Intl.DateTimeFormatOptions, type: Intl.DateTimeFormatPartTypes) =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).formatToParts(date).find(item => item.type === type)?.value ?? "";
+  return {
+    year: value.slice(0, 4),
+    month: new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(date),
+    day: part({ day: "numeric" }, "day"),
+    weekday: new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(date),
+  };
+}
+
 export function setlistCompletenessLabel(value: SetlistCompleteness, locale: Locale): string {
   return t(locale, {
     complete: "music.complete",

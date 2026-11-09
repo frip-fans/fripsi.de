@@ -7,8 +7,8 @@ import MusicBrowseResults from "./MusicBrowseResults.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { getLocale, t, type TranslationKey } from "../lib/i18n";
-import { parseMusicBrowse, musicSorts, type MusicBrowseKind } from "../lib/music-browse";
-import { releaseTypeLabel, releaseTypeLabels } from "../lib/music";
+import { liveClassifications, parseMusicBrowse, musicSorts, type MusicBrowseKind } from "../lib/music-browse";
+import { releaseTypeLabel, releaseTypeLabels, setlistEventTypeLabel } from "../lib/music";
 import "../styles/music.css";
 import "../styles/music-browser.css";
 import "../styles/release-cover.css";
@@ -27,14 +27,18 @@ const sortKeys: Record<string, TranslationKey> = {
   "date-desc": "music.releaseNewest", "date-asc": "music.releaseOldest",
 };
 const sortOptions = musicSorts[kind].map(value => ({ value, label: t(locale, sortKeys[value]) }));
-const years = kind === "lives" ? await listSetlistYears(getEnv().DB) : [];
-const typeOptions = kind === "lives"
-  ? [{ value: "专场", label: t(locale, "music.solo") }, { value: "拼盘", label: t(locale, "music.festival") }]
-  : (Object.keys(releaseTypeLabels) as (keyof typeof releaseTypeLabels)[]).map(value => ({ value, label: releaseTypeLabel(value, locale) }));
-const filterSummary = kind === "lives"
-  ? [input.year || t(locale, "music.allYears"), typeOptions.find(option => option.value === input.classification)?.label || t(locale, "music.allTypes")]
-  : kind === "releases" ? [typeOptions.find(option => option.value === input.type)?.label || t(locale, "music.allTypes")] : [];
-const filterCount = Number(Boolean(input.year)) + Number(Boolean(input.classification || input.type));
+const yearOptions = kind === "lives" ? await listSetlistYears(getEnv().DB) : [];
+for (const year of input.years) if (!yearOptions.some(item => item.year === year)) yearOptions.push({ year, count: 0 });
+yearOptions.sort((a, b) => b.year.localeCompare(a.year));
+const filterGroups = kind === "lives"
+  ? [
+      { name: "classification", label: t(locale, "music.performanceType"), selected: input.classifications, options: liveClassifications.map(value => ({ value, label: setlistEventTypeLabel(value, locale), count: undefined as number | undefined, tone: value === "专场" ? "solo" : "festival" })) },
+      { name: "year", label: t(locale, "music.year"), selected: input.years, options: yearOptions.map(item => ({ value: item.year, label: item.year, count: item.count || undefined, tone: undefined as string | undefined })) },
+    ]
+  : kind === "releases"
+    ? [{ name: "type", label: t(locale, "music.releaseType"), selected: input.types, options: (Object.keys(releaseTypeLabels) as (keyof typeof releaseTypeLabels)[]).map(value => ({ value, label: releaseTypeLabel(value, locale), count: undefined as number | undefined, tone: undefined as string | undefined })) }]
+    : [];
+const filterCount = input.years.length + input.classifications.length + input.types.length;
 ---
 <SiteLayout title={t(locale, titles[kind])}>
   <div class="music-page music-browser" data-music-browser data-kind={kind} data-locale={locale} data-loading={t(locale, "search.loading")}>
@@ -53,36 +57,33 @@ const filterCount = Number(Boolean(input.year)) + Number(Boolean(input.classific
           <button type="submit" class="secondary">{t(locale, "common.search")}</button>
         </div>
         <div class="music-control-row">
+          {filterGroups.length > 0 && <div class="music-chip-filter" data-music-chips>
+            <div class="music-chip-scroll">
+              {filterGroups.map((group, index) => (
+                <>
+                  {index > 0 && <span class="music-chip-divider" aria-hidden="true"></span>}
+                  <div class="music-chip-group" role="group" aria-label={group.label}>
+                    {group.options.map(option => (
+                      <label class="music-chip" data-tone={option.tone}>
+                        <input type="checkbox" name={group.name} value={option.value} checked={group.selected.includes(option.value)} data-music-filter data-summary={option.label} />
+                        <span>{option.label}{option.count !== undefined && <small>{option.count}</small>}</span>
+                      </label>
+                    ))}
+                    {index === filterGroups.length - 1 && <button type="button" class="music-chip-clear" data-music-clear hidden={!filterCount}><Icon name="x-lg" /><span>{t(locale, "archive.clear")}</span></button>}
+                  </div>
+                </>
+              ))}
+            </div>
+          </div>}
           <div class="music-list-controls">
-            {kind !== "songs" && <div class="music-control-popover" data-music-popover>
-              <button type="button" class:list={["music-control-button", { active: filterCount > 0 }]} aria-expanded="false" aria-controls="music-filter-panel" data-music-toggle="filter">
-                <Icon name="funnel" /><span>{t(locale, "common.filter")}</span><span class="music-filter-count" data-music-filter-count hidden={!filterCount}>{filterCount}</span>
-              </button>
-              <div class="music-control-card music-filter-card" id="music-filter-panel" data-music-panel="filter" role="dialog" aria-labelledby="music-filter-heading" hidden>
-                <div class="music-control-card-head"><strong id="music-filter-heading">{t(locale, "common.filter")}</strong><button type="button" class="music-panel-close" data-music-close aria-label={t(locale, "search.closeFilters")}><Icon name="x-lg" /></button></div>
-                <div class="music-filter-fields">
-                  {kind === "lives" && <label><span>{t(locale, "music.year")}</span><select name="year" data-music-filter data-default="">
-                    <option value="">{t(locale, "music.allYears")}</option>
-                    {input.year && !years.some(item => item.year === input.year) && <option value={input.year} selected>{input.year}</option>}
-                    {years.map(item => <option value={item.year} selected={input.year === item.year} data-summary={item.year}>{item.year} · {item.count}</option>)}
-                  </select></label>}
-                  <label><span>{t(locale, kind === "lives" ? "music.performanceType" : "music.releaseType")}</span><select name={kind === "lives" ? "classification" : "type"} data-music-filter data-default="">
-                    <option value="">{t(locale, "music.allTypes")}</option>
-                    {typeOptions.map(option => <option value={option.value} selected={option.value === (kind === "lives" ? input.classification : input.type)}>{option.label}</option>)}
-                  </select></label>
-                </div>
-                <div class="music-control-card-actions"><button type="button" class="music-clear-control" data-music-clear disabled={!filterCount}>{t(locale, "archive.clear")}</button><button type="button" class="music-done-control" data-music-close>{t(locale, "archive.done")}</button></div>
-              </div>
-            </div>}
             <div class="music-control-popover" data-music-popover>
-              <button type="button" class="music-control-button" aria-expanded="false" aria-controls="music-sort-panel" data-music-toggle="sort"><Icon name="arrow-down-up" /><span>{t(locale, "archive.sort")}</span><span class="music-control-value" data-music-sort-label>{sortOptions.find(option => option.value === input.sort)?.label}</span></button>
+              <button type="button" class="music-control-button" aria-expanded="false" aria-controls="music-sort-panel" data-music-toggle="sort"><Icon name="arrow-down-up" /><span class="music-control-label">{t(locale, "archive.sort")}</span><span class="music-control-value" data-music-sort-label>{sortOptions.find(option => option.value === input.sort)?.label}</span></button>
               <div class="music-control-card music-sort-card" id="music-sort-panel" data-music-panel="sort" role="dialog" aria-labelledby="music-sort-heading" hidden>
                 <div class="music-control-card-head"><strong id="music-sort-heading">{t(locale, "music.sortOrder")}</strong><button type="button" class="music-panel-close" data-music-close aria-label={t(locale, "search.closeSort")}><Icon name="x-lg" /></button></div>
                 <div class="music-sort-options">{sortOptions.map(option => <label class="music-sort-choice"><input type="radio" name="sort" value={option.value} checked={input.sort === option.value} data-sort-label={option.label} /><span>{option.label}</span></label>)}</div>
               </div>
             </div>
           </div>
-          <p class="music-scope" data-music-scope>{[...filterSummary, sortOptions.find(option => option.value === input.sort)?.label].filter(Boolean).join(" · ")}</p>
         </div>
         <noscript><style>.music-browser [data-music-toggle] { display: none; } .music-browser [data-music-panel][hidden] { display: block !important; position: static; width: 100%; margin-block: .75rem; } .music-browser .music-control-row, .music-browser .music-list-controls, .music-browser .music-control-popover { display: block; } .music-browser [data-music-close], .music-browser [data-music-clear] { display: none; }</style><button type="submit" class="secondary">{t(locale, "common.filter")}</button></noscript>
       </form>

@@ -41,29 +41,18 @@ export function setupMusicBrowser() {
   const params = () => {
     const next = new URLSearchParams();
     if (root.dataset.kind === "releases" && matchMedia(MUSIC_WIDE_RELEASE_QUERY).matches) next.set("batch", String(MUSIC_WIDE_RELEASE_BATCH_SIZE));
+    // Checkbox filters repeat their name, so keep every value instead of the last one.
     for (const [key, value] of new FormData(form)) {
-      if (typeof value === "string" && value.trim()) next.set(key, value.trim());
+      if (typeof value === "string" && value.trim()) next.append(key, value.trim());
     }
     return next;
   };
   const syncControls = () => {
-    const filterLabels: string[] = [];
-    let count = 0;
-    for (const select of form.querySelectorAll("[data-music-filter]")) {
-      if (!(select instanceof HTMLSelectElement)) continue;
-      count += Number(Boolean(select.value));
-      const option = select.selectedOptions[0];
-      if (option) filterLabels.push(option.dataset.summary ?? option.textContent ?? "");
-    }
-    const badge = root.querySelector<HTMLElement>("[data-music-filter-count]");
-    if (badge) { badge.textContent = String(count); badge.hidden = count === 0; }
-    root.querySelector<HTMLElement>('[data-music-toggle="filter"]')?.classList.toggle("active", count > 0);
+    const count = form.querySelectorAll<HTMLInputElement>("input[data-music-filter]:checked").length;
     const clear = root.querySelector<HTMLButtonElement>("[data-music-clear]");
-    if (clear) clear.disabled = count === 0;
+    if (clear) clear.hidden = count === 0;
     const sort = form.querySelector<HTMLInputElement>('input[name="sort"]:checked');
-    const label = sort?.dataset.sortLabel ?? "";
-    root.querySelector<HTMLElement>("[data-music-sort-label]")!.textContent = label;
-    root.querySelector<HTMLElement>("[data-music-scope]")!.textContent = [...filterLabels, label].filter(Boolean).join(" · ");
+    root.querySelector<HTMLElement>("[data-music-sort-label]")!.textContent = sort?.dataset.sortLabel ?? "";
   };
   const closePanels = (restoreFocus = false) => {
     const toggle = root.querySelector<HTMLButtonElement>(`[data-music-toggle="${openKind}"]`);
@@ -122,7 +111,7 @@ export function setupMusicBrowser() {
           if (!seen.has(item.dataset.musicId)) { seen.add(item.dataset.musicId); list.appendChild(item); }
         });
         for (const key of ["total", "shown", "page", "batch", "hasMore", "revision"]) results().dataset[key] = next.dataset[key];
-        const shown = list.children.length;
+        const shown = list.querySelectorAll("a[data-music-id]").length;
         const count = results().querySelector<HTMLElement>("[data-music-count]")!;
         count.textContent = count.dataset.template!.replaceAll("{shown}", String(shown)).replaceAll("{total}", next.dataset.total!);
         const nextMore = next.querySelector<HTMLAnchorElement>("[data-music-more]")!;
@@ -135,10 +124,10 @@ export function setupMusicBrowser() {
       if (!append) playResultsEntry(next);
       setupReleaseCovers();
       const url = new URL(location.href);
-      for (const key of ["q", "year", "classification", "type", "sort", "page", "batch"]) url.searchParams.delete(key);
+      for (const key of new Set(["q", "year", "classification", "type", "sort", "page", "batch", ...nextParams.keys()])) url.searchParams.delete(key);
       for (const [key, value] of nextParams) {
         if (key === "page" && value === "1") continue;
-        url.searchParams.set(key, value);
+        url.searchParams.append(key, value);
       }
       replacePublicUrl(url);
       root.dataset.musicUrl = url.href;
@@ -176,8 +165,9 @@ export function setupMusicBrowser() {
     if (event.target.closest("[data-music-retry]")) void fetchResults(retryMore);
     if (event.target.closest("[data-music-close]")) closePanels(true);
     if (event.target.closest("[data-music-clear]")) {
-      form.querySelectorAll("[data-music-filter]").forEach(select => { if (select instanceof HTMLSelectElement) select.value = ""; });
+      form.querySelectorAll<HTMLInputElement>("input[data-music-filter]").forEach(input => { input.checked = false; });
       syncControls(); void fetchResults();
+      form.querySelector<HTMLInputElement>("input[data-music-filter]")?.focus({ preventScroll: true });
     }
     const toggle = event.target.closest<HTMLButtonElement>("[data-music-toggle]");
     if (!toggle) return;
@@ -189,7 +179,7 @@ export function setupMusicBrowser() {
       const panel = root.querySelector<HTMLElement>(`[data-music-panel="${kind}"]`)!;
       panel.hidden = false; toggle.setAttribute("aria-expanded", "true");
       positionPanel(panel);
-      panel.querySelector<HTMLElement>('select, input:checked, button')?.focus({ preventScroll: true });
+      panel.querySelector<HTMLElement>('input:checked, button')?.focus({ preventScroll: true });
     }
   }, { signal });
   document.addEventListener("click", event => {
@@ -200,6 +190,12 @@ export function setupMusicBrowser() {
   }, { signal });
   window.addEventListener("pagehide", () => { request?.abort(); ++serial; clearTimeout(timer); }, { signal });
   syncControls();
+  // On phones the chips scroll sideways; bring the last selected chip into view.
+  const chipScroll = root.querySelector<HTMLElement>(".music-chip-scroll");
+  const lastChecked = [...(chipScroll?.querySelectorAll<HTMLElement>("input[data-music-filter]:checked") ?? [])].at(-1)?.closest<HTMLElement>(".music-chip");
+  if (chipScroll && lastChecked && chipScroll.scrollWidth > chipScroll.clientWidth) {
+    chipScroll.scrollLeft = lastChecked.offsetLeft - chipScroll.offsetLeft - (chipScroll.clientWidth - lastChecked.offsetWidth) / 2;
+  }
   if (root.dataset.kind === "releases") {
     matchMedia(MUSIC_WIDE_RELEASE_QUERY).addEventListener("change", () => void fetchResults(), { signal });
   }

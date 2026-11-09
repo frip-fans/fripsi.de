@@ -102,9 +102,23 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     const shareButton = finish.querySelector<HTMLButtonElement>("[data-quiz-share]")!;
     shareButton.textContent = labels.share ?? "";
     shareButton.onclick = async () => {
-      const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}\n${location.origin}/quiz`;
+      const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}`;
+      const url = `${location.origin}/quiz`;
+
+      // The system share sheet is the real thing where it exists; elsewhere, the
+      // clipboard carries the same emoji grid people paste into a post.
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: labels.title, text, url });
+          return;
+        } catch (error) {
+          // Dismissing the sheet is a choice, not a failure.
+          if (error instanceof DOMException && error.name === "AbortError") return;
+        }
+      }
+
       try {
-        await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(`${text}\n${url}`);
         shareButton.textContent = labels.shared ?? "";
       } catch {
         shareButton.textContent = labels.failed ?? "";

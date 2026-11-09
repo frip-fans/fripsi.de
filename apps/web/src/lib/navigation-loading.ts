@@ -1,7 +1,6 @@
-export {};
+import { NAVIGATION_FEEDBACK_DELAY_MS } from "./navigation-feedback";
 
 // Loading feedback follows Astro's request lifetime; it never starts a request.
-const LOADING_DELAY_MS = 250;
 let clearLoading: (() => void) | undefined;
 
 function showLoading(signal: AbortSignal, failOpenAfter?: number) {
@@ -29,7 +28,7 @@ function showLoading(signal: AbortSignal, failOpenAfter?: number) {
   clearLoading = stop;
   showTimer = setTimeout(() => {
     if (!stopped && !signal.aborted) indicator.hidden = false;
-  }, LOADING_DELAY_MS);
+  }, NAVIGATION_FEEDBACK_DELAY_MS);
   signal.addEventListener("abort", stop, { once: true });
   if (failOpenAfter) timeout = setTimeout(stop, failOpenAfter);
   return stop;

@@ -20,6 +20,7 @@ import type {
   SongVersionRecord,
   VersionRelationRecord,
 } from "./music-types";
+import { computeSetlistHighlights, type SetlistHighlightOptions, type SetlistHighlightRow, type SetlistHighlights } from "./setlist-highlights";
 
 function safeLimit(value: number | undefined, fallback = 100, maximum = 500): number {
   return Math.max(1, Math.min(value ?? fallback, maximum));
@@ -137,14 +138,15 @@ function buildSetlistFilter(options: SetlistSearchOptions): { where: string; bin
       ))`);
     bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
   }
-  if (options.year?.match(/^\d{4}$/)) {
-    const nextYear = String(Number(options.year) + 1).padStart(4, "0");
-    clauses.push("e.start_date >= ? AND e.start_date < ?");
-    bindings.push(`${options.year}-01-01`, `${nextYear}-01-01`);
+  const years = [...new Set([options.year, ...(options.years ?? [])].filter((year): year is string => Boolean(year?.match(/^\d{4}$/))))];
+  if (years.length) {
+    clauses.push(`(${years.map(() => "(e.start_date >= ? AND e.start_date < ?)").join(" OR ")})`);
+    for (const year of years) bindings.push(`${year}-01-01`, `${String(Number(year) + 1).padStart(4, "0")}-01-01`);
   }
-  if (options.classification?.trim()) {
-    clauses.push("e.classification = ?");
-    bindings.push(options.classification.trim());
+  const classifications = [...new Set([options.classification, ...(options.classifications ?? [])].map(value => value?.trim()).filter((value): value is string => Boolean(value)))];
+  if (classifications.length) {
+    clauses.push(`e.classification IN (${classifications.map(() => "?").join(", ")})`);
+    bindings.push(...classifications);
   }
   return { where: `WHERE ${clauses.join(" AND ")}`, bindings };
 }
@@ -394,7 +396,7 @@ export async function listSetlistYears(
   db: D1Database,
   options: SetlistSearchOptions = {},
 ): Promise<Array<{ year: string; count: number }>> {
-  const { where, bindings } = buildSetlistFilter({ ...options, year: undefined });
+  const { where, bindings } = buildSetlistFilter({ ...options, year: undefined, years: undefined });
   const result = await db.prepare(`
     SELECT substr(e.start_date, 1, 4) AS year, COUNT(*) AS count
     FROM setlists sl
@@ -404,6 +406,21 @@ export async function listSetlistYears(
     ORDER BY year DESC
   `).bind(...bindings).all<{ year: string; count: number }>();
   return result.results;
+}
+
+/** Debuts, long-gap returns and song lists for every public setlist, derived from the whole archive. */
+export async function getSetlistHighlights(db: D1Database, options: SetlistHighlightOptions = {}): Promise<Map<string, SetlistHighlights>> {
+  const result = await db.prepare(`
+    SELECT sl.id AS setlist_id, e.start_date, se.song_id, s.title AS song_title,
+      COALESCE(NULLIF(TRIM(se.display_title), ''), s.title) AS display_title, s.first_release_date
+    FROM setlist_entries se
+    JOIN setlists sl ON sl.id = se.setlist_id
+    JOIN events e ON e.id = sl.event_id
+    JOIN songs s ON s.id = se.song_id
+    WHERE sl.published = 1 AND e.published = 1 AND e.archived_at IS NULL AND e.start_date IS NOT NULL
+    ORDER BY e.start_date, COALESCE(e.start_time, ''), sl.id, se.position
+  `).all<SetlistHighlightRow>();
+  return computeSetlistHighlights(result.results ?? [], options);
 }
 
 export async function getSetlistById(db: D1Database, id: string): Promise<SetlistDetail | null> {

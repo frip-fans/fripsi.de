@@ -479,10 +479,13 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
      wait instead of replaying it as an animation once the content is ready.
      Shade through black without reducing translucent cards' opacity: otherwise
      the bright background leaks through and makes dark panels flash lighter. */
+  /* The dim runs linearly so how far it got is its elapsed time: a computed
+     style does not report an animated pseudo-element's value in every engine,
+     and the handover below reads the animation's own clock instead. */
   @keyframes page-shade-dim { from { opacity: 0; } to { opacity: var(--page-shade); } }
-  @keyframes page-shade-reveal { from { opacity: var(--page-shade-from, var(--page-shade)); } to { opacity: 0; } }
+  @keyframes page-shade-reveal { from { opacity: calc(var(--page-shade) * var(--page-shade-progress, 1)); } to { opacity: 0; } }
   main::after { content: ""; position: absolute; inset: 0; z-index: 100; background: #000; opacity: 0; pointer-events: none; }
-  html[data-page-shade="dim"] main::after { animation: page-shade-dim 110ms ease-out both; }
+  html[data-page-shade="dim"] main::after { animation: page-shade-dim 110ms linear both; }
   html[data-page-shade="reveal"] main::after { animation: page-shade-reveal 150ms ease-out both; }
   main { position: relative; isolation: isolate; width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; min-height: calc(100vh - 180px); }
   footer { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; border-top: 1px solid var(--line); padding: 1.5rem 0 2.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .78rem; }

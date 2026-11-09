@@ -130,3 +130,31 @@ it("drains notifications when sync is disabled and missing OpenAI configuration"
   expect(t.request).toHaveBeenCalledTimes(1);
   expect(t.request.mock.calls[0][0]).toBe("https://api.day.app/push");
 });
+
+it("explains a blocked or redesigned official site in words", async () => {
+  const t = setup(); await tickNotifications(t.env, initial, t.request); t.run("blocked", "failed");
+  t.sqlite.prepare("UPDATE official_sync_runs SET error_code='official_layout_changed' WHERE id='blocked'").run();
+  await tickNotifications(t.env, later, t.request);
+  const payload = JSON.parse(String(t.request.mock.calls[0][1]?.body));
+  expect(payload.title).toBe("fripSi.de 官网读取失败");
+  expect(payload.body).toContain("可能改版或返回了验证页"); expect(payload.body).toContain("official_layout_changed");
+});
+
+it("reports partially unreadable official pages on an otherwise quiet day", async () => {
+  const t = setup(); await tickNotifications(t.env, initial, t.request);
+  t.run("quiet"); t.run("partial");
+  t.sqlite.prepare("UPDATE official_sync_runs SET result_json=? WHERE id='quiet'").run(JSON.stringify({ summary: "none", notes: [], source_errors: [] }));
+  t.sqlite.prepare("UPDATE official_sync_runs SET result_json=? WHERE id='partial'").run(JSON.stringify({ summary: "none", source_errors: [{ source_url: "https://fripside.net/contents/1", code: "source_temporarily_unavailable" }] }));
+  await tickNotifications(t.env, later, t.request);
+  expect(t.request).toHaveBeenCalledTimes(1);
+  const payload = JSON.parse(String(t.request.mock.calls[0][1]?.body));
+  expect(payload.title).toBe("fripSi.de 官网部分读取失败"); expect(payload.body).toContain("1 个页面读取失败");
+});
+
+it("counts discovery errors recorded in the model input of a completed run", async () => {
+  const t = setup(); await tickNotifications(t.env, initial, t.request); t.run("published"); await t.change("published", "Published A");
+  t.sqlite.prepare("UPDATE official_sync_runs SET input_json=? WHERE id='published'").run(JSON.stringify({ input: { source_errors: [{}, {}] } }));
+  await tickNotifications(t.env, later, t.request);
+  const payload = JSON.parse(String(t.request.mock.calls[0][1]?.body));
+  expect(payload.title).toContain("活动更新"); expect(payload.body).toContain("2 个页面读取失败");
+});

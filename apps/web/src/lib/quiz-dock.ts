@@ -1,7 +1,7 @@
 /**
- * Motion for the floating quiz mascot: drag to either side (remembered), and on phones slide
- * out of the way while the page scrolls down. A tap still opens the quiz; only a press that
- * moves past DRAG_THRESHOLD becomes a drag, and the click that follows it is swallowed.
+ * Dragging for the floating quiz mascot (desktop; phones use the header button): drag to either
+ * side and the position is remembered. A click still opens the quiz; only a press that moves past
+ * DRAG_THRESHOLD becomes a drag, and the click that follows it is swallowed.
  */
 
 export interface DockPosition { side: "left" | "right"; bottom: number }
@@ -9,8 +9,6 @@ export interface DockPosition { side: "left" | "right"; bottom: number }
 const POSITION_KEY = "frip_fan_quiz_dock";
 const DRAG_THRESHOLD = 8;
 const EDGE_GAP = 8;
-const PHONE_QUERY = "(max-width: 760px)";
-const SCROLL_SETTLE_MS = 650;
 
 /** Keep the dock fully on screen: between the bottom gap and the top of the viewport. */
 export function clampBottom(bottom: number, dockHeight: number, viewportHeight: number): number {
@@ -87,7 +85,6 @@ export function setupQuizDockMotion(dock: HTMLElement): void {
       if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
       dragged = true;
       dock.dataset.dragging = "true";
-      delete dock.dataset.away;
       dock.setPointerCapture(event.pointerId);
     }
     event.preventDefault();
@@ -129,21 +126,4 @@ export function setupQuizDockMotion(dock: HTMLElement): void {
       event.stopImmediatePropagation();
     }
   }, { capture: true });
-
-  // Phones: step aside while reading downwards, return on the way back up or once scrolling stops.
-  const phone = window.matchMedia(PHONE_QUERY);
-  let lastY = window.scrollY;
-  let settle: number | undefined;
-  window.addEventListener("scroll", () => {
-    const y = window.scrollY;
-    if (!phone.matches || dock.dataset.dragging === "true") {
-      lastY = y;
-      return;
-    }
-    if (y > lastY + 6) dock.dataset.away = "true";
-    else if (y < lastY - 6) delete dock.dataset.away;
-    lastY = y;
-    window.clearTimeout(settle);
-    settle = window.setTimeout(() => delete dock.dataset.away, SCROLL_SETTLE_MS);
-  }, { passive: true });
 }

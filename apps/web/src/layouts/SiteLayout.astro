@@ -15,7 +15,7 @@ import routerBootstrap from "../scripts/router-bootstrap.js?url";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import OfficialSiteGate from "../components/OfficialSiteGate.astro";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
-import moonBackground from "../../../../images/A_New_View_of_the_Moon.jpg?url";
+import moonBackground from "../../../../images/A_New_View_of_the_Moon-no-earth.webp?url";
 import issBackground from "../../../../images/ISS.jpg?url";
 
 const {
@@ -452,6 +452,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .header-actions { display: flex; align-items: center; justify-content: flex-end; gap: .55rem; min-width: 0; margin-left: auto; }
   nav a { text-decoration: none; color: var(--muted); padding: .6rem .72rem; border-radius: 9px; font-size: .92rem; }
   nav a:hover { color: var(--text); background: rgba(255,255,255,.06); }
+  .header-actions nav a, .header-actions .nav-group > summary { transition: color 220ms cubic-bezier(.2,.8,.2,1); }
   .header-actions nav a.active { color: #fff; background: rgba(var(--accent-rgb), .24); box-shadow: none; }
   .header-actions nav a.active:hover { background: rgba(var(--accent-rgb), .32); }
   .nav-group { position: relative; }
@@ -573,6 +574,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     html { scroll-behavior: auto; }
     *, *::before, *::after { scroll-behavior: auto !important; }
     .space-backdrop { transition: none; transform: none; }
+    .header-actions nav a, .header-actions .nav-group > summary { transition: none; }
     main::after { animation: none !important; }
   }
 </style>

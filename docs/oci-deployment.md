@@ -28,7 +28,39 @@ gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=produ
 
 托管 runner 检查源码分支、精确 SHA、成功的源码 push CI，再构建和生成代码产物。产物仅含 standalone 的 server/client、REVISION 与逐文件 SHA-256 清单，保留三天；禁止数据库、备份与配置密钥。机器上的 runner 下载同一工作流产物，验证归档哈希、来源 SHA、逐文件校验和与安全路径，拒绝链接和越界路径，原子切换 current 后仅 sudo 重启固定 Web 服务。
 
-新版本 `/healthz` 必须在 30 秒内返回正确 SHA；失败时回到前一个代码目录并重启。此回退不回滚数据库。部署不执行 migration、不覆盖数据库、不启用同步或备份 timer。保留旧 release 以便回退，磁盘使用需管理员定期检查；不要清理当前或上一版本。
+新版本 `/healthz` 必须在 30 秒内返回正确 SHA；失败时回到前一个代码目录并重启。此回退不回滚数据库。部署只按下文规则执行增量 schema migration，不覆盖数据库、不启用同步或备份 timer。保留旧 release 以便回退，磁盘使用需管理员定期检查；不要清理当前或上一版本。
+
+## Schema migration
+
+部署产物附带仓库的 `migrations/*.sql`。主机安装脚本在切换 current 之前调用 `/usr/local/bin/fripside-migrate`（源码 `ops/oci/migrate.py`，root 所有）：runner 通过唯一一条 sudoers 规则以数据库所有者 `frip-app` 身份运行它，runner 本身仍然无法读取数据库。
+
+- 对比产物中的 migration 和 `d1_migrations`。数据库里有产物没有的记录、或待执行的 migration 比已执行的更早时，直接失败，不猜测版本。
+- 只自动执行增量语句：`CREATE TABLE`、`CREATE [UNIQUE] INDEX`、`CREATE VIEW`、`ALTER TABLE … ADD COLUMN` 和 `PRAGMA foreign_keys = ON`。其他语句（`INSERT`/`UPDATE`/`DELETE`/`DROP`/改名/触发器等）让部署失败，退出码 4。`--allow-unsafe` 只供管理员 SSH 使用，runner 调用时会被拒绝。
+- 执行前用 SQLite Online Backup 生成 `/var/lib/fripside/migration-backups/<UTC>-<sha>-before-<编号>.sqlite`（0600，完整性检查，保留最近 5 份），磁盘空间不足时不执行。
+- 每个 migration 在 `BEGIN IMMEDIATE` 事务中执行，同时写入 `d1_migrations` 并检查外键；失败整体回滚，新代码不上线。
+- staging 自动执行；production 默认只检查（退出码 3 表示有待执行的 migration，部署中止），需要手动触发部署并勾选 `apply_production_migrations`。
+
+管理员手动执行非增量 migration（先确认快照和演练结果）：
+
+```bash
+sudo -u frip-app /usr/local/bin/fripside-migrate --release /opt/fripside/releases/<sha> --sha <sha> --mode apply --allow-unsafe
+```
+
+### 安装或升级主机脚本
+
+主机脚本由管理员通过 SSH 以 root 安装，runner 不能修改。从已合并的源码提交取出 `ops/oci/install-release.py` 和 `ops/oci/migrate.py`（例如 `scp` 到主机的临时目录），在两台主机上分别执行：
+
+```bash
+sudo install -o root -g root -m 0755 ops/oci/install-release.py /usr/local/bin/fripside-install-release
+sudo install -o root -g root -m 0755 ops/oci/migrate.py /usr/local/bin/fripside-migrate
+printf '%s\n' \
+  'frip-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart fripside-web.service' \
+  'frip-deploy ALL=(frip-app) NOPASSWD: /usr/local/bin/fripside-migrate' | sudo tee /etc/sudoers.d/fripside-deploy >/dev/null
+sudo chmod 0440 /etc/sudoers.d/fripside-deploy && sudo visudo -cf /etc/sudoers.d/fripside-deploy
+sudo -u frip-deploy sudo -n -l   # 应列出上面两条规则
+```
+
+先升级两台主机的脚本，再合并私有部署仓库中带 `--migrate` 的 workflow；顺序反过来时，旧安装脚本不认识这个参数，部署会失败（不会上线新代码）。
 
 ## 主机初始化与首次数据迁移
 

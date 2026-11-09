@@ -5,6 +5,7 @@ from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 
 def module(name):
     spec=importlib.util.spec_from_file_location(name,Path(__file__).with_name(name+'.py'))
@@ -58,5 +59,30 @@ class ReleaseTest(unittest.TestCase):
                 archive.add(path,arcname=str(path.relative_to(self.root/'edit')),recursive=False)
         out=self.root/'out';out.mkdir()
         with self.assertRaisesRegex(ValueError,'checksum'): install.verify(self.archive,out,self.sha)
+
+    def test_packages_schema_migrations_and_rejects_other_files(self):
+        migrations=self.root/'migrations';migrations.mkdir()
+        (migrations/'0001_initial.sql').write_text('CREATE TABLE t(id TEXT);')
+        pack.package(self.source,self.archive,self.sha,migrations)
+        out=self.root/'verified';out.mkdir()
+        manifest=install.verify(self.archive,out,self.sha)
+        self.assertIn('migrations/0001_initial.sql',manifest['files'])
+        self.assertEqual((out/'migrations/0001_initial.sql').read_text(),'CREATE TABLE t(id TEXT);')
+        (migrations/'notes.txt').write_text('x')
+        with self.assertRaisesRegex(ValueError,'migrations entry'):
+            pack.package(self.source,self.root/'other.tgz',self.sha,migrations)
+
+    def test_migration_exit_codes_stop_activation(self):
+        target=Path('/opt/fripside/releases')/self.sha
+        with mock.patch.object(install.subprocess,'run') as run:
+            install.migrate(target,self.sha,'skip')
+            run.assert_not_called()
+            for code,message in [(3,'Pending'),(4,'not additive'),(1,'failed')]:
+                run.return_value=mock.Mock(returncode=code)
+                with self.subTest(code=code), self.assertRaisesRegex(RuntimeError,message):
+                    install.migrate(target,self.sha,'check')
+            run.return_value=mock.Mock(returncode=0)
+            install.migrate(target,self.sha,'apply')
+            self.assertEqual(run.call_args.args[0],['sudo','-n','-u','frip-app','/usr/local/bin/fripside-migrate','--release',str(target),'--sha',self.sha,'--mode','apply'])
 
 if __name__=='__main__': unittest.main()

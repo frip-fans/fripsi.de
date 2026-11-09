@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package only the standalone build, never databases or host configuration."""
+"""Package only the standalone build and schema migrations, never databases or host configuration."""
 import argparse
 import datetime
 import hashlib
@@ -10,7 +10,7 @@ import tarfile
 import tempfile
 import shutil
 
-def package(source, output, sha):
+def package(source, output, sha, migrations=None):
     if not re.fullmatch('[0-9a-f]{40}', sha):
         raise ValueError('Expected full commit SHA')
     source = Path(source).resolve()
@@ -30,6 +30,14 @@ def package(source, output, sha):
                         if f.read(16) == b'SQLite format 3\x00':
                             raise ValueError('SQLite database in build output')
             shutil.copytree(source/name, root/name)
+        if migrations is not None:
+            # Plain SQL files only; the host applies additive ones before activation.
+            target = root/'migrations'
+            target.mkdir()
+            for path in sorted(Path(migrations).iterdir()):
+                if path.is_symlink() or not path.is_file() or not re.fullmatch(r'\d{4}_[a-z0-9_]+\.sql', path.name):
+                    raise ValueError(f'Unexpected migrations entry: {path.name}')
+                shutil.copyfile(path, target/path.name)
         (root/'REVISION').write_text(sha+'\n')
         files = {str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in sorted(root.rglob('*')) if p.is_file()}
@@ -46,5 +54,6 @@ if __name__ == '__main__':
     parser.add_argument('--source',default='apps/web/dist-node')
     parser.add_argument('--output',required=True)
     parser.add_argument('--sha',required=True)
+    parser.add_argument('--migrations',default='migrations')
     args=parser.parse_args()
-    package(args.source,args.output,args.sha)
+    package(args.source,args.output,args.sha,args.migrations)

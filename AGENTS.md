@@ -37,8 +37,7 @@
   npm run typecheck
   npm test
   npm run build
-  npm run build:production --workspace @frip-fan/web
-  npm run build:web:staging
+  python3 -m unittest discover -s ops/oci
   ```
 
 - 纯文档变更核对文案、相对链接、命令和 `git diff --check` 即可；不为此新增应用测试或重复构建。
@@ -70,6 +69,6 @@
 
 ## OCI 部署
 
-- OCI 迁移/发布按 [OCI 自托管部署](docs/oci-deployment.md) 执行；生产仍遵循 release 快照与 master rebase PR。
+- 部署与发布按 [部署与运维](docs/oci-deployment.md) 执行；生产仍遵循 release 快照与 master rebase PR。
 - 私有部署仓库拥有部署专用 runner；公共 PR 只运行 GitHub 托管 CI。源码/私有工作流只部署受保护 staging/master 的精确 SHA，并要求源码 push CI 成功。
 - 主机 root 配置与应用/runner 用户隔离，部署产物只包含构建代码和 migration SQL，不包括数据库、备份或环境密钥。部署只按上述规则执行增量 migration（先快照），不覆盖数据库，不自动启用未验收 timer。

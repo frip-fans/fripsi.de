@@ -8,7 +8,7 @@
 - 维护者：通过 `/admin` 管理活动，无需编辑代码或数据库。
 - AI 助手：通过 Remote MCP 查询、提出变更、预览并在授权后发布。
 
-内容维护必须独立于 Notion、Google Sheets 等外部 CMS。代码仍由 GitHub 管理，内容存储在 D1，代码发布和内容发布互不耦合。
+内容维护必须独立于 Notion、Google Sheets 等外部 CMS。代码仍由 GitHub 管理，内容存储在各环境的 SQLite 数据库中，代码发布和内容发布互不耦合。
 
 ## 2. 组件关系
 
@@ -20,12 +20,17 @@ flowchart TB
         MCPClient[Codex / ChatGPT / 其他 MCP Client]
     end
 
-    subgraph Cloudflare[Cloudflare]
-        Access[Cloudflare Access]
-        Web[Astro Web Worker]
-        MCP[Remote MCP Worker]
-        DB[(D1: frip-fan)]
-        Media[(R2: 可选媒体资源)]
+    subgraph Edge[Cloudflare]
+        Access[Access]
+        Tunnel[DNS/CDN + Tunnel]
+    end
+
+    subgraph Host[OCI 主机]
+        Web[Astro Node 服务<br/>页面 · /admin · /api]
+        MCP["/mcp 处理（apps/mcp）"]
+        Sync[同步任务 sync-cli<br/>systemd timer]
+        DB[(SQLite)]
+        Media[(封面目录)]
     end
 
     subgraph Shared[仓库共享包]
@@ -34,38 +39,42 @@ flowchart TB
         Policy[Authorization Policies]
     end
 
-    Browser --> Web
-    AdminBrowser --> Access --> Web
-    MCPClient --> MCP
+    Browser --> Tunnel --> Web
+    AdminBrowser --> Access --> Tunnel
+    MCPClient --> Tunnel
+    Web --> MCP
     Web --> Schema
     MCP --> Schema
     Web --> Service
     MCP --> Service
+    Sync --> Service
     Service --> Policy
     Service --> DB
-    Web -. Phase 2 .-> Media
+    Web --> Media
 ```
 
 ## 3. 仓库布局
 
-计划采用 npm/pnpm workspace 风格的单仓库：
+npm workspaces 单仓库：
 
 ```text
 frip-fan/
 ├── apps/
-│   ├── web/                  # Astro SSR、公开页面、/admin 和 Web API
-│   └── mcp/                  # Remote MCP Worker，Streamable HTTP /mcp
+│   ├── web/                  # Astro SSR（Node standalone）、公开页面、/admin、Web API、/mcp
+│   ├── mcp/                  # MCP 协议、OAuth 校验和工具；由 web 进程调用
+│   └── sync/                 # 官方活动同步；构建时打包为 sync-cli.mjs
 ├── packages/
-│   └── core/                 # Schema、业务服务、权限、共享类型
-├── migrations/               # D1 SQL migrations
+│   ├── core/                 # Schema、业务服务、权限、共享类型
+│   └── node-runtime/         # D1/R2 接口的 SQLite 与本地文件适配
+├── migrations/               # 顺序编号的 SQL migration
+├── ops/                      # OCI 主机脚本、部署工作流副本、SQLite 备份
 ├── scripts/                  # 导入、导出、数据核验
-├── docs/
-└── wrangler.*.jsonc          # Web/MCP 的 Cloudflare 配置，或分别置于 app 内
+└── docs/
 ```
 
 `apps/web` 和 `apps/mcp` 不允许各自复制业务规则。所有日期、状态、来源、重复检查、发布和审计规则必须由 `packages/core` 提供。
 
-## 4. Web Worker
+## 4. Web
 
 ### 4.1 公开页面
 
@@ -80,7 +89,7 @@ frip-fan/
 - `/music/songs/:slug`：歌曲版本关系、发行位置和演唱历史。
 - `/about`：制作人员、数据说明、非官方网站声明。
 
-公开 UI 使用轻量的 Astro SSR 国际化层，支持 `zh-CN`、`zh-TW`、`ja` 和 `en`。服务端优先读取当前 URL 的 `lang` 参数，其次读取 `frip_fan_locale` Cookie，默认使用简体中文；语言选择器保留当前页面的其他查询参数，并把选择保存一年。HTML 响应设置 `Content-Language`，同时通过 `Vary: Cookie` 防止不同语言的 SSR 页面被错误共用缓存。当前只翻译导航、按钮、筛选器、状态、日期格式和空状态等 UI 文案，D1 中的活动、歌曲、专辑、场地与来源内容保持原文。
+公开 UI 使用轻量的 Astro SSR 国际化层，支持 `zh-CN`、`zh-TW`、`ja` 和 `en`。服务端优先读取当前 URL 的 `lang` 参数，其次读取 `frip_fan_locale` Cookie，默认使用简体中文；语言选择器保留当前页面的其他查询参数，并把选择保存一年。HTML 响应设置 `Content-Language`，同时通过 `Vary: Cookie` 防止不同语言的 SSR 页面被错误共用缓存。当前只翻译导航、按钮、筛选器、状态、日期格式和空状态等 UI 文案，数据库中的活动、歌曲、专辑、场地与来源内容保持原文。
 
 公开查询只能返回：
 
@@ -102,17 +111,13 @@ published = 1 AND archived_at IS NULL
 
 `/admin/*` 与 `/api/admin/*` 必须由 Cloudflare Access 保护，服务端还要验证 Access JWT，不以“页面不可见”代替 API 鉴权。
 
-## 5. MCP Worker
+## 5. MCP
 
-MCP 部署在独立域名，例如：
+生产 MCP 地址为 `https://fripsi.de/mcp`。Web 进程把 `/mcp` 请求交给 `apps/mcp` 的处理函数（`apps/web/src/lib/mcp-node.ts`），与网站共用数据库和业务服务，但使用独立的 OAuth resource、audience 和 scope。
 
-```text
-https://mcp.example.com/mcp
-```
+采用 Streamable HTTP transport 的无状态模式：每个请求创建独立服务器，工具不保存对话状态。
 
-采用当前标准的 Streamable HTTP transport。工具不需要保存对话状态，因此优先使用 Cloudflare `createMcpHandler()` 的无状态模式；只有未来确实需要服务器端会话、elicitation 或持久化 agent state 时才考虑 `McpAgent`/Durable Objects。
-
-MCP Worker 只负责：
+MCP 处理只负责：
 
 1. OAuth 认证和 scope 检查。
 2. MCP 协议与工具 schema。
@@ -128,15 +133,15 @@ MCP Worker 只负责：
 ```mermaid
 sequenceDiagram
     participant V as Visitor
-    participant W as Web Worker
-    participant D as D1
+    participant W as Web
+    participant D as SQLite
     V->>W: GET /calendar?month=2026-08
     W->>D: 查询已发布且未归档活动
     D-->>W: 活动列表
     W-->>V: SSR HTML
 ```
 
-第一版不对动态 HTML 和活动 API 做长时间缓存，优先保证发布后立即可见。静态 CSS、JS、字体和图片继续由 Cloudflare 缓存。流量增长后再评估短 TTL 和精确失效。
+公开 HTML/JSON 只在进程内缓存 60 秒，写入时失效，优先保证发布后很快可见；后台、测试站和带 Cookie/private 的响应不缓存。带 hash 的静态资源和封面由 Cloudflare 长期缓存。
 
 ### 6.2 AI 创建活动
 
@@ -144,8 +149,8 @@ sequenceDiagram
 sequenceDiagram
     participant U as User
     participant A as AI Client
-    participant M as MCP Worker
-    participant D as D1
+    participant M as MCP
+    participant D as SQLite
     U->>A: 根据官方公告新增活动
     A->>M: events.search / events.check_duplicate
     M->>D: 查询现有活动
@@ -166,7 +171,7 @@ sequenceDiagram
 ### 安全
 
 - Admin 与 MCP 分别鉴权。
-- 所有 D1 查询使用参数绑定。
+- 所有数据库查询使用参数绑定。
 - 发布、取消、下线和归档必须记录 audit log。
 - MCP Token/OAuth Token 不写入日志或工具结果。
 - 对来源 URL 做协议、长度和允许域校验；第一版不让 MCP 服务主动抓取任意 URL。
@@ -175,34 +180,35 @@ sequenceDiagram
 
 - 所有写操作支持幂等键。
 - 更新使用乐观锁 `expected_version`。
-- 发布 change set 使用 D1 batch/事务语义，避免活动和审计记录部分成功。
+- 发布 change set 使用 batch/事务语义（Node 运行时为不可交错的 SQLite 事务），避免活动和审计记录部分成功。
 - 应用代码不在请求中执行 migration；部署流程在切换代码前执行增量 migration，非增量 migration 由管理员单独执行。
 
 ### 可移植性
 
-- 核心表使用 SQLite/D1 通用类型。
-- 禁止将唯一业务逻辑放进 Cloudflare Dashboard。
+- 核心表使用 SQLite 通用类型；业务代码通过 D1 风格接口访问数据库，由 `packages/node-runtime` 适配。
+- 禁止将唯一业务逻辑放进 Cloudflare Dashboard 或主机手工配置。
 - migrations、schema、导入导出脚本都进入 Git。
-- 随时可以导出 CSV/SQL，在需要时迁往 SQLite 或 PostgreSQL。
+- 随时可以导出 CSV/SQL，在需要时迁往其他数据库。
 
 ## 8. 技术选择
 
 | 领域 | 选择 | 原因 |
 |---|---|---|
-| Web | Astro SSR | 内容型网站、SEO、低前端 JS、支持 Workers binding |
+| Web | Astro SSR（Node standalone） | 内容型网站、SEO、低前端 JS |
 | UI | Astro + 少量组件 | 避免为日历和后台引入整站 SPA |
-| 数据 | Cloudflare D1 | 当前规模足够、SQLite 语义、与 Worker 原生绑定 |
+| 数据 | SQLite（WAL） | 当前规模足够、单机部署简单、Online Backup 快照 |
 | 校验 | Zod | Web、MCP、导入脚本共用 schema |
 | 身份 | Cloudflare Access | 不自行实现密码系统 |
 | MCP | Remote MCP / Streamable HTTP | Codex、ChatGPT 和其他 MCP Client 可复用 |
-| 媒体 | R2（可选） | 图片需求明确后再启用 |
+| 媒体 | 主机本地目录 | 只存按哈希命名的专辑封面 |
+| 部署 | OCI 主机 + 私有 runner | 代码产物与数据库分离，详见 [部署与运维](oci-deployment.md) |
 
 Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅用于阻止 adapter 自动创建未使用的 KV namespace。身份与权限仍完全由 Cloudflare Access JWT 和服务端 scope 校验负责，不能把 LRU session 用作生产登录状态。
 
 ## 9. 明确不采用
 
 - Notion 作为在线数据源。
-- 浏览器端直接读取 D1 或携带数据库凭据。
+- 浏览器端直接读取数据库或携带数据库凭据。
 - 每次内容修改后重新构建整个网站。
 - MCP 通用 `execute_sql`、`fetch_url`、`delete_event` 工具。
 - 在第一版实现站内聊天机器人；MCP 由已有 AI Client 调用即可。

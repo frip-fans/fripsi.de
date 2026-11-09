@@ -8,11 +8,11 @@
 
 生产机 timer 为 `04:00 Asia/Singapore`（前一天 UTC 20:00），`Persistent=true` 在错过任务后补跑。每次运行生成 UTC 时间戳加 UUID 的新对象，使用 S3 `If-None-Match: *` 防止覆盖；所有对象指定 Standard。远端密文上传后核对大小与元数据，最后上传 JSON 清单作为完成标记，再原子写入本地 `last-success.json`。未完成的远端密文不作为恢复点，等待 180 天生命周期清理。本地临时目录权限 0700，运行结束自动删除，包括失败时的明文；上传失败不改变旧成功记录。进程若被强杀，残留目录需由管理员检查后清理。
 
-清单包含创建时间、完整应用提交 SHA、`d1_migrations` 全部已应用迁移、原始/gzip/密文大小、密文及原始库 SHA-256，以及 events、songs、releases、setlists、change_sets、audit_logs 记录数。现有 D1 迁移历史在 OCI 导入时应保留；缺失时备份失败，不能用猜测的迁移版本替代。
+清单包含创建时间、完整应用提交 SHA、`d1_migrations` 全部已应用迁移、原始/gzip/密文大小、密文及原始库 SHA-256，以及 events、songs、releases、setlists、change_sets、audit_logs 记录数。`d1_migrations` 表沿用 D1 的格式记录迁移历史；缺失时备份失败，不能用猜测的迁移版本替代。
 
 ## R2 与密钥准备
 
-1. 创建独立私有 R2 桶 `fripside-production-db-backups`，默认 Standard，关闭 r2.dev 和所有自定义公开域名，不绑定公开 Worker。
+1. 创建独立私有 R2 桶 `fripside-production-db-backups`，默认 Standard，关闭 r2.dev 和所有自定义公开域名，不绑定任何公开服务。
 2. 在管理工作站使用桶管理凭据应用 `ops/sqlite-backup/lifecycle.json`，再读取验证规则。此管理凭据不放生产机：
 
    ```bash
@@ -108,7 +108,7 @@ curl --fail http://127.0.0.1:4399/healthz
 curl --fail http://127.0.0.1:4399/calendar
 ```
 
-`dist-node` 来自 OCI 迁移分支；不能用现有 Workers 产物运行。确认应用能读取活动/歌曲，并记录状态、版本和计数。真正生产恢复是单独维护操作：停写、额外快照、检查版本兼容、人工切换文件和回滚计划；本脚本绝不自动执行。
+`dist-node` 是 `npm run build` 的产物。确认应用能读取活动/歌曲，并记录状态、版本和计数。真正生产恢复是单独维护操作：停写、额外快照、检查版本兼容、人工切换文件和回滚计划；本脚本绝不自动执行。
 
 ## 验收与启用门槛
 

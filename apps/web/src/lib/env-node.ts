@@ -11,7 +11,6 @@ export function getRuntimeEnv(): Env {
   const development = appEnv === "development" && process.env.NODE_ENV !== "production";
   cached = {
     DB: store.db,
-    FRIP_RUNTIME: "node",
     FRIP_RELEASE_SHA: process.env.FRIP_RELEASE_SHA,
     MCP_RESOURCE_URL: process.env.MCP_RESOURCE_URL,
     MCP_AUTHORIZATION_SERVER: process.env.MCP_AUTHORIZATION_SERVER,

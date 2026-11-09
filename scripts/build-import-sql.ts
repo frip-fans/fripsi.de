@@ -64,5 +64,5 @@ statements.push(`INSERT OR IGNORE INTO import_jobs (
 await mkdir(resolve("data/normalized"), { recursive: true });
 await writeFile(outputPath, `${statements.join("\n\n")}\n`, "utf8");
 console.log(`已为 ${events.length} 条活动生成 ${outputPath}`);
-console.log("本地导入：npx wrangler d1 execute frip-fan-dev --local --config apps/web/wrangler.jsonc --file data/normalized/import.sql");
-console.log("生产导入：npx wrangler d1 execute frip-fan-prod --remote --env production --config apps/web/wrangler.jsonc --file data/normalized/import.sql");
+console.log("本地导入：npm run db:import:local -- data/normalized/import.sql");
+console.log("测试/生产导入属于内容变更，按 docs/release-workflow.md 的变更包流程在主机上单独执行。");

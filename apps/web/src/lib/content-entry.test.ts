@@ -81,7 +81,7 @@ describe("bounded content entry motion", () => {
     playResultsEntry(element(header)); expect(header.animate).not.toHaveBeenCalled();
   });
 
-  it("keeps loading unchanged and leaves a quick page navigation unshaded", async () => {
+  it("keeps loading unchanged and leaves a navigation that resolves first unshaded", async () => {
     vi.useFakeTimers();
     const { setupPageEntryTransitions } = await import("./page-entry-navigation");
     setupPageEntryTransitions();
@@ -91,7 +91,7 @@ describe("bounded content entry motion", () => {
     const loader = vi.fn(async () => {});
     const event = Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal: new AbortController().signal, loader });
     doc.dispatchEvent(event); expect(event.loader).toBe(loader); expect(header.animate).not.toHaveBeenCalled();
-    vi.advanceTimersByTime(90);
+    vi.advanceTimersByTime(155);
     doc.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument: { documentElement: newRoot } }));
     vi.advanceTimersByTime(500);
     expect(oldRoot.dataset).toEqual({}); expect(newRoot.dataset).toEqual({});
@@ -110,7 +110,9 @@ describe("bounded content entry motion", () => {
     Object.assign(doc, { documentElement: oldRoot });
     doc.dispatchEvent(Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal: new AbortController().signal }));
     expect(oldRoot.dataset.pageShade).toBeUndefined();
-    vi.advanceTimersByTime(120);
+    vi.advanceTimersByTime(249);
+    expect(oldRoot.dataset.pageShade).toBeUndefined();
+    vi.advanceTimersByTime(1);
     expect(oldRoot.dataset.pageShade).toBe("dim");
     doc.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument: { documentElement: newRoot } }));
     expect(newRoot.dataset.pageShade).toBe("reveal");
@@ -128,7 +130,7 @@ describe("bounded content entry motion", () => {
     reduced.matches = true; prepare(new AbortController().signal); vi.advanceTimersByTime(500);
     expect(oldRoot.dataset.pageShade).toBeUndefined();
     reduced.matches = false;
-    const abandoned = new AbortController(); prepare(abandoned.signal); vi.advanceTimersByTime(120);
+    const abandoned = new AbortController(); prepare(abandoned.signal); vi.advanceTimersByTime(250);
     expect(oldRoot.dataset.pageShade).toBe("dim");
     abandoned.abort();
     expect(oldRoot.dataset.pageShade).toBe("reveal");

@@ -261,10 +261,15 @@ export async function getSongBySlug(db: D1Database, slug: string, performancePag
     db.prepare(`
       SELECT r.id AS release_id, r.slug AS release_slug, r.title AS release_title, r.release_type,
         r.release_date, r.edition, r.cover_url, rt.disc_number, rt.track_number, rt.display_title,
-        sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label
+        sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label,
+        ram.external_id AS apple_music_album_id, ram.storefront AS apple_music_storefront,
+        tam.external_id AS apple_music_track_id, tyt.external_id AS youtube_video_id
       FROM release_tracks rt
       JOIN releases r ON r.id = rt.release_id AND r.published = 1
       JOIN song_versions sv ON sv.id = rt.song_version_id AND sv.published = 1
+      LEFT JOIN release_external_ids ram ON ram.release_id = r.id AND ram.provider = 'apple_music'
+      LEFT JOIN release_track_external_ids tam ON tam.release_track_id = rt.id AND tam.provider = 'apple_music'
+      LEFT JOIN release_track_external_ids tyt ON tyt.release_track_id = rt.id AND tyt.provider = 'youtube'
       WHERE sv.song_id = ?
       ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC, rt.disc_number ASC, rt.track_number ASC
     `).bind(song.id).all<SongReleaseAppearance>(),

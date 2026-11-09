@@ -12,6 +12,7 @@ interface Props {
 const { release, options, canWrite } = Astro.props;
 const songs = new Map(options.songs.map((song) => [song.id, song]));
 const sources = release?.sources.map((source) => `${source.url} | ${source.label ?? ""} | ${source.source_type ?? "official"}`).join("\n") ?? "";
+const appleAlbumUrl = release?.apple_music_album_id ? `https://music.apple.com/${release.apple_music_storefront ?? "jp"}/album/${release.apple_music_album_id}` : null;
 const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
   const song = songs.get(version.song_id);
   return `${song?.title ?? "未知歌曲"} — ${version.title}`;
@@ -43,6 +44,27 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
     <label class="publish-check wide"><input type="checkbox" name="published" checked={release?.published ?? true} />在公开歌单库显示</label>
   </div>
 
+  <section class="streaming-editor" data-streaming-editor>
+    <div class="editor-heading">
+      <div><p class="eyebrow">Streaming</p><h2>试听平台</h2><p class="muted">歌曲页的试听播放器使用这里的 ID。选中 Apple Music 专辑后会按曲序和标题自动填入下方每首曲目，保存前请检查。</p></div>
+    </div>
+    <div class="streaming-album">
+      <label>Apple Music 专辑（日区）
+        <input name="apple_music_album" maxlength="300" value={release?.apple_music_album_id ?? ""} placeholder="粘贴专辑链接或 ID" data-apple-album autocomplete="off" />
+      </label>
+      <a class="button secondary" href={appleAlbumUrl ?? "#"} target="_blank" rel="noreferrer" data-apple-album-link hidden={!appleAlbumUrl}>打开 <Icon name="box-arrow-up-right" /></a>
+      <button type="button" class="secondary" data-apple-search-toggle><Icon name="search" />在 Apple Music 搜索</button>
+    </div>
+    <div class="apple-search" data-apple-search hidden>
+      <div class="apple-search-bar">
+        <input type="search" maxlength="200" value={release?.title ?? ""} aria-label="搜索 Apple Music 专辑" data-apple-search-input />
+        <button type="button" data-apple-search-run>搜索</button>
+      </div>
+      <p class="muted apple-search-status" data-apple-status role="status"></p>
+      <ul class="apple-results" data-apple-results></ul>
+    </div>
+  </section>
+
   <section class="track-editor">
     <div class="editor-heading">
       <div><p class="eyebrow">Track editor</p><h2>专辑曲目</h2><p class="muted">上下调整曲序；Disc 与 Track 编号会作为正式排序依据。</p></div>
@@ -62,6 +84,8 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
           </label>
           <label class="row-title">显示标题<input name="track_title" required maxlength="240" value={track.display_title} /></label>
           <label class="row-note">备注<input name="track_notes" maxlength="1000" value={track.notes ?? ""} /></label>
+          <label class="row-apple">Apple Music 曲目<input name="track_apple_music" maxlength="300" value={track.apple_music_track_id ?? ""} placeholder="链接或 ID" autocomplete="off" /></label>
+          <label class="row-youtube">YouTube<input name="track_youtube" maxlength="300" value={track.youtube_video_id ?? ""} placeholder="视频链接或 ID" autocomplete="off" /></label>
           <div class="row-actions">
             <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
             <button type="button" class="secondary icon-button" data-move-down aria-label="下移">↓</button>
@@ -92,6 +116,8 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
       </label>
       <label class="row-title">显示标题<input name="track_title" required maxlength="240" /></label>
       <label class="row-note">备注<input name="track_notes" maxlength="1000" /></label>
+      <label class="row-apple">Apple Music 曲目<input name="track_apple_music" maxlength="300" placeholder="链接或 ID" autocomplete="off" /></label>
+      <label class="row-youtube">YouTube<input name="track_youtube" maxlength="300" placeholder="视频链接或 ID" autocomplete="off" /></label>
       <div class="row-actions">
         <button type="button" class="secondary icon-button" data-move-up aria-label="上移">↑</button>
         <button type="button" class="secondary icon-button" data-move-down aria-label="下移">↓</button>
@@ -103,6 +129,7 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
 
 <script>
   import { createReleaseCover } from "../scripts/release-cover";
+  import { matchAppleTracks, parseAppleMusicRef } from "@frip-fan/core/streaming";
   const releaseEditor = document.querySelector<HTMLElement>("[data-release-editor]");
   const coverInput = releaseEditor?.querySelector<HTMLInputElement>("[name=cover_import_url]");
   coverInput?.addEventListener("change", () => {
@@ -162,6 +189,114 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
   });
   releaseEditor?.addEventListener("input", refreshTracks);
   refreshTracks();
+
+  // Apple Music: search an album, then fill each track row's id by position and title.
+  type AppleAlbum = { id: string; name: string; release_date: string; track_count: number; artwork: string | null; url: string | null };
+  type AppleTrack = { trackId: string; discNumber: number; trackNumber: number; trackName: string };
+  const streaming = releaseEditor?.querySelector<HTMLElement>("[data-streaming-editor]");
+  const albumInput = streaming?.querySelector<HTMLInputElement>("[data-apple-album]");
+  const albumLink = streaming?.querySelector<HTMLAnchorElement>("[data-apple-album-link]");
+  const searchPanel = streaming?.querySelector<HTMLElement>("[data-apple-search]");
+  const searchInput = streaming?.querySelector<HTMLInputElement>("[data-apple-search-input]");
+  const status = streaming?.querySelector<HTMLElement>("[data-apple-status]");
+  const results = streaming?.querySelector<HTMLElement>("[data-apple-results]");
+
+  const syncAlbumLink = () => {
+    const ref = parseAppleMusicRef(albumInput?.value, "album");
+    if (!albumLink) return;
+    albumLink.hidden = !ref?.albumId;
+    if (ref?.albumId) albumLink.href = `https://music.apple.com/${ref.storefront}/album/${ref.albumId}`;
+  };
+  albumInput?.addEventListener("input", syncAlbumLink);
+
+  async function request<T>(query: string): Promise<T> {
+    const response = await fetch(`/api/admin/music/apple-music?${query}`, { headers: { accept: "application/json" } });
+    const body = await response.json() as T & { error?: { message: string } };
+    if (!response.ok) throw new Error(body.error?.message ?? `HTTP ${response.status}`);
+    return body;
+  }
+
+  const fillTracks = (tracks: AppleTrack[]) => {
+    const rows = [...(trackRows?.querySelectorAll<HTMLElement>("[data-track-row]") ?? [])];
+    const local = rows.map((row) => ({
+      disc_number: Number(row.querySelector<HTMLInputElement>("[name=track_disc]")?.value || 1),
+      track_number: Number(row.querySelector<HTMLInputElement>("[name=track_number]")?.value || 0),
+      display_title: row.querySelector<HTMLInputElement>("[name=track_title]")?.value ?? "",
+    }));
+    const matches = matchAppleTracks(local, tracks);
+    rows.forEach((row, index) => {
+      const input = row.querySelector<HTMLInputElement>("[name=track_apple_music]");
+      if (input) input.value = matches[index] ?? "";
+      row.dataset.appleMatch = matches[index] ? "ok" : "missing";
+    });
+    return matches.filter(Boolean).length;
+  };
+
+  const chooseAlbum = async (album: AppleAlbum) => {
+    if (!status || !albumInput) return;
+    status.textContent = `正在读取《${album.name}》的曲目…`;
+    try {
+      const { tracks } = await request<{ tracks: AppleTrack[] }>(`album=${encodeURIComponent(album.id)}`);
+      albumInput.value = album.id;
+      syncAlbumLink();
+      const total = trackRows?.querySelectorAll("[data-track-row]").length ?? 0;
+      const matched = fillTracks(tracks);
+      status.textContent = `已选择《${album.name}》，自动填入 ${matched} / ${total} 首。黄色标记的行没有找到对应曲目，可以手动粘贴链接。保存后生效。`;
+      results?.replaceChildren();
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "读取失败";
+    }
+  };
+
+  const search = async () => {
+    if (!status || !results || !searchInput) return;
+    const term = searchInput.value.trim();
+    if (!term) return;
+    status.textContent = "搜索中…";
+    results.replaceChildren();
+    try {
+      const { albums } = await request<{ albums: AppleAlbum[] }>(`term=${encodeURIComponent(term)}`);
+      status.textContent = albums.length ? `找到 ${albums.length} 个结果，点击选择：` : "没有找到结果，换个关键词试试。";
+      for (const album of albums) {
+        const item = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "apple-result";
+        if (album.artwork) {
+          const image = document.createElement("img");
+          image.src = album.artwork;
+          image.alt = "";
+          image.width = 56;
+          image.height = 56;
+          image.loading = "lazy";
+          button.appendChild(image);
+        }
+        const text = document.createElement("span");
+        const name = document.createElement("strong");
+        name.textContent = album.name;
+        const meta = document.createElement("small");
+        meta.textContent = `${album.release_date} · ${album.track_count} 首 · ID ${album.id}`;
+        text.appendChild(name);
+        text.appendChild(meta);
+        button.appendChild(text);
+        button.addEventListener("click", () => chooseAlbum(album));
+        item.appendChild(button);
+        results.appendChild(item);
+      }
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "搜索失败";
+    }
+  };
+
+  streaming?.querySelector("[data-apple-search-toggle]")?.addEventListener("click", () => {
+    if (!searchPanel) return;
+    searchPanel.hidden = !searchPanel.hidden;
+    if (!searchPanel.hidden) { searchInput?.focus(); if (!results?.childElementCount) search(); }
+  });
+  streaming?.querySelector("[data-apple-search-run]")?.addEventListener("click", search);
+  searchInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); search(); }
+  });
 </script>
 
 <style>
@@ -177,15 +312,34 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
   .icon-button { width: 2.25rem; min-height: 2.25rem; padding: 0; }
   .editor-empty { padding: 2rem 1rem; }
   .form-actions { border-top: 1px solid var(--line); padding-top: 1.25rem; }
+  .streaming-album { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; }
+  .streaming-album label { flex: 1 1 320px; }
+  .apple-search { margin-top: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 13px; background: rgba(4,11,20,.52); }
+  .apple-search-bar { display: flex; gap: .5rem; }
+  .apple-search-bar input { flex: 1; }
+  .apple-search-status { margin: .75rem 0 .5rem; min-height: 1.2em; }
+  .apple-results { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+  /* Result rows are created by script and carry no scoped-style attribute. */
+  .apple-results :global(.apple-result) { display: flex; align-items: center; justify-content: flex-start; gap: .8rem; width: 100%; min-height: 0; padding: .5rem; text-align: left; color: var(--text); font-weight: 400; border: 1px solid var(--line); border-radius: 10px; background: transparent; box-shadow: none; }
+  .apple-results :global(.apple-result:hover), .apple-results :global(.apple-result:focus-visible) { border-color: rgba(var(--accent-rgb), .55); background: rgba(var(--accent-rgb), .08); }
+  .apple-results :global(.apple-result img) { flex: none; border-radius: 6px; }
+  .apple-results :global(.apple-result span) { display: grid; gap: .2rem; min-width: 0; }
+  .apple-results :global(.apple-result strong) { font-weight: 650; }
+  .apple-results :global(.apple-result small) { color: var(--muted); font-size: .8rem; }
+  .streaming-album [hidden] { display: none; }
+  .row-apple { grid-column: 4 / 5; }
+  .row-youtube { grid-column: 5 / 7; }
+  .track-row[data-apple-match="ok"] [name=track_apple_music] { border-color: rgba(121, 217, 166, .6); }
+  .track-row[data-apple-match="missing"] { border-color: rgba(240, 190, 80, .55); }
   @media (max-width: 1100px) {
     .editor-row { grid-template-columns: 45px 70px 80px 1fr auto; }
-    .row-main, .row-title, .row-note { grid-column: 2 / -1; }
+    .row-main, .row-title, .row-note, .row-apple, .row-youtube { grid-column: 2 / -1; }
     .row-actions { grid-column: 5; grid-row: 1; }
   }
   @media (max-width: 680px) {
     .editor-heading { align-items: stretch; flex-direction: column; }
     .editor-row { grid-template-columns: 42px 1fr 1fr; }
-    .row-main, .row-title, .row-note { grid-column: 1 / -1; }
+    .row-main, .row-title, .row-note, .row-apple, .row-youtube { grid-column: 1 / -1; }
     .row-actions { grid-column: 1 / -1; grid-row: auto; }
   }
 </style>

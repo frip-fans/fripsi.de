@@ -102,12 +102,18 @@ export const eventArchiveSchema = z.object({
   idempotency_key: idempotencyKeySchema,
 });
 
+const appleMusicIdSchema = z.string().regex(/^\d{1,20}$/, "Apple Music ID 应为数字");
+const youTubeIdSchema = z.string().regex(/^[\w-]{11}$/, "YouTube 视频 ID 格式不正确");
+
 const releaseTrackSchema = z.object({
   song_version_id: z.string().trim().min(1).max(160),
   disc_number: z.number().int().min(1).max(99),
   track_number: z.number().int().min(1).max(999),
   display_title: z.string().trim().min(1).max(240),
   notes: optionalText(1000),
+  // Streaming ids: undefined keeps the value already stored for this disc/track slot, null clears it.
+  apple_music_track_id: appleMusicIdSchema.nullish(),
+  youtube_video_id: youTubeIdSchema.nullish(),
 });
 
 export const releaseSaveSchema = z.object({
@@ -126,6 +132,9 @@ export const releaseSaveSchema = z.object({
   published: z.boolean(),
   sources: z.array(catalogSourceSchema).max(10),
   tracks: z.array(releaseTrackSchema).max(80),
+  // undefined keeps the stored album id, null clears it.
+  apple_music_album_id: appleMusicIdSchema.nullish(),
+  apple_music_storefront: z.string().regex(/^[a-z]{2}$/).nullish(),
 }).superRefine((input, context) => {
   if (input.id && !input.expected_updated_at) {
     context.addIssue({ code: "custom", path: ["expected_updated_at"], message: "编辑专辑时缺少并发校验值" });
@@ -501,18 +510,49 @@ export class ContentAdminService {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(id, slug, input.title, input.release_type, input.release_date ?? null, input.catalog_number, input.edition, input.notes, input.published ? 1 : 0, coverUrl, coverSourceUrl, now, now));
     }
+    // Track rows are recreated below, so their streaming ids are rewritten against the new row ids.
+    // Fields left undefined keep what was stored for the same disc/track slot.
+    const slotKey = (disc: number, track: number) => `${disc}:${track}`;
+    const previousTrackIds = new Map((before?.tracks ?? []).map((track) => [slotKey(track.disc_number, track.track_number), track]));
+    const appleAlbumId = input.apple_music_album_id === undefined ? before?.apple_music_album_id ?? null : input.apple_music_album_id;
+    const appleStorefront = input.apple_music_storefront ?? before?.apple_music_storefront ?? "jp";
+    statements.push(
+      this.db.prepare(`DELETE FROM release_track_external_ids WHERE release_track_id IN (SELECT id FROM release_tracks WHERE release_id = ?) AND ${conditionSql}`).bind(id, ...conditionBindings),
+      this.db.prepare(`DELETE FROM release_external_ids WHERE release_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),
+    );
+    if (appleAlbumId) {
+      statements.push(this.db.prepare(`INSERT INTO release_external_ids (release_id, provider, external_id, storefront, checked_at)
+        SELECT ?, 'apple_music', ?, ?, ? WHERE ${conditionSql}`).bind(id, appleAlbumId, appleStorefront, now, ...conditionBindings));
+    }
     statements.push(
       this.db.prepare(`DELETE FROM release_tracks WHERE release_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),
       this.db.prepare(`DELETE FROM catalog_sources WHERE subject_type = 'release' AND subject_id = ? AND ${conditionSql}`).bind(id, ...conditionBindings),
     );
+    const savedStreaming: Array<{ apple_music_track_id: string | null; youtube_video_id: string | null }> = [];
     for (const track of input.tracks) {
+      const trackId = makeId("mus_track");
       statements.push(this.db.prepare(`INSERT INTO release_tracks (
         id, release_id, song_version_id, disc_number, track_number, display_title, notes, created_at
       ) SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE ${conditionSql}`)
-        .bind(makeId("mus_track"), id, track.song_version_id, track.disc_number, track.track_number, track.display_title, track.notes, now, ...conditionBindings));
+        .bind(trackId, id, track.song_version_id, track.disc_number, track.track_number, track.display_title, track.notes, now, ...conditionBindings));
+      const previous = previousTrackIds.get(slotKey(track.disc_number, track.track_number));
+      const streaming = {
+        apple_music_track_id: track.apple_music_track_id === undefined ? previous?.apple_music_track_id ?? null : track.apple_music_track_id,
+        youtube_video_id: track.youtube_video_id === undefined ? previous?.youtube_video_id ?? null : track.youtube_video_id,
+      };
+      savedStreaming.push(streaming);
+      for (const [provider, externalId, storefront] of [["apple_music", streaming.apple_music_track_id, appleStorefront], ["youtube", streaming.youtube_video_id, null]] as const) {
+        if (!externalId) continue;
+        statements.push(this.db.prepare(`INSERT INTO release_track_external_ids (release_track_id, provider, external_id, storefront, checked_at)
+          SELECT ?, ?, ?, ?, ? WHERE ${conditionSql}`).bind(trackId, provider, externalId, storefront, now, ...conditionBindings));
+      }
     }
     for (const source of input.sources) statements.push(sourceInsertStatement(this.db, "release", id, source, actor, now, conditionSql, conditionBindings));
-    const after = { ...input, id, slug, cover_url: coverUrl, cover_source_url: coverSourceUrl, updated_at: now };
+    const after = {
+      ...input, id, slug, cover_url: coverUrl, cover_source_url: coverSourceUrl, updated_at: now,
+      apple_music_album_id: appleAlbumId, apple_music_storefront: appleAlbumId ? appleStorefront : null,
+      tracks: input.tracks.map((track, index) => ({ ...track, ...savedStreaming[index] })),
+    };
     statements.push(
       auditStatement(this.db, actor, requestId, before ? "content.release.update" : "content.release.create", "release", id, before, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.release.save", id, now, conditionSql, conditionBindings),

@@ -1,4 +1,4 @@
-import { ServiceError } from "@frip-fan/core";
+import { parseAppleMusicRef, parseYouTubeId, ServiceError } from "@frip-fan/core";
 import type {
   DirectEventSaveInput,
   EventDraft,
@@ -114,6 +114,12 @@ export function readReleaseSave(form: FormData): ReleaseSaveInput {
   const numbers = all(form, "track_number");
   const titles = all(form, "track_title");
   const notes = all(form, "track_notes");
+  const appleTracks = all(form, "track_apple_music");
+  const youtubeTracks = all(form, "track_youtube");
+  // The editor posts the streaming fields only when it renders them; absent fields keep stored ids.
+  const hasStreaming = form.has("apple_music_album");
+  const album = parseStreamingField(optional(form, "apple_music_album"), (value) => parseAppleMusicRef(value, "album")?.albumId, "Apple Music 专辑");
+  const albumRef = parseAppleMusicRef(optional(form, "apple_music_album"), "album");
   return {
     id: optional(form, "id") ?? undefined,
     expected_updated_at: optional(form, "expected_updated_at") ?? undefined,
@@ -135,8 +141,22 @@ export function readReleaseSave(form: FormData): ReleaseSaveInput {
       track_number: Number(numbers[index] ?? index + 1),
       display_title: titles[index] ?? "",
       notes: notes[index] || null,
+      ...(hasStreaming ? {
+        apple_music_track_id: parseStreamingField(appleTracks[index], (value) => parseAppleMusicRef(value, "track")?.trackId, `第 ${index + 1} 行 Apple Music 曲目`),
+        youtube_video_id: parseStreamingField(youtubeTracks[index], parseYouTubeId, `第 ${index + 1} 行 YouTube`),
+      } : {}),
     })),
+    ...(hasStreaming ? { apple_music_album_id: album, apple_music_storefront: albumRef?.storefront ?? null } : {}),
   };
+}
+
+/** Empty clears the id; anything else must parse, so a mistyped link is reported instead of silently dropped. */
+function parseStreamingField(value: string | null | undefined, parse: (value: string) => string | null | undefined, label: string): string | null {
+  const input = value?.trim();
+  if (!input) return null;
+  const id = parse(input);
+  if (!id) throw new ServiceError("invalid_streaming_id", `${label}：无法识别的链接或 ID`, 400);
+  return id;
 }
 
 export function readSongSave(form: FormData): SongSaveInput {

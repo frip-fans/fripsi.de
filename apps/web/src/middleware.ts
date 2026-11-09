@@ -14,12 +14,16 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("x-frame-options", "DENY");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
-  const coverOrigin = allowCoverPreview ? " https://fripside.net" : "";
+  // The release editor previews official covers and Apple Music search artwork.
+  const coverOrigin = allowCoverPreview ? " https://fripside.net https://*.mzstatic.com" : "";
   const giscusOrigin = allowGiscus ? " https://giscus.app" : "";
   const vectorMapOrigin = allowVectorMap ? " https://tiles.openfreemap.org" : "";
   const vectorMapBlob = allowVectorMap ? " blob:" : "";
   const youtubeOrigin = allowVectorMap ? " https://www.youtube.com https://www.youtube-nocookie.com" : "";
-  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${giscusOrigin}${youtubeOrigin}`);
+  // Listen players on release/song pages. Client-side navigation keeps the first document's CSP,
+  // so every page allows these frames; they load only after a visitor clicks.
+  const listenFrames = " https://embed.music.apple.com https://www.youtube-nocookie.com";
+  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${giscusOrigin}${youtubeOrigin}${listenFrames}`);
   if (locale && headers.get("content-type")?.includes("text/html")) {
     headers.set("content-language", locale);
     headers.append("vary", "Cookie");

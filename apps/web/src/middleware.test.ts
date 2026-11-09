@@ -12,9 +12,9 @@ vi.mock("@frip-fan/core", async (importOriginal) => ({
 }));
 import { onRequest } from "./middleware";
 
-async function request(path = "/") {
+async function request(path = "/", init?: ResponseInit & { status?: number }) {
   const req = new Request(`https://staging.fripsi.de${path}`);
-  const next = vi.fn(async () => new Response("private content", { headers: { "content-type": "text/html" } }));
+  const next = vi.fn(async () => new Response("private content", { headers: { "content-type": "text/html" }, ...init }));
   const response = await onRequest({ request: req, url: new URL(req.url), locals: {} } as Parameters<typeof onRequest>[0], next);
   if (!(response instanceof Response)) throw new Error("Middleware did not return a response");
   return { response, next };
@@ -57,12 +57,51 @@ describe("staging access isolation", () => {
     expect(mocks.authenticate).not.toHaveBeenCalled();
     expect(response.headers.has("x-robots-tag")).toBe(false);
   });
+  it.each(["/about", "/calendar", "/music/lives"])("allows Giscus after client navigation from %s", async path => {
+    mocks.env.APP_ENV = "production";
+    const { response } = await request(path);
+    const policy = response.headers.get("content-security-policy")!;
+    expect(policy).toMatch(/script-src [^;]*https:\/\/giscus\.app/);
+    expect(policy).toMatch(/frame-src [^;]*https:\/\/giscus\.app/);
+  });
+  it("keeps Giscus disabled for admin documents", async () => {
+    mocks.env.APP_ENV = "production";
+    mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
+    const { response } = await request("/admin");
+    expect(response.headers.get("content-security-policy")).not.toContain("https://giscus.app");
+  });
   it("keeps list view caching private after moving the archive under calendar", async () => {
     mocks.env.APP_ENV = "production";
     const { response } = await request("/calendar?view=list&year=2025");
     expect(response.headers.get("cache-control")).toBe("private, max-age=60, stale-while-revalidate=30");
-    const { response: calendar } = await request("/calendar?view=calendar");
-    expect(calendar.headers.has("cache-control")).toBe(false);
+  });
+
+  it("lets a prefetch and the back button reuse a public document, never a shared cache", async () => {
+    mocks.env.APP_ENV = "production";
+    for (const path of ["/", "/about", "/calendar?view=calendar", "/music/lives"]) {
+      const { response } = await request(path);
+      expect(response.headers.get("cache-control"), path).toBe("private, max-age=60, stale-while-revalidate=30");
+      expect(response.headers.get("vary"), path).toContain("Cookie");
+    }
+  });
+
+  it("leaves responses that carry their own policy, an error or state uncached", async () => {
+    mocks.env.APP_ENV = "production";
+    const own = await request("/healthz", { headers: { "content-type": "text/html", "cache-control": "no-store" } });
+    expect(own.response.headers.get("cache-control")).toBe("no-store");
+    const missing = await request("/nope", { status: 404, headers: { "content-type": "text/html" } });
+    expect(missing.response.headers.has("cache-control")).toBe(false);
+    const stateful = await request("/", { headers: { "content-type": "text/html", "set-cookie": "a=1" } });
+    expect(stateful.response.headers.has("cache-control")).toBe(false);
+    const feed = await request("/calendar.ics", { headers: { "content-type": "text/calendar" } });
+    expect(feed.response.headers.has("cache-control")).toBe(false);
+  });
+
+  it("keeps every admin document out of any cache", async () => {
+    mocks.env.APP_ENV = "production";
+    mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
+    const { response } = await request("/admin/events");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
 
 });

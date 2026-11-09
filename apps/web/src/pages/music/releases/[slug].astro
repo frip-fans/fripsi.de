@@ -17,7 +17,7 @@ let previousDisc = 0;
 <SiteLayout title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
   <div class="music-page" data-music-detail>
     <MusicBackLink href="/music/releases" storageKey="music:list:releases" label={t(locale, "music.backReleases")} />
-    <header class="music-detail-head release-detail-header">
+    <header class="music-detail-head release-detail-header" data-page-entry>
       <div>
         <ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} eager />
         {release.cover_url && release.cover_source_url && <a class="release-cover-source" href={release.cover_source_url} target="_blank" rel="noreferrer">{t(locale, "music.coverSource")} <Icon name="box-arrow-up-right" /></a>}

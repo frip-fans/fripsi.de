@@ -11,6 +11,7 @@ const { locale } = Astro.props;
 {getEnv().APP_ENV !== "staging" && <div class="giscus-frame">
   <script
     is:inline
+    data-astro-rerun
     src="https://giscus.app/client.js"
     data-repo="frip-fans/fripsi.de"
     data-repo-id="R_kgDOTcXMzQ"

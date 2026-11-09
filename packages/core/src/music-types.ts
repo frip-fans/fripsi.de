@@ -91,6 +91,8 @@ export interface SongReleaseAppearance {
 
 export interface SongPerformance {
   setlist_id: string;
+  setlist_title?: string | null;
+  event_classification?: string | null;
   performance_label: string;
   event_slug: string;
   event_title: string;

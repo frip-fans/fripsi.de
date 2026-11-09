@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { getSongBySlug, songPerformancePagination } from "./music-repository";
+import { countPublicSetlistsSince, getSongBySlug, songPerformancePagination } from "./music-repository";
 
 function fixture() {
   const sqlite = new DatabaseSync(":memory:");
@@ -36,6 +36,15 @@ function fixture() {
 }
 
 describe("song detail pagination and covers", () => {
+  it("counts public setlists since a date for the performance rate", async () => {
+    const { sqlite, db } = fixture();
+    try {
+      // 47 setlists: one with an unpublished event, one unpublished setlist and one archived event are excluded.
+      expect(await countPublicSetlistsSince(db, "2026-01-01")).toBe(44);
+      expect(await countPublicSetlistsSince(db, "2026-09-02")).toBe(0);
+      expect(await countPublicSetlistsSince(db, "not-a-date")).toBe(0);
+    } finally { sqlite.close(); }
+  });
   it("pages public performances without duplicates or omissions while preserving totals and release covers", async () => {
     const { sqlite, db } = fixture();
     try {

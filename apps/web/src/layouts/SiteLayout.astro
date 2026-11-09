@@ -67,7 +67,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     <link rel="canonical" href={new URL(Astro.url.pathname, canonicalBase)} />
     <title>{title === siteName ? title : `${title} · ${siteName}`}</title>
     {clientRouting && <script is:inline src={`${routerBootstrap}?release=${encodeURIComponent(getEnv().FRIP_RELEASE_SHA || "development")}`}></script>}
-    {clientRouting && <ClientRouter fallback="swap" />}
+    {clientRouting && <ClientRouter fallback="animate" />}
   </head>
   <body class:list={{ admin }}>
     <div class="safe-area-top" aria-hidden="true"></div>
@@ -233,20 +233,20 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         event.preventDefault(); first?.focus();
       }
     }, { signal });
-    // Bind to the anchor itself: close even when nested content stops bubbling
-    // or a browser reports a non-Element target for touch activation.
+    // Keep the menu covering the outgoing page while the router (or browser)
+    // loads the destination. Same-document links still need to dismiss it.
     menu.querySelectorAll<HTMLAnchorElement>("a[href]").forEach(link => {
       link.addEventListener("click", event => {
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || (link.target && link.target !== "_self")) return;
-        closeMenu(false);
-      }, { capture: true, signal });
+        const target = new URL(link.href, location.href);
+        if (target.origin === location.origin && target.pathname === location.pathname && target.search === location.search) closeMenu(false);
+      }, { signal });
     });
     const mobile = matchMedia("(max-width: 760px)");
     mobile.addEventListener("change", () => { if (!mobile.matches) closeMenu(false); }, { signal });
-    // Close the menu before starting public navigation feedback.
-    document.addEventListener("astro:before-preparation", () => closeMenu(false), { capture: true, signal });
-    document.addEventListener("astro:before-swap", () => closeMenu(false), { signal });
-    document.documentElement.classList.add("mobile-menu-ready");
+    // The old DOM is detached now: cleanup cannot reveal the outgoing page.
+    document.addEventListener("astro:after-swap", () => closeMenu(false), { signal });
+    window.addEventListener("pageshow", event => { if (event.persisted) closeMenu(false); }, { signal });
     setOpenState(false);
   };
   setupNavigation();
@@ -396,7 +396,14 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .mobile-nav-group > summary:hover { background: rgba(255,255,255,.07); }
   .mobile-nav-submenu { margin-left: 1rem; padding-left: .5rem; border-left: 1px solid var(--line); }
   .nav-community:hover, .nav-community.active { color: #050b12; background: rgb(244, 145, 80); box-shadow: 0 10px 28px rgba(var(--accent-rgb), .22), inset 0 -1px rgba(255,255,255,.34); }
-  main { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; min-height: calc(100vh - 180px); }
+  /* Fade through black without reducing translucent cards' opacity: otherwise
+     the bright background leaks through and makes dark panels flash lighter. */
+  @keyframes page-shade-out { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes page-shade-in { from { opacity: 1; } to { opacity: 0; } }
+  main::after { content: ""; position: absolute; inset: 0; z-index: 100; background: #000; opacity: 0; pointer-events: none; }
+  html[data-page-transition][data-astro-transition-fallback="old"] main::after { animation: page-shade-out 120ms ease-in both; }
+  html[data-page-transition][data-astro-transition-fallback="new"] main::after { animation: page-shade-in 187ms ease-out both; }
+  main { position: relative; isolation: isolate; width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; min-height: calc(100vh - 180px); }
   footer { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; border-top: 1px solid var(--line); padding: 1.5rem 0 2.5rem; display: flex; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .78rem; }
   .footer-links { display: flex; align-items: center; justify-content: flex-end; gap: .9rem 1.15rem; flex-wrap: wrap; }
   .footer-language { flex: 0 0 auto; }
@@ -465,8 +472,8 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     .site-header { min-height: 80px; padding: .75rem 0; flex-wrap: wrap; justify-content: space-between; }
     .brand { min-width: 0; }
     .header-actions { width: 100%; margin-left: 0; justify-content: flex-start; flex-wrap: wrap; }
-    .mobile-menu-ready .header-actions { display: none; }
-    .mobile-menu-ready .mobile-menu-trigger { display: inline-flex; }
+    .header-actions { display: none; }
+    .mobile-menu-trigger { display: inline-flex; }
     main { padding-top: 1.25rem; }
     .form-grid { grid-template-columns: 1fr; }
     footer { flex-direction: column; }
@@ -486,5 +493,6 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     html { scroll-behavior: auto; }
     *, *::before, *::after { scroll-behavior: auto !important; }
     .space-backdrop { transition: none; transform: none; }
+    main::after { animation: none !important; }
   }
 </style>

@@ -42,27 +42,25 @@ export function setupPageEntryTransitions() {
       to: event.to.href, signal: event.signal,
     };
   });
+  document.addEventListener("astro:before-swap", event => {
+    const fade = pending?.kind === "page" && !pending.signal.aborted;
+    for (const root of [document.documentElement, event.newDocument.documentElement]) {
+      root.toggleAttribute("data-page-transition", Boolean(fade));
+    }
+  });
   document.addEventListener("astro:after-swap", () => {
     const navigation = pending;
     pending = undefined;
     if (!navigation || navigation.signal.aborted || navigation.to !== location.href || navigation.kind === "none") return;
+    // Full page changes use the layout shade; avoid a second opacity animation
+    // on translucent panels and headings during that same transition.
+    if (navigation.kind === "page") return;
     const music = document.querySelector<HTMLElement>("[data-music-browser]");
     const calendar = document.querySelector<HTMLElement>("[data-calendar-shell]");
     if (navigation.kind === "music") { musicResults = music?.querySelector("[data-music-results]") ?? null; return; }
     if (navigation.kind === "calendar" && calendar) { playCalendarEntry(calendar); return; }
     if (navigation.kind === "search") { playResultsEntry(document.querySelector("[data-search-results]")); return; }
-    if (music) {
-      playContentEntry(music.querySelector("[data-page-entry]"));
-      musicResults = music.querySelector("[data-music-results]");
-    } else if (calendar) {
-      playContentEntry(calendar.querySelector("[data-page-entry]"));
-      if (calendar.dataset.mode === "list") playResultsEntry(calendar.querySelector("[data-search-results]"));
-      else playCalendarEntry(calendar);
-    } else {
-      const targets = [...document.querySelectorAll<HTMLElement>("main [data-page-entry]")];
-      if (!targets.length) targets.push(document.querySelector("main h1")!);
-      targets.filter(Boolean).slice(0, 2).forEach(playContentEntry);
-    }
+
   });
   document.addEventListener("astro:page-load", () => {
     const target = musicResults;

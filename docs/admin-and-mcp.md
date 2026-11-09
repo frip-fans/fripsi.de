@@ -1,14 +1,14 @@
 # 管理后台与 MCP
 
-> OCI 当前部署见 [OCI 部署](oci-deployment.md)。Web：`https://fripsi.de`；MCP：`https://fripsi.de/mcp`；测试 Web：`https://staging.fripsi.de`；测试 MCP：`https://mcp-staging.fripsi.de/mcp`。以下 Cloudflare 部署命令与旧 workers.dev 地址仅供历史核对和回退；旧公开入口将在切换后关闭，避免写入旧 D1。
+> 生产 Web：`https://fripsi.de`，MCP：`https://fripsi.de/mcp`；测试 Web：`https://staging.fripsi.de`，测试 MCP：`https://mcp-staging.fripsi.de/mcp`。部署见 [部署与运维](oci-deployment.md)。
 
 ## 1. 共同业务层
 
 管理后台和 MCP 是两种操作界面，但必须调用同一套服务：
 
 ```text
-Admin API ──> ContentAdminService ─────────────> D1
-MCP Tools ──> EventService / ChangeService ───> D1
+Admin API ──> ContentAdminService ─────────────> SQLite
+MCP Tools ──> EventService / ChangeService ───> SQLite
 ```
 
 共享服务负责：
@@ -29,7 +29,7 @@ MCP Tools ──> EventService / ChangeService ───> D1
 
 `/admin/*` 和 `/api/admin/*` 使用 Cloudflare Access 保护。允许登录方式可从邮件一次性验证码开始，后续接入 GitHub/Google。
 
-Worker 接到请求后仍需验证 `Cf-Access-Jwt-Assertion`：
+应用接到请求后仍需验证 `Cf-Access-Jwt-Assertion`：
 
 - 签名有效。
 - issuer 匹配 Access team domain。
@@ -64,9 +64,12 @@ Worker 接到请求后仍需验证 `Cf-Access-Jwt-Assertion`：
 - 分类和细分类。
 - 状态、地点形态、一个或多个实体场馆、行政区、线上/广播渠道和备注。
 - 多个来源 URL。
+- 别名（显示名）、所属巡演和场次，规则见 [数据模型](./data-model.md#显示名与巡演0016_event_alias_tourssql)。
 - 直接保存；关闭“公开显示”后记录只在后台可见。
 
-人工后台不为每次编辑额外创建 change set。所有保存仍要求服务端校验、幂等键和乐观锁，并在同一 D1 batch 中写入业务数据、operation receipt 和 audit log。`change_sets` 保留给 AI/MCP 提案，避免低风险日常维护被重复确认拖慢，也不降低自动化写入的审核门槛。
+`/admin/tours` 维护巡演的名称、slug、说明和是否公开，并列出各站、歌单是否已补；同一巡演中显示名重复的站会被标出，需要在活动里填写场次。
+
+人工后台不为每次编辑额外创建 change set。所有保存仍要求服务端校验、幂等键和乐观锁，并在同一 batch（SQLite 事务）中写入业务数据、operation receipt 和 audit log。`change_sets` 保留给 AI/MCP 提案，避免低风险日常维护被重复确认拖慢，也不降低自动化写入的审核门槛。
 
 危险操作必须二次确认，并显示影响：
 
@@ -80,7 +83,7 @@ Worker 接到请求后仍需验证 `Cf-Access-Jwt-Assertion`：
 
 ### 3.1 定位
 
-MCP 让 Codex、ChatGPT 或其他兼容客户端成为受控编辑助手。MCP 模式不需要站点调用 OpenAI API，也不需要前台聊天框。另有独立的[官方活动自动同步 Worker](./official-sync.md)，在维护者启用自动发布后，通过共享业务层验证并发布；不改变 MCP 对每次发布明确确认的要求。
+MCP 让 Codex、ChatGPT 或其他兼容客户端成为受控编辑助手。MCP 模式不需要站点调用 OpenAI API，也不需要前台聊天框。另有独立的[官方活动自动同步任务](./official-sync.md)，在维护者启用自动发布后，通过共享业务层验证并发布；不改变 MCP 对每次发布明确确认的要求。
 
 典型对话：
 
@@ -93,21 +96,21 @@ AI：已发布，并返回公开活动 URL。
 
 ### 3.2 Transport 与认证
 
-MCP Worker 使用 `@modelcontextprotocol/server` v2 和 `agents/mcp/server` 的无状态 `createMcpHandler`。认证通过后传入 server factory，每个请求创建独立服务器，并绑定本次认证身份；不复用已连接的服务器或权限上下文。
+MCP 处理（`apps/mcp`，由 Web 进程在 `/mcp` 调用）使用 `@modelcontextprotocol/server` v2 和 `agents/mcp/server` 的无状态 `createMcpHandler`。认证通过后传入 server factory，每个请求创建独立服务器，并绑定本次认证身份；不复用已连接的服务器或权限上下文。
 
 `@modelcontextprotocol/server` 与测试客户端 `@modelcontextprotocol/client` 的版本按 Agents 的 peer 要求精确匹配。项目不再依赖 SDK v1。handler 使用 `responseMode: "json"`，并以 `legacy: "stateless"` 兼容现有 2025-era HTTP 客户端；这不需要保留 SDK v1 或协议会话。
 
 普通编辑者的发布确认、自动同步身份的任务绑定与 `preview_digest` 校验继续由现有业务服务执行。协议测试覆盖自动同步的查询、提案、预览和自动发布；HTTP 测试覆盖 v2 客户端、旧客户端初始化、未认证拒绝和 Host/Origin 校验。
 
-MCP Worker 不随 Web 的分支构建自动部署。发布时按现有独立 MCP 部署流程先在 staging 验收，再发布生产；代码合并本身不会更新在线 MCP Worker。
+MCP 随网站一起部署：staging 验收后通过发布 PR 进入生产，没有单独的 MCP 部署流程。
 
-- Endpoint：`https://mcp.example.com/mcp`
+- Endpoint：`https://fripsi.de/mcp`（测试：`https://mcp-staging.fripsi.de/mcp`）
 - Transport：Streamable HTTP
 - Authentication：OAuth 2.1
 - OAuth provider：优先 Cloudflare Access OAuth Provider
 - 匿名调用：不允许
 
-每日官方同步使用专用的短期任务 JWT，不通过普通 OAuth scope 获得自动发布权限。它由 sync Worker 签发，由 MCP Worker 独立校验，详见[自动同步的认证与配置](./official-sync.md)。
+每日官方同步使用专用的短期任务 JWT，不通过普通 OAuth scope 获得自动发布权限。它由同步任务签发，由 MCP 处理独立校验，详见[自动同步的认证与配置](./official-sync.md)。
 
 建议 scopes：
 
@@ -337,5 +340,5 @@ default_tools_approval_mode = "writes"
 - 重复活动警告。
 - 版本冲突。
 - 已发布/已丢弃 change set 再次发布。
-- D1 写入失败时无部分提交。
+- 数据库写入失败时无部分提交。
 - 工具结果不包含凭据或内部异常堆栈。

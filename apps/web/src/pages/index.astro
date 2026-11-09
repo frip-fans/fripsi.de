@@ -86,7 +86,7 @@ const nextCountdown = !next
           <Icon name="archive" size=".8rem" />
           <span class="today-pill-label">{t(locale, "home.onThisDay")}</span>
           <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
-          <span class="today-pill-event"><span>{onThisDay.event.title}</span></span>
+          <span class="today-pill-event"><span>{onThisDay.event.display_title ?? onThisDay.event.title}</span></span>
           <Icon name="chevron-right" size=".7rem" />
         </a>
       )}
@@ -104,7 +104,7 @@ const nextCountdown = !next
       {next ? (
         <>
           <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
-          <h2>{next.title}</h2>
+          <h2>{next.display_title ?? next.title}</h2>
           {updateLabel(next.id) && <p class="signal-update"><span class="tag update">{updateLabel(next.id)}</span></p>}
           <div class="signal-footer">
             <p>{next.location_label || t(locale, "common.locationPending")}</p>

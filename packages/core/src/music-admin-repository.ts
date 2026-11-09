@@ -1,3 +1,5 @@
+import { eventTourStopSql } from "./event-display";
+import { idInJson, matchReleaseIds, matchSetlistIds, matchSongIds } from "./search-index";
 import type {
   AdminReleaseDetail,
   AdminReleaseSummary,
@@ -28,9 +30,6 @@ interface AdminSongVersionRow extends Omit<AdminSongVersion, "published" | "sour
   published: number;
 }
 
-function likePattern(value: string): string {
-  return `%${value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-}
 
 const adminEventVenueDisplay = `(SELECT GROUP_CONCAT(COALESCE(ev.display_name_snapshot, v.canonical_name), ' / ')
   FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
@@ -77,12 +76,8 @@ const adminSongSelect = `
 
 export async function listAdminSongs(db: D1Database, query?: string, limit = 500): Promise<AdminSongSummary[]> {
   const search = query?.trim();
-  const pattern = search ? likePattern(search) : null;
-  const where = search ? `WHERE s.title LIKE ? ESCAPE '\\' OR s.original_artist LIKE ? ESCAPE '\\'
-    OR s.slug LIKE ? ESCAPE '\\' OR EXISTS (
-      SELECT 1 FROM song_aliases sa WHERE sa.song_id = s.id AND sa.alias LIKE ? ESCAPE '\\'
-    )` : "";
-  const bindings = pattern ? [pattern, pattern, pattern, pattern] : [];
+  const where = search ? `WHERE ${idInJson("s.id")}` : "";
+  const bindings = search ? [JSON.stringify(await matchSongIds(db, search, "all"))] : [];
   const result = await db.prepare(`${adminSongSelect}
     ${where}
     ORDER BY s.updated_at DESC, s.title COLLATE NOCASE ASC
@@ -137,7 +132,7 @@ const adminReleaseSelect = `
 `;
 
 const adminSetlistSelect = `
-  SELECT sl.*, e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
+  SELECT sl.*, e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.category AS event_category,
     e.classification AS event_classification, e.start_date, e.start_time,
     ${adminEventVenueDisplay} AS venue, ${adminEventAreaDisplay} AS region,
     (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count
@@ -147,8 +142,8 @@ const adminSetlistSelect = `
 
 export async function listAdminReleases(db: D1Database, query?: string, limit = 500): Promise<AdminReleaseSummary[]> {
   const search = query?.trim();
-  const where = search ? "WHERE r.title LIKE ? ESCAPE '\\' OR r.catalog_number LIKE ? ESCAPE '\\' OR r.slug LIKE ? ESCAPE '\\'" : "";
-  const bindings = search ? [likePattern(search), likePattern(search), likePattern(search)] : [];
+  const where = search ? `WHERE ${idInJson("r.id")}` : "";
+  const bindings = search ? [JSON.stringify(await matchReleaseIds(db, search, "all"))] : [];
   const result = await db.prepare(`${adminReleaseSelect}
     ${where}
     ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC
@@ -161,32 +156,41 @@ export async function getAdminReleaseById(db: D1Database, id: string): Promise<A
   const row = await db.prepare(`${adminReleaseSelect} WHERE r.id = ?`).bind(id).first<AdminReleaseRow>();
   if (!row) return null;
   const release = mapRelease(row);
-  const [tracksResult, sources] = await Promise.all([
+  const [tracksResult, sources, appleAlbum, aliasesResult] = await Promise.all([
     db.prepare(`
       SELECT rt.id, rt.disc_number, rt.track_number, rt.display_title, rt.notes,
         s.id AS song_id, s.slug AS song_slug, s.title AS song_title,
         sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label,
         (SELECT COUNT(DISTINCT se.setlist_id) FROM setlist_entries se WHERE se.song_id = s.id) AS work_show_count,
-        (SELECT COUNT(DISTINCT se.setlist_id) FROM setlist_entries se WHERE se.performed_version_id = sv.id) AS exact_version_show_count
+        (SELECT COUNT(DISTINCT se.setlist_id) FROM setlist_entries se WHERE se.performed_version_id = sv.id) AS exact_version_show_count,
+        tam.external_id AS apple_music_track_id, tyt.external_id AS youtube_video_id
       FROM release_tracks rt
       JOIN song_versions sv ON sv.id = rt.song_version_id
       JOIN songs s ON s.id = sv.song_id
+      LEFT JOIN release_track_external_ids tam ON tam.release_track_id = rt.id AND tam.provider = 'apple_music'
+      LEFT JOIN release_track_external_ids tyt ON tyt.release_track_id = rt.id AND tyt.provider = 'youtube'
       WHERE rt.release_id = ?
       ORDER BY rt.disc_number ASC, rt.track_number ASC
     `).bind(id).all<ReleaseTrackRecord>(),
     listSources(db, "release", id),
+    db.prepare("SELECT external_id, storefront FROM release_external_ids WHERE release_id = ? AND provider = 'apple_music'")
+      .bind(id).first<{ external_id: string; storefront: string | null }>(),
+    db.prepare("SELECT alias FROM release_aliases WHERE release_id = ? ORDER BY alias COLLATE NOCASE ASC").bind(id).all<{ alias: string }>(),
   ]);
-  return { ...release, tracks: tracksResult.results, sources };
+  return {
+    ...release,
+    aliases: aliasesResult.results.map((row) => row.alias),
+    tracks: tracksResult.results,
+    sources,
+    apple_music_album_id: appleAlbum?.external_id ?? null,
+    apple_music_storefront: appleAlbum?.storefront ?? null,
+  };
 }
 
 export async function listAdminSetlists(db: D1Database, query?: string, limit = 500): Promise<AdminSetlistSummary[]> {
   const search = query?.trim();
-  const pattern = search ? likePattern(search) : null;
-  const where = search ? `WHERE e.title LIKE ? ESCAPE '\\' OR sl.title LIKE ? ESCAPE '\\' OR EXISTS (
-    SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
-    WHERE ev.event_id = e.id AND v.canonical_name LIKE ? ESCAPE '\\'
-  )` : "";
-  const bindings = pattern ? [pattern, pattern, pattern] : [];
+  const where = search ? `WHERE ${idInJson("sl.id")}` : "";
+  const bindings = search ? [JSON.stringify(await matchSetlistIds(db, search, "all"))] : [];
   const result = await db.prepare(`${adminSetlistSelect}
     ${where}
     ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label ASC
@@ -228,7 +232,9 @@ export async function getAdminSetlistById(db: D1Database, id: string): Promise<A
 
 export async function getMusicEditorOptions(db: D1Database): Promise<MusicEditorOptions> {
   const [songs, versions, events] = await Promise.all([
-    db.prepare("SELECT id, slug, title FROM songs ORDER BY title COLLATE NOCASE ASC").all<MusicEditorOptions["songs"][number]>(),
+    db.prepare(`SELECT s.id, s.slug, s.title,
+      (SELECT GROUP_CONCAT(a.alias, char(10)) FROM song_aliases a WHERE a.song_id = s.id) AS aliases
+      FROM songs s ORDER BY s.title COLLATE NOCASE ASC`).all<MusicEditorOptions["songs"][number]>(),
     db.prepare(`
       SELECT id, song_id, slug, title, version_label
       FROM song_versions

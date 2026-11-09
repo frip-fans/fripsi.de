@@ -1,3 +1,4 @@
+import { eventTourStopSql } from "./event-display";
 import type {
   CatalogSource,
   MusicLibraryOverview,
@@ -20,6 +21,7 @@ import type {
   SongVersionRecord,
   VersionRelationRecord,
 } from "./music-types";
+import { idInJson, matchReleaseIds, matchSetlistIds, matchSongIds } from "./search-index";
 import { computeSetlistHighlights, type SetlistHighlightOptions, type SetlistHighlightRow, type SetlistHighlights } from "./setlist-highlights";
 
 function safeLimit(value: number | undefined, fallback = 100, maximum = 500): number {
@@ -28,10 +30,6 @@ function safeLimit(value: number | undefined, fallback = 100, maximum = 500): nu
 
 function safeOffset(value: number | undefined): number {
   return Math.max(0, Math.min(Math.floor(value ?? 0), 1_000_000));
-}
-
-function likePattern(value: string): string {
-  return `%${value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
 }
 
 function eventVenueDisplay(eventAlias: string): string {
@@ -101,7 +99,7 @@ const releaseSummarySelect = `
 
 const setlistSummarySelect = `
   SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes,
-    e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
+    e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.category AS event_category,
     e.classification AS event_classification, e.start_date, e.start_time,
     ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
     (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count
@@ -109,34 +107,22 @@ const setlistSummarySelect = `
   JOIN events e ON e.id = sl.event_id
 `;
 
-function buildSongFilter(options: MusicSearchOptions): { where: string; bindings: unknown[] } {
+async function buildSongFilter(db: D1Database, options: MusicSearchOptions): Promise<{ where: string; bindings: unknown[] }> {
   const bindings: unknown[] = [];
   let where = "WHERE s.published = 1";
   if (options.query?.trim()) {
-    const pattern = likePattern(options.query.trim());
-    where += ` AND (s.title LIKE ? ESCAPE '\\' OR s.original_artist LIKE ? ESCAPE '\\'
-      OR EXISTS (SELECT 1 FROM song_aliases sa WHERE sa.song_id = s.id AND sa.alias LIKE ? ESCAPE '\\'))`;
-    bindings.push(pattern, pattern, pattern);
+    where += ` AND ${idInJson("s.id")}`;
+    bindings.push(JSON.stringify(await matchSongIds(db, options.query, "public")));
   }
   return { where, bindings };
 }
 
-function buildSetlistFilter(options: SetlistSearchOptions): { where: string; bindings: unknown[] } {
+async function buildSetlistFilter(db: D1Database, options: SetlistSearchOptions): Promise<{ where: string; bindings: unknown[] }> {
   const clauses = ["sl.published = 1", "e.published = 1", "e.archived_at IS NULL"];
   const bindings: unknown[] = [];
   if (options.query?.trim()) {
-    const pattern = likePattern(options.query.trim());
-    clauses.push(`(e.title LIKE ? ESCAPE '\\' OR EXISTS (
-        SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
-        LEFT JOIN administrative_areas a ON a.id = v.administrative_area_id
-        WHERE ev.event_id = e.id AND (v.canonical_name LIKE ? ESCAPE '\\' OR a.name_local LIKE ? ESCAPE '\\')
-      )
-      OR sl.title LIKE ? ESCAPE '\\' OR EXISTS (
-        SELECT 1 FROM setlist_entries se
-        JOIN songs s ON s.id = se.song_id
-        WHERE se.setlist_id = sl.id AND (se.display_title LIKE ? ESCAPE '\\' OR s.title LIKE ? ESCAPE '\\')
-      ))`);
-    bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
+    clauses.push(idInJson("sl.id"));
+    bindings.push(JSON.stringify(await matchSetlistIds(db, options.query, "public")));
   }
   const years = [...new Set([options.year, ...(options.years ?? [])].filter((year): year is string => Boolean(year?.match(/^\d{4}$/))))];
   if (years.length) {
@@ -170,7 +156,7 @@ export async function getMusicLibraryStats(db: D1Database): Promise<MusicLibrary
 }
 
 export async function listSongs(db: D1Database, options: MusicSearchOptions = {}): Promise<SongSummary[]> {
-  const { where, bindings } = buildSongFilter(options);
+  const { where, bindings } = await buildSongFilter(db, options);
 
   const result = await db.prepare(`${songSummarySelect}
     ${where}
@@ -221,7 +207,7 @@ export async function listSongCatalog(db: D1Database, limit = 500): Promise<Song
 }
 
 export async function countSongs(db: D1Database, options: MusicSearchOptions = {}): Promise<number> {
-  const { where, bindings } = buildSongFilter(options);
+  const { where, bindings } = await buildSongFilter(db, options);
   const row = await db.prepare(`SELECT COUNT(*) AS count FROM songs s ${where}`)
     .bind(...bindings)
     .first<{ count: number }>();
@@ -261,16 +247,23 @@ export async function getSongBySlug(db: D1Database, slug: string, performancePag
     db.prepare(`
       SELECT r.id AS release_id, r.slug AS release_slug, r.title AS release_title, r.release_type,
         r.release_date, r.edition, r.cover_url, rt.disc_number, rt.track_number, rt.display_title,
-        sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label
+        sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label,
+        ram.external_id AS apple_music_album_id, ram.storefront AS apple_music_storefront,
+        tam.external_id AS apple_music_track_id, tyt.external_id AS youtube_video_id
       FROM release_tracks rt
       JOIN releases r ON r.id = rt.release_id AND r.published = 1
       JOIN song_versions sv ON sv.id = rt.song_version_id AND sv.published = 1
+      LEFT JOIN release_external_ids ram ON ram.release_id = r.id AND ram.provider = 'apple_music'
+      LEFT JOIN release_track_external_ids tam ON tam.release_track_id = rt.id AND tam.provider = 'apple_music'
+      LEFT JOIN release_track_external_ids tyt ON tyt.release_track_id = rt.id AND tyt.provider = 'youtube'
       WHERE sv.song_id = ?
       ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC, rt.disc_number ASC, rt.track_number ASC
     `).bind(song.id).all<SongReleaseAppearance>(),
     db.prepare(`
-      SELECT sl.id AS setlist_id, sl.title AS setlist_title, sl.performance_label, e.slug AS event_slug, e.title AS event_title, e.classification AS event_classification,
+      SELECT sl.id AS setlist_id, sl.title AS setlist_title, sl.performance_label, e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.classification AS event_classification,
         e.start_date, ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
+        (SELECT GROUP_CONCAT(va.alias, ' / ') FROM event_venues ev JOIN venue_aliases va ON va.venue_id = ev.venue_id
+          WHERE ev.event_id = e.id) AS venue_aliases,
         se.position, se.section, se.display_title,
         se.performed_version_id, pv.slug AS performed_version_slug, pv.title AS performed_version_title,
         se.medley_group
@@ -300,9 +293,8 @@ export async function listReleases(db: D1Database, options: ReleaseSearchOptions
   const clauses = ["r.published = 1"];
   const bindings: unknown[] = [];
   if (options.query?.trim()) {
-    const pattern = likePattern(options.query.trim());
-    clauses.push("(r.title LIKE ? ESCAPE '\\' OR r.catalog_number LIKE ? ESCAPE '\\' OR r.edition LIKE ? ESCAPE '\\')");
-    bindings.push(pattern, pattern, pattern);
+    clauses.push(idInJson("r.id"));
+    bindings.push(JSON.stringify(await matchReleaseIds(db, options.query, "public")));
   }
   if (options.type) {
     clauses.push("r.release_type = ?");
@@ -351,7 +343,7 @@ export async function getReleaseBySlug(db: D1Database, slug: string): Promise<Re
 }
 
 export async function listSetlists(db: D1Database, options: SetlistSearchOptions = {}): Promise<SetlistSummary[]> {
-  const { where, bindings } = buildSetlistFilter(options);
+  const { where, bindings } = await buildSetlistFilter(db, options);
   const direction = options.order === "asc" ? "ASC" : "DESC";
 
   const result = await db.prepare(`${setlistSummarySelect}
@@ -371,7 +363,7 @@ export async function listSetlistsForYear(
   const nextYear = String(Number(year) + 1).padStart(4, "0");
   const result = await db.prepare(`
     SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes,
-      e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
+      e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.category AS event_category,
       e.classification AS event_classification, e.start_date, e.start_time,
       ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
       (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count,
@@ -392,7 +384,7 @@ export async function listSetlistsForYear(
 }
 
 export async function countSetlists(db: D1Database, options: SetlistSearchOptions = {}): Promise<number> {
-  const { where, bindings } = buildSetlistFilter(options);
+  const { where, bindings } = await buildSetlistFilter(db, options);
   const row = await db.prepare(`
     SELECT COUNT(*) AS count
     FROM setlists sl
@@ -417,7 +409,7 @@ export async function listSetlistYears(
   db: D1Database,
   options: SetlistSearchOptions = {},
 ): Promise<Array<{ year: string; count: number }>> {
-  const { where, bindings } = buildSetlistFilter({ ...options, year: undefined, years: undefined });
+  const { where, bindings } = await buildSetlistFilter(db, { ...options, year: undefined, years: undefined });
   const result = await db.prepare(`
     SELECT substr(e.start_date, 1, 4) AS year, COUNT(*) AS count
     FROM setlists sl
@@ -442,6 +434,23 @@ export async function getSetlistHighlights(db: D1Database, options: SetlistHighl
     ORDER BY e.start_date, COALESCE(e.start_time, ''), sl.id, se.position
   `).all<SetlistHighlightRow>();
   return computeSetlistHighlights(result.results ?? [], options);
+}
+
+/**
+ * The public setlists immediately before and after one, in the same order as the Live list
+ * (date, start time, performance label, id), for "previous / next Live" navigation.
+ */
+export async function getAdjacentSetlists(db: D1Database, setlist: Pick<SetlistSummary, "id" | "start_date" | "start_time" | "performance_label">): Promise<{ previous: SetlistSummary | null; next: SetlistSummary | null }> {
+  const key = "(e.start_date, COALESCE(e.start_time, ''), sl.performance_label, sl.id)";
+  const visible = "sl.published = 1 AND e.published = 1 AND e.archived_at IS NULL";
+  const bindings = [setlist.start_date, setlist.start_time ?? "", setlist.performance_label, setlist.id];
+  const [previous, next] = await Promise.all([
+    db.prepare(`${setlistSummarySelect} WHERE ${visible} AND ${key} < (?, ?, ?, ?)
+      ORDER BY e.start_date DESC, COALESCE(e.start_time, '') DESC, sl.performance_label DESC, sl.id DESC LIMIT 1`).bind(...bindings).first<SetlistSummary>(),
+    db.prepare(`${setlistSummarySelect} WHERE ${visible} AND ${key} > (?, ?, ?, ?)
+      ORDER BY e.start_date ASC, COALESCE(e.start_time, '') ASC, sl.performance_label ASC, sl.id ASC LIMIT 1`).bind(...bindings).first<SetlistSummary>(),
+  ]);
+  return { previous: previous ?? null, next: next ?? null };
 }
 
 export async function getSetlistById(db: D1Database, id: string): Promise<SetlistDetail | null> {

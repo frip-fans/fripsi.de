@@ -211,7 +211,12 @@ export class ChangeService {
     };
   }
 
-  async publish(id: string, actor: Actor, idempotencyKey: string, requestId = makeId("req")): Promise<EventRecord> {
+  /**
+   * `reviewedVersion` lets a reviewer publish a proposal whose base version is stale, but only after
+   * previewing it against the event's current version: the diff they approved is re-applied to that
+   * exact version, and any later edit still fails the version check.
+   */
+  async publish(id: string, actor: Actor, idempotencyKey: string, requestId = makeId("req"), options: { reviewedVersion?: number } = {}): Promise<EventRecord> {
     assertScope(actor, "events:publish");
     const receipt = await this.db.prepare("SELECT result_json FROM operation_receipts WHERE idempotency_key = ?").bind(idempotencyKey).first<{ result_json: string }>();
     if (receipt) {
@@ -224,7 +229,7 @@ export class ChangeService {
 
     return change.operation === "create"
       ? this.publishCreate(change, actor, idempotencyKey, requestId)
-      : this.publishExisting(change, actor, idempotencyKey, requestId);
+      : this.publishExisting(change, actor, idempotencyKey, requestId, options.reviewedVersion);
   }
 
   private async publishCreate(change: ChangeSet, actor: Actor, idempotencyKey: string, requestId: string): Promise<EventRecord> {
@@ -271,9 +276,9 @@ export class ChangeService {
     return (await requireEvent(this.db, event.id));
   }
 
-  private async publishExisting(change: ChangeSet, actor: Actor, idempotencyKey: string, requestId: string): Promise<EventRecord> {
+  private async publishExisting(change: ChangeSet, actor: Actor, idempotencyKey: string, requestId: string, reviewedVersion?: number): Promise<EventRecord> {
     const before = await requireEvent(this.db, change.target_event_id!);
-    if (before.version !== change.base_version) {
+    if (before.version !== (reviewedVersion ?? change.base_version)) {
       throw new ServiceError("version_conflict", `活动当前为 v${before.version}，提案基于 v${change.base_version}`, 409, { current: before });
     }
     const after = this.applyPayload(before, change) as EventRecord;
@@ -305,7 +310,10 @@ export class ChangeService {
     }
     statements.push(
       this.db.prepare("UPDATE change_sets SET status = 'published', reviewed_by = ?, reviewed_at = ?, published_at = ? WHERE id = ? AND status = 'proposed' AND EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)").bind(actor.id, now, now, change.id, before.id, now),
-      this.auditConditionalStatement(actor, requestId, `change.publish_${change.operation}`, "event", before.id, before, after, { change_set_id: change.id }, now, before.id, now),
+      this.auditConditionalStatement(actor, requestId, `change.publish_${change.operation}`, "event", before.id, before, after, {
+        change_set_id: change.id,
+        ...(before.version !== change.base_version ? { base_version: change.base_version, reviewed_version: before.version } : {}),
+      }, now, before.id, now),
       this.db.prepare("INSERT INTO operation_receipts (idempotency_key, operation, result_json, created_at) SELECT ?, 'publish', ?, ? WHERE EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)").bind(idempotencyKey, JSON.stringify(after), now, before.id, now)
     );
     const batch = await this.db.batch(statements);

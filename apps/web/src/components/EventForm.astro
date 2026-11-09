@@ -1,14 +1,24 @@
 ---
-import type { AdministrativeArea, EventRecord, VenueRecord } from "@frip-fan/core";
+import type { AdministrativeArea, EventRecord, TourRecord, VenueRecord } from "@frip-fan/core";
 
-interface Props { event?: EventRecord; areas: AdministrativeArea[]; venueOptions: VenueRecord[]; submitLabel?: string; canWrite?: boolean }
-const { event, areas, venueOptions, submitLabel = "保存活动", canWrite = true } = Astro.props;
+interface Props { event?: EventRecord; areas: AdministrativeArea[]; venueOptions: VenueRecord[]; tours?: TourRecord[]; submitLabel?: string; canWrite?: boolean }
+const { event, areas, venueOptions, tours = [], submitLabel = "保存活动", canWrite = true } = Astro.props;
 const sources = event?.sources?.map((source) => `${source.url} | ${source.label ?? ""} | ${source.source_type ?? "official"}`).join("\n") ?? "";
 const venueRows = event?.venues.length ? event.venues : [null];
 const channelRows = event?.channels.length ? event.channels : [null];
 ---
 <div class="form-grid">
-  <label class="wide">活动标题 *<input name="title" required maxlength="240" value={event?.title ?? ""} /></label>
+  <label class="wide">活动标题（官方名称）*<input name="title" required maxlength="240" value={event?.title ?? ""} /></label>
+  <input type="hidden" name="display_field" value="1" />
+  <label class="wide">别名（显示名）<input name="alias" maxlength="240" value={event?.alias ?? ""} placeholder="例如 Liberation Protocol · 東京公演；留空时显示「巡演 · 场次」或官方名称" /></label>
+  <label>所属巡演
+    <select name="tour_id">
+      <option value="">不属于巡演</option>
+      {tours.map((tour) => <option value={tour.id} selected={event?.tour_id === tour.id}>{tour.name}{tour.published ? "" : "（未公开）"}</option>)}
+    </select>
+  </label>
+  <label>场次<input name="tour_stop" maxlength="120" value={event?.tour_stop ?? ""} placeholder="留空时按城市生成，如 東京公演" /></label>
+  {event?.display_title && <p class="wide muted display-preview">当前显示名：{event.display_title}</p>}
   <label>开始日期 *<input type="date" name="start_date" required value={event?.start_date ?? ""} /></label>
   <label>结束日期<input type="date" name="end_date" value={event?.end_date ?? ""} /></label>
   <label>开始时间<input type="time" name="start_time" value={event?.start_time ?? ""} /></label>

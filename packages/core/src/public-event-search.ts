@@ -1,5 +1,6 @@
 import { hydrateEventLocations } from "./locations";
 import type { AdministrativeArea, EventSummary } from "./types";
+import { idInJson, matchEventIds } from "./search-index";
 
 export const EVENT_PAGE_SIZE = 30;
 const categories = ["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"];
@@ -42,7 +43,7 @@ const locationKey = `CASE WHEN a.country_code = 'JP' THEN jp.location_key ELSE '
 const locationJoin = `JOIN venues v ON v.id = ev.venue_id
   JOIN administrative_areas a ON a.id = v.administrative_area_id
   LEFT JOIN jp_locations jp ON jp.id = a.id`;
-function where(input: PublicEventSearch) {
+function where(input: PublicEventSearch, queryIds: string[] | undefined) {
   const clauses = ["e.published = 1", "e.archived_at IS NULL"];
   const bindings: unknown[] = [];
   if (input.year) {
@@ -58,26 +59,24 @@ function where(input: PublicEventSearch) {
       WHERE ev.event_id = e.id AND ${locationKey} IN (${input.locations.map(() => "?").join(",")}))`);
     bindings.push(...input.locations);
   }
-  for (const term of input.query.split(/\s+/).filter(Boolean)) {
-    const pattern = `%${term.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-    const fields = ["e.title", "e.category", "e.classification", "e.location_note", "e.remark"];
-    clauses.push(`(${fields.map(field => `${field} LIKE ? ESCAPE '\\'`).join(" OR ")}
-      OR EXISTS (SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
-        LEFT JOIN administrative_areas a ON a.id = v.administrative_area_id
-        WHERE ev.event_id = e.id AND (${["v.canonical_name", "ev.display_name_snapshot", "a.name_local", "a.name_zh", "a.name_ja", "a.name_en"].map(field => `${field} LIKE ? ESCAPE '\\'`).join(" OR ")}))
-      OR EXISTS (SELECT 1 FROM event_channels ec WHERE ec.event_id = e.id AND ec.name LIKE ? ESCAPE '\\'))`);
-    bindings.push(...Array(12).fill(pattern));
+  if (queryIds) {
+    clauses.push(idInJson("e.id"));
+    bindings.push(JSON.stringify(queryIds));
   }
   return { clauses, bindings };
 }
+/** Text query → matching public event ids, folded across scripts (see search-index). */
+async function queryIds(db: D1Database, input: PublicEventSearch): Promise<string[] | undefined> {
+  return input.query ? matchEventIds(db, input.query, "public") : undefined;
+}
 export async function countPublicEventSearch(db: D1Database, input: PublicEventSearch): Promise<number> {
-  const { clauses, bindings } = where(input);
+  const { clauses, bindings } = where(input, await queryIds(db, input));
   const row = await db.prepare(`${locationCTE} SELECT COUNT(*) AS count FROM events e WHERE ${clauses.join(" AND ")}`)
     .bind(...bindings).first<{ count: number }>();
   return row?.count ?? 0;
 }
 export async function listPublicEventSearch(db: D1Database, input: PublicEventSearch) {
-  const { clauses, bindings } = where(input);
+  const { clauses, bindings } = where(input, await queryIds(db, input));
   const cursor = cursorValue(input.after);
   const direction = input.sort === "asc" ? "ASC" : "DESC";
   if (cursor) {

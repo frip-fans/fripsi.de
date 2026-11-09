@@ -4,19 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "XDG_CONFIG_HOME=../../.cache/xdg ASTRO_TELEMETRY_DISABLED=1 astro dev",
-    "build": "XDG_CONFIG_HOME=../../.cache/xdg ASTRO_TELEMETRY_DISABLED=1 astro build",
-    "build:production": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=production ASTRO_TELEMETRY_DISABLED=1 astro build",
-    "preview": "XDG_CONFIG_HOME=../../.cache/xdg astro preview",
-    "typecheck": "XDG_CONFIG_HOME=../../.cache/xdg ASTRO_TELEMETRY_DISABLED=1 astro check",
-    "deploy": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=production ASTRO_TELEMETRY_DISABLED=1 astro build && XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy",
-    "build:staging": "XDG_CONFIG_HOME=../../.cache/xdg CLOUDFLARE_ENV=staging ASTRO_TELEMETRY_DISABLED=1 astro build",
-    "deploy:staging": "npm run build:staging && XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy",
-    "build:node": "FRIP_RUNTIME=node ASTRO_TELEMETRY_DISABLED=1 astro build",
-    "dev:node": "FRIP_RUNTIME=node ASTRO_TELEMETRY_DISABLED=1 astro dev"
+    "dev": "ASTRO_TELEMETRY_DISABLED=1 APP_ENV=${APP_ENV:-development} node --env-file-if-exists=.env.local ../../node_modules/astro/bin/astro.mjs dev",
+    "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "preview": "node --env-file-if-exists=.env.local ../../node_modules/astro/bin/astro.mjs preview",
+    "typecheck": "ASTRO_TELEMETRY_DISABLED=1 astro check"
   },
   "dependencies": {
-    "@astrojs/cloudflare": "^14.4.6",
     "@astrojs/node": "11.1.11",
     "@frip-fan/core": "*",
     "astro": "^7.4.7",
@@ -29,12 +22,11 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
     "@cloudflare/workers-types": "^5.20260718.1",
-    "@types/leaflet": "^1.9.22",
-    "wrangler": "^4.158.0"
+    "@types/leaflet": "^1.9.22"
   },
   "imports": {
-    "#runtime-env": "./src/lib/env-cloudflare.ts",
-    "#runtime-mcp": "./src/lib/mcp-disabled.ts",
-    "#public-cache": "./src/lib/public-cache-cloudflare.ts"
+    "#runtime-env": "./src/lib/env-node.ts",
+    "#runtime-mcp": "./src/lib/mcp-node.ts",
+    "#public-cache": "./src/lib/public-cache-node.ts"
   }
 }

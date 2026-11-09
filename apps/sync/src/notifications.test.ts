@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import type { DatabaseSync } from "node:sqlite";
 import { ChangeService, type Actor } from "@frip-fan/core";
 import { createTestD1 } from "../../../packages/core/src/test-d1";
-import worker from "./index";
+import { scheduledTick } from "./index";
 import { safeTickNotifications, tickNotifications, type BarkEnv } from "./notifications";
 
 const databases: DatabaseSync[] = [];
@@ -124,9 +124,7 @@ it("notifies about unresolved automatic review, without calling OpenAI", async (
 it("drains notifications when sync is disabled and missing OpenAI configuration", async () => {
   const t = setup(); await tickNotifications(t.env, initial, t.request); t.run("failed", "failed", new Date());
   vi.stubGlobal("fetch", t.request);
-  const tasks: Promise<unknown>[] = [];
-  await worker.scheduled({} as ScheduledController, { ...t.env, SYNC_ENABLED: "false" }, { waitUntil: (task: Promise<unknown>) => tasks.push(task) } as unknown as ExecutionContext);
-  await Promise.all(tasks);
+  await scheduledTick({ ...t.env, SYNC_ENABLED: "false" });
   expect(t.request).toHaveBeenCalledTimes(1);
   expect(t.request.mock.calls[0][0]).toBe("https://api.day.app/push");
 });

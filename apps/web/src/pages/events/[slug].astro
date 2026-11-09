@@ -4,9 +4,11 @@ import BackLink from "../../components/BackLink.astro";
 import { eventReturnLink } from "../../lib/event-navigation";
 import Icon from "../../components/Icon.astro";
 import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../../lib/format";
+import { setlistCompletenessLabel, setlistEventTypeLabel } from "../../lib/music";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { getEnv } from "../../lib/env";
 import { getLocale, t } from "../../lib/i18n";
+import "../../styles/music.css";
 
 const locale = getLocale(Astro.request);
 const event = await getPublicEventBySlug(getEnv().DB, Astro.params.slug!);
@@ -15,8 +17,32 @@ const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
 const displayStatus = displayEventStatus(event);
 const returnLink = eventReturnLink(Astro.url, event.start_date.slice(0, 7), locale);
 
+// The display name (alias > tour · stop > official title) heads the page; the official title, which often
+// carries the venue, stays visible underneath and is what structured data reports.
+const title = event.display_title ?? event.title;
+const officialTitle = title !== event.title ? event.title : null;
+const remoteModes = { online: "event.mode.online", broadcast: "event.mode.broadcast", hybrid: "event.mode.hybrid" } as const;
+const modeKey = remoteModes[event.location_mode as keyof typeof remoteModes];
+// location_label folds channel names in for remote modes; channels get their own row instead.
+const isRemote = event.location_mode === "online" || event.location_mode === "broadcast";
+const channels = event.location_mode === "hybrid" || isRemote ? event.channels : [];
+const physicalLabel = [event.venue_label, event.area_label].filter(Boolean).join(" · ");
+const locationText = event.location_mode === "hybrid" ? physicalLabel || event.location_label : event.location_label;
+const showLocation = event.location_mode !== "none" && !(isRemote && channels.length > 0);
+const linkedChannels = event.channels.filter((channel) => channel.url);
+const sources = event.sources ?? [];
+
 // Search engines read this as the event itself: date, place and whether it still stands.
 const schemaStatus = displayStatus === "cancelled" ? "EventCancelled" : displayStatus === "postponed" ? "EventPostponed" : "EventScheduled";
+const attendanceMode = event.location_mode === "online" || event.location_mode === "broadcast"
+  ? "OnlineEventAttendanceMode"
+  : event.location_mode === "hybrid" ? "MixedEventAttendanceMode" : "OfflineEventAttendanceMode";
+const place = event.venue_label
+  ? { "@type": "Place", name: event.venue_label, ...(event.area_label ? { address: event.area_label } : {}) }
+  : null;
+const virtualLocations = linkedChannels.map((channel) => ({ "@type": "VirtualLocation", name: channel.name, url: channel.url }));
+const schemaLocations = [...(place ? [place] : []), ...virtualLocations];
+const fallbackPlace = !schemaLocations.length && event.location_label ? { "@type": "Place", name: event.location_label } : null;
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "Event",
@@ -25,16 +51,13 @@ const structuredData = {
   startDate: event.start_time ? `${event.start_date}T${event.start_time}` : event.start_date,
   ...(event.end_date ? { endDate: event.end_date } : {}),
   eventStatus: `https://schema.org/${schemaStatus}`,
-  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+  eventAttendanceMode: `https://schema.org/${attendanceMode}`,
   performer: { "@type": "MusicGroup", name: "fripSide" },
-  // location_label already carries the area, so the venue name alone keeps Place.name clean.
-  ...(event.venue_label || event.location_label
-    ? { location: { "@type": "Place", name: event.venue_label || event.location_label, ...(event.area_label ? { address: event.area_label } : {}) } }
-    : {}),
+  ...(schemaLocations.length ? { location: schemaLocations.length === 1 ? schemaLocations[0] : schemaLocations } : fallbackPlace ? { location: fallbackPlace } : {}),
   ...(event.remark ? { description: event.remark } : {}),
 };
 ---
-<SiteLayout title={event.title} description={`${formatDate(event.start_date, event.end_date, locale)} ${event.title}`} structuredData={structuredData}>
+<SiteLayout title={title} description={[formatDate(event.start_date, event.end_date, locale), officialTitle ?? title, event.location_label].filter(Boolean).join(" · ")} structuredData={structuredData}>
   <div class="event-page">
   <BackLink href={returnLink.href} label={t(locale, returnLink.label)} eventReturn />
   <article class="event-detail">
@@ -42,36 +65,63 @@ const structuredData = {
       <div class="meta">
         <span class="tag live">{categoryLabels[event.category]}</span>
         <span class:list={["tag", displayStatus]}>{statusLabel(locale, displayStatus)}</span>
-        {event.classification && <span class="tag">{event.classification}</span>}
+        {event.classification && (
+          <span class:list={["music-event-type", {
+            "is-solo": event.classification === "专场",
+            "is-festival": event.classification === "拼盘",
+          }]}>{setlistEventTypeLabel(event.classification, locale)}</span>
+        )}
       </div>
-      <h1>{event.title}</h1>
-      <p class="date">{formatDate(event.start_date, event.end_date, locale)}</p>
+      <h1>{title}</h1>
+      {officialTitle && <p class="official-title">{officialTitle}</p>}
+      <p class="date"><time datetime={event.start_date}>{formatDate(event.start_date, event.end_date, locale)}</time></p>
     </header>
     <div class="detail-grid">
-      <section class="panel facts" data-page-entry>
-        <div><small>TIME</small><strong>{formatTime(event, locale)}</strong></div>
-        <div><small>LOCATION</small><strong>{event.location_label || t(locale, "common.pending")}</strong></div>
-        <div><small>REGION</small><strong>{event.area_label || "—"}</strong></div>
-        <div><small>MODE</small><strong>{event.location_mode}</strong></div>
-        <div><small>TIMEZONE</small><strong>{event.timezone}</strong></div>
-      </section>
+      {(event.start_time || showLocation || channels.length > 0) && (
+        <dl class="panel facts" data-page-entry>
+          {event.start_time && (
+            <div><dt>{t(locale, "event.time")}</dt><dd>{formatTime(event, locale)} <small translate="no">{event.timezone}</small></dd></div>
+          )}
+          {showLocation && (
+            <div><dt>{t(locale, "event.location")}</dt><dd>{locationText || t(locale, "common.locationPending")}</dd></div>
+          )}
+          {modeKey && <div><dt>{t(locale, "event.mode")}</dt><dd>{t(locale, modeKey)}</dd></div>}
+          {channels.length > 0 && (
+            <div>
+              <dt>{t(locale, "event.channels")}</dt>
+              <dd class="channel-links">
+                {channels.map((channel) => channel.url
+                  ? <a href={channel.url} target="_blank" rel="noreferrer">{channel.name} <Icon name="box-arrow-up-right" /></a>
+                  : <span>{channel.name}</span>)}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
       <section class="content">
-        {event.remark ? <p>{event.remark}</p> : <p class="muted">{t(locale, "event.noRemark")}</p>}
+        {event.remark ? <p class="remark">{event.remark}</p> : <p class="muted">{t(locale, "event.noRemark")}</p>}
         {setlists.length > 0 && (
           <div class="setlist-links">
-            <p class="eyebrow">Setlist</p>
+            <h2 class="eyebrow">{t(locale, "event.setlist")}</h2>
             {setlists.map((setlist) => (
               <a href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
-                <span><Icon name="list-stars" /> {setlist.title || t(locale, "event.setlistFallback", { label: setlist.performance_label })}</span>
-                <small>{t(locale, "event.records", { count: setlist.entry_count })}</small>
+                <span class="setlist-link-label">
+                  <Icon name="list-stars" />
+                  {setlist.performance_label && setlist.performance_label !== "本公演"
+                    ? `${t(locale, "event.setlistLink")} · ${setlist.performance_label}`
+                    : t(locale, "event.setlistLink")}
+                </span>
+                <small>{setlistCompletenessLabel(setlist.completeness, locale)} · {t(locale, "event.records", { count: setlist.entry_count })}</small>
               </a>
             ))}
           </div>
         )}
-        <div class="sources">
-          <p class="eyebrow">Sources</p>
-          {event.sources?.map((source, index) => <a href={source.url} target="_blank" rel="noreferrer">{source.label || t(locale, "event.source", { index: index + 1 })} <Icon name="box-arrow-up-right" /></a>)}
-        </div>
+        {sources.length > 0 && (
+          <div class="sources">
+            <h2 class="eyebrow">{t(locale, "event.sources")}</h2>
+            {sources.map((source, index) => <a href={source.url} target="_blank" rel="noreferrer">{source.label || t(locale, "event.source", { index: index + 1 })} <Icon name="box-arrow-up-right" /></a>)}
+          </div>
+        )}
       </section>
     </div>
   </article>
@@ -81,23 +131,31 @@ const structuredData = {
 <style>
   .event-page { max-width: 1000px; margin: 0 auto; }
   .event-detail { margin-top: 1.5rem; }
-  .meta { display: flex; gap: .4rem; flex-wrap: wrap; }
-  h1 { margin: 1.2rem 0; max-width: 1000px; }
-  .date { color: var(--accent); font-size: 1.1rem; }
-  .detail-grid { display: grid; grid-template-columns: .72fr 1.28fr; align-items: start; gap: clamp(2rem, 7vw, 6rem); margin-top: 4rem; }
-  .facts { display: grid; gap: 1.4rem; }
+  .meta { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+  h1 { margin: 1rem 0 .8rem; max-width: 22em; font-size: clamp(1.75rem, 4.2vw, 2.9rem); line-height: 1.18; overflow-wrap: anywhere; text-wrap: balance; text-spacing-trim: trim-start; }
+  .official-title { margin: -.2rem 0 .8rem; max-width: 46em; color: var(--muted); font-size: .9rem; line-height: 1.55; overflow-wrap: anywhere; }
+  .date { color: var(--accent); font-size: 1.05rem; }
+  .detail-grid { display: grid; grid-template-columns: .72fr 1.28fr; align-items: start; gap: clamp(2rem, 7vw, 6rem); margin-top: 2.75rem; }
+  .facts { display: grid; gap: 1.1rem; margin: 0; }
   .facts div { display: grid; gap: .3rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }
-  .facts div:last-child { border-bottom: 0; }
-  .facts small { color: var(--muted); font: .65rem/1 ui-monospace; letter-spacing: .1em; }
-  .facts strong { font-size: .95rem; }
-  .content { font-size: 1rem; line-height: 1.9; white-space: pre-wrap; }
-  .sources { margin-top: 3rem; display: grid; justify-items: start; gap: .7rem; }
-  .sources a { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); text-decoration: none; font-size: .9rem; }
+  .facts div:last-child { padding-bottom: 0; border-bottom: 0; }
+  .facts dt { color: var(--muted); font-size: .75rem; letter-spacing: .04em; }
+  .facts dd { margin: 0; font-size: .95rem; font-weight: 700; overflow-wrap: anywhere; }
+  .facts dd small { margin-left: .35rem; color: var(--muted); font-size: .78rem; font-weight: 400; }
+  .channel-links { display: grid; justify-items: start; gap: .35rem; }
+  .channel-links a, .sources a { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); text-decoration: none; }
+  .content { font-size: 1rem; line-height: 1.9; }
+  .content > p:first-child { margin-top: 0; }
+  .remark { white-space: pre-wrap; }
+  h2.eyebrow { margin: 0 0 .15rem; }
+  .sources { margin-top: 2.5rem; display: grid; justify-items: start; gap: .7rem; }
+  .sources a { font-size: .9rem; }
   .setlist-links { display: grid; gap: .55rem; margin-top: 2rem; }
-  .setlist-links p { margin-bottom: .15rem; }
-  .setlist-links a { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem .9rem; color: var(--text); border: 1px solid var(--line); border-radius: 11px; background: rgba(12,25,43,.62); text-decoration: none; white-space: normal; }
+  .setlist-links a { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem .9rem; color: var(--text); border: 1px solid var(--line); border-radius: 11px; background: rgba(12,25,43,.62); text-decoration: none; line-height: 1.5; }
   .setlist-links a:hover { color: var(--accent); border-color: rgba(var(--accent-rgb),.35); }
-  .setlist-links span { display: inline-flex; align-items: center; gap: .4rem; }
-  .setlist-links small { color: var(--muted); }
-  @media (max-width: 760px) { .detail-grid { grid-template-columns: 1fr; } }
+  .setlist-link-label { display: inline-flex; align-items: center; gap: .45rem; min-width: 0; }
+  .setlist-links small { flex: none; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  @media (max-width: 760px) {
+    .detail-grid { grid-template-columns: 1fr; gap: 2rem; margin-top: 2rem; }
+  }
 </style>

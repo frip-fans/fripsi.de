@@ -14,12 +14,16 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("x-frame-options", "DENY");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
-  const coverOrigin = allowCoverPreview ? " https://fripside.net" : "";
+  // The release editor previews official covers and Apple Music search artwork.
+  const coverOrigin = allowCoverPreview ? " https://fripside.net https://*.mzstatic.com" : "";
   const giscusOrigin = allowGiscus ? " https://giscus.app" : "";
   const vectorMapOrigin = allowVectorMap ? " https://tiles.openfreemap.org" : "";
   const vectorMapBlob = allowVectorMap ? " blob:" : "";
   const youtubeOrigin = allowVectorMap ? " https://www.youtube.com https://www.youtube-nocookie.com" : "";
-  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${giscusOrigin}${youtubeOrigin}`);
+  // Listen players on release/song pages. Client-side navigation keeps the first document's CSP,
+  // so every page allows these frames; they load only after a visitor clicks.
+  const listenFrames = " https://embed.music.apple.com https://www.youtube-nocookie.com";
+  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${giscusOrigin}${youtubeOrigin}${listenFrames}`);
   if (locale && headers.get("content-type")?.includes("text/html")) {
     headers.set("content-language", locale);
     headers.append("vary", "Cookie");
@@ -41,7 +45,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const env = getEnv();
   const staging = env.APP_ENV === "staging";
   // MCP retains its own bearer/automation authorization, separate from the web admin session.
-  if (env.FRIP_RUNTIME === "node" && ["/mcp", "/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp", "/healthz"].includes(path)) {
+  if (["/mcp", "/.well-known/oauth-protected-resource", "/.well-known/oauth-protected-resource/mcp", "/healthz"].includes(path)) {
     return secure(await next(), true);
   }
   const privateRoute = staging || path.startsWith("/admin") || path.startsWith("/api/admin");
@@ -53,7 +57,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // A client-routed visit to the home discussion retains the initial document CSP.
     // Every public entry page must allow its Giscus script and iframe.
     const render = async () => secure(await next(), false, cacheControl, locale, true, path === "/journey");
-    const eligible = env.FRIP_RUNTIME === "node" && context.request.method === "GET"
+    const eligible = context.request.method === "GET"
       && !context.request.headers.has("authorization") && context.url.href.length <= 2048
       && !path.startsWith("/api/admin") && !path.startsWith("/media/");
     const notice = eligible && context.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value === "yes";
@@ -76,7 +80,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (path.startsWith("/api/")) {
       return secure(Response.json({ error: { code: "unauthorized", message } }, { status }), true);
     }
-    return secure(new Response(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>需要登录</title><body style="font-family:system-ui;padding:3rem;background:#07101c;color:#eef"><h1>需要登录</h1><p>${message}</p><p>生产环境中请先通过 Cloudflare Access；本地开发请复制 <code>.dev.vars.example</code> 为 <code>.dev.vars</code>。</p></body></html>`, {
+    return secure(new Response(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><title>需要登录</title><body style="font-family:system-ui;padding:3rem;background:#07101c;color:#eef"><h1>需要登录</h1><p>${message}</p><p>生产环境中请先通过 Cloudflare Access；本地开发请复制 <code>apps/web/.env.local.example</code> 为 <code>apps/web/.env.local</code>。</p></body></html>`, {
       status,
       headers: { "content-type": "text/html; charset=utf-8" }
     }), true);

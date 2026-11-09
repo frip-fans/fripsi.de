@@ -4,9 +4,10 @@
 import type { Actor } from "@frip-fan/core";
 
 declare global {
-  interface Env extends Pick<WebWorkerBindings, "DB" | "MEDIA"> {
-    ASSETS?: WebWorkerBindings["ASSETS"];
-    FRIP_RUNTIME?: "node";
+  // DB and MEDIA keep the D1/R2 interface shapes; packages/node-runtime implements them with SQLite and a local directory.
+  interface Env {
+    DB: D1Database;
+    MEDIA: R2Bucket;
     FRIP_RELEASE_SHA?: string;
     MCP_RESOURCE_URL?: string;
     MCP_AUTHORIZATION_SERVER?: string;

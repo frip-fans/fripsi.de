@@ -4,11 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "XDG_CONFIG_HOME=../../.cache/xdg wrangler dev --persist-to ../web/.wrangler/state",
-    "build": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --dry-run --env '' --outdir dist",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "deploy:staging": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --env staging",
-    "deploy": "XDG_CONFIG_HOME=../../.cache/xdg wrangler deploy --env production"
+    "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@frip-fan/core": "*",
@@ -19,8 +15,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",
     "@modelcontextprotocol/client": "2.4.0",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.158.0"
+    "typescript": "^5.9.3"
   },
   "exports": {
     ".": "./src/index.ts"

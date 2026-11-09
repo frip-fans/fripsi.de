@@ -1,3 +1,4 @@
+import { searchMatcher } from "@frip-fan/core/search-text";
 import { clampPage, HISTORY_PAGE_SIZE, pageTokens } from "./page-tokens";
 import { replacePublicUrl } from "./public-navigation";
 
@@ -80,9 +81,10 @@ export function setupSongDetail(): void {
   };
 
   const render = () => {
-    const needle = query.trim().toLocaleLowerCase();
+    const needle = query.trim();
+    const matchesQuery = searchMatcher(needle);
     const filtered = Boolean(version || year || needle);
-    const matches = rows.filter((row) => (!version || row.dataset.version === version) && (!year || row.dataset.year === year) && (!needle || (row.dataset.search ?? "").includes(needle)));
+    const matches = rows.filter((row) => (!version || row.dataset.version === version) && (!year || row.dataset.year === year) && matchesQuery(row.dataset.search ?? ""));
     const pages = Math.max(1, Math.ceil(matches.length / HISTORY_PAGE_SIZE));
     page = clampPage(page, pages);
     const visible = new Set(matches.slice((page - 1) * HISTORY_PAGE_SIZE, page * HISTORY_PAGE_SIZE));

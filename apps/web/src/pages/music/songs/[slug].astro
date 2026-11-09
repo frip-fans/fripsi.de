@@ -1,11 +1,13 @@
 ---
-import { countPublicSetlistsSince, getSetlistHighlights, getSongBySlug, listSetlistYears } from "@frip-fan/core";
+import { buildSearchText, countPublicSetlistsSince, getSetlistHighlights, getSongBySlug, listSetlistYears, searchMatcher } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
+import MusicListen from "../../../components/MusicListen.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { formatGapYears, formatMusicDate, setlistDisplayTitle, versionRelationLabel } from "../../../lib/music";
 import { getLocale, t } from "../../../lib/i18n";
+import { appearanceSource, pickPlayableAppearance, type ListenSource } from "../../../lib/music-listen";
 import { clampPage, HISTORY_PAGE_SIZE, pageTokens } from "../../../lib/page-tokens";
 import "../../../styles/music.css";
 
@@ -84,6 +86,17 @@ const isOriginalVersion = (versionId: string) => {
   const label = song.versions.find((item) => item.id === versionId)?.version_label;
   return !label || label.trim().toLowerCase() === "original";
 };
+// Listen: one playable recording per vocal version, original first.
+const listenSources: ListenSource[] = [...vocalVersions]
+  .sort((a, b) => Number(!isOriginalVersion(a.id)) - Number(!isOriginalVersion(b.id)))
+  .flatMap((version) => {
+    const appearance = pickPlayableAppearance(song.releases.filter((item) => item.version_id === version.id));
+    if (!appearance) return [];
+    const year = version.release_date?.slice(0, 4);
+    const name = versionName(version.id);
+    return [appearanceSource(version.id, year && !name.includes(year) ? `${name} · ${year}` : name, appearance,
+      `${baseReleaseTitle(appearance.release_title)} · Track ${appearance.disc_number > 1 ? `${appearance.disc_number}-` : ""}${appearance.track_number}`)];
+  });
 // Version filter: each performance maps to the vocal version sung (instrumentals count as their parent) or "unknown".
 const UNKNOWN_VERSION = "unknown";
 const performedKey = (item: (typeof performances)[number]) => {
@@ -115,7 +128,8 @@ for (const [year, counts] of versionsByYear) {
   const weight = keys.reduce((sum, key) => sum + (counts.get(key) ?? 0), 0) || 1;
   yearSegments.set(year, keys.map((key) => ({ key, share: ((counts.get(key) ?? 0) / weight) * 100, color: versionColor(key) })));
 }
-const searchText = (item: (typeof performances)[number]) => `${item.setlist_title ?? ""} ${item.event_title} ${item.performance_label} ${item.venue ?? ""} ${item.region ?? ""}`.toLocaleLowerCase();
+// Folded once on the server; the browser folds only the query (see @frip-fan/core/search-text).
+const searchText = (item: (typeof performances)[number]) => buildSearchText([item.setlist_title, item.event_alias, item.event_tour_title, item.event_title, item.performance_label, item.venue, item.venue_aliases, item.region]);
 
 // The server applies the URL filter and page too, so a shared link renders the right rows without JS.
 const requestedYear = Astro.url.searchParams.get("year") ?? "";
@@ -123,8 +137,8 @@ const filterYear = chartYears.some((year) => String(year) === requestedYear && (
 const filterQuery = (Astro.url.searchParams.get("q") ?? "").slice(0, 100).trim();
 const requestedVersion = Astro.url.searchParams.get("version") ?? "";
 const filterVersion = showVersionFilter && versionKeys.includes(requestedVersion) ? requestedVersion : "";
-const needle = filterQuery.toLocaleLowerCase();
-const matchingIds = new Set(performances.filter((item) => (!filterYear || item.start_date.startsWith(filterYear)) && (!filterVersion || performedKey(item) === filterVersion) && (!needle || searchText(item).includes(needle))).map((item) => item.setlist_id));
+const matchesQuery = searchMatcher(filterQuery);
+const matchingIds = new Set(performances.filter((item) => (!filterYear || item.start_date.startsWith(filterYear)) && (!filterVersion || performedKey(item) === filterVersion) && matchesQuery(searchText(item))).map((item) => item.setlist_id));
 const historyPages = Math.max(1, Math.ceil(matchingIds.size / HISTORY_PAGE_SIZE));
 const historyPage = clampPage(Number(Astro.url.searchParams.get("page") ?? "1"), historyPages);
 const visibleIds = new Set([...matchingIds].slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE));
@@ -136,7 +150,7 @@ const pageHref = (page: number) => {
 };
 const historyScope = [filterVersion ? versionLabel(filterVersion) : "", filterYear ? t(locale, "music.historyYear", { year: filterYear }) : "", filterQuery ? `“${filterQuery}”` : ""].filter(Boolean).join(" · ");
 
-const showTitle = (item: { setlist_title?: string | null; event_title: string; performance_label: string }) => setlistDisplayTitle({ title: item.setlist_title ?? null, event_title: item.event_title, performance_label: item.performance_label });
+const showTitle = (item: { setlist_title?: string | null; event_title: string; performance_label: string; event_alias?: string | null; event_tour_title?: string | null }) => setlistDisplayTitle({ title: item.setlist_title ?? null, event_title: item.event_title, performance_label: item.performance_label, event_alias: item.event_alias, event_tour_title: item.event_tour_title });
 ---
 <SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
   <div class="music-page" data-music-detail data-song-detail>
@@ -155,6 +169,8 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
         {rate !== null && <div class="song-stat"><dt>{t(locale, "music.statRate")}</dt><dd><strong>{rate}%</strong><span>{t(locale, "music.statRateHint", { total: showsSince, count: performances.length })}</span></dd></div>}
       </dl>
     )}
+
+    <MusicListen sources={listenSources} autoload />
 
     {chartYears.length > 0 && (
       <section class="music-section song-yearly" aria-labelledby="yearly-heading">

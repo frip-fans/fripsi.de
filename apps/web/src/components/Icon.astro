@@ -21,6 +21,7 @@ import globeAmericas from "bootstrap-icons/icons/globe-americas.svg?raw";
 import github from "bootstrap-icons/icons/github.svg?raw";
 import chatDots from "bootstrap-icons/icons/chat-dots.svg?raw";
 import houseDoor from "bootstrap-icons/icons/house-door.svg?raw";
+import lightbulb from "bootstrap-icons/icons/lightbulb.svg?raw";
 import list from "bootstrap-icons/icons/list-ul.svg?raw";
 import listStars from "bootstrap-icons/icons/list-stars.svg?raw";
 import mic from "bootstrap-icons/icons/mic.svg?raw";
@@ -29,6 +30,11 @@ import musicNoteList from "bootstrap-icons/icons/music-note-list.svg?raw";
 import plus from "bootstrap-icons/icons/plus-lg.svg?raw";
 import playFill from "bootstrap-icons/icons/play-fill.svg?raw";
 import pauseFill from "bootstrap-icons/icons/pause-fill.svg?raw";
+import exclamationTriangle from "bootstrap-icons/icons/exclamation-triangle.svg?raw";
+import gripVertical from "bootstrap-icons/icons/grip-vertical.svg?raw";
+import threeDots from "bootstrap-icons/icons/three-dots.svg?raw";
+import arrowCounterclockwise from "bootstrap-icons/icons/arrow-counterclockwise.svg?raw";
+import pencilSquare from "bootstrap-icons/icons/pencil-square.svg?raw";
 import xLg from "bootstrap-icons/icons/x-lg.svg?raw";
 import search from "bootstrap-icons/icons/search.svg?raw";
 import shieldCheck from "bootstrap-icons/icons/shield-check.svg?raw";
@@ -37,10 +43,14 @@ import vinyl from "bootstrap-icons/icons/vinyl.svg?raw";
 import volumeMuteFill from "bootstrap-icons/icons/volume-mute-fill.svg?raw";
 import tickets from "../assets/icons/lucide/tickets.svg?raw";
 import listMusic from "../assets/icons/lucide/list-music.svg?raw";
+import audioLines from "../assets/icons/lucide/audio-lines.svg?raw";
+import tvMinimalPlay from "../assets/icons/lucide/tv-minimal-play.svg?raw";
 
 const icons = {
   tickets,
   "list-music": listMusic,
+  "audio-lines": audioLines,
+  "tv-minimal-play": tvMinimalPlay,
   archive,
   "arrow-down-up": arrowDownUp,
   "arrow-left": arrowLeft,
@@ -64,6 +74,7 @@ const icons = {
   "chat-dots": chatDots,
   "house-door": houseDoor,
   list,
+  lightbulb,
   "list-stars": listStars,
   mic,
   "music-note-beamed": musicNoteBeamed,
@@ -73,6 +84,11 @@ const icons = {
   "pause-fill": pauseFill,
   search,
   "x-lg": xLg,
+  "exclamation-triangle": exclamationTriangle,
+  "grip-vertical": gripVertical,
+  "three-dots": threeDots,
+  "arrow-counterclockwise": arrowCounterclockwise,
+  "pencil-square": pencilSquare,
   "shield-check": shieldCheck,
   trash,
   vinyl,
@@ -87,7 +103,7 @@ interface Props {
 }
 
 const { name, size = "1em", label, class: className } = Astro.props;
-const isLucide = name === "tickets" || name === "list-music";
+const isLucide = ["tickets", "list-music", "audio-lines", "tv-minimal-play"].includes(name);
 const content = icons[name].replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "");
 ---
 <svg

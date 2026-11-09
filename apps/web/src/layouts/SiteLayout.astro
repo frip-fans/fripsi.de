@@ -121,7 +121,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         <span>{t(locale, "nav.menu")}</span>
       </button>
     </header>
-    <div id="mobile-menu" class="mobile-menu" role="dialog" aria-modal="true" hidden data-mobile-menu aria-label={t(locale, "nav.menu")}>
+    <div id="mobile-menu" class="mobile-menu" role="dialog" aria-modal="true" hidden data-mobile-menu data-loading-label={t(locale, "search.loading")} aria-label={t(locale, "nav.menu")}>
       <div class="mobile-menu-top">
         <div class="mobile-menu-brand"><img src="/fan-site-logo.svg" width="40" height="40" alt="" /><span>fripSi<span class="brand-tld">.de</span></span></div>
         <button type="button" class="mobile-menu-close" data-menu-close aria-label={t(locale, "nav.closeMenu")}>
@@ -139,6 +139,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         ) : <a href={link.href} aria-current={link.active ? "page" : undefined}><span>{link.label}</span><Icon name="chevron-right" /></a>)}
         {admin ? <a href="/">查看网站 <Icon name="chevron-right" /></a> : <a class="mobile-menu-community" href="/discuss" aria-current={current.startsWith("/discuss") ? "page" : undefined}><span><Icon name="chat-dots" />{t(locale, "nav.community")}</span><Icon name="chevron-right" /></a>}
       </nav>
+      <span class="mobile-menu-status" data-menu-loading-status role="status" aria-live="polite"></span>
       {!admin && <div class="mobile-menu-language"><span>{t(locale, "language.label")}</span><LanguageSwitcher /></div>}
     </div>
     {!admin && <OfficialSiteGate autoOpen={autoOpenOfficialSiteGate} />}
@@ -173,6 +174,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   });
 
   import "../lib/event-navigation-client";
+  import { setupMobileMenuLoading } from "../lib/mobile-menu-loading";
   let navigationController: AbortController | undefined;
   let cleanupNavigation: (() => void) | undefined;
   let menuExitOverlay: HTMLElement | undefined;
@@ -204,6 +206,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     const trigger = document.querySelector<HTMLButtonElement>("[data-menu-open]");
     const close = document.querySelector<HTMLButtonElement>("[data-menu-close]");
     if (!menu || !trigger || !close) return;
+    const clearMenuLoading = setupMobileMenuLoading(menu, signal);
     const setOpenState = (open: boolean) => {
       trigger.setAttribute("aria-expanded", String(open));
       document.documentElement.classList.toggle("mobile-menu-open", open);
@@ -214,6 +217,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     let menuCloseTimer: number | undefined;
     const reducedMenuMotion = matchMedia("(prefers-reduced-motion: reduce)");
     const finishClose = (restoreFocus: boolean) => {
+      clearMenuLoading();
       window.clearTimeout(menuCloseTimer);
       menuCloseTimer = undefined;
       menuAnimation?.cancel();
@@ -522,6 +526,13 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .mobile-menu-links a[aria-current="page"]:hover { background: rgba(var(--accent-rgb), .32); }
   .mobile-menu-links a[aria-current="page"] > .icon { color: inherit; opacity: 1; }
   .mobile-menu-links a:hover { background: rgba(255,255,255,.07); }
+  .mobile-menu-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .mobile-menu-links a[data-menu-loading] { position: relative; isolation: isolate; color: #fff; border-color: rgba(var(--accent-rgb), .65); background: rgba(var(--accent-rgb), .12); }
+  .mobile-menu-links a[data-menu-loading]::after { content: ""; position: absolute; z-index: -1; inset: 0; border-radius: inherit; background: rgba(var(--accent-rgb), .12); box-shadow: 0 0 18px rgba(var(--accent-rgb), .3), inset 0 0 18px rgba(var(--accent-rgb), .18); pointer-events: none; animation: menu-loading-glow 1.2s ease-in-out infinite; }
+  @keyframes menu-loading-glow { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    .mobile-menu-links a[data-menu-loading]::after { animation: none; opacity: .65; }
+  }
   .mobile-menu-links .mobile-menu-community { margin-top: .6rem; border-color: var(--line); }
   .mobile-menu-community span { display: inline-flex; align-items: center; gap: .65rem; }
   .mobile-menu-language { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: auto; padding: 1rem 0 0; border-top: 1px solid var(--line); color: var(--muted); font-size: .9rem; }

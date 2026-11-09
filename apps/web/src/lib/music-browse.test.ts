@@ -32,10 +32,14 @@ function fixture() {
 
 describe("shared music browsing", () => {
   it("defaults to all years and normalizes invalid filters, sort and page values", () => {
-    expect(parseMusicBrowse("lives", new URLSearchParams())).toMatchObject({ year: "", page: 1, sort: "desc" });
+    expect(parseMusicBrowse("lives", new URLSearchParams())).toMatchObject({ years: [], classifications: [], page: 1, sort: "desc" });
     expect(parseMusicBrowse("lives", new URLSearchParams("year=all&classification=bad&sort=bad&page=-2")))
-      .toMatchObject({ year: "", classification: "", sort: "desc", page: 1 });
-    expect(parseMusicBrowse("releases", new URLSearchParams("type=constructor&page=999999"))).toMatchObject({ type: "", page: 80 });
+      .toMatchObject({ years: [], classifications: [], sort: "desc", page: 1 });
+    expect(parseMusicBrowse("releases", new URLSearchParams("type=constructor&page=999999"))).toMatchObject({ types: [], page: 80 });
+    expect(parseMusicBrowse("lives", new URLSearchParams("year=2026&year=bad&year=2025&year=2026&classification=专场&classification=x")))
+      .toMatchObject({ years: ["2026", "2025"], classifications: ["专场"] });
+    expect(parseMusicBrowse("releases", new URLSearchParams("type=album&type=single&type=nope")).types).toEqual(["album", "single"]);
+    expect(parseMusicBrowse("songs", new URLSearchParams("year=2026&type=album"))).toMatchObject({ years: [], types: [] });
     expect(parseMusicBrowse("songs", new URLSearchParams({ q: "x".repeat(300) })).query).toHaveLength(200);
   });
   it("returns one batch initially, appends the next batch, and restores loaded items on all three pages", async () => {
@@ -60,6 +64,17 @@ describe("shared music browsing", () => {
       }
     } finally { sqlite.close(); }
   });
+  it("combines multiple years and classifications with OR inside a group and AND across groups", async () => {
+    const { sqlite, db } = fixture();
+    try {
+      const both = await getMusicBrowseResults(db, "lives", new URLSearchParams("year=2026&year=2025"));
+      expect(both.total).toBe(FIXTURE_SIZE);
+      expect(both.yearCounts).toEqual({ "2026": 3, "2025": FIXTURE_SIZE - 3 });
+      expect((await getMusicBrowseResults(db, "lives", new URLSearchParams("year=2026&classification=专场&classification=拼盘"))).total).toBe(3);
+      expect((await getMusicBrowseResults(db, "lives", new URLSearchParams("year=2026&classification=专场"))).total).toBe(1);
+      expect((await getMusicBrowseResults(db, "lives", new URLSearchParams("year=1999"))).total).toBe(0);
+    } finally { sqlite.close(); }
+  });
   it("searches live tracks across years and combines explicit filters without expanding literal wildcards", async () => {
     const { sqlite, db } = fixture();
     try {
@@ -68,6 +83,8 @@ describe("shared music browsing", () => {
       expect((await getMusicBrowseResults(db, "lives", new URLSearchParams("q=%25"))).total).toBe(0);
       expect((await getMusicBrowseResults(db, "songs", new URLSearchParams("q=Song+07"))).songs.map(song => song.id)).toEqual(["07"]);
       expect((await getMusicBrowseResults(db, "releases", new URLSearchParams("type=album"))).total).toBe(Math.floor(FIXTURE_SIZE / 2));
+      expect((await getMusicBrowseResults(db, "releases", new URLSearchParams("type=album&type=single"))).total).toBe(FIXTURE_SIZE);
+      expect((await getMusicBrowseResults(db, "releases", new URLSearchParams("type=ep"))).total).toBe(0);
     } finally { sqlite.close(); }
   });
 });

@@ -18,8 +18,6 @@
 .music-card:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb),.38); background: rgba(14,29,49,.88); }
 .music-card h2, .music-card h3, .music-card p { margin: 0; }
 .music-card h2, .music-card h3 { font-size: 1rem; line-height: 1.4; text-wrap: pretty; overflow-wrap: anywhere; }
-.music-card-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
-.music-card-date { color: var(--accent); font-size: .8125rem; font-weight: 720; letter-spacing: .015em; font-variant-numeric: tabular-nums; }
 .music-event-type { display: inline-flex; align-items: center; gap: .35rem; padding: .27rem .5rem; color: var(--muted); border: 1px solid rgba(159, 180, 211, .17); border-radius: 999px; font-size: .75rem; line-height: 1; }
 .music-event-type:is(.is-solo, .is-festival)::before { content: ""; width: .42rem; height: .42rem; border: 1px solid var(--accent); border-radius: 50%; box-sizing: border-box; }
 .music-event-type.is-solo::before { background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), .34); }

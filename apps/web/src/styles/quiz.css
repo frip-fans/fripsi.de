@@ -47,3 +47,33 @@
   .quiz-actions { flex-wrap: wrap; gap: .6rem; }
   .quiz-next { width: 100%; margin-left: 0; }
 }
+
+/* Floating entry. Desktop only: the bottom-right corner is the thumb zone on phones and
+   already carries the menu trigger, so small screens keep the menu entry instead. */
+.quiz-launcher-root { position: relative; z-index: 60; }
+.quiz-launcher { position: fixed; right: 1.4rem; bottom: 1.4rem; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .18rem; width: 3.4rem; height: 3.4rem; padding: 0; color: var(--text); background: linear-gradient(145deg, rgba(20,38,60,.97), rgba(7,17,30,.97)); border: 1px solid rgba(159,180,211,.28); border-radius: 50%; box-shadow: 0 10px 26px rgba(0,0,0,.42); }
+.quiz-launcher[hidden] { display: none !important; }
+.quiz-launcher:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), .55); transform: translateY(-2px); filter: none; }
+.quiz-launcher svg { width: 1.15rem; height: 1.15rem; }
+.quiz-launcher-dots { display: flex; gap: .14rem; }
+.quiz-launcher-dots i { width: .26rem; height: .26rem; border-radius: 50%; background: rgba(159,180,211,.45); }
+.quiz-launcher-dots i[data-done="true"] { background: var(--accent); }
+.quiz-launcher-score { font-size: .66rem; font-weight: 700; letter-spacing: .02em; }
+.quiz-launcher-score[hidden] { display: none !important; }
+
+.quiz-dialog { width: min(34rem, calc(100vw - 2rem)); padding: 0; color: var(--text); background: transparent; border: 0; }
+.quiz-dialog::backdrop { background: rgba(3,9,17,.72); backdrop-filter: blur(3px); }
+.quiz-dialog-inner { padding: 1.1rem 1.15rem 1.3rem; border: 1px solid rgba(159,180,211,.22); border-radius: 20px; background: linear-gradient(160deg, rgba(14,28,46,.99), rgba(6,14,26,.99)); }
+.quiz-dialog-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .85rem; }
+.quiz-dialog-head .quiz-eyebrow { margin: 0; }
+.quiz-dialog-close { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; padding: 0; color: var(--muted); background: transparent; border: 0; border-radius: 8px; }
+.quiz-dialog-close:hover { color: var(--text); background: rgba(255,255,255,.07); transform: none; filter: none; }
+.quiz-dialog .quiz-card, .quiz-dialog .quiz-finish { border: 0; background: transparent; padding: 0; }
+.quiz-dialog .quiz-finish { padding: 1rem 0 .3rem; }
+
+@media (max-width: 760px) {
+  .quiz-launcher { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quiz-launcher:hover { transform: none; }
+}

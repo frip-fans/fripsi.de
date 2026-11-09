@@ -11,7 +11,7 @@ interface QuizStats {
   correct: number;
 }
 
-interface QuizQuestionView {
+export interface QuizQuestionView {
   prompt: string;
   options: string[];
   eventHref: string | null;
@@ -31,7 +31,7 @@ interface AnswerResponse {
   counts?: number[];
 }
 
-interface QuizPayload {
+export interface QuizPayload {
   date: string;
   total: number;
   score: number;
@@ -44,29 +44,20 @@ function fill(template: string, values: Record<string, string | number>): string
   return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), template);
 }
 
-export function setupQuiz(): void {
-  const root = document.querySelector<HTMLElement>("[data-quiz]");
-  if (!root || root.dataset.quizReady === "true") return;
-
-  const payloadNode = root.querySelector<HTMLScriptElement>("[data-quiz-payload]");
-  if (!payloadNode?.textContent) return;
-
-  let payload: QuizPayload;
-  let labels: Labels;
-  try {
-    payload = JSON.parse(payloadNode.textContent);
-    labels = JSON.parse(root.dataset.labels ?? "{}");
-  } catch {
-    return;
-  }
-  root.dataset.quizReady = "true";
+/**
+ * Render a board into `root`. Mounting twice on the same element replaces the previous
+ * run, so the launcher can reopen with fresh progress without stacking listeners.
+ */
+export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Labels): void {
 
   const progressNode = root.querySelector<HTMLElement>("[data-quiz-progress]")!;
   const promptNode = root.querySelector<HTMLElement>("[data-quiz-prompt]")!;
   const optionsNode = root.querySelector<HTMLElement>("[data-quiz-options]")!;
   const feedbackNode = root.querySelector<HTMLElement>("[data-quiz-feedback]")!;
   const showLink = root.querySelector<HTMLAnchorElement>("[data-quiz-show-link]")!;
-  const nextButton = root.querySelector<HTMLButtonElement>("[data-quiz-next]")!;
+  const staleNext = root.querySelector<HTMLButtonElement>("[data-quiz-next]")!;
+  const nextButton = staleNext.cloneNode(true) as HTMLButtonElement;
+  staleNext.replaceWith(nextButton);
   const card = root.querySelector<HTMLElement>(".quiz-card")!;
   const finish = root.querySelector<HTMLElement>("[data-quiz-finish]")!;
 
@@ -229,4 +220,20 @@ export function setupQuiz(): void {
   });
 
   render();
+}
+
+/** The standalone /quiz page, whose board ships with its payload already embedded. */
+export function setupQuizPage(): void {
+  const root = document.querySelector<HTMLElement>("[data-quiz]:not([data-quiz-dialog] [data-quiz])");
+  if (!root || root.dataset.quizReady === "true") return;
+
+  const payloadNode = root.querySelector<HTMLScriptElement>("[data-quiz-payload]");
+  if (!payloadNode?.textContent) return;
+
+  try {
+    root.dataset.quizReady = "true";
+    mountQuiz(root, JSON.parse(payloadNode.textContent), JSON.parse(root.dataset.labels ?? "{}"));
+  } catch {
+    /* A malformed payload leaves the board empty rather than breaking the page. */
+  }
 }

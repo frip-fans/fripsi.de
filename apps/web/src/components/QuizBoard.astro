@@ -1,0 +1,32 @@
+---
+import { quizLabels } from "../lib/quiz-payload";
+import type { Locale } from "../lib/i18n";
+
+/** The quiz board markup, shared by the /quiz page and the floating launcher dialog. */
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+---
+
+<section class="quiz-stage" data-quiz data-labels={JSON.stringify(quizLabels(locale))}>
+  <p class="quiz-progress" data-quiz-progress aria-live="polite"></p>
+  <div class="quiz-card">
+    <h2 class="quiz-prompt" data-quiz-prompt></h2>
+    <div class="quiz-options" data-quiz-options role="group"></div>
+    <div class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite" hidden></div>
+    <div class="quiz-actions">
+      <a class="quiz-show-link" data-quiz-show-link href="#" hidden></a>
+      <button class="quiz-next" type="button" data-quiz-next hidden></button>
+    </div>
+  </div>
+  <section class="quiz-finish" data-quiz-finish hidden>
+    <h2 data-quiz-finish-title></h2>
+    <p class="quiz-score" data-quiz-score></p>
+    <p class="quiz-marks" data-quiz-marks></p>
+    <p class="quiz-comeback" data-quiz-comeback></p>
+    <button class="quiz-share" type="button" data-quiz-share></button>
+  </section>
+  <slot />
+</section>

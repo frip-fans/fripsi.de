@@ -1,7 +1,6 @@
 import { authenticateAdmin, ServiceError } from "@frip-fan/core";
 import { defineMiddleware } from "astro:middleware";
 import { getEnv } from "./lib/env";
-import { usesNativePageNavigation } from "./lib/navigation-policy";
 import { publicResponse } from "#public-cache";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "./lib/site-notice";
 import { getLocale, type Locale } from "./lib/i18n";
@@ -22,7 +21,6 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
   if (locale && headers.get("content-type")?.includes("text/html")) {
     headers.set("content-language", locale);
     headers.append("vary", "Cookie");
-    headers.append("vary", "User-Agent");
   }
   if (privateRoute) headers.set("cache-control", "private, no-store");
   else if (cacheControl) headers.set("cache-control", cacheControl);
@@ -46,8 +44,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       && !context.request.headers.has("authorization") && context.url.href.length <= 2048
       && !path.startsWith("/api/admin") && !path.startsWith("/media/");
     const notice = eligible && context.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value === "yes";
-    const nativeNavigation = usesNativePageNavigation(context.request.headers.get("user-agent") ?? "");
-    return eligible ? publicResponse(`${context.url.href}|${locale}|${notice}|${nativeNavigation}`, render) : render();
+    return eligible ? publicResponse(`${context.url.href}|${locale}|${notice}`, render) : render();
   }
 
   try {

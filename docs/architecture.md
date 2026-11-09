@@ -209,7 +209,7 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 
 ## 10. 公开页面导航
 
-除下述 iOS Safari 兼容路径外，首页、音乐库列表及详情、活动日历/搜索与活动详情、关于页统一使用 `SiteLayout` 中的 Astro `ClientRouter`。正常链接与 SSR 页面仍支持直接访问、分享和无 JavaScript 浏览；地图旅程、校准工具、讨论页和后台保留整页导航。`prefetch: false` 禁用预取，页面 HTML/CSS/脚本在导航时加载，搜索与加载更多的 API 请求继续由对应组件按需发起。
+首页、音乐库列表及详情、活动日历/搜索与活动详情、关于页统一使用 `SiteLayout` 中的 Astro `ClientRouter`。正常链接与 SSR 页面仍支持直接访问、分享和无 JavaScript 浏览；地图旅程、校准工具、讨论页和后台保留整页导航。`prefetch: false` 禁用预取，页面 HTML/CSS/脚本在导航时加载，搜索与加载更多的 API 请求继续由对应组件按需发起。
 
 `public-navigation.ts` 只保存来源、列表入口及显式返回的滚动/焦点上下文，不抓取页面、不替换 DOM、不自行处理 popstate。页面替换、标题/元信息、样式与浏览器历史由 ClientRouter 管理。模块修改筛选 URL 时使用 `replacePublicUrl`，保留 Astro 的 history state 并同步正在显示的 URL；popstate 时地址已变，不能拿新地址保存旧页面的状态。活动搜索继续使用带内容版本与期限的快照恢复加载深度；音乐列表的累积页数保存在 URL。
 
@@ -220,5 +220,3 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 公共布局在 ClientRouter 之前同步加载同源带 hash 的 `router-bootstrap.js`，对当前 document 关闭原生 startViewTransition，使 Astro 初始化时选择已有的 `fallback="swap"` 分支；不覆盖全局导航，不改变服务器 URL，不为 CSP 开启 inline script。仅去掉命名快照时 Chromium 仍可能等待原生合成，因此不能只依赖 CSS。已打开的旧版本标签页在 DOM swap 后首次收到引导脚本时会刷新一次，让路由重新检测能力，避免把旧模块缓存的 native=true 与新 API 混用；新打开的页面保持局部导航。公共布局不对 body 添加 `transition:animate="none"` 的命名快照，html 使用 `view-transition-name: none`。仅将动画设为 none 仍会创建原生整页快照，在 WebKit 中可引入显著的合成等待；导航继续使用 ClientRouter，加载动画只发生在骨架上。验收 Safari 导航时应区分请求、after-preparation → after-swap 与 page-load 三段时序，不能用 Chromium 的手机 viewport 代替 WebKit 检查。
 
 手机导航使用显式 hidden 的 role=dialog 对话层，背景通过 inert 暂停交互，手动管理 Tab/Escape/焦点恢复，避免 iPhone Safari 原生 modal top-layer 关闭或命中异常。菜单链接捕获阶段与 Astro before-preparation 捕获阶段立即关闭菜单，先恢复背景 inert，再让加载反馈接管；before-swap 仍兜底清理。菜单控制器重建前必须先清理旧状态。路由引导资源 URL 携带公开 release SHA，让不同发布的已持久化布局监听器在一次正常刷新后统一初始化，避免新旧菜单实现混用。
-
-针对真机 iOS Safari 报告的跨页导航停顿，服务端通过 `navigation-policy.ts` 为 iPhone/iPad/iPod Safari UA 暂不输出 ClientRouter 及其 bootstrap，跨页链接由浏览器执行整页导航；页面内搜索、筛选与加载更多仍使用现有 API。此为兼容性回退，尚未确认真机停顿的内部根因，不将桌面 WebKit 结果视为 iPhone 验收。其他浏览器保留 ClientRouter。HTML 响应增加 `Vary: User-Agent`，Node 公开页面缓存按原生/客户端导航两种策略分桶，避免先访问的浏览器决定其他浏览器收到的路由模式。伪装为 macOS 的 iPad 桌面 UA 暂不在此规则内。

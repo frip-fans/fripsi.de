@@ -78,6 +78,16 @@
 .music-chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
 .music-chip input:checked + span { color: var(--accent); background: rgba(var(--accent-rgb), .14); border-color: rgba(var(--accent-rgb), .6); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .25); }
 .music-chip input:checked + span small { opacity: .85; }
+/* Without JS every year stays visible; once the browser script runs, older years collapse behind a toggle. */
+.music-chip-older { display: contents; }
+.music-browser[data-ready] .music-chip-older:not([data-expanded]) { display: none; }
+.music-chip-more { display: none; flex: 0 0 auto; align-items: center; gap: .35rem; min-height: 40px; padding: .4rem .8rem; color: var(--muted); background: transparent; border: 1px dashed rgba(159, 180, 211, .38); border-radius: 999px; font-size: .8125rem; font-weight: 650; touch-action: manipulation; }
+.music-browser[data-ready] .music-chip-more { display: inline-flex; }
+.music-chip-more .icon { width: .75rem; height: .75rem; transition: transform .18s ease; }
+.music-chip-more[aria-expanded="true"] .icon { transform: rotate(180deg); }
+.music-chip-more:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (hover: hover) and (pointer: fine) { .music-chip-more:hover { color: var(--text); border-color: rgba(var(--accent-rgb), .38); } }
+@media (prefers-reduced-motion: reduce) { .music-chip-more .icon { transition: none; } }
 .music-chip-clear { position: relative; display: inline-flex; flex: 0 0 auto; align-items: center; gap: .3rem; min-height: 40px; padding: 0 .65rem; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 999px; font-size: .8125rem; font-weight: 600; }
 .music-chip-clear .icon { width: .8rem; height: .8rem; }
 @media (hover: hover) and (pointer: fine) {

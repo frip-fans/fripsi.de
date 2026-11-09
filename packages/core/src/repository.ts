@@ -218,6 +218,30 @@ export async function listChangeSets(db: D1Database, status?: string, limit = 10
   return result.results;
 }
 
+export async function countChangeSetsByStatus(db: D1Database): Promise<Record<string, number>> {
+  const result = await db.prepare("SELECT status, COUNT(*) AS count FROM change_sets GROUP BY status").all<{ status: string; count: number }>();
+  return Object.fromEntries(result.results.map((row) => [row.status, Number(row.count)]));
+}
+
+export interface EventHead {
+  id: string;
+  title: string;
+  start_date: string;
+  slug: string;
+  version: number;
+  published: boolean;
+  archived_at: string | null;
+}
+
+/** Light event rows for labelling lists such as pending change sets. */
+export async function getEventHeads(db: D1Database, ids: string[]): Promise<Map<string, EventHead>> {
+  const unique = [...new Set(ids.filter(Boolean))].slice(0, 200);
+  if (!unique.length) return new Map();
+  const result = await db.prepare(`SELECT id, title, start_date, slug, version, published, archived_at FROM events WHERE id IN (${unique.map(() => "?").join(",")})`)
+    .bind(...unique).all<Omit<EventHead, "published"> & { published: number }>();
+  return new Map(result.results.map((row) => [row.id, { ...row, published: Boolean(row.published) }]));
+}
+
 export async function listAuditLogs(db: D1Database, limit = 100): Promise<AuditLog[]> {
   const result = await db.prepare("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?").bind(Math.max(1, Math.min(limit, 200))).all<AuditLog>();
   return result.results;

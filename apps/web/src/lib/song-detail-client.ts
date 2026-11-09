@@ -10,6 +10,7 @@ export function setupSongDetail(): void {
   const chart = root.querySelector<HTMLElement>("[data-year-chart]");
   const bars = [...root.querySelectorAll<HTMLButtonElement>("[data-year-bar]")];
   const labels = [...root.querySelectorAll<HTMLElement>("[data-year-label]")];
+  const chips = [...root.querySelectorAll<HTMLButtonElement>("[data-version-chip]")];
   const search = root.querySelector<HTMLInputElement>("[data-history-search]");
   const count = root.querySelector<HTMLElement>("[data-history-count]");
   const showAll = root.querySelector<HTMLButtonElement>("[data-history-show-all]");
@@ -20,13 +21,15 @@ export function setupSongDetail(): void {
   const params = new URL(location.href).searchParams;
   let year = bars.some((bar) => bar.dataset.yearBar === params.get("year") && !bar.disabled) ? params.get("year") : null;
   let query = (params.get("q") ?? "").slice(0, 100);
+  let version = chips.some((chip) => chip.dataset.versionChip === params.get("version")) ? params.get("version") : null;
   let page = Number(params.get("page") ?? "1");
   if (search) search.value = query;
 
   const pageUrl = (target: number) => {
     const url = new URL(location.href);
     url.hash = "";
-    for (const key of ["year", "q", "page"]) url.searchParams.delete(key);
+    for (const key of ["version", "year", "q", "page"]) url.searchParams.delete(key);
+    if (version) url.searchParams.set("version", version);
     if (year) url.searchParams.set("year", year);
     if (query.trim()) url.searchParams.set("q", query.trim());
     if (target > 1) url.searchParams.set("page", String(target));
@@ -78,8 +81,8 @@ export function setupSongDetail(): void {
 
   const render = () => {
     const needle = query.trim().toLocaleLowerCase();
-    const filtered = Boolean(year || needle);
-    const matches = rows.filter((row) => (!year || row.dataset.year === year) && (!needle || (row.dataset.search ?? "").includes(needle)));
+    const filtered = Boolean(version || year || needle);
+    const matches = rows.filter((row) => (!version || row.dataset.version === version) && (!year || row.dataset.year === year) && (!needle || (row.dataset.search ?? "").includes(needle)));
     const pages = Math.max(1, Math.ceil(matches.length / HISTORY_PAGE_SIZE));
     page = clampPage(page, pages);
     const visible = new Set(matches.slice((page - 1) * HISTORY_PAGE_SIZE, page * HISTORY_PAGE_SIZE));
@@ -87,11 +90,24 @@ export function setupSongDetail(): void {
     if (empty) empty.hidden = matches.length > 0;
     if (showAll) showAll.hidden = !filtered;
     if (count) {
-      const scope = [year ? (count.dataset.templateYear ?? "{year}").replace("{year}", year) : "", needle ? `“${query.trim()}”` : ""].filter(Boolean).join(" · ");
+      const versionLabel = chips.find((chip) => chip.dataset.versionChip === version)?.dataset.versionLabel ?? "";
+      const scope = [versionLabel, year ? (count.dataset.templateYear ?? "{year}").replace("{year}", year) : "", needle ? `“${query.trim()}”` : ""].filter(Boolean).join(" · ");
       const template = filtered ? count.dataset.templateFiltered ?? "" : count.dataset.templateAll ?? "";
       count.textContent = template.replace("{scope}", scope).replace("{count}", String(filtered ? matches.length : rows.length));
     }
-    for (const bar of bars) bar.setAttribute("aria-pressed", String(bar.dataset.yearBar === year));
+    for (const bar of bars) {
+      bar.setAttribute("aria-pressed", String(bar.dataset.yearBar === year));
+      // With a version selected, the label counts only that version's shows; segments of other versions fade.
+      const sung = bar.querySelector<HTMLElement>("[data-bar-sung]");
+      if (sung) {
+        let counts: Record<string, number> = {};
+        try { counts = JSON.parse(bar.dataset.versionCounts ?? "{}"); } catch { /* keep empty */ }
+        sung.textContent = version ? String(counts[version] ?? 0) : bar.dataset.sung ?? "0";
+      }
+      bar.querySelectorAll<HTMLElement>("[data-segment]").forEach((segment) => segment.classList.toggle("is-on", Boolean(version) && segment.dataset.segment === version));
+    }
+    chart?.toggleAttribute("data-version-selected", Boolean(version));
+    for (const chip of chips) chip.setAttribute("aria-pressed", String(chip.dataset.versionChip === version));
     chart?.toggleAttribute("data-selected", Boolean(year));
     for (const label of labels) label.classList.toggle("is-active", label.dataset.yearLabel === year);
     renderPager(pages);
@@ -113,8 +129,16 @@ export function setupSongDetail(): void {
     bar.addEventListener("focus", () => peek(true));
     bar.addEventListener("blur", () => peek(false));
   }
+  for (const chip of chips) {
+    chip.addEventListener("click", () => {
+      version = version === chip.dataset.versionChip ? null : chip.dataset.versionChip ?? null;
+      page = 1;
+      render();
+    });
+  }
   search?.addEventListener("input", () => { query = search.value.slice(0, 100); page = 1; render(); });
   showAll?.addEventListener("click", () => {
+    version = null;
     year = null;
     query = "";
     page = 1;

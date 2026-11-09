@@ -84,14 +84,47 @@ const isOriginalVersion = (versionId: string) => {
   const label = song.versions.find((item) => item.id === versionId)?.version_label;
   return !label || label.trim().toLowerCase() === "original";
 };
+// Version filter: each performance maps to the vocal version sung (instrumentals count as their parent) or "unknown".
+const UNKNOWN_VERSION = "unknown";
+const performedKey = (item: (typeof performances)[number]) => {
+  const id = item.performed_version_id;
+  if (!id) return UNKNOWN_VERSION;
+  return instrumentalParent.get(id) ?? id;
+};
+const keyCounts = new Map<string, number>();
+for (const item of performances) keyCounts.set(performedKey(item), (keyCounts.get(performedKey(item)) ?? 0) + 1);
+const knownKeys = vocalVersions.map((version) => version.id).filter((id) => keyCounts.has(id));
+// Original first, then the most performed versions; colours follow this order.
+knownKeys.sort((a, b) => Number(!isOriginalVersion(a)) - Number(!isOriginalVersion(b)) || (keyCounts.get(b) ?? 0) - (keyCounts.get(a) ?? 0));
+const versionKeys = [...knownKeys, ...(keyCounts.has(UNKNOWN_VERSION) ? [UNKNOWN_VERSION] : [])];
+const showVersionFilter = showPerformedVersion && versionKeys.length >= 2;
+const versionColor = (key: string) => key === UNKNOWN_VERSION ? "var(--song-unknown)" : `var(--song-v${(knownKeys.indexOf(key) % 3) + 1})`;
+const versionLabel = (key: string) => key === UNKNOWN_VERSION ? t(locale, "music.versionNotRecorded") : versionName(key);
+const versionsByYear = new Map<number, Map<string, number>>();
+for (const item of performances) {
+  const year = Number(item.start_date.slice(0, 4));
+  const counts = versionsByYear.get(year) ?? new Map<string, number>();
+  counts.set(performedKey(item), (counts.get(performedKey(item)) ?? 0) + 1);
+  versionsByYear.set(year, counts);
+}
+// Stacked bar segments per year: shares of the year's performances by version (a single accent fill otherwise).
+const yearSegments = new Map<number, Array<{ key: string; share: number; color: string }>>();
+for (const [year, counts] of versionsByYear) {
+  if (!showVersionFilter) { yearSegments.set(year, [{ key: "", share: 100, color: "var(--accent)" }]); continue; }
+  const keys = versionKeys.filter((key) => counts.has(key));
+  const weight = keys.reduce((sum, key) => sum + (counts.get(key) ?? 0), 0) || 1;
+  yearSegments.set(year, keys.map((key) => ({ key, share: ((counts.get(key) ?? 0) / weight) * 100, color: versionColor(key) })));
+}
 const searchText = (item: (typeof performances)[number]) => `${item.setlist_title ?? ""} ${item.event_title} ${item.performance_label} ${item.venue ?? ""} ${item.region ?? ""}`.toLocaleLowerCase();
 
 // The server applies the URL filter and page too, so a shared link renders the right rows without JS.
 const requestedYear = Astro.url.searchParams.get("year") ?? "";
 const filterYear = chartYears.some((year) => String(year) === requestedYear && (totals.get(year) ?? 0) > 0) ? requestedYear : "";
 const filterQuery = (Astro.url.searchParams.get("q") ?? "").slice(0, 100).trim();
+const requestedVersion = Astro.url.searchParams.get("version") ?? "";
+const filterVersion = showVersionFilter && versionKeys.includes(requestedVersion) ? requestedVersion : "";
 const needle = filterQuery.toLocaleLowerCase();
-const matchingIds = new Set(performances.filter((item) => (!filterYear || item.start_date.startsWith(filterYear)) && (!needle || searchText(item).includes(needle))).map((item) => item.setlist_id));
+const matchingIds = new Set(performances.filter((item) => (!filterYear || item.start_date.startsWith(filterYear)) && (!filterVersion || performedKey(item) === filterVersion) && (!needle || searchText(item).includes(needle))).map((item) => item.setlist_id));
 const historyPages = Math.max(1, Math.ceil(matchingIds.size / HISTORY_PAGE_SIZE));
 const historyPage = clampPage(Number(Astro.url.searchParams.get("page") ?? "1"), historyPages);
 const visibleIds = new Set([...matchingIds].slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE));
@@ -101,7 +134,7 @@ const pageHref = (page: number) => {
   const query = params.toString();
   return `${Astro.url.pathname}${query ? `?${query}` : ""}#performances-heading`;
 };
-const historyScope = [filterYear ? t(locale, "music.historyYear", { year: filterYear }) : "", filterQuery ? `“${filterQuery}”` : ""].filter(Boolean).join(" · ");
+const historyScope = [filterVersion ? versionLabel(filterVersion) : "", filterYear ? t(locale, "music.historyYear", { year: filterYear }) : "", filterQuery ? `“${filterQuery}”` : ""].filter(Boolean).join(" · ");
 
 const showTitle = (item: { setlist_title?: string | null; event_title: string; performance_label: string }) => setlistDisplayTitle({ title: item.setlist_title ?? null, event_title: item.event_title, performance_label: item.performance_label });
 ---
@@ -127,18 +160,34 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
       <section class="music-section song-yearly" aria-labelledby="yearly-heading">
         <h2 id="yearly-heading">{t(locale, "music.yearlyHeading")}</h2>
         <div class:list={["song-yearly-card", { "is-compact": compactChart }]}>
-          <p class="song-legend"><span class="is-total">{t(locale, "music.legendShows")}</span><span class="is-sung">{t(locale, "music.legendSung")}</span><span class="song-legend-hint" data-js-only hidden>{t(locale, "music.legendHint")}</span></p>
-          <div class="song-chart" style={`--years: ${chartYears.length}`} data-year-chart>
+          <div class="song-legend">
+            <span class="is-total">{t(locale, "music.legendShows")}</span>
+            {showVersionFilter ? (
+              <div class="song-version-filter" role="group" aria-label={t(locale, "music.versionFilter")}>
+                {versionKeys.map((key) => (
+                  <button type="button" class:list={["song-version-chip", { "is-unknown": key === UNKNOWN_VERSION }]} style={`--chip: ${versionColor(key)}`} aria-pressed={key === filterVersion ? "true" : "false"} data-version-chip={key} data-version-label={versionLabel(key)}>
+                    <span class="song-version-swatch" aria-hidden="true"></span><span translate={key === UNKNOWN_VERSION ? undefined : "no"}>{versionLabel(key)}</span><small>{keyCounts.get(key)}</small>
+                  </button>
+                ))}
+              </div>
+            ) : <span class="is-sung">{t(locale, "music.legendSung")}</span>}
+            <span class="song-legend-hint" data-js-only hidden>{t(locale, showVersionFilter ? "music.legendHint" : "music.legendHintYear")}</span>
+          </div>
+          <div class="song-chart" style={`--years: ${chartYears.length}`} data-year-chart data-version-selected={filterVersion || undefined}>
             {chartYears.map((year) => {
               const total = totals.get(year) ?? 0;
               const sung = sungByYear.get(year) ?? 0;
               const label = total ? t(locale, "music.yearBar", { year, total, count: sung }) : t(locale, "music.yearNoShows", { year });
               return (
-                <button type="button" class:list={["song-bar", { "is-gap": !total }]} style={`--total: ${(total / maxTotal) * 100}%; --sung: ${(sung / maxTotal) * 100}%; --total-ratio: ${total / maxTotal}; --sung-ratio: ${sung / maxTotal}`} aria-pressed="false" aria-label={label} title={label} disabled={!total} data-year-bar={year}>
+                <button type="button" class:list={["song-bar", { "is-gap": !total }]} style={`--total: ${(total / maxTotal) * 100}%; --sung: ${(sung / maxTotal) * 100}%; --total-ratio: ${total / maxTotal}; --sung-ratio: ${sung / maxTotal}`} aria-pressed="false" aria-label={label} title={label} disabled={!total} data-year-bar={year} data-total={total} data-sung={sung} data-version-counts={JSON.stringify(Object.fromEntries(versionsByYear.get(year) ?? []))}>
                   <span class="song-bar-year" aria-hidden="true">{year}</span>
                   <span class="song-bar-total"></span>
-                  <span class="song-bar-sung"></span>
-                  {total > 0 && <span class="song-bar-label" aria-hidden="true"><b>{sung}</b>/{total}</span>}
+                  {sung > 0 && (
+                    <span class="song-bar-sung">
+                      {(yearSegments.get(year) ?? []).map((segment) => <span class:list={["song-bar-segment", { "is-unknown": segment.key === UNKNOWN_VERSION, "is-on": Boolean(filterVersion) && segment.key === filterVersion }]} style={`--share: ${segment.share}%; --segment: ${segment.color}`} data-segment={segment.key}></span>)}
+                    </span>
+                  )}
+                  {total > 0 && <span class="song-bar-label" aria-hidden="true"><b data-bar-sung>{filterVersion ? (versionsByYear.get(year)?.get(filterVersion) ?? 0) : sung}</b>/{total}</span>}
                 </button>
               );
             })}
@@ -168,14 +217,14 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
               const gap = returnGaps.get(item.setlist_id);
               const version = showPerformedVersion && item.performed_version_id && !instrumentalParent.has(item.performed_version_id) ? item.performed_version_id : null;
               return (
-                <li class:list={{ "is-solo": item.event_classification === "专场" }} hidden={!visibleIds.has(item.setlist_id)} data-performance data-year={item.start_date.slice(0, 4)} data-search={searchText(item)}>
+                <li class:list={{ "is-solo": item.event_classification === "专场" }} hidden={!visibleIds.has(item.setlist_id)} data-performance data-year={item.start_date.slice(0, 4)} data-version={performedKey(item)} data-search={searchText(item)}>
                   <time datetime={item.start_date}>{formatMusicDate(item.start_date, locale)}</time>
                   <a href={`/music/lives/${encodeURIComponent(item.setlist_id)}`}>{showTitle(item)}</a>
                   {debutSetlists.has(item.setlist_id) && <span class="setlist-badge is-debut">{t(locale, "music.debutBadge")}</span>}
                   {gap !== undefined && <span class="setlist-badge is-return">{t(locale, "music.highlightGap", { years: formatGapYears(gap, locale) })}</span>}
-                  {version && (isOriginalVersion(version)
+                  {version && (isOriginalVersion(version) && !showVersionFilter
                     ? <span class="song-performed-version is-original">{t(locale, "music.originalVersion")}</span>
-                    : <span class="song-performed-version" translate="no">{versionName(version)}</span>)}
+                    : <span class="song-performed-version" style={showVersionFilter ? `--chip: ${versionColor(performedKey(item))}` : undefined} translate="no">{versionLabel(performedKey(item))}</span>)}
                 </li>
               );
             })}
@@ -248,7 +297,15 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
   .song-yearly, .song-history { margin-top: 2.5rem; }
   .song-yearly h2, .song-section-title { margin: 0 0 .9rem; }
   .song-yearly-card { padding: 1rem 1.1rem .9rem; border: 1px solid var(--line); border-radius: 16px; background: var(--music-panel); }
-  .song-legend { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin: 0 0 .5rem; color: var(--muted); font-size: .75rem; }
+  .song-legend { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: 0 0 .6rem; color: var(--muted); font-size: .75rem; }
+  .song-version-filter { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .song-version-chip { display: inline-flex; align-items: center; gap: .45rem; min-height: 36px; padding: .25rem .8rem; color: var(--text); background: rgba(5, 13, 23, .55); border: 1px solid var(--line); border-radius: 999px; font-size: .78rem; font-weight: 650; touch-action: manipulation; }
+  .song-version-chip small { color: var(--muted); font-weight: 650; font-variant-numeric: tabular-nums; }
+  .song-version-swatch { width: .65rem; height: .65rem; border-radius: 3px; background: var(--chip); }
+  .song-version-chip.is-unknown .song-version-swatch { background: repeating-linear-gradient(135deg, rgba(159, 180, 211, .7) 0 2px, rgba(159, 180, 211, .2) 2px 4px); }
+  .song-version-chip[aria-pressed="true"] { border-color: var(--chip); background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px var(--chip); }
+  .song-version-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (hover: hover) and (pointer: fine) { .song-version-chip:hover { border-color: var(--chip); } }
   .song-legend .is-total::before, .song-legend .is-sung::before { content: ""; display: inline-block; width: .75rem; height: .6rem; margin-right: .4rem; border-radius: 2px; }
   .song-legend .is-total::before { background: rgba(159, 180, 211, .3); }
   .song-legend .is-sung::before { background: var(--accent); }
@@ -257,9 +314,15 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
   .song-chart { height: 11rem; padding-top: 1.4rem; border-bottom: 1px solid var(--line); }
   .song-bar { position: relative; min-width: 0; height: 100%; margin: 0; padding: 0; background: none; border: 0; border-radius: 6px 6px 0 0; cursor: pointer; touch-action: manipulation; }
   .song-bar:disabled { cursor: default; opacity: 1; }
+  .music-page[data-song-detail] { --song-v1: var(--accent); --song-v2: #4cc3c9; --song-v3: #a98bf5; --song-unknown: rgba(159, 180, 211, .55); }
   .song-bar-total, .song-bar-sung { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 5px 5px 1px 1px; }
+  .song-bar-sung { display: flex; flex-direction: column-reverse; overflow: hidden; }
+  .song-bar-segment { flex: 0 0 var(--share); background: var(--segment); transition: opacity .15s ease; }
+  .song-bar-segment.is-unknown { background: repeating-linear-gradient(135deg, rgba(159, 180, 211, .6) 0 3px, rgba(159, 180, 211, .25) 3px 6px); }
+  .song-chart[data-version-selected] .song-bar-segment { opacity: .15; }
+  .song-chart[data-version-selected] .song-bar-segment.is-on { opacity: 1; }
   .song-bar-total { height: var(--total); background: rgba(159, 180, 211, .22); transition: background-color .15s ease; }
-  .song-bar-sung { height: var(--sung); background: var(--accent); transition: opacity .15s ease; }
+  .song-bar-sung { height: var(--sung); transition: opacity .15s ease; }
   .song-bar.is-gap .song-bar-total { height: 100%; background: repeating-linear-gradient(135deg, rgba(159, 180, 211, .1) 0 5px, transparent 5px 10px); border: 1px dashed rgba(159, 180, 211, .2); }
   .song-bar-label { position: absolute; left: 50%; bottom: calc(var(--total) + .25rem); color: var(--muted); font-size: .6875rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; transform: translateX(-50%); }
   .song-bar-label b { color: var(--accent); }
@@ -273,7 +336,7 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
   .is-compact .song-bar-year { display: block; grid-column: 1; color: var(--muted); font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; }
   .is-compact .song-bar-total, .is-compact .song-bar-sung { left: 3.75rem; right: auto; top: .3rem; bottom: .3rem; height: auto; border-radius: 1px 5px 5px 1px; }
   .is-compact .song-bar-total { width: calc((100% - 8rem) * var(--total-ratio)); }
-  .is-compact .song-bar-sung { width: calc((100% - 8rem) * var(--sung-ratio)); }
+  .is-compact .song-bar-sung { width: calc((100% - 8rem) * var(--sung-ratio)); flex-direction: row; }
   .is-compact .song-bar-label { position: static; grid-column: 3; justify-self: end; transform: none; font-size: .8125rem; }
   .is-compact .song-bar[aria-pressed="true"] .song-bar-year { color: var(--text); }
   .song-axis[hidden] { display: none; }
@@ -296,7 +359,7 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
   .song-performances > li { display: flex; align-items: center; gap: .6rem; min-height: 50px; padding: .5rem 1rem; }
   .song-performances time { flex: 0 0 7.5rem; }
   .song-performances > li.is-solo time { color: var(--accent); }
-  .song-performed-version { flex: 0 0 auto; margin-left: auto; padding: .15rem .55rem; color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .4); border-radius: 999px; font-size: .75rem; font-weight: 650; white-space: nowrap; }
+  .song-performed-version { --chip: var(--accent); flex: 0 0 auto; margin-left: auto; padding: .15rem .55rem; color: var(--chip); border: 1px solid color-mix(in srgb, var(--chip) 50%, transparent); border-radius: 999px; font-size: .75rem; font-weight: 650; white-space: nowrap; }
   .song-performed-version.is-original { color: var(--muted); border-color: transparent; font-weight: 600; }
   .song-performances > li + li { border-top: 1px solid rgba(159, 180, 211, .1); }
   .song-performances > li[hidden] { display: none; }
@@ -335,7 +398,7 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
   .song-release-chips a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
   .song-release-chips small { flex: 0 0 auto; color: var(--muted); }
   .song-version-instrumental { margin: .7rem 0 0; padding-top: .6rem; border-top: 1px solid rgba(159, 180, 211, .1); color: var(--muted); font-size: .75rem; overflow-wrap: anywhere; }
-  @media (prefers-reduced-motion: reduce) { .song-bar-total, .song-bar-sung { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { .song-bar-total, .song-bar-sung, .song-bar-segment { transition: none; } }
   @media (max-width: 720px) {
     .song-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .song-versions { grid-template-columns: 1fr; }

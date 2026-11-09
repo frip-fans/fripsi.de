@@ -1,4 +1,5 @@
 import { cancelContentEntries, playContentEntry, playResultsEntry } from "./content-entry";
+import { NAVIGATION_FEEDBACK_DELAY_MS } from "./navigation-feedback";
 
 type EntryKind = "page" | "music" | "calendar" | "search" | "none";
 export function navigationEntryKind(from: URL, to: URL, traversal = false): EntryKind {
@@ -26,11 +27,6 @@ function playCalendarEntry(shell: HTMLElement) {
   } else target = shell.querySelector(".desktop-calendar [data-calendar-entry-grid]");
   playContentEntry(target);
 }
-
-// The shade exists to cover the wait for the next document, so it only starts
-// once a navigation is already slower than this. Quicker ones have nothing to
-// cover and stay instant rather than paying for an animation of their own.
-const SHADE_DELAY_MS = 120;
 
 interface Shade { signal: AbortSignal; timer?: ReturnType<typeof setTimeout>; dimmed: boolean }
 
@@ -62,6 +58,9 @@ export function setupPageEntryTransitions() {
     if (current?.dimmed && reveal) revealShade(root);
     else delete root.dataset.pageShade;
   };
+  // The shade exists to cover the wait for the next document, so it starts on
+  // the same delay as the progress indicator: a navigation that resolves first
+  // has nothing to cover and stays instant instead of dimming on its way out.
   const startShade = (signal: AbortSignal) => {
     reducedMotion ??= window.matchMedia("(prefers-reduced-motion: reduce)");
     if (reducedMotion.matches || document.hidden) return;
@@ -71,7 +70,7 @@ export function setupPageEntryTransitions() {
       if (shade !== current || signal.aborted) return;
       current.dimmed = true;
       document.documentElement.dataset.pageShade = "dim";
-    }, SHADE_DELAY_MS);
+    }, NAVIGATION_FEEDBACK_DELAY_MS);
     // An abandoned navigation keeps its own document, so fade the dim back out.
     signal.addEventListener("abort", () => { if (shade === current) stopShade(true); }, { once: true });
   };

@@ -47,11 +47,9 @@
 .music-release-grid .release-cover { flex: 0 0 auto; }
 .music-release-grid .release-cover img { object-fit: cover; }
 .music-release-grid .music-card h2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: .9rem; line-height: 1.45; text-wrap: pretty; }
-.music-release-grid .music-card-meta { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
-.music-release-grid .music-card-meta span + span::before { content: " · "; }
 .music-release-grid .music-card-stats { margin-top: auto; align-content: start; line-height: 1.5; }
 .music-release-grid .music-release-meta { line-height: 1.5; }
-.music-release-grid .music-card-meta, .music-release-grid .music-card-stats, .music-release-grid .music-release-meta { font-size: .75rem; }
+.music-release-grid .music-card-stats, .music-release-grid .music-release-meta { font-size: .75rem; }
 @media (min-width: 1200px) { .music-browser .music-release-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 560px) {
   .music-browser .music-release-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }

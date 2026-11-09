@@ -164,6 +164,8 @@ export interface ReleaseTrackRecord {
   version_label: string | null;
   work_show_count: number;
   exact_version_show_count: number;
+  /** 1 when this version is recorded as an instrumental of another version (public release pages only). */
+  is_instrumental?: number;
 }
 
 export interface ReleaseDetail extends ReleaseSummary {

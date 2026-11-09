@@ -327,7 +327,9 @@ export async function getReleaseBySlug(db: D1Database, slug: string): Promise<Re
           FROM setlist_entries se
           JOIN setlists sl ON sl.id = se.setlist_id AND sl.published = 1
           JOIN events e ON e.id = sl.event_id AND e.published = 1 AND e.archived_at IS NULL
-          WHERE se.performed_version_id = sv.id) AS exact_version_show_count
+          WHERE se.performed_version_id = sv.id) AS exact_version_show_count,
+        EXISTS (SELECT 1 FROM song_version_relations svr
+          WHERE svr.child_version_id = sv.id AND svr.relation_type = 'instrumental_of') AS is_instrumental
       FROM release_tracks rt
       JOIN song_versions sv ON sv.id = rt.song_version_id AND sv.published = 1
       JOIN songs s ON s.id = sv.song_id AND s.published = 1

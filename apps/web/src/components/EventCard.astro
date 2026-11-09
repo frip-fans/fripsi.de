@@ -5,8 +5,8 @@ import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel
 import { getLocale } from "../lib/i18n";
 import Icon from "./Icon.astro";
 
-interface Props { event: EventSummary; compact?: boolean; timeInHeader?: boolean; dateInGroup?: boolean }
-const { event, compact = false, timeInHeader = false, dateInGroup = false } = Astro.props;
+interface Props { event: EventSummary; compact?: boolean; timeInHeader?: boolean; dateInGroup?: boolean; updateLabel?: string | null }
+const { event, compact = false, timeInHeader = false, dateInGroup = false, updateLabel = null } = Astro.props;
 const locale = getLocale(Astro.request);
 const displayStatus = displayEventStatus(event);
 const singleDay = !event.end_date || event.end_date === event.start_date;
@@ -22,6 +22,7 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
       <span class:list={["tag", event.category.toLowerCase()]}>{categoryLabels[event.category]}</span>
       {displayStatus !== "scheduled" && <span class:list={["tag", displayStatus]}>{statusLabel(locale, displayStatus)}</span>}
       {event.classification && <span class="tag">{event.classification}</span>}
+      {updateLabel && <span class="tag update">{updateLabel}</span>}
     </div>
     <h3><a href={eventDetailHref(event.slug, Astro.url, locale)} data-astro-prefetch="tap">{event.title}</a></h3>
     <div class="event-details">
@@ -44,6 +45,7 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
   .event-year { color: var(--event-year-color, var(--muted)); font-size: .7rem; font-weight: 400; letter-spacing: .12em; }
   .event-date strong { color: var(--accent); font-size: 1.32rem; letter-spacing: -.04em; }
   .meta { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .7rem; }
+  .tag.update { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .1); }
   h3 { margin: 0 0 .5rem; color: var(--event-title-color, inherit); font-size: var(--event-title-size, 1.08rem); font-weight: var(--event-title-weight, 700); line-height: var(--event-title-line-height, 1.45); }
   h3 a { text-decoration: none; }
   p { margin: 0; color: var(--event-time-color, var(--muted)); font-size: .82rem; line-height: 1.55; }

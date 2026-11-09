@@ -4,6 +4,8 @@ interface Props {
   description?: string;
   admin?: boolean;
   clientRouting?: boolean;
+  /** Schema.org data for this page, rendered as JSON-LD. */
+  structuredData?: unknown;
 }
 import { ClientRouter } from "astro:transitions";
 import { getEnv } from "../lib/env";
@@ -21,6 +23,7 @@ import issBackground from "../../../../images/ISS.jpg?url";
 const {
   title = "fripSi.de Fan Site",
   description,
+  structuredData,
   admin = false,
   clientRouting = !admin && !/^\/(journey|yaginuma-intensity-calibrator)(?:\/|$)/.test(Astro.url.pathname)
 } = Astro.props;
@@ -60,6 +63,8 @@ const navigationLinks: NavigationItem[] = admin ? [
 const hoverPrefetch = admin ? undefined : "hover";
 const tapPrefetch = admin ? undefined : "tap";
 const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
+const canonicalUrl = new URL(Astro.url.pathname, canonicalBase).href;
+const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
 ---
 <!doctype html>
 <html lang={locale}>
@@ -78,7 +83,26 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     </style>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={new URL(Astro.url.pathname, canonicalBase)} />
-    <title>{title === siteName ? title : `${title} · ${siteName}`}</title>
+    <title>{pageTitle}</title>
+    {!admin && (
+      <>
+        <meta property="og:site_name" content={siteName} />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={resolvedDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:locale" content={locale.replace("-", "_")} />
+        <meta property="og:image" content={new URL("/og-cover.jpg", canonicalBase)} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content={siteName} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={resolvedDescription} />
+        <meta name="twitter:image" content={new URL("/og-cover.jpg", canonicalBase)} />
+      </>
+    )}
+    {structuredData && <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />}
     {clientRouting && <script is:inline src={`${routerBootstrap}?release=${encodeURIComponent(getEnv().FRIP_RELEASE_SHA || "development")}`}></script>}
     {clientRouting && <ClientRouter fallback="animate" />}
   </head>

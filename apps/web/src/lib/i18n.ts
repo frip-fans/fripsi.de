@@ -392,7 +392,7 @@ const zhCN = {
   "quiz.empty": "完整歌单还太少，今天出不了题。",
   "quiz.failed": "没提交上去，再试一次。",
   "quiz.dataNote": "只用完整、来源可靠的歌单出题。",
-  "quiz.launcherOpen": "今日厨力测试",
+  "quiz.launcherOpen": "每日厨力测试",
   "quiz.close": "关闭",
 } as const;
 
@@ -779,7 +779,7 @@ const zhTW: Record<TranslationKey, string> = {
   "quiz.empty": "完整歌單還太少，今天出不了題。",
   "quiz.failed": "沒送出去，再試一次。",
   "quiz.dataNote": "只用完整、來源可靠的歌單出題。",
-  "quiz.launcherOpen": "今日廚力測試",
+  "quiz.launcherOpen": "每日廚力測試",
   "quiz.close": "關閉",
 };
 
@@ -1165,7 +1165,7 @@ const ja: Record<TranslationKey, string> = {
   "quiz.empty": "完全なセトリがまだ少なく、今日は出題できません。",
   "quiz.failed": "送信に失敗しました。もう一度お試しください。",
   "quiz.dataNote": "完全で出典の確かなセトリだけから出題。",
-  "quiz.launcherOpen": "本日のガチ度テスト",
+  "quiz.launcherOpen": "毎日のガチ度テスト",
   "quiz.close": "閉じる",
 };
 
@@ -1551,7 +1551,7 @@ const en: Record<TranslationKey, string> = {
   "quiz.empty": "Not enough complete setlists yet, so there's no puzzle today.",
   "quiz.failed": "That didn't go through. Try again.",
   "quiz.dataNote": "Questions come from complete setlists with reliable sources.",
-  "quiz.launcherOpen": "Today's fandom test",
+  "quiz.launcherOpen": "Daily fandom test",
   "quiz.close": "Close",
 };
 

@@ -51,14 +51,15 @@
 /* Floating entry. Desktop only: the bottom-right corner is the thumb zone on phones and
    already carries the menu trigger, so small screens keep the menu entry instead. */
 .quiz-launcher-root { position: relative; z-index: 60; }
-.quiz-launcher { position: fixed; right: 1.4rem; bottom: 1.4rem; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: .18rem; width: 3.4rem; height: 3.4rem; padding: 0; color: var(--text); background: linear-gradient(145deg, rgba(20,38,60,.97), rgba(7,17,30,.97)); border: 1px solid rgba(159,180,211,.28); border-radius: 50%; box-shadow: 0 10px 26px rgba(0,0,0,.42); }
+.quiz-launcher { position: fixed; right: 1.4rem; bottom: 1.4rem; display: inline-flex; align-items: center; gap: .55rem; max-width: min(18rem, calc(100vw - 3rem)); height: 2.9rem; padding: 0 1rem; color: var(--text); background: linear-gradient(145deg, rgba(20,38,60,.97), rgba(7,17,30,.97)); border: 1px solid rgba(159,180,211,.28); border-radius: 999px; box-shadow: 0 10px 26px rgba(0,0,0,.42); font-size: .82rem; font-weight: 600; }
 .quiz-launcher[hidden] { display: none !important; }
 .quiz-launcher:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), .55); transform: translateY(-2px); filter: none; }
-.quiz-launcher svg { width: 1.15rem; height: 1.15rem; }
-.quiz-launcher-dots { display: flex; gap: .14rem; }
-.quiz-launcher-dots i { width: .26rem; height: .26rem; border-radius: 50%; background: rgba(159,180,211,.45); }
+.quiz-launcher svg { flex: none; width: 1.05rem; height: 1.05rem; color: var(--accent); }
+.quiz-launcher-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.quiz-launcher-dots { display: flex; flex: none; gap: .2rem; padding-left: .5rem; border-left: 1px solid rgba(159,180,211,.22); }
+.quiz-launcher-dots i { width: .35rem; height: .35rem; border-radius: 50%; background: rgba(159,180,211,.45); }
 .quiz-launcher-dots i[data-done="true"] { background: var(--accent); }
-.quiz-launcher-score { font-size: .66rem; font-weight: 700; letter-spacing: .02em; }
+.quiz-launcher-score { flex: none; padding-left: .5rem; border-left: 1px solid rgba(159,180,211,.22); font-size: .78rem; font-weight: 700; }
 .quiz-launcher-score[hidden] { display: none !important; }
 
 .quiz-dialog { width: min(34rem, calc(100vw - 2rem)); padding: 0; color: var(--text); background: transparent; border: 0; }

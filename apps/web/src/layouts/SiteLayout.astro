@@ -180,8 +180,9 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
     <main id="main-content" tabindex="-1"><slot /></main>
     {showQuizLauncher && (
       <div class="quiz-launcher-root" transition:persist="quiz-launcher">
-        <button class="quiz-launcher" type="button" data-quiz-launcher aria-haspopup="dialog" aria-label={t(locale, "quiz.launcherOpen")} title={t(locale, "quiz.launcherOpen")} hidden>
+        <button class="quiz-launcher" type="button" data-quiz-launcher aria-haspopup="dialog" hidden>
           <Icon name="list-stars" />
+          <span class="quiz-launcher-label">{t(locale, "quiz.launcherOpen")}</span>
           <span class="quiz-launcher-dots" data-quiz-dots aria-hidden="true"></span>
           <span class="quiz-launcher-score" data-quiz-launcher-score aria-hidden="true" hidden></span>
         </button>

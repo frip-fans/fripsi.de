@@ -20,6 +20,26 @@ export function setupMenuIndicator(menu: HTMLElement, signal: AbortSignal) {
     return desktop ? item.closest(".nav-group")?.querySelector<HTMLElement>("summary") ?? item : item;
   };
   const current = () => targetOf(region.querySelector('[aria-current="page"], .active'));
+  if (desktop) {
+    // Astro replaces the links, so CSS transitions alone cannot bridge a route swap.
+    const selector = "nav > a, .nav-group > summary";
+    const keyOf = (item: HTMLElement) => item.getAttribute("href")
+      ?? [...item.parentElement!.querySelectorAll("a[href]")].map(link => link.getAttribute("href")).join("|");
+    document.addEventListener("astro:before-swap", () => {
+      if (!menu.getClientRects().length || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const colors = new Map([...menu.querySelectorAll<HTMLElement>(selector)]
+        .map(item => [keyOf(item), getComputedStyle(item).color]));
+      document.addEventListener("astro:after-swap", () => {
+        document.querySelectorAll<HTMLElement>(`[data-desktop-menu] :is(${selector})`).forEach(item => {
+          const from = colors.get(keyOf(item));
+          const to = getComputedStyle(item).color;
+          if (from && from !== to) item.animate([{ color: from }, { color: to }], {
+            duration: 220, easing: "cubic-bezier(.2,.8,.2,1)",
+          });
+        });
+      }, { once: true, signal });
+    }, { signal });
+  }
   const move = (target: HTMLElement | null, animate = true) => {
     if (animate && selected === target && !indicator.hidden) return;
     selected = target;

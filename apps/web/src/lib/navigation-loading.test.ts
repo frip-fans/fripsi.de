@@ -41,6 +41,17 @@ describe("navigation loading feedback", () => {
   });
   afterEach(() => { vi.unstubAllGlobals(); });
 
+  it("allows the explicit diagnostic control to skip feedback while keeping the loader unchanged", () => {
+    Object.assign(doc, { documentElement: { dataset: { navigationFeedback: "off" } } });
+    const loader = vi.fn(async () => {});
+    const { event } = prepare("/calendar", loader);
+    expect(event.loader).toBe(loader);
+    expect(overlay.hidden).toBe(true);
+    expect(main.inert).toBe(false);
+    expect(main.getAttribute("aria-busy")).toBeNull();
+    expect(section.inert).toBe(false);
+  });
+
   it("shows synchronously before loading and restores interactivity without waiting for an animation", () => {
     main.setAttribute("aria-busy", "false");
     prepare();

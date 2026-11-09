@@ -233,11 +233,11 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
       const from = { opacity: current.opacity, transform: current.transform };
       menuAnimation?.cancel();
       closing = true;
-      menuAnimation = menu.animate([from, { opacity: 0, transform: "translateY(10px)" }], { duration: 140, easing: "ease-in", fill: "forwards" });
-      menuAnimation.addEventListener("finish", () => finishClose(restoreFocus), { once: true });
+      const animation = menuAnimation = menu.animate([from, { opacity: 0, transform: "translateY(10px)" }], { duration: 140, easing: "ease-in", fill: "forwards" });
+      animation.addEventListener("finish", () => { if (menuAnimation === animation) finishClose(restoreFocus); }, { once: true });
       // Backgrounded renderers can pause animation events; never leave a closing
       // menu trapping focus or scrolling after its short exit has elapsed.
-      menuCloseTimer = window.setTimeout(() => finishClose(restoreFocus), 180);
+      menuCloseTimer = window.setTimeout(() => { if (menuAnimation === animation) finishClose(restoreFocus); }, 180);
     };
     cleanupNavigation = () => closeMenu(false, false);
     reducedMenuMotion.addEventListener("change", () => {

@@ -78,8 +78,8 @@ for (const setlist of results.lives) {
         <ReleaseCover noScriptFallback={!append} url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
         <span class="music-release-meta">{releaseTypeLabel(release.release_type, locale)} · {formatMusicDate(release.release_date, locale)}</span>
         <h2 translate="no">{release.title}</h2>
-        <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
-        <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span><span>{t(locale, "music.performedSongs", { count: release.performed_song_count })}</span></div>
+        {/* Catalog numbers and edition notes live on the detail page; search still matches them. */}
+        <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span></div>
       </a>
     ))}
   </div>

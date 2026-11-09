@@ -9,6 +9,7 @@
 - 不在主工作区、`master` 或 `staging` 上直接开发，不混入其他任务的未提交改动。不要为切换任务而清理、覆盖或丢弃已有工作区内容。
 - 在 Orca 环境中使用 `orca-cli` skill 创建和管理 worktree，先读取该环境的版本匹配操作指南。非 Orca 环境可使用标准 Git worktree。
 - 新建 worktree 不代表需要启动其他 agent；是否委派按当前任务授权处理。
+- 任务 PR（含 `release/*`）合并后清理对应 worktree 和本地任务分支，Orca 与非 Orca 环境均适用；Orca 中使用 `orca-cli` 删除，非 Orca 使用 `git worktree remove`。删除前检查未提交、未推送或未跟踪的内容（如本地数据、预览产物、笔记）；如有，先向用户说明，经用户确认可删除后再删除，不擅自丢弃或强制删除。
 
 ## PR 与发布
 

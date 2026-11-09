@@ -27,13 +27,56 @@ function playCalendarEntry(shell: HTMLElement) {
   playContentEntry(target);
 }
 
+// The shade exists to cover the wait for the next document, so it only starts
+// once a navigation is already slower than this. Quicker ones have nothing to
+// cover and stay instant rather than paying for an animation of their own.
+const SHADE_DELAY_MS = 120;
+
+interface Shade { signal: AbortSignal; timer?: ReturnType<typeof setTimeout>; dimmed: boolean }
+
 let installed = false;
 export function setupPageEntryTransitions() {
   if (installed || !document.querySelector('meta[name="astro-view-transitions-enabled"]')) return;
   installed = true;
   let pending: { kind: EntryKind; to: string; signal: AbortSignal } | undefined;
   let musicResults: HTMLElement | null = null;
-  const clear = () => { pending = undefined; musicResults = null; cancelContentEntries(); };
+  let shade: Shade | undefined;
+  let reducedMotion: MediaQueryList | undefined;
+
+  // Hand the reveal the opacity the dim actually reached so a document that
+  // arrives mid-dim fades out from there instead of darkening first. One style
+  // read on content that is about to be replaced; never a layout read.
+  const revealShade = (root: HTMLElement) => {
+    const main = document.querySelector("main");
+    const reached = main ? window.getComputedStyle(main, "::after").opacity : "";
+    if (Number(reached) > 0) root.style.setProperty("--page-shade-from", reached);
+    else root.style.removeProperty("--page-shade-from");
+    root.dataset.pageShade = "reveal";
+  };
+  const stopShade = (reveal = false) => {
+    const current = shade;
+    shade = undefined;
+    clearTimeout(current?.timer);
+    const root = document.documentElement;
+    if (!root) return;
+    if (current?.dimmed && reveal) revealShade(root);
+    else delete root.dataset.pageShade;
+  };
+  const startShade = (signal: AbortSignal) => {
+    reducedMotion ??= window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (reducedMotion.matches || document.hidden) return;
+    const current: Shade = shade = { signal, dimmed: false };
+    current.timer = setTimeout(() => {
+      current.timer = undefined;
+      if (shade !== current || signal.aborted) return;
+      current.dimmed = true;
+      document.documentElement.dataset.pageShade = "dim";
+    }, SHADE_DELAY_MS);
+    // An abandoned navigation keeps its own document, so fade the dim back out.
+    signal.addEventListener("abort", () => { if (shade === current) stopShade(true); }, { once: true });
+  };
+
+  const clear = () => { pending = undefined; musicResults = null; cancelContentEntries(); stopShade(); };
   document.addEventListener("astro:before-preparation", event => {
     clear();
     const returning = event.sourceElement instanceof Element && event.sourceElement.closest("[data-music-back], [data-event-return], [data-agenda-return]");
@@ -41,12 +84,14 @@ export function setupPageEntryTransitions() {
       kind: returning ? "none" : navigationEntryKind(event.from, event.to, event.navigationType === "traverse"),
       to: event.to.href, signal: event.signal,
     };
+    if (pending.kind === "page") startShade(event.signal);
   });
   document.addEventListener("astro:before-swap", event => {
-    const fade = pending?.kind === "page" && !pending.signal.aborted;
-    for (const root of [document.documentElement, event.newDocument.documentElement]) {
-      root.toggleAttribute("data-page-transition", Boolean(fade));
-    }
+    if (!shade?.dimmed || shade.signal.aborted) { stopShade(); return; }
+    // Astro replaces every root attribute with the incoming document's, so the
+    // shade has to be handed over there to outlast the swap it is covering.
+    revealShade(event.newDocument.documentElement);
+    shade = undefined;
   });
   document.addEventListener("astro:after-swap", () => {
     const navigation = pending;

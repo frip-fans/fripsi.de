@@ -6,6 +6,7 @@ import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { formatGapYears, formatMusicDate, setlistDisplayTitle, versionRelationLabel } from "../../../lib/music";
 import { getLocale, t } from "../../../lib/i18n";
+import { clampPage, HISTORY_PAGE_SIZE, pageTokens } from "../../../lib/page-tokens";
 import "../../../styles/music.css";
 
 const locale = getLocale(Astro.request);
@@ -77,6 +78,31 @@ const releaseChips = (versionIds: string[]) => {
 };
 const vocalVersions = song.versions.filter((version) => !instrumentalParent.has(version.id));
 const instrumentalsOf = (versionId: string) => song.versions.filter((version) => instrumentalParent.get(version.id) === versionId);
+// Which version was sung only matters when the song has more than one vocal version.
+const showPerformedVersion = vocalVersions.length > 1;
+const isOriginalVersion = (versionId: string) => {
+  const label = song.versions.find((item) => item.id === versionId)?.version_label;
+  return !label || label.trim().toLowerCase() === "original";
+};
+const searchText = (item: (typeof performances)[number]) => `${item.setlist_title ?? ""} ${item.event_title} ${item.performance_label} ${item.venue ?? ""} ${item.region ?? ""}`.toLocaleLowerCase();
+
+// The server applies the URL filter and page too, so a shared link renders the right rows without JS.
+const requestedYear = Astro.url.searchParams.get("year") ?? "";
+const filterYear = chartYears.some((year) => String(year) === requestedYear && (totals.get(year) ?? 0) > 0) ? requestedYear : "";
+const filterQuery = (Astro.url.searchParams.get("q") ?? "").slice(0, 100).trim();
+const needle = filterQuery.toLocaleLowerCase();
+const matchingIds = new Set(performances.filter((item) => (!filterYear || item.start_date.startsWith(filterYear)) && (!needle || searchText(item).includes(needle))).map((item) => item.setlist_id));
+const historyPages = Math.max(1, Math.ceil(matchingIds.size / HISTORY_PAGE_SIZE));
+const historyPage = clampPage(Number(Astro.url.searchParams.get("page") ?? "1"), historyPages);
+const visibleIds = new Set([...matchingIds].slice((historyPage - 1) * HISTORY_PAGE_SIZE, historyPage * HISTORY_PAGE_SIZE));
+const pageHref = (page: number) => {
+  const params = new URLSearchParams(Astro.url.searchParams);
+  if (page <= 1) params.delete("page"); else params.set("page", String(page));
+  const query = params.toString();
+  return `${Astro.url.pathname}${query ? `?${query}` : ""}#performances-heading`;
+};
+const historyScope = [filterYear ? t(locale, "music.historyYear", { year: filterYear }) : "", filterQuery ? `“${filterQuery}”` : ""].filter(Boolean).join(" · ");
+
 const showTitle = (item: { setlist_title?: string | null; event_title: string; performance_label: string }) => setlistDisplayTitle({ title: item.setlist_title ?? null, event_title: item.event_title, performance_label: item.performance_label });
 ---
 <SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
@@ -127,32 +153,42 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
     <section class="music-section song-history" aria-labelledby="performances-heading">
       <div class="song-history-head">
         <h2 id="performances-heading">{t(locale, "music.liveHistory")}</h2>
-        <span class="song-history-count" aria-live="polite" data-history-count data-template-all={t(locale, "music.historyAll", { count: "{count}" })} data-template-filtered={t(locale, "music.historyFiltered", { scope: "{scope}", count: "{count}" })} data-template-year={t(locale, "music.historyYear", { year: "{year}" })}>{t(locale, "music.historyAll", { count: performances.length })}</span>
-        <button type="button" class="song-show-all" data-history-show-all hidden>{t(locale, "music.showAll")}</button>
+        <span class="song-history-count" aria-live="polite" data-history-count data-template-all={t(locale, "music.historyAll", { count: "{count}" })} data-template-filtered={t(locale, "music.historyFiltered", { scope: "{scope}", count: "{count}" })} data-template-year={t(locale, "music.historyYear", { year: "{year}" })}>{historyScope ? t(locale, "music.historyFiltered", { scope: historyScope, count: matchingIds.size }) : t(locale, "music.historyAll", { count: performances.length })}</span>
+        <button type="button" class="song-show-all" data-history-show-all hidden={!historyScope}>{t(locale, "music.showAll")}</button>
       </div>
       {performances.length > 0 ? (
         <>
           <label class="music-search song-history-search" data-js-only hidden>
             <span class="visually-hidden">{t(locale, "music.searchPerformancesLabel")}</span>
             <Icon name="search" />
-            <input type="search" placeholder={t(locale, "music.searchPerformances")} autocomplete="off" enterkeyhint="search" maxlength="100" data-history-search />
+            <input type="search" placeholder={t(locale, "music.searchPerformances")} value={filterQuery} autocomplete="off" enterkeyhint="search" maxlength="100" data-history-search />
           </label>
           <ol class="song-performances">
-            {performances.map((item, index) => {
+            {performances.map((item) => {
               const gap = returnGaps.get(item.setlist_id);
+              const version = showPerformedVersion && item.performed_version_id && !instrumentalParent.has(item.performed_version_id) ? item.performed_version_id : null;
               return (
-                <li class:list={{ "is-collapsed": index >= 10 }} data-performance data-year={item.start_date.slice(0, 4)} data-search={`${item.setlist_title ?? ""} ${item.event_title} ${item.performance_label} ${item.venue ?? ""} ${item.region ?? ""}`.toLocaleLowerCase()}>
+                <li class:list={{ "is-solo": item.event_classification === "专场" }} hidden={!visibleIds.has(item.setlist_id)} data-performance data-year={item.start_date.slice(0, 4)} data-search={searchText(item)}>
                   <time datetime={item.start_date}>{formatMusicDate(item.start_date, locale)}</time>
                   <a href={`/music/lives/${encodeURIComponent(item.setlist_id)}`}>{showTitle(item)}</a>
                   {debutSetlists.has(item.setlist_id) && <span class="setlist-badge is-debut">{t(locale, "music.debutBadge")}</span>}
                   {gap !== undefined && <span class="setlist-badge is-return">{t(locale, "music.highlightGap", { years: formatGapYears(gap, locale) })}</span>}
+                  {version && (isOriginalVersion(version)
+                    ? <span class="song-performed-version is-original">{t(locale, "music.originalVersion")}</span>
+                    : <span class="song-performed-version" translate="no">{versionName(version)}</span>)}
                 </li>
               );
             })}
-            <li class="song-performances-empty" data-history-empty hidden>{t(locale, "music.noMatchingPerformances")}</li>
+            <li class="song-performances-empty" data-history-empty hidden={matchingIds.size > 0}>{t(locale, "music.noMatchingPerformances")}</li>
           </ol>
-          {performances.length > 10 && <button type="button" class="button secondary song-show-more" data-history-more hidden>{t(locale, "music.showMore")}</button>}
-          <noscript><style>.song-performances .is-collapsed { display: grid; }</style></noscript>
+          <nav class="song-pager" aria-label={t(locale, "pagination.label")} data-history-pager data-label-previous={t(locale, "pagination.previous")} data-label-next={t(locale, "pagination.next")} hidden={historyPages <= 1}>
+            {historyPage > 1 ? <a class="song-pager-step" href={pageHref(historyPage - 1)} rel="prev" data-page={historyPage - 1} aria-label={t(locale, "pagination.previous")}>‹</a> : <span class="song-pager-step is-disabled" aria-hidden="true">‹</span>}
+            {pageTokens(historyPage, historyPages).map((token) => typeof token === "number"
+              ? <a class="song-pager-number" href={pageHref(token)} data-page={token} aria-current={token === historyPage ? "page" : undefined}>{token}</a>
+              : <span class="song-pager-gap" aria-hidden="true">…</span>)}
+            <span class="song-pager-status" aria-hidden="true">{historyPage} / {historyPages}</span>
+            {historyPage < historyPages ? <a class="song-pager-step" href={pageHref(historyPage + 1)} rel="next" data-page={historyPage + 1} aria-label={t(locale, "pagination.next")}>›</a> : <span class="song-pager-step is-disabled" aria-hidden="true">›</span>}
+          </nav>
         </>
       ) : <div class="music-empty panel">{t(locale, "music.noSongPerformances")}</div>}
     </section>
@@ -257,9 +293,13 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
   .song-history-search { margin-bottom: .75rem; }
   .song-history-search input { min-height: 44px; padding-left: 2.65rem; background: rgba(5, 13, 23, .62); }
   .song-performances { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); overflow: hidden; }
-  .song-performances > li { display: grid; grid-template-columns: 7.5rem minmax(0, max-content) auto auto 1fr; align-items: center; gap: .6rem; min-height: 50px; padding: .5rem 1rem; }
+  .song-performances > li { display: flex; align-items: center; gap: .6rem; min-height: 50px; padding: .5rem 1rem; }
+  .song-performances time { flex: 0 0 7.5rem; }
+  .song-performances > li.is-solo time { color: var(--accent); }
+  .song-performed-version { flex: 0 0 auto; margin-left: auto; padding: .15rem .55rem; color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .4); border-radius: 999px; font-size: .75rem; font-weight: 650; white-space: nowrap; }
+  .song-performed-version.is-original { color: var(--muted); border-color: transparent; font-weight: 600; }
   .song-performances > li + li { border-top: 1px solid rgba(159, 180, 211, .1); }
-  .song-performances > li.is-collapsed, .song-performances > li[hidden] { display: none; }
+  .song-performances > li[hidden] { display: none; }
   .song-performances time { color: var(--muted); font-size: .8125rem; font-weight: 700; font-variant-numeric: tabular-nums; }
   .song-performances a { min-width: 0; overflow: hidden; color: var(--text); font-weight: 650; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
   .song-performances a:hover { color: var(--accent); }
@@ -269,8 +309,19 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
   .song-performances .setlist-badge.is-return { color: var(--accent); border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .1); }
   .song-performances > li.song-performances-empty { display: flex; justify-content: center; color: var(--muted); }
   .song-performances > li.song-performances-empty[hidden] { display: none; }
-  .song-show-more { display: block; min-width: 10rem; min-height: 44px; margin: 1rem auto 0; }
-  .song-show-more[hidden] { display: none; }
+  /* Page links are rebuilt by the client script, so their styles must not depend on Astro's scoped attribute. */
+  .song-pager { display: flex; justify-content: center; align-items: center; gap: .3rem; margin-top: 1rem; }
+  .song-pager[hidden] { display: none; }
+  .song-pager :global(a), .song-pager :global(span) { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; min-height: 2.75rem; padding: 0 .35rem; color: var(--muted); border-radius: 10px; font-size: .8125rem; font-weight: 650; text-decoration: none; font-variant-numeric: tabular-nums; }
+  .song-pager :global(.song-pager-step) { font-size: 1.15rem; }
+  .song-pager :global(.song-pager-step.is-disabled) { opacity: .35; }
+  .song-pager :global(a:hover) { color: var(--text); background: rgba(255, 255, 255, .055); }
+  .song-pager :global(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .song-pager :global([aria-current="page"]) { color: #08111d; background: var(--accent); }
+  .song-pager :global([aria-current="page"]:hover) { color: #08111d; background: var(--accent); }
+  .song-pager :global(.song-pager-gap) { min-width: 1.4rem; }
+  .song-pager :global(.song-pager-status) { display: none; }
+  #performances-heading { scroll-margin-top: 1.5rem; }
   .song-versions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
   .song-version { min-width: 0; padding: .9rem 1rem; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); }
   .song-version h3 { margin: .2rem 0 0; font-size: 1rem; line-height: 1.4; overflow-wrap: anywhere; }
@@ -295,6 +346,9 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
     .song-chart { height: 9rem; }
     .song-yearly-card:not(.is-compact) .song-bar-label { display: none; }
     .song-yearly-card:not(.is-compact) .song-bar[aria-pressed="true"] .song-bar-label { display: block; }
-    .song-performances > li { grid-template-columns: minmax(0, 1fr); row-gap: .2rem; padding: .55rem .85rem; }
+    .song-performances > li { flex-wrap: wrap; row-gap: .2rem; padding: .55rem .85rem; }
+    .song-performances time { flex-basis: 100%; }
+    .song-pager :global(.song-pager-number), .song-pager :global(.song-pager-gap) { display: none; }
+    .song-pager :global(.song-pager-status) { display: inline-flex; min-width: 4.5rem; color: var(--text); background: rgba(255, 255, 255, .045); border: 1px solid var(--line); border-radius: 999px; font-size: .8125rem; }
   }
 </style>

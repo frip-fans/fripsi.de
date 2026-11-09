@@ -261,7 +261,7 @@ export async function getSongBySlug(db: D1Database, slug: string, performancePag
       ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC, rt.disc_number ASC, rt.track_number ASC
     `).bind(song.id).all<SongReleaseAppearance>(),
     db.prepare(`
-      SELECT sl.id AS setlist_id, sl.title AS setlist_title, sl.performance_label, e.slug AS event_slug, e.title AS event_title,
+      SELECT sl.id AS setlist_id, sl.title AS setlist_title, sl.performance_label, e.slug AS event_slug, e.title AS event_title, e.classification AS event_classification,
         e.start_date, ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
         se.position, se.section, se.display_title,
         se.performed_version_id, pv.slug AS performed_version_slug, pv.title AS performed_version_title,

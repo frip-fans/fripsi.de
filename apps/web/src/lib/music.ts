@@ -41,13 +41,19 @@ export function setlistEventTypeLabel(value: string | null, locale: Locale = "zh
   return value;
 }
 
-export const setlistSectionLabels: Record<SetlistSection, string> = {
-  opening: "Opening",
-  main: "Main Set",
-  encore: "Encore",
-  double_encore: "Double Encore",
-  other: "Other",
-};
+export function setlistSectionLabel(value: SetlistSection, locale: Locale): string {
+  return t(locale, `music.section.${value}` as `music.section.${SetlistSection}`);
+}
+
+export function releaseTypeLabel(value: ReleaseType, locale: Locale): string {
+  return t(locale, `music.releaseType.${value}` as `music.releaseType.${ReleaseType}`);
+}
+
+/** Avoid printing a release title beside a song when it repeats the song title. */
+export function distinctReleaseTitles(displayTitle: string, releaseTitles: string | null): string | null {
+  if (!releaseTitles) return null;
+  return normalizeForDuplicate(displayTitle) === normalizeForDuplicate(releaseTitles) ? null : releaseTitles;
+}
 
 export const versionRelationLabels: Record<VersionRelationType, string> = {
   "re-recording_of": "重新录制自",

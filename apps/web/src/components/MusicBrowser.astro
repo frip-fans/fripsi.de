@@ -8,7 +8,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { getLocale, t, type TranslationKey } from "../lib/i18n";
 import { parseMusicBrowse, musicSorts, type MusicBrowseKind } from "../lib/music-browse";
-import { releaseTypeLabels } from "../lib/music";
+import { releaseTypeLabel, releaseTypeLabels } from "../lib/music";
 import "../styles/music.css";
 import "../styles/music-browser.css";
 import "../styles/release-cover.css";
@@ -30,7 +30,7 @@ const sortOptions = musicSorts[kind].map(value => ({ value, label: t(locale, sor
 const years = kind === "lives" ? await listSetlistYears(getEnv().DB) : [];
 const typeOptions = kind === "lives"
   ? [{ value: "专场", label: t(locale, "music.solo") }, { value: "拼盘", label: t(locale, "music.festival") }]
-  : Object.entries(releaseTypeLabels).map(([value, label]) => ({ value, label }));
+  : (Object.keys(releaseTypeLabels) as (keyof typeof releaseTypeLabels)[]).map(value => ({ value, label: releaseTypeLabel(value, locale) }));
 const filterSummary = kind === "lives"
   ? [input.year || t(locale, "music.allYears"), typeOptions.find(option => option.value === input.classification)?.label || t(locale, "music.allTypes")]
   : kind === "releases" ? [typeOptions.find(option => option.value === input.type)?.label || t(locale, "music.allTypes")] : [];

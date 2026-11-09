@@ -3,7 +3,7 @@ import ReleaseCover from "./ReleaseCover.astro";
 import { getEnv } from "../lib/env";
 import { eventSearchRevision } from "../lib/event-search";
 import { getMusicBrowseResults, type MusicBrowseKind } from "../lib/music-browse";
-import { formatMusicDate, setlistCompletenessLabel, setlistDisplayTitle, setlistEventTypeLabel, releaseTypeLabels } from "../lib/music";
+import { formatMusicDate, setlistCompletenessLabel, setlistDisplayTitle, setlistEventTypeLabel, releaseTypeLabel } from "../lib/music";
 import { getLocale, t } from "../lib/i18n";
 interface Props { kind: MusicBrowseKind; append?: boolean; }
 const { kind, append = false } = Astro.props;
@@ -26,21 +26,21 @@ const nextHref = `/music/${kind}?${next}`;
         </div>
         <h2>{setlistDisplayTitle(setlist)}</h2>
         <div class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span>·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></div>
-        <div class="music-card-stats"><span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span><span>{setlistCompletenessLabel(setlist.completeness, locale)}</span></div>
+        <div class="music-card-stats"><span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span>{setlist.completeness !== "complete" && <span class="music-card-flag">{setlistCompletenessLabel(setlist.completeness, locale)}</span>}</div>
       </a>
     ))}
     {results.songs.map(song => (
       <a class="music-card" data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`} data-astro-prefetch="tap">
         <span class="music-artist">{song.original_artist}</span>
-        <h2>{song.title}</h2>
+        <h2 translate="no">{song.title}</h2>
         <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
       </a>
     ))}
     {results.releases.map(release => (
       <a class="music-card" data-music-id={release.id} href={`/music/releases/${encodeURIComponent(release.slug)}`} data-astro-prefetch="tap">
         <ReleaseCover noScriptFallback={!append} url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
-        <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
-        <h2>{release.title}</h2>
+        <span class="music-release-meta">{releaseTypeLabel(release.release_type, locale)} · {formatMusicDate(release.release_date, locale)}</span>
+        <h2 translate="no">{release.title}</h2>
         <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
         <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span><span>{t(locale, "music.performedSongs", { count: release.performed_song_count })}</span></div>
       </a>

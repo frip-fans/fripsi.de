@@ -1,0 +1,232 @@
+/**
+ * Daily quiz interaction: one question at a time, feedback the moment an answer is
+ * committed, and a shareable score at the end.
+ *
+ * The server only sends the correct answer for questions this browser already answered,
+ * so the first answer for a question always makes a round trip.
+ */
+
+interface QuizStats {
+  answered: number;
+  correct: number;
+}
+
+interface QuizQuestionView {
+  prompt: string;
+  options: string[];
+  eventHref: string | null;
+  songTitles: string[] | null;
+  choice?: number;
+  answer?: number;
+  counts?: number[] | null;
+  stats?: QuizStats;
+}
+
+/** Shape the answer endpoint returns once a choice is committed. */
+interface AnswerResponse {
+  correct: boolean;
+  choice: number;
+  answer: number;
+  stats: QuizStats;
+  counts?: number[];
+}
+
+interface QuizPayload {
+  date: string;
+  total: number;
+  score: number;
+  questions: QuizQuestionView[];
+}
+
+type Labels = Record<string, string>;
+
+function fill(template: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), template);
+}
+
+export function setupQuiz(): void {
+  const root = document.querySelector<HTMLElement>("[data-quiz]");
+  if (!root || root.dataset.quizReady === "true") return;
+
+  const payloadNode = root.querySelector<HTMLScriptElement>("[data-quiz-payload]");
+  if (!payloadNode?.textContent) return;
+
+  let payload: QuizPayload;
+  let labels: Labels;
+  try {
+    payload = JSON.parse(payloadNode.textContent);
+    labels = JSON.parse(root.dataset.labels ?? "{}");
+  } catch {
+    return;
+  }
+  root.dataset.quizReady = "true";
+
+  const progressNode = root.querySelector<HTMLElement>("[data-quiz-progress]")!;
+  const promptNode = root.querySelector<HTMLElement>("[data-quiz-prompt]")!;
+  const optionsNode = root.querySelector<HTMLElement>("[data-quiz-options]")!;
+  const feedbackNode = root.querySelector<HTMLElement>("[data-quiz-feedback]")!;
+  const showLink = root.querySelector<HTMLAnchorElement>("[data-quiz-show-link]")!;
+  const nextButton = root.querySelector<HTMLButtonElement>("[data-quiz-next]")!;
+  const card = root.querySelector<HTMLElement>(".quiz-card")!;
+  const finish = root.querySelector<HTMLElement>("[data-quiz-finish]")!;
+
+  // Resume where the player stopped: the first question without a stored answer.
+  let index = payload.questions.findIndex((question) => question.answer === undefined);
+  if (index === -1) index = payload.questions.length;
+  let busy = false;
+
+  nextButton.textContent = labels.next ?? "";
+
+  function results(): boolean[] {
+    return payload.questions.map((question) => question.answer !== undefined && question.choice === question.answer);
+  }
+
+  /** Clipboard text keeps the familiar emoji grid. */
+  function marks(): string {
+    return results().map((hit) => (hit ? "\u{1F7E9}" : "\u{1F7E5}")).join("");
+  }
+
+  /** On the page the same row is drawn with styled squares, which render everywhere. */
+  function renderMarks(node: HTMLElement): void {
+    node.replaceChildren(...results().map((hit) => {
+      const mark = document.createElement("i");
+      mark.dataset.hit = String(hit);
+      return mark;
+    }));
+  }
+
+  function score(): number {
+    return payload.questions.filter((question) => question.answer !== undefined && question.choice === question.answer).length;
+  }
+
+  function renderFinish(): void {
+    card.hidden = true;
+    progressNode.textContent = labels.done ?? "";
+    finish.hidden = false;
+    finish.querySelector<HTMLElement>("[data-quiz-finish-title]")!.textContent = labels.finishTitle ?? "";
+    finish.querySelector<HTMLElement>("[data-quiz-score]")!.textContent = `${score()} / ${payload.total}`;
+    renderMarks(finish.querySelector<HTMLElement>("[data-quiz-marks]")!);
+    finish.querySelector<HTMLElement>("[data-quiz-comeback]")!.textContent = labels.comeBack ?? "";
+
+    const shareButton = finish.querySelector<HTMLButtonElement>("[data-quiz-share]")!;
+    shareButton.textContent = labels.share ?? "";
+    shareButton.onclick = async () => {
+      const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}\n${location.origin}/quiz`;
+      try {
+        await navigator.clipboard.writeText(text);
+        shareButton.textContent = labels.shared ?? "";
+      } catch {
+        shareButton.textContent = labels.failed ?? "";
+      }
+    };
+    shareButton.focus();
+  }
+
+  function renderFeedback(question: QuizQuestionView): void {
+    const correct = question.choice === question.answer;
+    const lines = [correct ? labels.correct : labels.wrong];
+
+    if (question.stats && question.stats.answered > 1) {
+      const rate = Math.round((question.stats.correct / question.stats.answered) * 100);
+      lines.push(fill(labels.globalRate ?? "", { answered: question.stats.answered, rate }));
+    } else if (question.stats) {
+      lines.push(labels.firstAnswer ?? "");
+    }
+
+    if (question.counts && question.songTitles) {
+      lines.push(fill(labels.countsHint ?? "", {
+        first: question.songTitles[0],
+        firstCount: question.counts[0],
+        second: question.songTitles[1],
+        secondCount: question.counts[1],
+      }));
+    }
+
+    feedbackNode.hidden = false;
+    feedbackNode.dataset.correct = String(correct);
+    feedbackNode.textContent = lines.filter(Boolean).join(" · ");
+
+    if (question.eventHref) {
+      showLink.href = question.eventHref;
+      showLink.textContent = labels.viewShow ?? "";
+      showLink.hidden = false;
+    }
+    nextButton.hidden = false;
+    nextButton.focus();
+  }
+
+  async function submit(choice: number): Promise<void> {
+    if (busy) return;
+    busy = true;
+    const question = payload.questions[index];
+    optionsNode.querySelectorAll("button").forEach((button) => { button.disabled = true; });
+
+    try {
+      const response = await fetch("/api/quiz/answer", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ questionIndex: index, choice }),
+      });
+      if (!response.ok) throw new Error(`status ${response.status}`);
+      const result = (await response.json()) as AnswerResponse;
+      question.choice = result.choice;
+      question.answer = result.answer;
+      question.counts = result.counts ?? null;
+      question.stats = result.stats;
+      renderOptionState(question);
+      renderFeedback(question);
+    } catch {
+      feedbackNode.hidden = false;
+      feedbackNode.dataset.correct = "false";
+      feedbackNode.textContent = labels.failed ?? "";
+      optionsNode.querySelectorAll("button").forEach((button) => { button.disabled = false; });
+    } finally {
+      busy = false;
+    }
+  }
+
+  function renderOptionState(question: QuizQuestionView): void {
+    optionsNode.querySelectorAll<HTMLButtonElement>("button").forEach((button, optionIndex) => {
+      button.disabled = true;
+      if (question.answer === undefined) return;
+      if (optionIndex === question.answer) button.dataset.state = "correct";
+      else if (optionIndex === question.choice) button.dataset.state = "wrong";
+    });
+  }
+
+  function render(): void {
+    if (index >= payload.questions.length) {
+      renderFinish();
+      return;
+    }
+    const question = payload.questions[index];
+    card.hidden = false;
+    finish.hidden = true;
+    progressNode.textContent = fill(labels.progress ?? "", { current: index + 1, total: payload.total });
+    promptNode.textContent = question.prompt;
+    feedbackNode.hidden = true;
+    feedbackNode.textContent = "";
+    showLink.hidden = true;
+    nextButton.hidden = true;
+
+    optionsNode.replaceChildren(...question.options.map((label, optionIndex) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = label;
+      button.addEventListener("click", () => submit(optionIndex));
+      return button;
+    }));
+
+    if (question.answer !== undefined) {
+      renderOptionState(question);
+      renderFeedback(question);
+    }
+  }
+
+  nextButton.addEventListener("click", () => {
+    index += 1;
+    render();
+  });
+
+  render();
+}

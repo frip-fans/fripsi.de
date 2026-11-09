@@ -40,6 +40,7 @@ interface NavigationItem {
   children?: { href: string; label: string; active: boolean }[];
 }
 const funLinks = [
+  { href: "/quiz", label: t(locale, "nav.quiz"), active: current.startsWith("/quiz") },
   { href: "/journey", label: t(locale, "nav.journey"), active: current.startsWith("/journey") },
   { href: "/yaginuma-intensity-calibrator", label: t(locale, "nav.yaginuma"), active: current.startsWith("/yaginuma-intensity-calibrator") },
 ];

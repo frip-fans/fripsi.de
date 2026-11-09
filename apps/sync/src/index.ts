@@ -211,13 +211,9 @@ export async function tick(env: SyncEnv, now = new Date(), trial?: TrialOptions)
   } finally { await env.DB.prepare("DELETE FROM official_sync_lease WHERE id=1 AND owner=?").bind(owner).run(); }
 }
 
-export default {
-  async fetch(): Promise<Response> { return new Response("Not found", { status: 404 }); },
-  async scheduled(_controller, env, ctx): Promise<void> {
-    ctx.waitUntil((async () => {
-      await safeTickNotifications(env);
-      try { await tick(env); }
-      finally { await safeTickNotifications(env); }
-    })());
-  },
-} satisfies ExportedHandler<SyncEnv>;
+/** One timer tick: deliver pending notifications, run the sync step, then deliver again. */
+export async function scheduledTick(env: SyncEnv): Promise<void> {
+  await safeTickNotifications(env);
+  try { await tick(env); }
+  finally { await safeTickNotifications(env); }
+}

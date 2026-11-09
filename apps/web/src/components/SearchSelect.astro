@@ -1,4 +1,5 @@
 ---
+import { buildSearchText } from "@frip-fan/core/search-text";
 import Icon from "./Icon.astro";
 
 interface Choice {
@@ -78,7 +79,7 @@ const pickerId = `search-select-${crypto.randomUUID()}`;
           aria-selected={choice.value === value ? "true" : "false"}
           data-search-select-option
           data-value={choice.value}
-          data-search={(choice.searchText ?? choice.label).toLocaleLowerCase()}
+          data-search={buildSearchText([choice.searchText ?? choice.label])}
         >
           <span>{choice.label}</span>
           {choice.note && <small>{choice.note}</small>}
@@ -90,9 +91,8 @@ const pickerId = `search-select-${crypto.randomUUID()}`;
 </div>
 
 <script>
+  import { searchMatcher } from "@frip-fan/core/search-text";
   const pickerSelector = "[data-search-select]";
-
-  const normalizeSearch = (value: string) => value.normalize("NFKC").toLocaleLowerCase().trim();
 
   const syncPicker = (picker: HTMLElement) => {
     const native = picker.querySelector("[data-search-select-native]");
@@ -109,11 +109,10 @@ const pickerId = `search-select-${crypto.randomUUID()}`;
 
   const filterPicker = (picker: HTMLElement) => {
     const input = picker.querySelector<HTMLInputElement>("[data-search-select-search]");
-    const terms = normalizeSearch(input?.value ?? "").split(/\s+/).filter(Boolean);
+    const matchesQuery = searchMatcher(input?.value ?? "");
     let visible = 0;
     for (const option of picker.querySelectorAll<HTMLElement>("[data-search-select-option]")) {
-      const searchText = normalizeSearch(option.dataset.search ?? "");
-      const matches = terms.every((term) => searchText.includes(term));
+      const matches = matchesQuery(option.dataset.search ?? "");
       option.hidden = !matches;
       if (matches) visible += 1;
     }

@@ -3,6 +3,7 @@ import { hydrateEventLocations } from "./locations";
 import type { ArchiveFilterEntry, AuditLog, ChangeSet, DuplicateCandidate, EventRecord, EventSource } from "./types";
 import { normalizeForDuplicate, ServiceError } from "./utils";
 import { distinctOccurrence } from "./sync-policy";
+import { idInJson, matchEventIds } from "./search-index";
 
 interface ArchiveFilterRow extends Omit<ArchiveFilterEntry, "venue_names" | "area_ids" | "area_names" | "channel_names"> {
   venue_names: string | null;
@@ -15,7 +16,12 @@ interface EventRow extends Omit<EventRecord, "published" | "sources" | "venues" 
   published: number;
 }
 
-function eventSearchWhere(input: SearchInput, publicOnly: boolean): { where: string; bindings: unknown[] } {
+/** Resolve the text query to matching event ids (see search-index); undefined when there is no query. */
+async function eventQueryIds(db: D1Database, input: SearchInput, publicOnly: boolean): Promise<string[] | undefined> {
+  return input.query ? matchEventIds(db, input.query, publicOnly ? "public" : "all") : undefined;
+}
+
+function eventSearchWhere(input: SearchInput, publicOnly: boolean, queryIds?: string[]): { where: string; bindings: unknown[] } {
   const clauses: string[] = [];
   const bindings: unknown[] = [];
 
@@ -27,15 +33,9 @@ function eventSearchWhere(input: SearchInput, publicOnly: boolean): { where: str
       bindings.push(input.published ? 1 : 0);
     }
   }
-  if (input.query) {
-    clauses.push(`(title LIKE ? OR classification LIKE ?
-      OR EXISTS (SELECT 1 FROM event_sources s WHERE s.event_id = events.id AND s.url LIKE ?)
-      OR EXISTS (SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
-        LEFT JOIN administrative_areas a ON a.id = v.administrative_area_id
-        WHERE ev.event_id = events.id AND (v.canonical_name LIKE ? OR a.name_local LIKE ?))
-      OR EXISTS (SELECT 1 FROM event_channels ec WHERE ec.event_id = events.id AND ec.name LIKE ?))`);
-    const pattern = `%${input.query.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-    bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
+  if (queryIds) {
+    clauses.push(idInJson("id"));
+    bindings.push(JSON.stringify(queryIds));
   }
   if (input.source_url) {
     const url = new URL(input.source_url); url.search = ""; url.hash = "";
@@ -99,17 +99,19 @@ export async function getPublicEventBySlug(db: D1Database, slug: string): Promis
   return (await hydrateEventLocations(db, [event]))[0];
 }
 
-export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false): Promise<EventRecord[]> {
+/** Chronological by default; admin lists pass `newestFirst` so the latest events lead. */
+export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false, options: { newestFirst?: boolean } = {}): Promise<EventRecord[]> {
   const input = searchInputSchema.parse(raw);
-  const { where, bindings } = eventSearchWhere(input, publicOnly);
-  const statement = db.prepare(`SELECT * FROM events ${where} ORDER BY start_date ASC, start_time ASC, title ASC LIMIT ? OFFSET ?`);
+  const { where, bindings } = eventSearchWhere(input, publicOnly, await eventQueryIds(db, input, publicOnly));
+  const order = options.newestFirst ? "start_date DESC, start_time DESC, title ASC" : "start_date ASC, start_time ASC, title ASC";
+  const statement = db.prepare(`SELECT * FROM events ${where} ORDER BY ${order} LIMIT ? OFFSET ?`);
   const result = await statement.bind(...bindings, input.limit, input.offset).all<EventRow>();
   return hydrateEventLocations(db, result.results.map(mapEvent));
 }
 
 export async function countEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false): Promise<number> {
   const input = searchInputSchema.parse(raw);
-  const { where, bindings } = eventSearchWhere(input, publicOnly);
+  const { where, bindings } = eventSearchWhere(input, publicOnly, await eventQueryIds(db, input, publicOnly));
   const row = await db.prepare(`SELECT COUNT(*) AS count FROM events ${where}`).bind(...bindings).first<{ count: number }>();
   return row?.count ?? 0;
 }
@@ -216,6 +218,30 @@ export async function listChangeSets(db: D1Database, status?: string, limit = 10
     : db.prepare("SELECT * FROM change_sets ORDER BY created_at DESC LIMIT ?").bind(safeLimit);
   const result = await statement.all<ChangeSet>();
   return result.results;
+}
+
+export async function countChangeSetsByStatus(db: D1Database): Promise<Record<string, number>> {
+  const result = await db.prepare("SELECT status, COUNT(*) AS count FROM change_sets GROUP BY status").all<{ status: string; count: number }>();
+  return Object.fromEntries(result.results.map((row) => [row.status, Number(row.count)]));
+}
+
+export interface EventHead {
+  id: string;
+  title: string;
+  start_date: string;
+  slug: string;
+  version: number;
+  published: boolean;
+  archived_at: string | null;
+}
+
+/** Light event rows for labelling lists such as pending change sets. */
+export async function getEventHeads(db: D1Database, ids: string[]): Promise<Map<string, EventHead>> {
+  const unique = [...new Set(ids.filter(Boolean))].slice(0, 200);
+  if (!unique.length) return new Map();
+  const result = await db.prepare(`SELECT id, title, start_date, slug, version, published, archived_at FROM events WHERE id IN (${unique.map(() => "?").join(",")})`)
+    .bind(...unique).all<Omit<EventHead, "published"> & { published: number }>();
+  return new Map(result.results.map((row) => [row.id, { ...row, published: Boolean(row.published) }]));
 }
 
 export async function listAuditLogs(db: D1Database, limit = 100): Promise<AuditLog[]> {

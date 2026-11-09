@@ -48,7 +48,7 @@ function migration(name: string): string {
 describe("content admin structured locations", () => {
   it("creates an event, canonical venue, relation, and hydrated location label", async () => {
     const sqlite = new DatabaseSync(":memory:");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql"]) {
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql"]) {
       sqlite.exec(migration(name));
     }
     const db = new TestD1(sqlite) as unknown as D1Database;
@@ -86,7 +86,7 @@ describe("content admin structured locations", () => {
 
   it("publishes an MCP change set with a structured online channel", async () => {
     const sqlite = new DatabaseSync(":memory:");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql"]) {
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql"]) {
       sqlite.exec(migration(name));
     }
     const db = new TestD1(sqlite) as unknown as D1Database;
@@ -117,6 +117,48 @@ describe("content admin structured locations", () => {
     expect(event.location_label).toBe("YouTube");
     expect(event.channels[0].channel_type).toBe("streaming");
     expect(sqlite.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    sqlite.close();
+  });
+  it("publishes a stale proposal only against the version the reviewer previewed", async () => {
+    const sqlite = new DatabaseSync(":memory:");
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql"]) {
+      sqlite.exec(migration(name));
+    }
+    const db = new TestD1(sqlite) as unknown as D1Database;
+    const actor: Actor = { id: "publisher", type: "human", channel: "admin", scopes: ["events:read", "events:draft", "events:publish"] };
+    const draft = {
+      title: "Stale proposal test",
+      start_date: "2026-09-01",
+      timezone: "Asia/Tokyo",
+      category: "EVENT" as const,
+      status: "scheduled" as const,
+      location_mode: "none" as const,
+      location_note: null,
+      venues: [],
+      channels: [],
+      sources: [{ url: "https://fripside.net/stale-test" }],
+    };
+    const admin = new ContentAdminService(db);
+    const created = await admin.saveEvent({ published: true, idempotency_key: "stale-create", event: draft }, actor, "request-1");
+    const service = new ChangeService(db);
+    const change = await service.proposeUpdate({
+      target_event_id: created.id,
+      expected_version: created.version,
+      patch: { remark: "from proposal" },
+      source_url: "https://fripside.net/stale-test",
+      reason: "official update",
+      idempotency_key: "stale-propose",
+    }, actor, "request-2");
+    const edited = await admin.saveEvent({ id: created.id, expected_version: created.version, published: true, idempotency_key: "stale-edit", event: { ...draft, title: "Edited meanwhile" } }, actor, "request-3");
+    expect(edited.version).toBe(created.version + 1);
+
+    await expect(service.publish(change.id, actor, "stale-publish-1", "request-4")).rejects.toMatchObject({ code: "version_conflict" });
+    await expect(service.publish(change.id, actor, "stale-publish-2", "request-5", { reviewedVersion: created.version })).rejects.toMatchObject({ code: "version_conflict" });
+    const published = await service.publish(change.id, actor, "stale-publish-3", "request-6", { reviewedVersion: edited.version });
+    expect(published).toMatchObject({ title: "Edited meanwhile", remark: "from proposal", version: edited.version + 1 });
+    expect(sqlite.prepare("SELECT status FROM change_sets WHERE id = ?").get(change.id)).toMatchObject({ status: "published" });
+    const audit = sqlite.prepare("SELECT metadata_json FROM audit_logs WHERE action = 'change.publish_update'").get() as { metadata_json: string };
+    expect(JSON.parse(audit.metadata_json)).toMatchObject({ change_set_id: change.id, base_version: created.version, reviewed_version: edited.version });
     sqlite.close();
   });
 });

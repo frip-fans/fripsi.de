@@ -1,40 +1,230 @@
 ---
-import { ChangeService } from "@frip-fan/core";
+import { ChangeService, getEventHeads, listChangeSets, listVenues } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
+import {
+  CHANGE_OPERATION_LABELS,
+  CHANGE_STATUS_LABELS,
+  changedFields,
+  changeHeadline,
+  describeLocation,
+  formatTimestamp,
+  isStale,
+  locationOfEvent,
+  proposedSources,
+} from "../../../lib/change-review";
 import { getEnv } from "../../../lib/env";
 
-const service = new ChangeService(getEnv().DB);
-let preview;
-try { preview = await service.preview(Astro.params.id!, Astro.locals.actor!); }
-catch { return Astro.redirect("/admin/changes", 302); }
-const { change, before, after, warnings, duplicate_candidates } = preview;
+const db = getEnv().DB;
 const actor = Astro.locals.actor!;
-const fields = ["title", "slug", "start_date", "end_date", "start_time", "end_time", "category", "classification", "location_mode", "location_note", "remark", "status", "published", "archived_at"] as const;
-const changedFields = fields.filter((field) => JSON.stringify(before?.[field] ?? null) !== JSON.stringify(after[field] ?? null));
+let preview;
+try { preview = await new ChangeService(db).preview(Astro.params.id!, actor); }
+catch { return Astro.redirect("/admin/changes", 302); }
+const { change, before, after, warnings, duplicate_candidates, public_path } = preview;
+const needsVenueNames = after.location_input?.venues.some((venue) => venue.venue_id && !venue.display_name_snapshot && !venue.canonical_name);
+const [pending, venues] = await Promise.all([
+  listChangeSets(db, "proposed", 200),
+  needsVenueNames ? listVenues(db, 5000) : Promise.resolve([]),
+]);
+const venueNames = new Map(venues.map((venue) => [venue.id, venue.canonical_name]));
+const fieldChanges = changedFields(before, after);
+const locationBefore = describeLocation(locationOfEvent(before), venueNames);
+const locationAfter = after.location_input ? describeLocation(after.location_input, venueNames) : [];
+const locationChanged = locationAfter.length > 0 && JSON.stringify(locationBefore) !== JSON.stringify(locationAfter);
+const sources = proposedSources(change);
+const headline = changeHeadline(change, before);
+const stale = isStale(change, before?.version);
+const otherWarnings = warnings.filter((warning) => !warning.startsWith("版本已变化") && !warning.startsWith("提案当前状态"));
+const siblings = change.target_event_id ? pending.filter((item) => item.id !== change.id && item.target_event_id === change.target_event_id) : [];
+const queue = pending.filter((item) => item.id !== change.id);
+const queueIndex = pending.findIndex((item) => item.id === change.id);
+const nextPending = queueIndex >= 0 ? pending[queueIndex + 1] ?? pending[0] : pending[0];
+const nextLink = nextPending && nextPending.id !== change.id ? `/admin/changes/${nextPending.id}` : null;
+const queueHeads = await getEventHeads(db, siblings.map((item) => item.target_event_id ?? ""));
+const canPublish = actor.scopes.includes("events:publish");
+const handled = Astro.url.searchParams.get("handled");
+const handledEvent = Astro.url.searchParams.get("event");
+const proposed = change.status === "proposed";
 ---
-<SiteLayout title={`提案 ${change.id}`} admin>
-  <a class="muted back-link" href="/admin/changes"><Icon name="arrow-left" />变更列表</a>
-  <header class="change-head"><div><p class="eyebrow">{change.operation} · {change.status}</p><h1>变更预览</h1><p class="lede">{change.reason}</p></div><code>{change.id}</code></header>
-  {warnings.map((warning) => <p class="notice">{warning}</p>)}
+<SiteLayout title={`提案 · ${headline.title}`} admin>
+  <div class="top-row">
+    <a class="muted back-link" href="/admin/changes"><Icon name="arrow-left" />提案列表</a>
+    {proposed && queueIndex >= 0 && <span class="queue muted">待处理 {queueIndex + 1} / {pending.length}{nextLink && <a href={nextLink}>跳过，看下一条 <Icon name="arrow-right" /></a>}</span>}
+  </div>
+  {handled && (
+    <p class="notice success" role="status">
+      上一条提案已{handled === "published" ? "发布" : "丢弃"}。{handledEvent && <a href={`/admin/events/${handledEvent}`}>查看活动</a>}
+    </p>
+  )}
+
+  <header class="change-head">
+    <p class="eyebrow">{CHANGE_OPERATION_LABELS[change.operation] ?? change.operation} · <span class:list={["status", `status-${change.status}`]}>{CHANGE_STATUS_LABELS[change.status] ?? change.status}</span></p>
+    <h1>{headline.title}</h1>
+    {change.reason && <p class="lede">{change.reason}</p>}
+    <dl class="meta">
+      <div><dt>提交</dt><dd>{change.created_by} · {change.created_via} · {formatTimestamp(change.created_at)}</dd></div>
+      {change.reviewed_at && <div><dt>处理</dt><dd>{change.reviewed_by} · {formatTimestamp(change.reviewed_at)}</dd></div>}
+      {sources.length > 0 && <div><dt>来源</dt><dd class="sources">{sources.map((url) => <a href={url} target="_blank" rel="noreferrer">{url.replace(/^https?:\/\//, "")} <Icon name="box-arrow-up-right" /></a>)}</dd></div>}
+      <div><dt>ID</dt><dd><code>{change.id}</code></dd></div>
+    </dl>
+  </header>
+
+  {before && (
+    <section class="panel target">
+      <div>
+        <small class="muted">目标活动 · 当前 v{before.version}</small>
+        <strong>{before.start_date} · {before.title}</strong>
+        {(before.archived_at || !before.published) && <small class="muted">{before.archived_at ? "已归档" : "未公开"}</small>}
+      </div>
+      <div class="actions">
+        <a class="button secondary small" href={`/admin/events/${before.id}`} target="_blank"><Icon name="pencil-square" />编辑活动</a>
+        {before.published && !before.archived_at && <a class="button secondary small" href={`/events/${before.slug}`} target="_blank">公开页面 <Icon name="box-arrow-up-right" /></a>}
+      </div>
+    </section>
+  )}
+
+  {stale && proposed && (
+    <section class="panel stale" role="note">
+      <h2><Icon name="exclamation-triangle" />提案已过期</h2>
+      <p>提案基于 v{change.base_version} 创建，活动之后被修改为 v{before?.version}。下方差异已经按<strong>当前版本</strong>重新计算：发布会把“修改后”一列写入活动，覆盖这些字段在 v{change.base_version} 之后的修改。</p>
+      <p class="muted">确认差异无误后，可使用“按当前 v{before?.version} 发布”；如果当前内容更准确，丢弃即可。</p>
+    </section>
+  )}
+  {otherWarnings.map((warning) => <p class="notice">{warning}</p>)}
+
+  {siblings.length > 0 && (
+    <section class="panel siblings">
+      <h2>同一活动的其他待处理提案</h2>
+      <ul>
+        {siblings.map((item) => (
+          <li>
+            <a href={`/admin/changes/${item.id}`}>{item.reason || item.id}</a>
+            <small>{CHANGE_OPERATION_LABELS[item.operation] ?? item.operation} · {item.created_by} · {formatTimestamp(item.created_at)}{isStale(item, queueHeads.get(item.target_event_id ?? "")?.version) ? " · 已过期" : ""}</small>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
   <section class="panel diff">
-    <h2>字段差异</h2>
-    <div class="table-wrap"><table><thead><tr><th>字段</th><th>修改前</th><th>修改后</th></tr></thead><tbody>
-      {changedFields.map((field) => <tr><td><code>{field}</code></td><td>{String(before?.[field] ?? "—")}</td><td>{String(after[field] ?? "—")}</td></tr>)}
-    </tbody></table></div>
-    {after.location_input && <><h3>结构化地点</h3><pre>{JSON.stringify(after.location_input, null, 2)}</pre></>}
-    {!changedFields.length && change.operation === "create" && <pre>{JSON.stringify(after, null, 2)}</pre>}
+    <h2>{change.operation === "create" ? "新活动内容" : "字段差异"}</h2>
+    {fieldChanges.length > 0 ? (
+      <div class="table-wrap"><table>
+        <thead><tr><th>字段</th>{change.operation !== "create" && <th>当前</th>}<th>{change.operation === "create" ? "内容" : "修改后"}</th></tr></thead>
+        <tbody>
+          {fieldChanges.map((item) => (
+            <tr>
+              <th scope="row">{item.label}</th>
+              {change.operation !== "create" && <td class="before">{item.before}</td>}
+              <td class="after">{item.after}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table></div>
+    ) : <p class="muted">没有字段变化。</p>}
+    {locationChanged && (
+      <div class="location">
+        <h3>地点</h3>
+        <div class="location-grid">
+          {change.operation !== "create" && <div><small>当前</small><ul>{locationBefore.length ? locationBefore.map((line) => <li>{line}</li>) : <li>—</li>}</ul></div>}
+          <div><small>{change.operation === "create" ? "内容" : "修改后"}</small><ul>{locationAfter.map((line) => <li>{line}</li>)}</ul></div>
+        </div>
+      </div>
+    )}
+    {public_path && change.operation === "create" && <p class="muted path">发布后地址：<code>{public_path}</code></p>}
   </section>
-  {duplicate_candidates.length > 0 && <section class="panel duplicates"><h2>可能重复</h2>{duplicate_candidates.map(({ event, reasons }) => <p><a href={`/admin/events/${event.id}`}>{event.start_date} · {event.title}</a><small>{reasons.join("；")}</small></p>)}</section>}
-  <section class="publish panel">
-    <div><h2>审核操作</h2><p class="muted">发布会立即修改 D1，并反映到公开网站；系统会再次检查版本。</p></div>
-    {change.status === "proposed" && <div class="actions">
-      <form method="post" action={`/api/admin/changes/${change.id}/publish`}><input type="hidden" name="idempotency_key" value={`admin-publish-${change.id}-${crypto.randomUUID()}`}/><button disabled={!actor.scopes.includes("events:publish")}><Icon name="check-circle" />确认发布</button></form>
-      <form method="post" action={`/api/admin/changes/${change.id}/discard`}><button class="danger"><Icon name="trash" />丢弃提案</button></form>
-    </div>}
-    {!actor.scopes.includes("events:publish") && <p class="notice">当前 editor 身份可以创建和预览提案，但不能发布。</p>}
-  </section>
+
+  {duplicate_candidates.length > 0 && (
+    <section class="panel duplicates">
+      <h2>可能重复的活动</h2>
+      {duplicate_candidates.map(({ event, reasons }) => <p><a href={`/admin/events/${event.id}`} target="_blank">{event.start_date} · {event.title}</a><small>{reasons.join("；")}</small></p>)}
+    </section>
+  )}
+
+  {proposed ? (
+    <section class="publish panel">
+      <div>
+        <h2>审核</h2>
+        <p class="muted">发布会立即写入数据库并更新公开网站。处理完成后会自动打开下一条待处理提案。</p>
+        {!canPublish && <p class="notice">当前 editor 身份可以预览和丢弃提案，但不能发布。</p>}
+      </div>
+      <div class="actions">
+        <form method="post" action={`/api/admin/changes/${change.id}/publish`} data-confirm={stale ? `这条提案基于旧版本 v${change.base_version}。确认按当前 v${before?.version} 发布并覆盖上表字段？` : undefined}>
+          <input type="hidden" name="idempotency_key" value={`admin-publish-${change.id}-${crypto.randomUUID()}`} />
+          {stale && <input type="hidden" name="reviewed_version" value={before?.version} />}
+          <button disabled={!canPublish}><Icon name="check-circle" />{stale ? `按当前 v${before?.version} 发布` : "确认发布"}</button>
+        </form>
+        <form method="post" action={`/api/admin/changes/${change.id}/discard`} data-confirm="丢弃这条提案？丢弃后不能恢复为待处理。">
+          <button class="danger"><Icon name="trash" />丢弃</button>
+        </form>
+      </div>
+    </section>
+  ) : (
+    <section class="panel publish">
+      <div><h2>已处理</h2><p class="muted">这条提案状态为“{CHANGE_STATUS_LABELS[change.status] ?? change.status}”，不能再次发布。{change.error_message && <>错误：{change.error_message}</>}</p></div>
+      {queue.length > 0 && <a class="button secondary" href={`/admin/changes/${queue[0].id}`}>处理待处理提案 <Icon name="arrow-right" /></a>}
+    </section>
+  )}
 </SiteLayout>
+
+<script>
+  for (const form of document.querySelectorAll<HTMLFormElement>("form[data-confirm]")) {
+    form.addEventListener("submit", (event) => {
+      if (!confirm(form.dataset.confirm ?? "")) event.preventDefault();
+    });
+  }
+</script>
+
 <style>
-  .back-link{display:inline-flex;align-items:center;gap:.35rem;text-decoration:none}.change-head { display:flex;justify-content:space-between;align-items:end;gap:2rem;margin:1.5rem 0 2rem }.change-head h1{font-size:var(--heading-1-size);margin:.4rem 0}.change-head>code{color:var(--muted);font-size:.7rem}.diff,.duplicates,.publish{max-width:950px;margin-top:1rem}.diff h2,.duplicates h2,.publish h2{font-size:1.1rem}.duplicates p{display:grid;gap:.2rem;border-bottom:1px solid var(--line);padding-bottom:.7rem}.duplicates small{color:var(--muted)}.publish{display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center}form{margin:0}button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:700px){.change-head,.publish{display:grid;grid-template-columns:1fr}.change-head>code{overflow-wrap:anywhere}}
+  .top-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .6rem 1rem; }
+  .back-link { display: inline-flex; align-items: center; gap: .35rem; text-decoration: none; }
+  .queue { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .8rem; font-size: .82rem; }
+  .queue a { display: inline-flex; align-items: center; gap: .3rem; color: var(--accent); text-decoration: none; }
+  .change-head { max-width: 950px; margin: 1.5rem 0 1.5rem; }
+  .change-head h1 { font-size: clamp(1.7rem, 4vw, 2.6rem); line-height: 1.2; margin: .4rem 0 .6rem; }
+  .change-head .lede { margin-bottom: 1rem; }
+  .status-proposed { color: var(--accent); }
+  .status-published { color: #9ee6bd; }
+  .status-discarded { color: var(--muted); }
+  .meta { display: grid; gap: .35rem; margin: 0; font-size: .82rem; }
+  .meta div { display: grid; grid-template-columns: 3.5rem 1fr; gap: .6rem; }
+  .meta dt { color: var(--muted); }
+  .meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .meta code { color: var(--muted); font-size: .72rem; }
+  .sources { display: grid; gap: .2rem; }
+  .sources a { display: inline-flex; align-items: center; gap: .3rem; color: var(--accent); }
+  .target, .stale, .siblings, .diff, .duplicates, .publish { max-width: 950px; margin-top: 1rem; }
+  .target { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; padding-block: 1rem; }
+  .target > div:first-child { display: grid; gap: .2rem; min-width: 0; }
+  .target strong { overflow-wrap: anywhere; }
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .button.small { min-height: 2.25rem; padding: .4rem .8rem; font-size: .8rem; }
+  .stale { border-color: rgba(255, 190, 110, .45); background: rgba(255, 170, 70, .07); }
+  .stale h2 { display: flex; align-items: center; gap: .5rem; color: #ffd39a; font-size: 1.05rem; }
+  .stale p { margin: .4rem 0 0; }
+  .siblings h2, .diff h2, .duplicates h2, .publish h2 { font-size: 1.1rem; }
+  .siblings ul { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
+  .siblings li { display: grid; gap: .15rem; }
+  .siblings small, .duplicates small { color: var(--muted); }
+  .diff th[scope="row"] { width: 7rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .diff td { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .diff td.before { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255, 140, 140, .55); }
+  .diff td.after { color: var(--text); }
+  .location { margin-top: 1.25rem; }
+  .location h3 { font-size: .95rem; }
+  .location-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+  .location-grid small { color: var(--muted); }
+  .location-grid ul { margin: .3rem 0 0; padding-left: 1.1rem; }
+  .path { margin-top: 1rem; font-size: .85rem; }
+  .duplicates p { display: grid; gap: .2rem; border-bottom: 1px solid var(--line); padding-bottom: .7rem; }
+  .publish { display: grid; grid-template-columns: 1fr auto; gap: 1.5rem; align-items: center; }
+  .publish .notice { margin: .6rem 0 0; }
+  form { margin: 0; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .success { border-left-color: #79d9a6; color: #c9f8dc; background: rgba(78,190,127,.08); }
+  .success a { color: inherit; margin-left: .4rem; }
+  @media (max-width: 700px) {
+    .publish { grid-template-columns: 1fr; }
+    .diff th[scope="row"] { width: 4.8rem; white-space: normal; }
+  }
 </style>

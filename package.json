@@ -9,11 +9,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:web": "npm run dev --workspace @frip-fan/web",
-    "dev:mcp": "npm run dev --workspace @frip-fan/mcp",
-    "build": "npm run build --workspaces --if-present",
-    "build:web": "npm run build --workspace @frip-fan/web",
-    "build:mcp": "npm run build --workspace @frip-fan/mcp",
+    "dev:web": "npm run dev --workspace @frip-fan/web --",
+    "build": "npm run build --workspace @frip-fan/web && node scripts/build-node-sync.mjs",
+    "build:web": "npm run build",
     "typecheck": "npm run typecheck:workspaces && npm run typecheck:scripts",
     "typecheck:workspaces": "npm run typecheck --workspaces --if-present",
     "typecheck:scripts": "tsc --noEmit -p scripts/tsconfig.json",
@@ -21,9 +19,8 @@
     "test:watch": "vitest",
     "visual:check": "node scripts/visual-check.mjs",
     "deploy:web": "gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production",
-    "deploy:mcp": "gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production",
-    "db:migrate:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 migrations apply frip-fan-dev --local --config apps/web/wrangler.jsonc",
-    "db:seed:local": "XDG_CONFIG_HOME=.cache/xdg wrangler d1 execute frip-fan-dev --local --config apps/web/wrangler.jsonc --file scripts/seed.sql",
+    "db:migrate:local": "node scripts/local-db.mjs migrate",
+    "db:seed:local": "node scripts/local-db.mjs seed",
     "import:notion": "tsx scripts/import-notion-export.ts",
     "import:sql": "tsx scripts/build-import-sql.ts",
     "import:music": "tsx scripts/import-music-library.ts",
@@ -41,16 +38,12 @@
     "scrape:phase2-early-archive": "node scripts/scrape-livefans-phase2-archive.mjs 2014-01-01 2018-12-31 data/research/livefans-fripside-phase2-early-archive.json",
     "build:phase2-archive": "node scripts/build-phase2-archive-import.mjs",
     "build:phase2-early-archive": "node scripts/build-phase2-archive-import.mjs --early",
-    "build:web:staging": "npm run build:staging --workspace @frip-fan/web",
     "deploy:web:staging": "gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=staging",
     "test:release-covers": "node --test scripts/release-cover-import.test.mjs",
     "scrape:release-covers": "node scripts/scrape-release-covers.mjs",
     "build:release-covers": "node scripts/build-release-cover-import.mjs",
-    "import:release-covers:r2": "tsx scripts/import-release-covers-r2.ts",
-    "build:web:node": "npm run build:node --workspace @frip-fan/web && node scripts/build-node-sync.mjs",
-    "deploy:web:workers:legacy": "npm run deploy --workspace @frip-fan/web",
-    "deploy:web:workers:staging:legacy": "npm run deploy:staging --workspace @frip-fan/web",
-    "deploy:mcp:workers:legacy": "npm run deploy --workspace @frip-fan/mcp"
+    "build:web:node": "npm run build",
+    "db:import:local": "node scripts/local-db.mjs import"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260718.1",
@@ -59,7 +52,6 @@
     "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.12",
-    "wrangler": "^4.158.0",
     "esbuild": "0.28.2"
   },
   "overrides": {

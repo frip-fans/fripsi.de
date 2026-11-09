@@ -515,4 +515,4 @@ await writeFile(resolve("data/reports/music-library-import.json"), `${JSON.strin
 
 console.log(`已生成 ${outputSqlPath}`);
 console.log(`歌曲 ${songs.size}；版本 ${versions.size}；发行物 ${releases.size}；曲目 ${tracks.length}；Live 歌单 ${setlists.size}；演唱记录 ${entries.length}。`);
-console.log("先执行 npm run db:migrate:local，再用 wrangler d1 execute --local --file 导入生成的 SQL。");
+console.log("先执行 npm run db:migrate:local，再用 npm run db:import:local -- <生成的 SQL> 导入本地数据库。");

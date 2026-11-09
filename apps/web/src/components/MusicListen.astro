@@ -1,0 +1,105 @@
+---
+import Icon from "./Icon.astro";
+import { getLocale, t } from "../lib/i18n";
+import type { ListenSource } from "../lib/music-listen";
+
+interface Props {
+  sources: ListenSource[];
+  /** Render the player immediately instead of waiting for a click. */
+  autoload?: boolean;
+}
+
+const { sources, autoload = false } = Astro.props;
+const locale = getLocale(Astro.request);
+const first = sources[0];
+const providers = (["apple_music", "youtube"] as const).filter((provider) => sources.some((source) => provider === "apple_music" ? source.apple : source.youtube));
+const initial = first?.apple ? "apple_music" : "youtube";
+const providerName = { apple_music: "Apple Music", youtube: "YouTube" } as const;
+const providerIcon = { apple_music: "audio-lines", youtube: "tv-minimal-play" } as const;
+const initialPage = initial === "apple_music" ? first?.apple?.page : first?.youtube?.page;
+const initialEmbed = initial === "apple_music" ? first?.apple?.embed : first?.youtube?.embed;
+// Same attributes the client uses when it swaps players (see music-listen-client.ts).
+const frameAttributes = initial === "apple_music"
+  ? { allow: "autoplay *; encrypted-media *; fullscreen *; clipboard-write", sandbox: "allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" }
+  : { allow: "autoplay; encrypted-media; picture-in-picture; web-share", allowfullscreen: true };
+---
+{first && providers.length > 0 && (
+  <section class="music-listen" data-music-listen data-provider={initial} aria-labelledby="listen-heading"
+    data-label-load-apple_music={t(locale, "music.listenLoad", { provider: providerName.apple_music })}
+    data-label-load-youtube={t(locale, "music.listenLoad", { provider: providerName.youtube })}
+    data-label-note-apple_music={t(locale, "music.listenNote", { provider: providerName.apple_music })}
+    data-label-note-youtube={t(locale, "music.listenNote", { provider: providerName.youtube })}>
+    <div class="music-listen-head">
+      <h2 id="listen-heading" class="song-section-title">{t(locale, "music.listen")}</h2>
+      {providers.length > 1 && (
+        <div class="music-listen-providers" role="group" aria-label={t(locale, "music.listenPlatform")} data-js-only hidden>
+          {providers.map((provider) => <button type="button" data-listen-provider={provider} aria-pressed={provider === initial ? "true" : "false"}><Icon name={providerIcon[provider]} /><span>{providerName[provider]}</span></button>)}
+        </div>
+      )}
+    </div>
+    {sources.length > 1 && (
+      <div class="music-listen-sources" role="group" aria-label={t(locale, "music.listenVersion")} data-js-only hidden>
+        {sources.map((source, index) => (
+          <button type="button" aria-pressed={index === 0 ? "true" : "false"} data-listen-source={source.key}
+            data-apple-embed={source.apple?.embed} data-apple-page={source.apple?.page}
+            data-youtube-embed={source.youtube?.embed} data-youtube-page={source.youtube?.page}
+            data-caption={source.caption} data-caption-href={source.captionHref}>{source.label}</button>
+        ))}
+      </div>
+    )}
+    <div class="music-listen-stage" data-listen-stage
+      data-apple-embed={first.apple?.embed} data-apple-page={first.apple?.page}
+      data-youtube-embed={first.youtube?.embed} data-youtube-page={first.youtube?.page}>
+      {autoload && initialEmbed && <iframe src={initialEmbed} title={`${providerName[initial]} player`} loading="lazy" referrerpolicy="strict-origin-when-cross-origin" {...frameAttributes}></iframe>}
+      {/* Without JS this is a plain link out; with JS a click swaps in the third-party player. */}
+      <a class="music-listen-load" href={initialPage} target="_blank" rel="noreferrer" data-listen-load hidden={autoload}>
+        <span class="music-listen-play" aria-hidden="true"><Icon name="play-fill" /></span>
+        <span><strong data-listen-load-label>{t(locale, "music.listenLoad", { provider: providerName[initial] })}</strong>
+          <small data-listen-note>{t(locale, "music.listenNote", { provider: providerName[initial] })}</small></span>
+      </a>
+    </div>
+    {first.caption && (
+      <p class="music-listen-caption" data-listen-caption-row>
+        <a href={first.captionHref} data-listen-caption translate="no">{first.caption}</a>
+      </p>
+    )}
+  </section>
+)}
+
+<style>
+  .music-listen { margin-top: 2.5rem; }
+  .music-listen-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .9rem; }
+  .music-listen-head h2 { margin: 0; }
+  .music-listen-sources { display: flex; flex-wrap: wrap; gap: .4rem; }
+  /* Segmented control, a lighter take on the music section tabs. */
+  .music-listen-providers { display: inline-flex; gap: .2rem; padding: .22rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(5, 13, 23, .45); backdrop-filter: blur(14px); }
+  .music-listen .music-listen-providers button { display: inline-flex; align-items: center; gap: .4rem; min-height: 2rem; padding: .35rem .7rem; border: 1px solid transparent; border-radius: 9px; font-weight: 600; transition: color .16s ease, background-color .16s ease, border-color .16s ease; }
+  .music-listen .music-listen-providers button :global(.icon) { font-size: 1rem; opacity: .85; }
+  .music-listen .music-listen-providers button[aria-pressed="true"] { color: var(--accent); border-color: rgba(var(--accent-rgb), .32); background: rgba(var(--accent-rgb), .13); }
+  .music-listen .music-listen-providers button:disabled { opacity: .4; cursor: not-allowed; }
+  @media (hover: hover) and (pointer: fine) { .music-listen .music-listen-providers button:not([aria-pressed="true"]):not(:disabled):hover { color: var(--text); background: rgba(255, 255, 255, .05); } }
+  .music-listen-sources { margin-bottom: .8rem; }
+  .music-listen button { min-height: 2.25rem; padding: .4rem .8rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; background: transparent; font: inherit; font-size: .8125rem; cursor: pointer; }
+  .music-listen button[aria-pressed="true"] { color: var(--text); border-color: rgba(var(--accent-rgb), .6); background: rgba(var(--accent-rgb), .14); }
+  .music-listen button:focus-visible, .music-listen-load:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .music-listen-stage { --listen-height: 175px; position: relative; max-width: 660px; min-height: var(--listen-height); border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); overflow: hidden; }
+  .music-listen[data-provider="youtube"] .music-listen-stage { --listen-height: auto; aspect-ratio: 16 / 9; min-height: 0; }
+  /* The iframe is created by script, so it carries no scoped-style attribute. */
+  .music-listen-stage :global(iframe) { display: block; width: 100%; height: var(--listen-height); border: 0; }
+  .music-listen[data-provider="youtube"] .music-listen-stage :global(iframe) { height: 100%; }
+  .music-listen-load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: .9rem; padding: 1rem; color: var(--text); text-decoration: none; }
+  .music-listen-load[hidden] { display: none; }
+  .music-listen-load strong { display: block; font-size: .95rem; }
+  .music-listen-load small { display: block; margin-top: .2rem; color: var(--muted); font-size: .75rem; }
+  .music-listen-play { display: grid; place-items: center; width: 3rem; height: 3rem; flex: none; border-radius: 50%; color: #07101c; background: var(--accent); font-size: 1.5rem; }
+  .music-listen-caption { margin: .6rem 0 0; font-size: .8125rem; }
+  .music-listen-caption a { color: var(--muted); }
+  .music-listen-caption a:hover { color: var(--accent); }
+  @media (hover: hover) and (pointer: fine) { .music-listen-load:hover .music-listen-play { filter: brightness(1.1); } }
+</style>
+
+<script>
+  import { setupMusicListen } from "../lib/music-listen-client";
+  setupMusicListen();
+  document.addEventListener("astro:page-load", () => setupMusicListen());
+</script>

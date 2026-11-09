@@ -1,0 +1,36 @@
+---
+import QuizBoard from "../../components/QuizBoard.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { getEnv } from "../../lib/env";
+import { getLocale, t } from "../../lib/i18n";
+import { buildQuizPayload } from "../../lib/quiz-payload";
+import "../../styles/quiz.css";
+
+const locale = getLocale(Astro.request);
+const payload = await buildQuizPayload(getEnv().DB, locale, Astro.request.headers.get("cookie") ?? "");
+---
+
+<SiteLayout title={t(locale, "quiz.title")} description={t(locale, "quiz.description")}>
+  <article class="quiz-page">
+    <header class="quiz-intro">
+      <p class="quiz-eyebrow">{t(locale, "quiz.todayLabel")} · {payload.date}</p>
+      <h1>{t(locale, "quiz.title")}</h1>
+      <p>{t(locale, "quiz.description")}</p>
+      <p class="quiz-data-note">{t(locale, "quiz.dataNote")}</p>
+    </header>
+
+    {payload.total === 0 ? (
+      <p class="quiz-empty">{t(locale, "quiz.empty")}</p>
+    ) : (
+      <QuizBoard locale={locale}>
+        <script is:inline type="application/json" data-quiz-payload set:html={JSON.stringify(payload)}></script>
+      </QuizBoard>
+    )}
+  </article>
+</SiteLayout>
+
+<script>
+  import { setupQuizPage } from "../../lib/quiz-client";
+  setupQuizPage();
+  document.addEventListener("astro:page-load", () => setupQuizPage());
+</script>

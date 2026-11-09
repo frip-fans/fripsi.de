@@ -1,3 +1,4 @@
+import { eventTourStopSql } from "./event-display";
 import { countPublicSetlistsSince, listSetlistYears } from "./music-repository";
 
 export interface SpotlightPerformance {
@@ -5,6 +6,8 @@ export interface SpotlightPerformance {
   start_date: string;
   title: string | null;
   event_title: string;
+  event_alias?: string | null;
+  event_tour_title?: string | null;
   performance_label: string;
 }
 
@@ -48,7 +51,7 @@ const performedSetlists = `
 `;
 
 const boundarySelect = `
-  SELECT sl.id AS setlist_id, e.start_date, sl.title, e.title AS event_title, sl.performance_label
+  SELECT sl.id AS setlist_id, e.start_date, sl.title, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, sl.performance_label
   ${performedSetlists}
   WHERE se.song_id = ?
 `;

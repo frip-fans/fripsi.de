@@ -66,7 +66,7 @@ failed
 
 ## 3. 表结构
 
-以下 SQL 是设计草案；实现时拆分为顺序编号的 D1 migration。
+以下 SQL 是设计草案；实现时拆分为顺序编号的 SQL migration（`migrations/`）。
 
 ### 3.1 `events`
 
@@ -144,6 +144,24 @@ location_migration_backlog    无法安全自动拆分的旧地点待办
 活动不会把 Google Place ID、OSM ID 或经纬度当成永久身份；`venues.id` 是站内稳定主键。日本行政区使用五位标准地域代码，国家使用 ISO 3166-1，一级行政区可同时登记 ISO 3166-2。
 
 `0005_journey_coordinates.sql` 为行政区增加中心点坐标，并为场馆/行政区坐标建立部分索引。Live Journey 查询优先使用场馆坐标；缺失时回退到行政区中心点，API 会通过 `coordinate_precision` 明确返回 `venue` 或 `area`，避免把近似位置伪装成精确地址。
+
+#### 显示名与巡演（`0016_event_alias_tours.sql`）
+
+官方名称（`events.title`）常带「@地区・场馆」，这是区分同一巡演各站的关键信息，原样保留。页面另用显示名作标题，按顺序取第一个有值的：
+
+1. `events.alias`：后台设置的别名。初始化时由歌单标题复制而来，复制后清空对应的歌单标题。
+2. 「巡演名 · 场次」：活动属于已公开的 `tours` 时，场次取 `events.tour_stop`，为空时由首个场馆所在行政区生成「〇〇公演」（日本去掉都/府/県，北海道保留）。
+3. `events.title`。
+
+规则只在 `packages/core/src/event-display.ts` 的 SQL 表达式中实现，所有列出活动的查询共用。活动详情页和歌单详情页在大标题下用小字显示官方名称；结构化数据和日历订阅使用官方名称；搜索同时匹配别名、官方名称和巡演名。
+
+```text
+tours                         巡演：slug、名称、说明、是否公开
+events.tour_id / tour_stop    所属巡演与场次代号（可空）
+events.alias                  显示名（可空）
+```
+
+别名、巡演和场次只由后台活动表单维护；MCP 提案不读写这些字段，保存时原值保留。
 
 ### 3.2 `event_sources`
 
@@ -294,8 +312,8 @@ Tags, Date, Name, Remark, Classification, Text
 6. 从标题中识别取消、延期等标记，生成候选 `status`，再人工核验。
 7. 排除仅用于旧 Gallery 展示的年度分隔记录，或将真实周年纪念归入 `OTHER`。
 8. 保留原始 Notion page ID 到迁移报告中，便于回查；不作为运行时依赖。
-9. 导入到 staging D1，生成统计和异常清单。
-10. 人工确认后导入 production D1。
+9. 导入到测试库，生成统计和异常清单。
+10. 人工确认后导入生产库。
 
 迁移验收至少包括：
 
@@ -334,3 +352,23 @@ catalog_sources          歌曲、版本、发行物和歌单的来源
 ```
 
 完整语义、CSV 字段和导入流程见 [歌单库](./music-library.md)。
+
+`0017_release_aliases.sql` 增加 `release_aliases`（结构同 `song_aliases`），保存发行物的中文/英文译名和简称，后台专辑表单的「别名」字段维护。
+
+## 10. 文本搜索
+
+所有搜索框（活动列表、音乐库、后台列表、MCP `search_events`、歌曲演唱历史、后台选择器）共用 `packages/core/src/search-text.ts` 的折叠规则，对被搜索文本和查询做同样处理：
+
+- NFKC（全角/半角、兼容字符）→ 小写 → 片假名转平假名 → 日文新字体/繁体/简体统一为简体（`cjk-variants.ts`，由 `scripts/build-cjk-variant-map.mjs` 从 OpenCC 数据生成）→ 去掉空白、标点和符号。
+- 查询按空白拆词，每个词都要出现在同一字段中；只有符号的查询不匹配任何结果。
+
+SQL `LIKE` 无法做这些折叠，所以服务端搜索由 `search-index.ts` 读取候选记录的可搜索文本，在 JS 中匹配，再把命中 id 以 `id IN (SELECT value FROM json_each(?))` 交回原查询，筛选、排序、分页和计数仍在 SQL 中完成。可搜索文本包括：
+
+| 对象 | 字段 |
+| --- | --- |
+| 活动 | 标题、显示名、巡演名/站名、类别与专场/拼盘在各语言的标签、备注、场馆名与 `venue_aliases`、场馆所在行政区及上级行政区的本地/中/日/英名称、渠道；后台另含来源 URL |
+| 歌单 | 所属活动的上述文本、歌单标题、演出标签、曲目显示名、歌曲标题与 `song_aliases` |
+| 歌曲 | 标题、原唱、`song_aliases`、版本标题；后台另含 slug |
+| 发行物 | 标题、品番、版本、`release_aliases`；后台另含 slug |
+
+自动折叠解决字形差异（横滨/横浜、东京/東京），译名差异（冬之碎片/冬のかけら、埼玉超级竞技场/さいたまスーパーアリーナ）需要写入别名表。场馆别名目前没有后台表单，通过数据导入写入 `venue_aliases`。

@@ -51,6 +51,8 @@ describe("release artwork persistence", () => {
     for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql"]) sqlite.exec(migration(name));
     sqlite.exec("INSERT INTO releases (id,slug,title,release_type,published,created_at,updated_at) VALUES ('old','old-release','Old','album',1,'2026-01-01','2026-01-01')");
     sqlite.exec(migration("0007_release_covers.sql"));
+    sqlite.exec(migration("0014_music_external_ids.sql"));
+    sqlite.exec(migration("0017_release_aliases.sql"));
     expect(sqlite.prepare("SELECT cover_url, cover_source_url FROM releases WHERE id = 'old'").get()).toMatchObject({ cover_url: null, cover_source_url: null });
     const db = new TestD1(sqlite) as unknown as D1Database;
     const service = new ContentAdminService(db);
@@ -71,6 +73,39 @@ describe("release artwork persistence", () => {
     const cleared = await service.saveRelease({ ...input, id: created.id, expected_updated_at: preserved.updated_at, cover_url: "", cover_source_url: "", idempotency_key: "cover-clear-1" }, actor);
     expect(cleared.cover_url).toBeNull();
     expect((await getReleaseBySlug(db, created.slug))?.cover_url).toBeNull();
+    sqlite.close();
+  });
+
+  it("keeps streaming ids across saves that recreate track rows, and clears or replaces them on request", async () => {
+    const sqlite = new DatabaseSync(":memory:");
+    sqlite.exec("PRAGMA foreign_keys = ON");
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0007_release_covers.sql", "0014_music_external_ids.sql", "0017_release_aliases.sql"]) sqlite.exec(migration(name));
+    sqlite.exec(`INSERT INTO songs (id,slug,title,normalized_title,created_at,updated_at) VALUES ('s1','omr','only my railgun','onlymyrailgun','2026-01-01','2026-01-01');
+      INSERT INTO song_versions (id,song_id,slug,title,created_at,updated_at) VALUES ('v1','s1','omr-original','only my railgun','2026-01-01','2026-01-01'),('v2','s1','omr-inst','only my railgun (Instrumental)','2026-01-01','2026-01-01');`);
+    const db = new TestD1(sqlite) as unknown as D1Database;
+    const service = new ContentAdminService(db);
+    const actor: Actor = { id: "tester", type: "human", channel: "admin", scopes: ["music:write"] };
+    const tracks = [
+      { song_version_id: "v1", disc_number: 1, track_number: 1, display_title: "only my railgun", notes: null, apple_music_track_id: "1804664579", youtube_video_id: "ZhIxg6_Femo" },
+      { song_version_id: "v2", disc_number: 1, track_number: 2, display_title: "only my railgun (Instrumental)", notes: null, apple_music_track_id: "1804664580", youtube_video_id: null },
+    ];
+    const base = { title: "only my railgun", slug: "omr", release_type: "single" as const, published: true, sources: [], cover_url: null, cover_source_url: null };
+    const created = await service.saveRelease({ ...base, tracks, apple_music_album_id: "1804664400", apple_music_storefront: "jp", idempotency_key: "stream-1" }, actor);
+    expect(created.apple_music_album_id).toBe("1804664400");
+    expect(created.tracks.map((track) => [track.apple_music_track_id, track.youtube_video_id])).toEqual([["1804664579", "ZhIxg6_Femo"], ["1804664580", null]]);
+
+    // A save without streaming fields (e.g. another client) keeps everything, matched by disc/track slot.
+    const kept = await service.saveRelease({ ...base, id: created.id, expected_updated_at: created.updated_at, idempotency_key: "stream-2",
+      tracks: tracks.map(({ apple_music_track_id: _a, youtube_video_id: _y, ...track }) => track) }, actor);
+    expect(kept.apple_music_album_id).toBe("1804664400");
+    expect(kept.tracks.map((track) => [track.apple_music_track_id, track.youtube_video_id])).toEqual([["1804664579", "ZhIxg6_Femo"], ["1804664580", null]]);
+
+    // Explicit nulls clear; new values replace. No orphan rows remain for the old track ids.
+    const edited = await service.saveRelease({ ...base, id: created.id, expected_updated_at: kept.updated_at, idempotency_key: "stream-3", apple_music_album_id: null,
+      tracks: [{ ...tracks[0], apple_music_track_id: null, youtube_video_id: "Yi5nf3Yh4DE" }, tracks[1]] }, actor);
+    expect(edited.apple_music_album_id).toBeNull();
+    expect(edited.tracks.map((track) => [track.apple_music_track_id, track.youtube_video_id])).toEqual([[null, "Yi5nf3Yh4DE"], ["1804664580", null]]);
+    expect(sqlite.prepare("SELECT COUNT(*) AS c FROM release_track_external_ids").get()).toMatchObject({ c: 2 });
     sqlite.close();
   });
 });

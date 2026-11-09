@@ -101,10 +101,7 @@ data/reports/music-library-import.json
 
 ```bash
 npm run db:migrate:local
-npx wrangler d1 execute frip-fan-dev \
-  --local \
-  --config apps/web/wrangler.jsonc \
-  --file data/normalized/music-library-import.sql
+npm run db:import:local -- data/normalized/music-library-import.sql
 ```
 
 如果 `event_slug` 不存在，导入会利用非空外键使整个事务失败，而不是静默丢弃该歌单。
@@ -117,19 +114,11 @@ npx wrangler d1 execute frip-fan-dev \
 - `/admin/music/releases`：专辑元数据、来源、公开状态，以及 Disc/Track、歌曲版本和显示标题。
 - `/admin/music/songs`：新增或编辑歌曲本体、别名、首次发行日期、来源与一个或多个歌曲版本；保存后会立即进入 Setlist 和专辑编辑器的选择列表。
 
-保存会直接写入 D1，并同时写 operation receipt 和 audit log；关闭“公开显示”可以先保存在后台。CSV/SQL 仍适合大批量、可复现导入，后台表单适合日常少量修正。
+保存会直接写入数据库，并同时写 operation receipt 和 audit log；关闭“公开显示”可以先保存在后台。CSV/SQL 仍适合大批量、可复现导入，后台表单适合日常少量修正。
 
-## 4. 上生产的顺序
+## 4. 批量数据进入测试站和生产
 
-Web 的活动详情和 sitemap 会查询新表，因此必须先迁移数据库，再部署代码：
-
-1. 保存生产 D1 的恢复点或导出备份。
-2. 执行 `0003_music_library.sql` 的 production migration。
-3. 导入并核对第一批歌单/发行物 SQL。
-4. 部署 Web Worker。
-5. 检查 `/music`、一个 Live、一个发行物、一个歌曲详情和 `/sitemap.xml`。
-
-在真实 CSV 与页面抽样确认前，不执行第 2–4 步。
+生成的导入 SQL 属于内容变更，合并代码不会写入数据库。按 [发布流程](release-workflow.md#内容变更) 的变更包方式执行：先在测试库导入并核对，再在生产主机试运行、快照、导入，最后检查 `/music`、一个 Live、一个发行物、一个歌曲详情和 `/sitemap.xml`。如果数据依赖新的表或列，先按发布流程完成对应 migration。
 
 ### 第三期专辑数据集
 

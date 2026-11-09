@@ -1,12 +1,10 @@
 # fripSi.de
 
-> OCI 移行：Web と MCP は Node 24 / SQLite で実行し、非公開リポジトリの runner からデプロイします。Cloudflare Tunnel / Access / CDN は維持します。[運用手順](docs/oci-deployment.md)・[DB バックアップ](docs/sqlite-backups.md)。
-
 [简体中文](./README.md) | [日本語](./README.ja.md) | [English](./README.en.md)
 
 [fripSi.de](https://fripsi.de) は、ファンが運営する非公式の fripSide イベントカレンダー兼ライブセットリスト資料庫です。
 
-公開情報をもとに、イベント、リリース、楽曲バージョン、ライブでの演奏記録を整理しています。コンテンツは Cloudflare D1 に保存され、サイト内の管理画面から更新できるため、データ更新のたびにサイトを再ビルドする必要はありません。
+公開情報をもとに、イベント、リリース、楽曲バージョン、ライブでの演奏記録を整理しています。コンテンツは SQLite に保存され、サイト内の管理画面から更新できるため、データ更新のたびにサイトを再ビルドする必要はありません。
 
 > 本サイトは fripSide の公式サイトではなく、fripSide および関連団体との提携・所属関係もありません。公式情報は [fripside.net](https://fripside.net) をご確認ください。
 
@@ -21,13 +19,13 @@
 - 公開サイトの簡体字中国語、繁体字中国語、日本語、英語表示。
 - `/admin` からのイベント、楽曲、リリース、セットリスト管理。
 - 情報源と管理操作の記録による、検証・訂正のサポート。
-- 独立した Remote MCP Worker による資料検索と、レビュー対象となる変更提案の送信。
+- Remote MCP（`/mcp`）による資料検索と、レビュー対象となる変更提案の送信。
 
 ## 技術スタック
 
 - [Astro](https://astro.build/) SSR
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/)
-- [Cloudflare D1](https://developers.cloudflare.com/d1/)
+- SQLite（Node 標準の `node:sqlite`）。本番は Astro standalone ビルドを Node 24 で実行
+- Cloudflare DNS/CDN、Access、Tunnel
 - TypeScript、Vitest、Playwright
 - Bootstrap Icons（ビルド時にローカル SVG として取り込み）
 - Leaflet、MapLibre GL、OpenStreetMap（インタラクティブ地図と地図タイル）
@@ -39,10 +37,13 @@ React は使用していません。また、Notion などの外部サービス�
 ```text
 apps/
 ├── web/          Astro サイト、管理画面、Web API
-└── mcp/          Remote MCP Worker
+├── mcp/          Remote MCP のプロトコルとツール（サイトのプロセスが /mcp で呼び出し）
+└── sync/         公式イベント自動同期タスク（既定で無効）
 packages/
-└── core/         データアクセス、検証、権限管理、共通ビジネスロジック
-migrations/       D1 データベースマイグレーション
+├── core/         データアクセス、検証、権限管理、共通ビジネスロジック
+└── node-runtime/ SQLite とローカルファイル保存のアダプター
+migrations/       データベースマイグレーション
+ops/              ホストのデプロイスクリプトと DB バックアップ
 scripts/          データ収集、整形、インポート用スクリプト
 data/             インポート用テンプレートと調査データ
 docs/             アーキテクチャ、データモデル、デプロイ資料
@@ -50,49 +51,39 @@ docs/             アーキテクチャ、データモデル、デプロイ資�
 
 ## ローカル開発
 
-Node.js 24 と npm が必要です。
+Node.js 24 と npm が必要です。ローカル開発でも本番と同じ Node ランタイムと SQLite を使います。
 
 ```bash
 git clone https://github.com/frip-fans/fripsi.de.git
 cd fripsi.de
 npm install
 
-cp apps/web/.dev.vars.example apps/web/.dev.vars
-cp apps/mcp/.dev.vars.example apps/mcp/.dev.vars
+cp apps/web/.env.local.example apps/web/.env.local
 
-npm run db:migrate:local
-npm run db:seed:local
+npm run db:migrate:local   # apps/web/.cache/self-hosted/site.sqlite を作成しマイグレーションを適用
+npm run db:seed:local      # サンプルデータを投入
 npm run dev:web
 ```
 
-デフォルトでは、サイトは `http://localhost:4321`、管理画面は `http://localhost:4321/admin` で起動します。ローカル用のサンプル設定では `DEV_AUTH_BYPASS` によりテスト用ユーザーを利用できますが、本番環境では絶対に有効にしないでください。
-
-MCP Worker をデバッグする場合は、別のターミナルで次を実行します。
-
-```bash
-npm run dev:mcp
-```
-
-MCP エンドポイントのデフォルト URL は `http://localhost:8787/mcp`、ヘルスチェックは `/health` です。
+既定では、サイトは `http://localhost:4321`、管理画面は `http://localhost:4321/admin`、MCP は `http://localhost:4321/mcp` で動作します。`.env.local` の `DEV_AUTH_BYPASS` はローカルのテスト用 ID を提供するもので、開発モードでのみ有効です。それ以外の環境では強制的に無効になります。
 
 ## よく使うコマンド
 
 | コマンド | 用途 |
 |---|---|
 | `npm run dev:web` | Web 開発サーバーを起動 |
-| `npm run dev:mcp` | MCP Worker の開発サーバーを起動 |
 | `npm run typecheck` | 全 workspace とデータスクリプトの型チェック |
 | `npm test` | テストを実行 |
-| `npm run build` | 全 workspace をビルド |
-| `npm run build:web` | Web のみをビルド |
+| `npm run build` | 本番用 Node ビルド（`apps/web/dist-node`、同期タスクを含む）を生成 |
 | `npm run visual:check` | Playwright でトップページの表示を確認 |
 | `node scripts/visual-check-journey.mjs` | PC／モバイルで Journey の地図と再生操作を確認 |
-| `npm run db:migrate:local` | ローカル D1 にマイグレーションを適用 |
-| `npm run db:seed:local` | ローカル D1 にサンプルデータを投入 |
+| `npm run db:migrate:local` | ローカル DB にマイグレーションを適用 |
+| `npm run db:seed:local` | ローカル DB にサンプルデータを投入 |
+| `npm run db:import:local -- <file.sql>` | 生成したインポート SQL をローカル DB に適用 |
 
 ## データ管理
 
-イベント、楽曲、リリース、セットリストについては D1 が唯一の正本です。一括更新では、まずリポジトリ所定の CSV 形式にデータを整理し、インポートスクリプトで構造化データを生成または書き込みます。情報の訂正を提出する際は、一般にアクセス可能な参照元 URL も添えてください。
+イベント、楽曲、リリース、セットリストについては各環境のデータベースが唯一の正本です。一括更新では、まずリポジトリ所定の CSV 形式にデータを整理し、インポートスクリプトで構造化データを生成または書き込みます。情報の訂正を提出する際は、一般にアクセス可能な参照元 URL も添えてください。
 
 - [音楽資料庫のデータ構造とインポート形式](./docs/music-library.md)
 - [データベースモデル](./docs/data-model.md)
@@ -109,9 +100,9 @@ npm run import:sql
 
 ## デプロイ
 
-Web と MCP は、同じ D1 データベースを共有する別々の Cloudflare Worker としてデプロイされます。各 `wrangler.jsonc` には Worker、binding、公開環境変数の設定が含まれます。トークン、Access 認証情報などの機密値は、Cloudflare Secrets またはビルド環境変数で管理してください。
+本番とステージングはそれぞれ独立した OCI ホストで稼働します。Node 24 が Astro standalone ビルドを実行し、同じプロセスが `/mcp` も提供します。データはホスト上の SQLite に保存し、Cloudflare は DNS/CDN、Access、Tunnel を担当します。ビルドとデプロイは非公開のデプロイ用リポジトリのワークフローが行い、設定と秘密情報はホスト上にのみ保存します。
 
-本番データベースのマイグレーションは別途実行する必要があり、サイトのビルド時には自動適用されません。デプロイ手順と Cloudflare Access の設定については、[デプロイ資料](./docs/deployment.md)を参照してください。
+コードはタスク PR で staging に入り、CI とステージングでの確認後、最新の master から作成した `release/*` ブランチを確認済みの staging と同じ内容に揃え、**Rebase and merge** で master に取り込みます。追加型のデータベースマイグレーションはデプロイ時に実行されます（本番は明示的な承認が必要）。詳しくは [リリース手順](./docs/release-workflow.md)、[デプロイと運用](./docs/oci-deployment.md)、[DB バックアップ](./docs/sqlite-backups.md)、[開発ルール](./AGENTS.md) を参照してください。
 
 ## コントリビューション
 

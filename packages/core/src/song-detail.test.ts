@@ -2,11 +2,11 @@
 import { readFileSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { countPublicSetlistsSince, getSongBySlug, songPerformancePagination } from "./music-repository";
+import { countPublicSetlistsSince, getAdjacentSetlists, getSongBySlug, songPerformancePagination } from "./music-repository";
 
 function fixture() {
   const sqlite = new DatabaseSync(":memory:");
-  for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0007_release_covers.sql"]) {
+  for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0007_release_covers.sql", "0014_music_external_ids.sql", "0016_event_alias_tours.sql"]) {
     sqlite.exec(readFileSync(new URL(`../../../migrations/${name}`, import.meta.url), "utf8"));
   }
   sqlite.exec(`INSERT INTO songs (id,slug,title,normalized_title,created_at,updated_at) VALUES ('song','test-song','Test song','test song','now','now');
@@ -89,5 +89,24 @@ describe("song detail pagination and covers", () => {
     expect(songPerformancePagination(45, -1)).toMatchObject({ page: 1, offset: 0 });
     expect(songPerformancePagination(45, Infinity)).toMatchObject({ page: 1 });
     expect(songPerformancePagination(45, 2.7)).toMatchObject({ page: 2, offset: 10 });
+  });
+});
+
+describe("adjacent setlists", () => {
+  it("steps through public setlists in list order and stops at both ends", async () => {
+    const { sqlite, db } = fixture();
+    try {
+      // Spread a few events over dates; same-day shows fall back to the label and id.
+      sqlite.exec("UPDATE events SET start_date = '2026-08-01' WHERE id = '00'; UPDATE events SET start_date = '2026-10-01' WHERE id = '46'; UPDATE setlists SET performance_label = 'Day' WHERE id = '02'");
+      const at = (id: string) => sqlite.prepare("SELECT sl.id, e.start_date, e.start_time, sl.performance_label FROM setlists sl JOIN events e ON e.id = sl.event_id WHERE sl.id = ?").get(id) as { id: string; start_date: string; start_time: string | null; performance_label: string };
+      const first = await getAdjacentSetlists(db, at("00"));
+      expect(first.previous).toBeNull();
+      expect(first.next?.id).toBe("02");
+      const middle = await getAdjacentSetlists(db, at("02"));
+      expect([middle.previous?.id, middle.next?.id]).toEqual(["00", "01"]);
+      // 43 (unpublished event), 44 (unpublished setlist) and 45 (archived) are skipped.
+      expect((await getAdjacentSetlists(db, at("42"))).next?.id).toBe("46");
+      expect((await getAdjacentSetlists(db, at("46"))).next).toBeNull();
+    } finally { sqlite.close(); }
   });
 });

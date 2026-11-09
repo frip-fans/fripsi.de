@@ -1,15 +1,157 @@
 ---
-import { listChangeSets } from "@frip-fan/core";
+import { countChangeSetsByStatus, getEventHeads, listChangeSets } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { CHANGE_OPERATION_LABELS, CHANGE_STATUS_LABELS, changeHeadline, formatTimestamp, isStale } from "../../../lib/change-review";
 import { getEnv } from "../../../lib/env";
-const status = Astro.url.searchParams.get("status") ?? undefined;
-const changes = await listChangeSets(getEnv().DB, status, 200);
+
+const db = getEnv().DB;
+const actor = Astro.locals.actor!;
+const requested = Astro.url.searchParams.get("status");
+// Pending proposals are what a reviewer opens this page for; "all" stays one tab away.
+const status = requested === "all" ? undefined : (requested && requested in CHANGE_STATUS_LABELS ? requested : "proposed");
+const [changes, counts] = await Promise.all([listChangeSets(db, status, 200), countChangeSetsByStatus(db)]);
+const targets = await getEventHeads(db, changes.map((change) => change.target_event_id ?? ""));
+const pendingPerEvent = new Map<string, number>();
+for (const change of changes) {
+  if (change.status === "proposed" && change.target_event_id) pendingPerEvent.set(change.target_event_id, (pendingPerEvent.get(change.target_event_id) ?? 0) + 1);
+}
+const rows = changes.map((change) => {
+  const target = change.target_event_id ? targets.get(change.target_event_id) : undefined;
+  return {
+    change,
+    headline: changeHeadline(change, target),
+    stale: isStale(change, target?.version),
+    siblings: change.status === "proposed" && change.target_event_id ? (pendingPerEvent.get(change.target_event_id) ?? 1) - 1 : 0,
+  };
+});
+const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
+const tabs = [
+  { value: "proposed", label: CHANGE_STATUS_LABELS.proposed, count: counts.proposed ?? 0 },
+  { value: "published", label: CHANGE_STATUS_LABELS.published, count: counts.published ?? 0 },
+  { value: "discarded", label: CHANGE_STATUS_LABELS.discarded, count: counts.discarded ?? 0 },
+  { value: "failed", label: CHANGE_STATUS_LABELS.failed, count: counts.failed ?? 0 },
+  { value: "all", label: "全部", count: total },
+];
+const current = status ?? "all";
+const canDiscard = actor.scopes.includes("events:draft") || actor.scopes.includes("events:publish");
+const selectable = status === "proposed" && canDiscard && rows.length > 0;
+const discarded = Number(Astro.url.searchParams.get("discarded") ?? 0);
+const done = Astro.url.searchParams.get("done");
+const staleCount = rows.filter((row) => row.stale).length;
 ---
 <SiteLayout title="变更提案" admin>
   <p class="eyebrow">Change sets</p><h1 class="page-title">变更提案</h1>
-  <div class="filters">{["", "proposed", "published", "discarded", "failed"].map((value) => <a class:list={{ active: (status ?? "") === value }} href={value ? `/admin/changes?status=${value}` : "/admin/changes"}>{value || "全部"}</a>)}</div>
-  <div class="panel table-wrap"><table><thead><tr><th>状态</th><th>操作</th><th>原因</th><th>创建人</th><th>时间</th></tr></thead><tbody>
-    {changes.map((change) => <tr><td><span class="tag">{change.status}</span></td><td><a href={`/admin/changes/${change.id}`}>{change.operation}</a></td><td>{change.reason}</td><td>{change.created_by}<small>{change.created_via}</small></td><td>{change.created_at.slice(0,16).replace("T"," ")}</td></tr>)}
-  </tbody></table>{!changes.length && <div class="empty">没有提案。</div>}</div>
+  {discarded > 0 && <p class="notice success" role="status">已丢弃 {discarded} 条提案。</p>}
+  {done === "published" && <p class="notice success" role="status">提案已发布。待处理提案已全部处理完。</p>}
+  {done === "discarded" && <p class="notice success" role="status">提案已丢弃。待处理提案已全部处理完。</p>}
+  <nav class="filters" aria-label="按状态筛选">
+    {tabs.map((tab) => (
+      <a class:list={{ active: current === tab.value }} aria-current={current === tab.value ? "page" : undefined} href={tab.value === "proposed" ? "/admin/changes" : `/admin/changes?status=${tab.value}`}>
+        {tab.label}<span>{tab.count}</span>
+      </a>
+    ))}
+  </nav>
+
+  <form method="post" action="/api/admin/changes/discard" data-batch-form>
+    {selectable && (
+      <div class="batch-bar panel">
+        <label class="check"><input type="checkbox" data-select-all aria-label="全选" /><span data-selected-label>选择提案</span></label>
+        {staleCount > 0 && <button type="button" class="secondary small" data-select-stale><Icon name="exclamation-triangle" />选中 {staleCount} 条已过期</button>}
+        <button type="submit" class="danger small" data-batch-submit disabled><Icon name="trash" />丢弃所选</button>
+      </div>
+    )}
+    <div class="panel table-wrap">
+      <table>
+        <thead><tr>{selectable && <th class="select-col"><span class="visually-hidden">选择</span></th>}<th class="status-col">状态</th><th>活动</th><th class="reason">原因</th><th class="meta">提交</th></tr></thead>
+        <tbody>
+          {rows.map(({ change, headline, stale, siblings }) => (
+            <tr class:list={{ stale }}>
+              {selectable && <td class="select-col"><input type="checkbox" name="id" value={change.id} data-row-check data-stale={stale ? "1" : undefined} aria-label={`选择：${headline.title}`} /></td>}
+              <td class="status-col"><span class:list={["tag", `status-${change.status}`]}>{CHANGE_STATUS_LABELS[change.status] ?? change.status}</span></td>
+              <td class="headline">
+                <a href={`/admin/changes/${change.id}`}><small class="op">{CHANGE_OPERATION_LABELS[change.operation] ?? change.operation}</small>{headline.title}</a>
+                {headline.date && <small>{headline.date}</small>}
+                <small class="mobile-meta">{CHANGE_STATUS_LABELS[change.status] ?? change.status} · {change.created_by} · {formatTimestamp(change.created_at)}</small>
+                {(stale || siblings > 0) && <span class="flags">
+                  {stale && <span class="flag warn" title="活动在提案创建后已被修改">已过期</span>}
+                  {siblings > 0 && <span class="flag">同一活动还有 {siblings} 条</span>}
+                </span>}
+              </td>
+              <td class="reason">{change.reason}</td>
+              <td class="meta">{change.created_by}<small>{change.created_via} · {formatTimestamp(change.created_at)}</small></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {!rows.length && <div class="empty">{status === "proposed" ? "没有待处理的提案。" : "没有提案。"}</div>}
+    </div>
+  </form>
 </SiteLayout>
-<style>.page-title{font-size:var(--heading-1-size);margin-bottom:2rem}.filters{display:flex;gap:.4rem;margin-bottom:1rem}.filters a{padding:.5rem .8rem;border:1px solid var(--line);border-radius:999px;text-decoration:none;color:var(--muted);font-size:.8rem}.filters a.active{color:var(--accent);border-color:rgba(var(--accent-rgb),.4)}td small{display:block;color:var(--muted)}</style>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>("[data-batch-form]");
+  const checks = () => [...(form?.querySelectorAll<HTMLInputElement>("[data-row-check]") ?? [])];
+  const selectAll = form?.querySelector<HTMLInputElement>("[data-select-all]");
+  const submit = form?.querySelector<HTMLButtonElement>("[data-batch-submit]");
+  const label = form?.querySelector<HTMLElement>("[data-selected-label]");
+  const sync = () => {
+    const all = checks();
+    const selected = all.filter((check) => check.checked).length;
+    if (submit) submit.disabled = selected === 0;
+    if (label) label.textContent = selected ? `已选 ${selected} 条` : "选择提案";
+    if (selectAll) {
+      selectAll.checked = selected > 0 && selected === all.length;
+      selectAll.indeterminate = selected > 0 && selected < all.length;
+    }
+    for (const check of all) check.closest("tr")?.classList.toggle("selected", check.checked);
+  };
+  form?.addEventListener("change", (event) => {
+    if (event.target === selectAll) for (const check of checks()) check.checked = Boolean(selectAll?.checked);
+    sync();
+  });
+  form?.querySelector("[data-select-stale]")?.addEventListener("click", () => {
+    for (const check of checks()) check.checked = check.dataset.stale === "1";
+    sync();
+  });
+  form?.addEventListener("submit", (event) => {
+    const selected = checks().filter((check) => check.checked).length;
+    if (!selected || !confirm(`丢弃 ${selected} 条提案？丢弃后不能恢复为待处理。`)) event.preventDefault();
+  });
+  sync();
+</script>
+
+<style>
+  .page-title { font-size: var(--heading-1-size); margin-bottom: 1.5rem; }
+  .filters { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+  .filters a { display: inline-flex; align-items: center; gap: .45rem; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--muted); font-size: .82rem; }
+  .filters a span { min-width: 1.4rem; padding: .05rem .4rem; border-radius: 999px; background: rgba(255,255,255,.07); font: 700 .7rem/1.4 ui-monospace, monospace; text-align: center; }
+  .filters a.active { color: var(--accent); border-color: rgba(var(--accent-rgb), .4); }
+  .filters a.active span { color: #07101c; background: var(--accent); }
+  .batch-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin-bottom: .6rem; padding: .7rem 1rem; }
+  .batch-bar .check { display: inline-flex; align-items: center; gap: .55rem; margin-right: auto; color: var(--muted); font-size: .85rem; }
+  .batch-bar button.small { min-height: 2.25rem; padding: .4rem .8rem; font-size: .8rem; }
+  input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
+  .select-col { width: 2.5rem; }
+  td small { display: block; color: var(--muted); margin-top: .15rem; }
+  .headline a { display: block; font-weight: 600; }
+  .headline .op { display: block; margin: 0 0 .15rem; color: var(--accent); font: 700 .68rem/1.3 ui-monospace, monospace; letter-spacing: .04em; }
+  td.reason { max-width: 32rem; color: var(--muted); font-size: .86rem; }
+  .meta { white-space: nowrap; font-size: .82rem; }
+  .flags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
+  .flag { padding: .1rem .45rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .68rem; }
+  .flag.warn { color: #ffd39a; border-color: rgba(255, 190, 110, .45); background: rgba(255, 170, 70, .08); }
+  .tag { white-space: nowrap; }
+  .tag.status-proposed { color: var(--accent); border-color: rgba(var(--accent-rgb), .45); }
+  .tag.status-published { color: #9ee6bd; border-color: rgba(120, 220, 160, .4); }
+  .tag.status-failed { color: #ffb0b0; border-color: rgba(255, 120, 120, .45); }
+  tr.selected td { background: rgba(var(--accent-rgb), .06); }
+  .success { border-left-color: #79d9a6; color: #c9f8dc; background: rgba(78,190,127,.08); }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  .mobile-meta { display: none !important; }
+  @media (max-width: 760px) {
+    .reason, .meta, .status-col { display: none; }
+    .mobile-meta { display: block !important; }
+  }
+</style>

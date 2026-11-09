@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock("astro:middleware", () => ({ defineMiddleware: (handler: unknown) => handler }));
 vi.mock("./lib/env", () => ({ getEnv: () => mocks.env }));
+// The public response cache has its own tests; here it passes every request straight through.
+vi.mock("#public-cache", () => ({ publicResponse: (_key: string, next: () => Promise<Response>) => next() }));
 vi.mock("@frip-fan/core", async (importOriginal) => ({
   ...await importOriginal<typeof import("@frip-fan/core")>(),
   authenticateAdmin: mocks.authenticate
@@ -15,7 +17,7 @@ import { onRequest } from "./middleware";
 async function request(path = "/", init?: ResponseInit & { status?: number }) {
   const req = new Request(`https://staging.fripsi.de${path}`);
   const next = vi.fn(async () => new Response("private content", { headers: { "content-type": "text/html" }, ...init }));
-  const response = await onRequest({ request: req, url: new URL(req.url), locals: {} } as Parameters<typeof onRequest>[0], next);
+  const response = await onRequest({ request: req, url: new URL(req.url), locals: {}, cookies: { get: () => undefined } } as unknown as Parameters<typeof onRequest>[0], next);
   if (!(response instanceof Response)) throw new Error("Middleware did not return a response");
   return { response, next };
 }
@@ -87,8 +89,10 @@ describe("staging access isolation", () => {
 
   it("leaves responses that carry their own policy, an error or state uncached", async () => {
     mocks.env.APP_ENV = "production";
-    const own = await request("/healthz", { headers: { "content-type": "text/html", "cache-control": "no-store" } });
+    const own = await request("/about", { headers: { "content-type": "text/html", "cache-control": "no-store" } });
     expect(own.response.headers.get("cache-control")).toBe("no-store");
+    const health = await request("/healthz", { headers: { "content-type": "application/json", "cache-control": "no-store" } });
+    expect(health.response.headers.get("cache-control")).toBe("private, no-store");
     const missing = await request("/nope", { status: 404, headers: { "content-type": "text/html" } });
     expect(missing.response.headers.has("cache-control")).toBe(false);
     const stateful = await request("/", { headers: { "content-type": "text/html", "set-cookie": "a=1" } });

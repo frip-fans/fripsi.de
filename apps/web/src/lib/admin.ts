@@ -1,5 +1,6 @@
-import { ServiceError } from "@frip-fan/core";
+import { parseAppleMusicRef, parseYouTubeId, ServiceError } from "@frip-fan/core";
 import type {
+  TourSaveInput,
   DirectEventSaveInput,
   EventDraft,
   EventChannelInput,
@@ -93,6 +94,11 @@ function numeric(form: FormData, key: string, fallback = 0): number {
   return Number.isFinite(value) ? value : fallback;
 }
 
+/** One trimmed value per non-empty line. */
+function lines(value: string): string[] {
+  return value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
 function all(form: FormData, key: string): string[] {
   return form.getAll(key).map((value) => String(value).trim());
 }
@@ -105,6 +111,12 @@ export function readDirectEventSave(form: FormData): DirectEventSaveInput {
     published: form.has("published"),
     idempotency_key: String(form.get("idempotency_key") ?? ""),
     event: readEventForm(form),
+    // Only the admin form sends display fields; an empty value clears them.
+    display: form.has("display_field") ? {
+      alias: optional(form, "alias"),
+      tour_id: optional(form, "tour_id"),
+      tour_stop: optional(form, "tour_stop"),
+    } : undefined,
   };
 }
 
@@ -114,6 +126,12 @@ export function readReleaseSave(form: FormData): ReleaseSaveInput {
   const numbers = all(form, "track_number");
   const titles = all(form, "track_title");
   const notes = all(form, "track_notes");
+  const appleTracks = all(form, "track_apple_music");
+  const youtubeTracks = all(form, "track_youtube");
+  // The editor posts the streaming fields only when it renders them; absent fields keep stored ids.
+  const hasStreaming = form.has("apple_music_album");
+  const album = parseStreamingField(optional(form, "apple_music_album"), (value) => parseAppleMusicRef(value, "album")?.albumId, "Apple Music 专辑");
+  const albumRef = parseAppleMusicRef(optional(form, "apple_music_album"), "album");
   return {
     id: optional(form, "id") ?? undefined,
     expected_updated_at: optional(form, "expected_updated_at") ?? undefined,
@@ -128,6 +146,8 @@ export function readReleaseSave(form: FormData): ReleaseSaveInput {
     edition: optional(form, "edition"),
     notes: optional(form, "notes"),
     published: form.has("published"),
+    // Older editors without the field keep the stored aliases.
+    ...(form.has("aliases") ? { aliases: lines(String(form.get("aliases"))) } : {}),
     sources: parseSources(String(form.get("sources") ?? "")),
     tracks: versions.map((song_version_id, index) => ({
       song_version_id,
@@ -135,8 +155,22 @@ export function readReleaseSave(form: FormData): ReleaseSaveInput {
       track_number: Number(numbers[index] ?? index + 1),
       display_title: titles[index] ?? "",
       notes: notes[index] || null,
+      ...(hasStreaming ? {
+        apple_music_track_id: parseStreamingField(appleTracks[index], (value) => parseAppleMusicRef(value, "track")?.trackId, `第 ${index + 1} 行 Apple Music 曲目`),
+        youtube_video_id: parseStreamingField(youtubeTracks[index], parseYouTubeId, `第 ${index + 1} 行 YouTube`),
+      } : {}),
     })),
+    ...(hasStreaming ? { apple_music_album_id: album, apple_music_storefront: albumRef?.storefront ?? null } : {}),
   };
+}
+
+/** Empty clears the id; anything else must parse, so a mistyped link is reported instead of silently dropped. */
+function parseStreamingField(value: string | null | undefined, parse: (value: string) => string | null | undefined, label: string): string | null {
+  const input = value?.trim();
+  if (!input) return null;
+  const id = parse(input);
+  if (!id) throw new ServiceError("invalid_streaming_id", `${label}：无法识别的链接或 ID`, 400);
+  return id;
 }
 
 export function readSongSave(form: FormData): SongSaveInput {
@@ -149,10 +183,7 @@ export function readSongSave(form: FormData): SongSaveInput {
   const versionNotes = all(form, "version_notes");
   const versionPublished = all(form, "version_published");
   const versionSources = all(form, "version_sources");
-  const aliases = String(form.get("aliases") ?? "")
-    .split(/\r?\n/)
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const aliases = lines(String(form.get("aliases") ?? ""));
   return {
     id: optional(form, "id") ?? undefined,
     expected_updated_at: optional(form, "expected_updated_at") ?? undefined,
@@ -193,7 +224,7 @@ export function readSetlistSave(form: FormData): SetlistSaveInput {
     idempotency_key: String(form.get("idempotency_key") ?? ""),
     event_id: String(form.get("event_id") ?? ""),
     performance_label: String(form.get("performance_label") ?? ""),
-    title: optional(form, "title"),
+    title: form.has("title") ? optional(form, "title") : undefined,
     completeness: String(form.get("completeness") ?? "unknown") as SetlistSaveInput["completeness"],
     confidence: String(form.get("confidence") ?? "unverified") as SetlistSaveInput["confidence"],
     notes: optional(form, "notes"),
@@ -233,4 +264,16 @@ export function htmlError(error: unknown, back = "/admin"): Response {
 function readSongPhases(form: FormData): Array<1 | 2 | 3> | undefined {
   if (!form.has("phase_field")) return undefined;
   return [...new Set(form.getAll("phase").map(Number))].filter((phase): phase is 1 | 2 | 3 => phase === 1 || phase === 2 || phase === 3).sort();
+}
+
+export function readTourSave(form: FormData): TourSaveInput {
+  return {
+    id: optional(form, "id") ?? undefined,
+    expected_updated_at: optional(form, "expected_updated_at") ?? undefined,
+    idempotency_key: String(form.get("idempotency_key") ?? ""),
+    slug: optional(form, "slug") ?? undefined,
+    name: String(form.get("name") ?? ""),
+    notes: optional(form, "notes"),
+    published: form.has("published"),
+  };
 }

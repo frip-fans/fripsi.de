@@ -1,0 +1,24 @@
+---
+import type { TourDetail } from "@frip-fan/core";
+
+interface Props { tour?: TourDetail; canWrite: boolean }
+const { tour, canWrite } = Astro.props;
+---
+<form class="panel tour-form" method="post" action="/api/admin/tours/save">
+  {tour && <input type="hidden" name="id" value={tour.id} />}
+  {tour && <input type="hidden" name="expected_updated_at" value={tour.updated_at} />}
+  <input type="hidden" name="idempotency_key" value={`admin-tour-${tour?.id ?? "new"}-${crypto.randomUUID()}`} />
+  <div class="form-grid">
+    <label class="wide">巡演名称 *<input name="name" required maxlength="240" value={tour?.name ?? ""} placeholder="例如 Liberation Protocol；显示为「巡演名称 · 场次」" /></label>
+    <label class="wide">Slug<input name="slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={tour?.slug ?? ""} placeholder="留空自动生成" /></label>
+    <label class="wide">说明<textarea name="notes" maxlength="2000">{tour?.notes ?? ""}</textarea></label>
+    <label class="publish-check wide"><input type="checkbox" name="published" checked={tour?.published ?? true} />公开（未公开的巡演不参与显示名）</label>
+  </div>
+  <div class="form-actions"><button type="submit" disabled={!canWrite}>{tour ? "保存巡演" : "创建巡演"}</button></div>
+</form>
+<style>
+  .tour-form { display: grid; gap: 1.2rem; }
+  .publish-check { display: flex; align-items: center; gap: .55rem; }
+  .publish-check input { width: auto; }
+  .form-actions { display: flex; justify-content: flex-end; }
+</style>

@@ -24,7 +24,7 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
       {event.classification && <span class="tag">{event.classification}</span>}
       {updateLabel && <span class="tag update">{updateLabel}</span>}
     </div>
-    <h3><a href={eventDetailHref(event.slug, Astro.url, locale)} data-astro-prefetch="tap">{event.title}</a></h3>
+    <h3><a href={eventDetailHref(event.slug, Astro.url, locale)} data-astro-prefetch="tap" title={event.display_title && event.display_title !== event.title ? event.title : undefined}>{event.display_title ?? event.title}</a></h3>
     <div class="event-details">
       <div class="event-detail-text">
         <p class="event-time"><span class="event-day">{formatDate(event.start_date, event.end_date, locale)} · </span>{formatTime(event, locale)}</p>

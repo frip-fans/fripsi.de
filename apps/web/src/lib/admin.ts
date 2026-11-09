@@ -1,5 +1,6 @@
 import { parseAppleMusicRef, parseYouTubeId, ServiceError } from "@frip-fan/core";
 import type {
+  TourSaveInput,
   DirectEventSaveInput,
   EventDraft,
   EventChannelInput,
@@ -105,6 +106,12 @@ export function readDirectEventSave(form: FormData): DirectEventSaveInput {
     published: form.has("published"),
     idempotency_key: String(form.get("idempotency_key") ?? ""),
     event: readEventForm(form),
+    // Only the admin form sends display fields; an empty value clears them.
+    display: form.has("display_field") ? {
+      alias: optional(form, "alias"),
+      tour_id: optional(form, "tour_id"),
+      tour_stop: optional(form, "tour_stop"),
+    } : undefined,
   };
 }
 
@@ -213,7 +220,7 @@ export function readSetlistSave(form: FormData): SetlistSaveInput {
     idempotency_key: String(form.get("idempotency_key") ?? ""),
     event_id: String(form.get("event_id") ?? ""),
     performance_label: String(form.get("performance_label") ?? ""),
-    title: optional(form, "title"),
+    title: form.has("title") ? optional(form, "title") : undefined,
     completeness: String(form.get("completeness") ?? "unknown") as SetlistSaveInput["completeness"],
     confidence: String(form.get("confidence") ?? "unverified") as SetlistSaveInput["confidence"],
     notes: optional(form, "notes"),
@@ -253,4 +260,16 @@ export function htmlError(error: unknown, back = "/admin"): Response {
 function readSongPhases(form: FormData): Array<1 | 2 | 3> | undefined {
   if (!form.has("phase_field")) return undefined;
   return [...new Set(form.getAll("phase").map(Number))].filter((phase): phase is 1 | 2 | 3 => phase === 1 || phase === 2 || phase === 3).sort();
+}
+
+export function readTourSave(form: FormData): TourSaveInput {
+  return {
+    id: optional(form, "id") ?? undefined,
+    expected_updated_at: optional(form, "expected_updated_at") ?? undefined,
+    idempotency_key: String(form.get("idempotency_key") ?? ""),
+    slug: optional(form, "slug") ?? undefined,
+    name: String(form.get("name") ?? ""),
+    notes: optional(form, "notes"),
+    published: form.has("published"),
+  };
 }

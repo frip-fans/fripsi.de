@@ -67,6 +67,7 @@ let previousSection = "";
         {showPerformanceLabel && <span>{setlist.performance_label}</span>}
       </p>
       <h1>{displayTitle}</h1>
+      {setlist.event_title !== displayTitle && <p class="setlist-official">{setlist.event_title}</p>}
       {/* Event facts live on the event page; one line here keeps the page about the songs. */}
       <p class="setlist-where">
         <span>{place}</span>
@@ -165,6 +166,7 @@ let previousSection = "";
 </SiteLayout>
 
 <style>
+  .setlist-official { margin: .35rem 0 0; color: var(--muted); font-size: .85rem; line-height: 1.55; overflow-wrap: anywhere; }
   .setlist-where { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem 1rem; margin: .75rem 0 0; color: var(--muted); font-size: .9rem; line-height: 1.5; }
   .setlist-where span { overflow-wrap: anywhere; }
   .setlist-where a { display: inline-flex; align-items: center; gap: .3rem; min-height: 44px; color: var(--text); font-weight: 650; text-decoration: none; }

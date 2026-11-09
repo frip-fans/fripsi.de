@@ -1,3 +1,4 @@
+import { eventTourStopSql } from "./event-display";
 import type {
   AdminReleaseDetail,
   AdminReleaseSummary,
@@ -137,7 +138,7 @@ const adminReleaseSelect = `
 `;
 
 const adminSetlistSelect = `
-  SELECT sl.*, e.slug AS event_slug, e.title AS event_title, e.category AS event_category,
+  SELECT sl.*, e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.category AS event_category,
     e.classification AS event_classification, e.start_date, e.start_time,
     ${adminEventVenueDisplay} AS venue, ${adminEventAreaDisplay} AS region,
     (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id = sl.id) AS entry_count

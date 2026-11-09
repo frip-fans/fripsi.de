@@ -1,0 +1,36 @@
+---
+import { listTours } from "@frip-fan/core";
+import TourAdminForm from "../../../components/TourAdminForm.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+
+const tours = await listTours(getEnv().DB);
+const canWrite = Astro.locals.actor!.scopes.includes("events:publish");
+---
+<SiteLayout title="巡演管理" admin>
+  <header class="list-head">
+    <div><p class="eyebrow">Tours</p><h1>巡演管理</h1><p class="lede">巡演把多场活动归为一组。活动的显示名优先用别名，其次是「巡演名称 · 场次」，最后是官方名称。各站在活动编辑页选择所属巡演。</p></div>
+  </header>
+  <div class="panel table-wrap">
+    <table>
+      <thead><tr><th>巡演</th><th>站数</th><th>时间</th><th>公开</th></tr></thead>
+      <tbody>
+        {tours.map((tour) => <tr>
+          <td><a href={`/admin/tours/${tour.id}`}>{tour.name}</a><small>{tour.slug}</small></td>
+          <td>{tour.stop_count}</td>
+          <td>{tour.first_date ? `${tour.first_date} – ${tour.last_date}` : "—"}</td>
+          <td><span class:list={["tag", { live: tour.published }]}>{tour.published ? "公开" : "未公开"}</span></td>
+        </tr>)}
+      </tbody>
+    </table>
+    {!tours.length && <div class="empty">还没有巡演。</div>}
+  </div>
+  <h2 class="section-title">新建巡演</h2>
+  <TourAdminForm canWrite={canWrite} />
+</SiteLayout>
+<style>
+  .list-head { margin-bottom: 2rem; }
+  .list-head h1 { font-size: var(--heading-1-size); margin-bottom: .5rem; }
+  td small { display: block; color: var(--muted); margin-top: .2rem; }
+  .section-title { margin: 2.5rem 0 1rem; }
+</style>

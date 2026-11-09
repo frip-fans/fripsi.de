@@ -145,6 +145,24 @@ location_migration_backlog    无法安全自动拆分的旧地点待办
 
 `0005_journey_coordinates.sql` 为行政区增加中心点坐标，并为场馆/行政区坐标建立部分索引。Live Journey 查询优先使用场馆坐标；缺失时回退到行政区中心点，API 会通过 `coordinate_precision` 明确返回 `venue` 或 `area`，避免把近似位置伪装成精确地址。
 
+#### 显示名与巡演（`0016_event_alias_tours.sql`）
+
+官方名称（`events.title`）常带「@地区・场馆」，这是区分同一巡演各站的关键信息，原样保留。页面另用显示名作标题，按顺序取第一个有值的：
+
+1. `events.alias`：后台设置的别名。初始化时由歌单标题复制而来，复制后清空对应的歌单标题。
+2. 「巡演名 · 场次」：活动属于已公开的 `tours` 时，场次取 `events.tour_stop`，为空时由首个场馆所在行政区生成「〇〇公演」（日本去掉都/府/県，北海道保留）。
+3. `events.title`。
+
+规则只在 `packages/core/src/event-display.ts` 的 SQL 表达式中实现，所有列出活动的查询共用。活动详情页和歌单详情页在大标题下用小字显示官方名称；结构化数据和日历订阅使用官方名称；搜索同时匹配别名、官方名称和巡演名。
+
+```text
+tours                         巡演：slug、名称、说明、是否公开
+events.tour_id / tour_stop    所属巡演与场次代号（可空）
+events.alias                  显示名（可空）
+```
+
+别名、巡演和场次只由后台活动表单维护；MCP 提案不读写这些字段，保存时原值保留。
+
 ### 3.2 `event_sources`
 
 ```sql

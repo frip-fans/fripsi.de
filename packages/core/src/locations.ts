@@ -1,3 +1,4 @@
+import { eventDisplayTitleSql } from "./event-display";
 import type { EventChannelInput, EventVenueInput, LocationMode } from "./schema";
 import type { AdministrativeArea, EventChannel, EventRecord, EventVenue, VenueRecord } from "./types";
 import { makeId } from "./utils";
@@ -151,7 +152,28 @@ export async function hydrateEventLocations<T extends LocatedEvent>(db: D1Databa
     for (const channel of channelResult.results) byId.get(channel.event_id)?.channels.push(channel);
   }
   for (const event of events) setLocationLabels(event);
+  await hydrateEventDisplay(db, events);
   return events;
+}
+
+/** Display name and published tour for each event (alias > tour · stop > title). */
+async function hydrateEventDisplay(db: D1Database, events: LocatedEvent[]): Promise<void> {
+  const byId = new Map(events.map((event) => [event.id, event]));
+  for (const ids of chunks(events.map((event) => event.id))) {
+    const result = await db.prepare(`SELECT e.id, e.alias, e.tour_id, e.tour_stop, ${eventDisplayTitleSql("e")} AS display_title,
+        t.id AS tour_ref, t.slug AS tour_slug, t.name AS tour_name
+      FROM events e LEFT JOIN tours t ON t.id = e.tour_id AND t.published = 1
+      WHERE e.id IN (${ids.map(() => "?").join(",")})`).bind(...ids)
+      .all<{ id: string; alias: string | null; tour_id: string | null; tour_stop: string | null; display_title: string; tour_ref: string | null; tour_slug: string | null; tour_name: string | null }>();
+    for (const row of result.results) {
+      const event = byId.get(row.id);
+      if (!event) continue;
+      Object.assign(event, {
+        alias: row.alias, tour_id: row.tour_id, tour_stop: row.tour_stop, display_title: row.display_title,
+        tour: row.tour_ref ? { id: row.tour_ref, slug: row.tour_slug!, name: row.tour_name! } : null,
+      });
+    }
+  }
 }
 
 export async function listAdministrativeAreas(db: D1Database): Promise<AdministrativeArea[]> {

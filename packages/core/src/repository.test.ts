@@ -46,7 +46,7 @@ describe("event repository pagination", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].sql).toContain("LIMIT ? OFFSET ?");
     expect(calls[0].bindings).toEqual([
-      "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%",
+      "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%", "%Tokyo%",
       "LIVE", 50, 100,
     ]);
   });

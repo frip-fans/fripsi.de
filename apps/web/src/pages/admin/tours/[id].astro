@@ -1,0 +1,44 @@
+---
+import { getTourById } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import TourAdminForm from "../../../components/TourAdminForm.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+
+const tour = await getTourById(getEnv().DB, Astro.params.id!);
+if (!tour) return Astro.redirect("/admin/tours", 302);
+const canWrite = Astro.locals.actor!.scopes.includes("events:publish");
+const saved = Astro.url.searchParams.get("saved") === "1";
+// Auto-derived stop names collide when a tour plays the same city twice; flag them for a manual stop label.
+const counts = new Map<string, number>();
+for (const stop of tour.stops) counts.set(stop.display_title, (counts.get(stop.display_title) ?? 0) + 1);
+---
+<SiteLayout title={tour.name} admin>
+  <a class="muted back-link" href="/admin/tours"><Icon name="arrow-left" />巡演列表</a>
+  <header class="edit-head"><div><p class="eyebrow">Tour · {tour.stop_count} 站</p><h1>{tour.name}</h1></div></header>
+  {saved && <p class="notice success">巡演已经保存并写入审计日志。</p>}
+  <TourAdminForm tour={tour} canWrite={canWrite} />
+  <section class="panel stops">
+    <h2>各站</h2>
+    <p class="muted">在活动编辑页选择「所属巡演」即可加入或移出。显示名重复时请在活动里填写「场次」。</p>
+    {tour.stops.length ? (
+      <table>
+        <thead><tr><th>日期</th><th>显示名</th><th>官方名称</th><th>歌单</th></tr></thead>
+        <tbody>
+          {tour.stops.map((stop) => <tr>
+            <td>{stop.start_date}</td>
+            <td><a href={`/admin/events/${stop.event_id}`}>{stop.display_title}</a>{(counts.get(stop.display_title) ?? 0) > 1 && <span class="tag warning">显示名重复</span>}{!stop.published && <span class="tag">未公开</span>}</td>
+            <td class="muted">{stop.event_title}</td>
+            <td>{stop.setlist_id ? <a href={`/music/lives/${stop.setlist_id}`} target="_blank">有</a> : <span class="muted">待补</span>}</td>
+          </tr>)}
+        </tbody>
+      </table>
+    ) : <p class="empty">还没有活动归入这个巡演。</p>}
+  </section>
+</SiteLayout>
+<style>
+  .stops { margin-top: 2rem; display: grid; gap: .8rem; overflow-x: auto; }
+  .stops h2 { margin: 0; }
+  .stops td .tag { margin-left: .4rem; }
+  .tag.warning { color: var(--warning); border-color: currentColor; }
+</style>

@@ -78,6 +78,15 @@ export interface EventRecord {
   published_at: string | null;
   archived_at: string | null;
   sources?: EventSource[];
+  /** Admin-set display name; see event-display.ts. */
+  alias?: string | null;
+  tour_id?: string | null;
+  /** Stop label within the tour, e.g. 東京公演; derived from the venue area when empty. */
+  tour_stop?: string | null;
+  /** Published tour the event belongs to, filled by hydrateEventLocations. */
+  tour?: { id: string; slug: string; name: string } | null;
+  /** Alias > tour · stop > title, filled by hydrateEventLocations. */
+  display_title?: string;
 }
 
 export interface ArchiveFilterEntry {
@@ -163,4 +172,4 @@ export interface ChangePreview {
 export type EventSummary = Pick<EventRecord,
   "id" | "slug" | "title" | "start_date" | "end_date" | "start_time" | "end_time" | "timezone"
   | "category" | "classification" | "location_mode" | "location_note" | "status"
-  | "venues" | "channels" | "venue_label" | "area_label" | "location_label">;
+  | "venues" | "channels" | "venue_label" | "area_label" | "location_label" | "display_title" | "tour">;

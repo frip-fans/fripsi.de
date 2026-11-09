@@ -56,7 +56,6 @@ const entries = setlist?.entries ?? [];
       />
     </div>
     <label>演出标签 *<input name="performance_label" required maxlength="160" value={setlist?.performance_label ?? "本公演"} placeholder="本公演 / fripSide出演枠" /></label>
-    <label>显示标题<input name="title" maxlength="240" value={setlist?.title ?? ""} placeholder="留空时使用活动标题" /></label>
     <label>完整度
       <select name="completeness">
         <option value="complete" selected={(setlist?.completeness ?? "complete") === "complete"}>完整歌单</option>

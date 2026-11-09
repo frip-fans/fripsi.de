@@ -28,14 +28,14 @@ function eventSearchWhere(input: SearchInput, publicOnly: boolean): { where: str
     }
   }
   if (input.query) {
-    clauses.push(`(title LIKE ? OR classification LIKE ?
+    clauses.push(`(title LIKE ? OR alias LIKE ? OR classification LIKE ?
       OR EXISTS (SELECT 1 FROM event_sources s WHERE s.event_id = events.id AND s.url LIKE ?)
       OR EXISTS (SELECT 1 FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
         LEFT JOIN administrative_areas a ON a.id = v.administrative_area_id
         WHERE ev.event_id = events.id AND (v.canonical_name LIKE ? OR a.name_local LIKE ?))
       OR EXISTS (SELECT 1 FROM event_channels ec WHERE ec.event_id = events.id AND ec.name LIKE ?))`);
     const pattern = `%${input.query.replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
-    bindings.push(pattern, pattern, pattern, pattern, pattern, pattern);
+    bindings.push(pattern, pattern, pattern, pattern, pattern, pattern, pattern);
   }
   if (input.source_url) {
     const url = new URL(input.source_url); url.search = ""; url.hash = "";

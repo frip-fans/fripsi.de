@@ -1,7 +1,10 @@
+import { eventDisplayTitleSql } from "./event-display";
 /** A past event that falls on today's calendar day, for the homepage hero. */
 export interface OnThisDayRow {
   slug: string;
   title: string;
+  /** Alias > tour · stop > title. */
+  display_title?: string;
   start_date: string;
   category: string;
   /** The published setlist for the show, when the archive has one. */
@@ -30,7 +33,7 @@ export function pickOnThisDay(rows: readonly OnThisDayRow[], today: string): OnT
 export async function getOnThisDay(db: D1Database, today: string): Promise<OnThisDay | null> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(today)) return null;
   const result = await db.prepare(`
-    SELECT e.slug, e.title, e.start_date, e.category,
+    SELECT e.slug, e.title, ${eventDisplayTitleSql("e")} AS display_title, e.start_date, e.category,
       (SELECT sl.id FROM setlists sl WHERE sl.event_id = e.id AND sl.published = 1
         ORDER BY sl.performance_label ASC LIMIT 1) AS setlist_id
     FROM events e

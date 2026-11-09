@@ -118,6 +118,10 @@ export interface SongPerformance {
   performance_label: string;
   event_slug: string;
   event_title: string;
+  /** Admin-set event display name (see event-display.ts). */
+  event_alias?: string | null;
+  /** "<tour> · <stop>" when the event belongs to a published tour. */
+  event_tour_title?: string | null;
   start_date: string;
   venue: string | null;
   region: string | null;
@@ -225,6 +229,10 @@ export interface SetlistSummary {
   notes: string | null;
   event_slug: string;
   event_title: string;
+  /** Admin-set event display name (see event-display.ts). */
+  event_alias?: string | null;
+  /** "<tour> · <stop>" when the event belongs to a published tour. */
+  event_tour_title?: string | null;
   event_category: string;
   event_classification: string | null;
   start_date: string;

@@ -52,6 +52,7 @@ const funLinks = [
 const navigationLinks: NavigationItem[] = admin ? [
   { href: "/admin", label: "概览", active: current === "/admin" },
   { href: "/admin/events", label: "活动", active: current.startsWith("/admin/events") },
+  { href: "/admin/tours", label: "巡演", active: current.startsWith("/admin/tours") },
   { href: "/admin/music/setlists", label: "音乐库", active: current.startsWith("/admin/music") },
   { href: "/admin/changes", label: "提案", active: current.startsWith("/admin/changes") },
   { href: "/admin/audit", label: "审计", active: current.startsWith("/admin/audit") },

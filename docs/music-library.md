@@ -201,6 +201,20 @@ npm run import:music -- \
 
 本篇 21 首与 Encore 2 首使用不同的 `section` 保存；`Salvation` 与 `with a smile` 的现场主唱写入 entry notes。歌单来自リスアニ！官方公演报告，`confidence = official`。范围与保守版本关联规则记录在 `data/reports/fripside-dawn-of-resonance-final-setlist-summary.json`。
 
+### infinite Resonance 4 巡演首日・东京
+
+2026-09-21 LINE CUBE SHIBUYA 的 iR4 全国巡演首日完整歌单可重复生成并导入：
+
+```bash
+npm run build:ir4-tokyo-setlist
+npm run import:music -- \
+  data/templates/music-release-tracks.csv \
+  data/normalized/fripside-ir4-tour-tokyo-setlist.csv \
+  data/normalized/fripside-ir4-tour-tokyo-setlist.sql
+```
+
+本篇 19 首与 Encore 2 首使用不同的 `section` 保存；`BLACKFOX -version 2022-` 的日替曲标注写入 entry notes。歌单来自リスアニ！官方公演报告，`confidence = official`。21 首作品均已在曲库中，脚本照抄线上的歌曲标题与 `original_artist`，导入不会改写曲库字段；`sister's noise` 沿用承载历史 Live 记录的 `sisters-noise`。范围与版本关联规则记录在 `data/reports/fripside-ir4-tour-tokyo-setlist-summary.json`。
+
 ## 5. 数据质量规则
 
 - Live 日期、地点、状态只来自 `events`，歌单不能覆盖这些事实。

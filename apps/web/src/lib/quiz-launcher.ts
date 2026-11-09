@@ -1,4 +1,5 @@
 import { mountQuiz, type QuizPayload } from "./quiz-client";
+import { setupQuizDockMotion } from "./quiz-dock";
 
 /**
  * Floating entry to the daily quiz.
@@ -12,25 +13,26 @@ import { mountQuiz, type QuizPayload } from "./quiz-client";
 let payload: QuizPayload | null = null;
 let loading: Promise<QuizPayload | null> | null = null;
 /** Set once the dock is wired, so the greeting can run the moment the board lands. */
-let greetOnArrival: (() => void) | null = null;
+let greetOnArrival: ((date: string) => void) | null = null;
 
 /** Dismissal lasts for the day it was made, so tomorrow's set shows up again. */
 const DISMISS_KEY = "frip_fan_quiz_hidden";
-/** The arrival greeting plays once per tab, not on every page within it. */
+/** The mascot waves the first time she appears each quiz day, not on every page. */
 const GREETED_KEY = "frip_fan_quiz_greeted";
 const GREETING_MS = 5200;
+const WAVE_MS = 1800;
 
-function alreadyGreeted(): boolean {
+function alreadyGreeted(date: string): boolean {
   try {
-    return window.sessionStorage.getItem(GREETED_KEY) === "1";
+    return window.localStorage.getItem(GREETED_KEY) === date;
   } catch {
     return true;
   }
 }
 
-function markGreeted(): void {
+function markGreeted(date: string): void {
   try {
-    window.sessionStorage.setItem(GREETED_KEY, "1");
+    window.localStorage.setItem(GREETED_KEY, date);
   } catch {
     /* Without storage the greeting simply plays again next time. */
   }
@@ -59,8 +61,46 @@ function loadBoard(): Promise<QuizPayload | null> {
   return loading;
 }
 
+/** The phone header button: a dot while today's set is unfinished. It is re-rendered on navigation. */
+const HEADER_BUTTON = "[data-quiz-header-launcher]";
+function syncHeaderButton(board: QuizPayload | null): void {
+  const dot = document.querySelector<HTMLElement>(`${HEADER_BUTTON} [data-quiz-header-dot]`);
+  if (!dot) return;
+  const unfinished = Boolean(board && board.total > 0 && board.questions.some((question) => question.answer === undefined));
+  dot.hidden = !unfinished;
+}
+
+/** Phones only: the header mascot invites once per quiz day, two seconds after she appears. */
+const BUBBLE_KEY = "frip_fan_quiz_bubble";
+const BUBBLE_DELAY_MS = 2000;
+const BUBBLE_VISIBLE_MS = 5000;
+let bubbleTimer: number | undefined;
+function scheduleHeaderBubble(board: QuizPayload): void {
+  if (!window.matchMedia("(max-width: 760px)").matches) return;
+  if (!board.questions.some((question) => question.answer === undefined)) return;
+  try {
+    if (window.localStorage.getItem(BUBBLE_KEY) === board.date) return;
+  } catch {
+    return;
+  }
+  window.clearTimeout(bubbleTimer);
+  bubbleTimer = window.setTimeout(() => {
+    const bubble = document.querySelector<HTMLElement>("[data-quiz-header-bubble]");
+    if (!bubble || document.querySelector<HTMLDialogElement>("[data-quiz-dialog]")?.open) return;
+    try { window.localStorage.setItem(BUBBLE_KEY, board.date); } catch { /* Storage is optional. */ }
+    bubble.hidden = false;
+    const hide = () => {
+      bubble.dataset.leaving = "true";
+      window.setTimeout(() => { bubble.hidden = true; delete bubble.dataset.leaving; }, 220);
+    };
+    bubbleTimer = window.setTimeout(hide, BUBBLE_VISIBLE_MS);
+    bubble.addEventListener("click", () => { window.clearTimeout(bubbleTimer); bubble.hidden = true; }, { once: true });
+  }, BUBBLE_DELAY_MS);
+}
+
 /** Dots while the set is open; the score and a tick once it is finished. */
 function renderDots(bar: HTMLElement, board: QuizPayload): void {
+  syncHeaderButton(board);
   const dots = bar.querySelector<HTMLElement>("[data-quiz-dots]");
   const score = bar.querySelector<HTMLElement>("[data-quiz-launcher-score]");
   if (!dots || !score) return;
@@ -86,7 +126,7 @@ function renderDots(bar: HTMLElement, board: QuizPayload): void {
 }
 
 /** Nav entries open the same dialog; the /quiz page stays a real, shareable URL. */
-const NAV_LINK = '[data-main-nav] a[href="/quiz"], [data-mobile-menu] a[href="/quiz"]';
+const NAV_LINK = `[data-main-nav] a[href="/quiz"], [data-mobile-menu] a[href="/quiz"], ${HEADER_BUTTON}`;
 let navBound = false;
 
 /** A modified click still belongs to the browser: new tab, new window, download. */
@@ -125,6 +165,12 @@ export function setupQuizLauncher(): void {
 
   // An arrow const keeps the null checks above narrowed; a hoisted declaration would not.
   const openDialog = async (): Promise<void> => {
+    // The header bubble has done its job once the quiz opens, however it was opened.
+    const bubble = document.querySelector<HTMLElement>("[data-quiz-header-bubble]");
+    if (bubble && !bubble.hidden) {
+      window.clearTimeout(bubbleTimer);
+      bubble.hidden = true;
+    }
     // showModal gives the focus trap, the backdrop and Escape handling for free.
     dialog.showModal();
     const loaded = payload ?? (await loadBoard());
@@ -149,10 +195,19 @@ export function setupQuizLauncher(): void {
   if (bar.dataset.quizLauncherReady !== "true") {
     bar.dataset.quizLauncherReady = "true";
 
-    greetOnArrival = () => {
-      if (alreadyGreeted() || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-      markGreeted();
+    setupQuizDockMotion(bar);
+
+    greetOnArrival = (date: string) => {
+      if (bar.dataset.tucked === "true" || alreadyGreeted(date) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      markGreeted(date);
       bar.dataset.fresh = "true";
+      bar.dataset.greeting = "true";
+      const header = document.querySelector<HTMLElement>(HEADER_BUTTON);
+      if (header) header.dataset.greeting = "true";
+      window.setTimeout(() => {
+        delete bar.dataset.greeting;
+        if (header) delete header.dataset.greeting;
+      }, WAVE_MS);
       window.setTimeout(() => {
         delete bar.dataset.fresh;
       }, GREETING_MS);
@@ -214,7 +269,8 @@ export function setupQuizLauncher(): void {
       renderDots(bar, loaded);
       setTucked(dismissedFor(loaded.date));
       bar.hidden = false;
-      greetOnArrival?.();
+      greetOnArrival?.(loaded.date);
+      scheduleHeaderBubble(loaded);
     });
   });
 }

@@ -18,6 +18,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import OfficialSiteGate from "../components/OfficialSiteGate.astro";
 import QuizBoard from "../components/QuizBoard.astro";
 import QuizInvite from "../components/QuizInvite.astro";
+import QuizChibi from "../components/QuizChibi.astro";
 import "../styles/quiz.css";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
 import moonBackground from "../../../../images/A_New_View_of_the_Moon-no-earth.webp?url";
@@ -152,6 +153,15 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
       </nav>
       <span class="menu-loading-status" data-menu-loading-status role="status" aria-live="polite"></span>
       </div>
+      {showQuizLauncher && (
+        <span class="quiz-header-slot">
+          <button class="quiz-header-button" type="button" data-quiz-header-launcher aria-haspopup="dialog" aria-label={t(locale, "quiz.invite")} title={t(locale, "quiz.invite")}>
+            <svg viewBox="80 12 82 82" aria-hidden="true" focusable="false"><QuizChibi /></svg>
+            <span class="quiz-header-dot" data-quiz-header-dot hidden></span>
+          </button>
+          <button class="quiz-header-bubble" type="button" data-quiz-header-launcher data-quiz-header-bubble hidden>{t(locale, "quiz.invite")}<span aria-hidden="true">→</span></button>
+        </span>
+      )}
       <button class="mobile-menu-trigger" type="button" data-menu-open aria-label={t(locale, "nav.openMenu")} aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
         <span>{t(locale, "nav.menu")}</span>
@@ -581,7 +591,8 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
   .error { border-left-color: var(--danger); color: #ffd9df; background: rgba(255,132,152,.08); }
   code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   pre { overflow: auto; color: #cde5f5; background: #050c15; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }
-  .mobile-menu-trigger { display: none; min-width: 48px; min-height: 48px; padding: .6rem .75rem; color: var(--text); background: rgba(255,255,255,.055); border: 1px solid var(--line); font-size: .85rem; }
+  /* Same light outline as the header quiz mascot beside it. */
+  .mobile-menu-trigger { display: none; min-width: 48px; min-height: 48px; padding: .6rem .75rem; color: var(--text); background: rgba(255,255,255,.07); border: 1.5px solid rgba(239,248,255,.6); box-shadow: 0 0 0 3px rgba(239,248,255,.06); font-size: .85rem; }
   .mobile-menu { position: fixed; z-index: 1200; inset: 0; width: 100%; max-width: none; height: 100%; height: 100dvh; max-height: none; margin: 0; padding: max(1rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); color: var(--text); background: radial-gradient(ellipse at top right, rgba(var(--accent-rgb), .09), transparent 50%), #07101c; border: 0; overflow-y: auto; overscroll-behavior: contain; }
   .mobile-menu[hidden] { display: none !important; }
   .mobile-menu:not([hidden]) { display: flex; flex-direction: column; }

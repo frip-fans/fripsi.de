@@ -444,6 +444,23 @@ export async function getSetlistHighlights(db: D1Database, options: SetlistHighl
   return computeSetlistHighlights(result.results ?? [], options);
 }
 
+/**
+ * The public setlists immediately before and after one, in the same order as the Live list
+ * (date, start time, performance label, id), for "previous / next Live" navigation.
+ */
+export async function getAdjacentSetlists(db: D1Database, setlist: Pick<SetlistSummary, "id" | "start_date" | "start_time" | "performance_label">): Promise<{ previous: SetlistSummary | null; next: SetlistSummary | null }> {
+  const key = "(e.start_date, COALESCE(e.start_time, ''), sl.performance_label, sl.id)";
+  const visible = "sl.published = 1 AND e.published = 1 AND e.archived_at IS NULL";
+  const bindings = [setlist.start_date, setlist.start_time ?? "", setlist.performance_label, setlist.id];
+  const [previous, next] = await Promise.all([
+    db.prepare(`${setlistSummarySelect} WHERE ${visible} AND ${key} < (?, ?, ?, ?)
+      ORDER BY e.start_date DESC, COALESCE(e.start_time, '') DESC, sl.performance_label DESC, sl.id DESC LIMIT 1`).bind(...bindings).first<SetlistSummary>(),
+    db.prepare(`${setlistSummarySelect} WHERE ${visible} AND ${key} > (?, ?, ?, ?)
+      ORDER BY e.start_date ASC, COALESCE(e.start_time, '') ASC, sl.performance_label ASC, sl.id ASC LIMIT 1`).bind(...bindings).first<SetlistSummary>(),
+  ]);
+  return { previous: previous ?? null, next: next ?? null };
+}
+
 export async function getSetlistById(db: D1Database, id: string): Promise<SetlistDetail | null> {
   const setlist = await db.prepare(`${setlistSummarySelect}
     WHERE sl.id = ? AND sl.published = 1 AND e.published = 1 AND e.archived_at IS NULL

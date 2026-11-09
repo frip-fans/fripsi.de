@@ -57,6 +57,19 @@ describe("staging access isolation", () => {
     expect(mocks.authenticate).not.toHaveBeenCalled();
     expect(response.headers.has("x-robots-tag")).toBe(false);
   });
+  it.each(["/about", "/calendar", "/music/lives"])("allows Giscus after client navigation from %s", async path => {
+    mocks.env.APP_ENV = "production";
+    const { response } = await request(path);
+    const policy = response.headers.get("content-security-policy")!;
+    expect(policy).toMatch(/script-src [^;]*https:\/\/giscus\.app/);
+    expect(policy).toMatch(/frame-src [^;]*https:\/\/giscus\.app/);
+  });
+  it("keeps Giscus disabled for admin documents", async () => {
+    mocks.env.APP_ENV = "production";
+    mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
+    const { response } = await request("/admin");
+    expect(response.headers.get("content-security-policy")).not.toContain("https://giscus.app");
+  });
   it("keeps list view caching private after moving the archive under calendar", async () => {
     mocks.env.APP_ENV = "production";
     const { response } = await request("/calendar?view=list&year=2025");

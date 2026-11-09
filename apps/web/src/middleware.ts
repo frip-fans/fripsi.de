@@ -39,7 +39,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (!privateRoute) {
     const cacheControl = path === "/archive" || (path === "/calendar" && context.url.searchParams.get("view") === "list") ? "private, max-age=60, stale-while-revalidate=30" : undefined;
     const locale = getLocale(context.request);
-    const render = async () => secure(await next(), false, cacheControl, locale, path === "/" || path === "/discuss", path === "/journey");
+    // A client-routed visit to the home discussion retains the initial document CSP.
+    // Every public entry page must allow its Giscus script and iframe.
+    const render = async () => secure(await next(), false, cacheControl, locale, true, path === "/journey");
     const eligible = env.FRIP_RUNTIME === "node" && context.request.method === "GET"
       && !context.request.headers.has("authorization") && context.url.href.length <= 2048
       && !path.startsWith("/api/admin") && !path.startsWith("/media/");
@@ -56,7 +58,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         throw new ServiceError("forbidden", "没有测试环境访问权限", 403);
       }
     }
-    return secure(await next(), true, undefined, getLocale(context.request), !staging && (path === "/" || path === "/discuss"), path === "/journey", path.startsWith("/admin/music/releases"));
+    return secure(await next(), true, undefined, getLocale(context.request), false, path === "/journey", path.startsWith("/admin/music/releases"));
   } catch (error) {
     const status = error instanceof ServiceError ? error.status : 401;
     const message = error instanceof Error ? error.message : "未授权";

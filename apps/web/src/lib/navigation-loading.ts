@@ -57,7 +57,7 @@ for (const name of ["astro:before-swap", "astro:page-load", "pageshow", "pagehid
   (name.startsWith("astro:") ? document : window).addEventListener(name, () => clearLoading?.());
 }
 
-// Full-document public destinations (Journey, tools, discussion) get the same
+// Full-document public destinations (Journey and tools) get the same
 // feedback without changing their native navigation or adding a second router.
 document.addEventListener("click", event => {
   if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || !(event.target instanceof Element)) return;

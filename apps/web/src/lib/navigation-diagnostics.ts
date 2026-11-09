@@ -15,7 +15,7 @@ export function resourceSample(entry: PerformanceResourceTiming, origin: string)
   };
 }
 
-export function startNavigationDiagnostics(release: string) {
+export function startNavigationDiagnostics(release: string, options: { disableLoadingFeedback?: boolean } = {}) {
   const samples: Sample[] = [];
   const lifetime = new AbortController();
   const { signal } = lifetime;
@@ -43,7 +43,12 @@ export function startNavigationDiagnostics(release: string) {
   // The site's textarea styles must not override the hidden fallback field.
   output.style.display = "none";
   for (const child of [summary, copy, stop, output]) panel.appendChild(child);
+  const applyFeedbackControl = () => {
+    if (options.disableLoadingFeedback) document.documentElement.dataset.navigationFeedback = "off";
+    else delete document.documentElement.dataset.navigationFeedback;
+  };
   const mount = () => {
+    applyFeedbackControl();
     const locale = document.documentElement.lang as keyof typeof labels;
     const text = labels[locale] ?? labels.en;
     summary.textContent = text[0]; copy.textContent = text[1]; stop.textContent = text[2];
@@ -51,6 +56,7 @@ export function startNavigationDiagnostics(release: string) {
     if (!panel.isConnected) document.body.appendChild(panel);
   };
   const report = () => JSON.stringify({
+    loadingFeedback: options.disableLoadingFeedback ? "off" : "static-skeleton",
     release, userAgent: navigator.userAgent, path: location.pathname,
     nativeViewTransitions: typeof document.startViewTransition === "function",
     clientRouter: !!document.querySelector('meta[name="astro-view-transitions-enabled"]'),
@@ -110,8 +116,8 @@ export function startNavigationDiagnostics(release: string) {
     previousTimer = now;
   }, 100);
   stop.addEventListener("click", () => {
-    try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* storage is optional */ }
-    lifetime.abort(); restorePhaseTimings(); clearInterval(heartbeat); observer.disconnect(); cancelAnimationFrame(frame); panel.remove();
+    try { sessionStorage.removeItem(STORAGE_KEY); sessionStorage.removeItem("frip:navigation-diagnostics-feedback"); } catch { /* storage is optional */ }
+    lifetime.abort(); delete document.documentElement.dataset.navigationFeedback; restorePhaseTimings(); clearInterval(heartbeat); observer.disconnect(); cancelAnimationFrame(frame); panel.remove();
   }, { signal });
   mount(); add("diagnostics-start", { path: location.pathname });
 }

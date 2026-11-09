@@ -5,6 +5,8 @@ let clearLoading: (() => void) | undefined;
 
 function showLoading(target: URL, signal: AbortSignal, failOpenAfter?: number) {
   clearLoading?.();
+  // Explicit non-production diagnostic control; Astro still owns navigation.
+  if (document.documentElement?.dataset.navigationFeedback === "off") return;
   const overlay = document.querySelector<HTMLElement>("[data-navigation-loading]");
   const main = document.querySelector<HTMLElement>("main");
   if (!overlay || !main || signal.aborted) return;

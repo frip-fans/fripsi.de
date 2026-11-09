@@ -4,15 +4,21 @@ import { getEnv } from "../lib/env";
 <span hidden data-navigation-diagnostics-release={getEnv().FRIP_RELEASE_SHA || "development"}></span>
 <script>
   const key = "frip:navigation-diagnostics";
+  const feedbackKey = "frip:navigation-diagnostics-feedback";
+  const feedbackParameter = new URL(location.href).searchParams.get("navLoading");
+  let disableLoadingFeedback = feedbackParameter === "off";
   const parameter = new URL(location.href).searchParams.get("navDebug");
   let enabled = parameter === "1";
   try {
-    if (parameter === "0") sessionStorage.removeItem(key);
+    if (parameter === "0") { sessionStorage.removeItem(key); sessionStorage.removeItem(feedbackKey); }
     else if (enabled) sessionStorage.setItem(key, "1");
     else enabled = sessionStorage.getItem(key) === "1";
+    if (feedbackParameter === "off") sessionStorage.setItem(feedbackKey, "off");
+    else if (feedbackParameter === "on") sessionStorage.removeItem(feedbackKey);
+    disableLoadingFeedback = sessionStorage.getItem(feedbackKey) === "off";
   } catch { /* The explicit query flag still works without storage. */ }
   if (enabled) {
     const release = document.querySelector<HTMLElement>("[data-navigation-diagnostics-release]")?.dataset.navigationDiagnosticsRelease ?? "unknown";
-    void import("../lib/navigation-diagnostics").then(module => module.startNavigationDiagnostics(release));
+    void import("../lib/navigation-diagnostics").then(module => module.startNavigationDiagnostics(release, { disableLoadingFeedback }));
   }
 </script>

@@ -64,6 +64,35 @@ function renderDots(bar: HTMLElement, board: QuizPayload): void {
   }));
 }
 
+/** Nav entries open the same dialog; the /quiz page stays a real, shareable URL. */
+const NAV_LINK = '[data-main-nav] a[href="/quiz"], [data-mobile-menu] a[href="/quiz"]';
+let navBound = false;
+
+/** A modified click still belongs to the browser: new tab, new window, download. */
+function plainClick(event: MouseEvent): boolean {
+  return !event.defaultPrevented && event.button === 0
+    && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
+}
+
+/**
+ * The mobile menu marks the rest of the page inert while it is open, so the dialog has
+ * to wait for the menu to finish closing or it opens behind an inert subtree.
+ */
+function afterMenuCloses(run: () => void): void {
+  const menu = document.querySelector<HTMLElement>("[data-mobile-menu]");
+  if (!menu || menu.hidden) {
+    run();
+    return;
+  }
+  document.querySelector<HTMLButtonElement>("[data-menu-close]")?.click();
+  const deadline = performance.now() + 600;
+  const poll = () => {
+    if (menu.hidden || performance.now() > deadline) run();
+    else requestAnimationFrame(poll);
+  };
+  requestAnimationFrame(poll);
+}
+
 export function setupQuizLauncher(): void {
   const bar = document.querySelector<HTMLElement>("[data-quiz-launcher-bar]");
   const launcher = bar?.querySelector<HTMLElement>("[data-quiz-launcher]");
@@ -73,6 +102,20 @@ export function setupQuizLauncher(): void {
   const board = dialog.querySelector<HTMLElement>("[data-quiz]");
   if (!board) return;
 
+  // An arrow const keeps the null checks above narrowed; a hoisted declaration would not.
+  const openDialog = async (): Promise<void> => {
+    // showModal gives the focus trap, the backdrop and Escape handling for free.
+    dialog.showModal();
+    const loaded = payload ?? (await loadBoard());
+    if (!loaded || loaded.total === 0) {
+      dialog.close();
+      return;
+    }
+    payload = loaded;
+    mountQuiz(board, payload, JSON.parse(board.dataset.labels ?? "{}"));
+    renderDots(bar, payload);
+  };
+
   if (bar.dataset.quizLauncherReady !== "true") {
     bar.dataset.quizLauncherReady = "true";
 
@@ -81,18 +124,7 @@ export function setupQuizLauncher(): void {
       if (payload) rememberDismissal(payload.date);
     });
 
-    launcher.addEventListener("click", async () => {
-      // showModal gives the focus trap, the backdrop and Escape handling for free.
-      dialog.showModal();
-      const loaded = payload ?? (await loadBoard());
-      if (!loaded) {
-        dialog.close();
-        return;
-      }
-      payload = loaded;
-      mountQuiz(board, payload, JSON.parse(board.dataset.labels ?? "{}"));
-      renderDots(bar, payload);
-    });
+    launcher.addEventListener("click", () => void openDialog());
 
     dialog.querySelector<HTMLButtonElement>("[data-quiz-close]")?.addEventListener("click", () => dialog.close());
 
@@ -105,6 +137,21 @@ export function setupQuizLauncher(): void {
     dialog.addEventListener("close", () => {
       if (payload) renderDots(bar, payload);
     });
+  }
+
+  if (!navBound) {
+    navBound = true;
+    // Capture phase: the view-transition router also claims link clicks on document,
+    // and it would navigate before a bubbling listener ever saw the event.
+    document.addEventListener("click", (event) => {
+      const link = (event.target as Element | null)?.closest<HTMLAnchorElement>(NAV_LINK);
+      if (!link || !plainClick(event)) return;
+      // Without a dialog on this page the link navigates to /quiz as usual.
+      if (!document.querySelector("[data-quiz-dialog]")) return;
+      event.preventDefault();
+      event.stopPropagation();
+      afterMenuCloses(() => void openDialog());
+    }, { capture: true });
   }
 
   const idle = window.requestIdleCallback ?? ((callback: () => void) => window.setTimeout(callback, 1500));

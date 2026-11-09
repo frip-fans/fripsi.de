@@ -77,14 +77,19 @@ describe("bounded content entry motion", () => {
     playResultsEntry(element(header)); expect(header.animate).not.toHaveBeenCalled();
   });
 
-  it("does not animate or wrap the loader while the old page is awaiting data", async () => {
+  it("keeps loading unchanged and selects one layout fade for full page changes", async () => {
     const { setupPageEntryTransitions } = await import("./page-entry-navigation");
     setupPageEntryTransitions();
     doc.dispatchEvent(new Event("astro:page-load")); expect(header.animate).not.toHaveBeenCalled();
     const loader = vi.fn(async () => {}); const controller = new AbortController();
     const event = Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal: controller.signal, loader });
     doc.dispatchEvent(event); expect(event.loader).toBe(loader); expect(header.animate).not.toHaveBeenCalled();
-    doc.dispatchEvent(new Event("astro:after-swap")); expect(header.animate).toHaveBeenCalledOnce();
+    const oldRoot = { toggleAttribute: vi.fn() }, newRoot = { toggleAttribute: vi.fn() };
+    Object.assign(doc, { documentElement: oldRoot });
+    doc.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument: { documentElement: newRoot } }));
+    expect(oldRoot.toggleAttribute).toHaveBeenCalledWith("data-page-transition", true);
+    expect(newRoot.toggleAttribute).toHaveBeenCalledWith("data-page-transition", true);
+    doc.dispatchEvent(new Event("astro:after-swap")); expect(header.animate).not.toHaveBeenCalled();
     expect(header.hidden).toBe(false); expect(header.inert).toBe(false);
   });
 

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 const script = readFileSync(new URL("../scripts/router-bootstrap.js", import.meta.url), "utf8");
 
 describe("router bootstrap during version upgrades", () => {
-  it("selects swap before the router initializes in a new document", () => {
+  it("selects the CSS fallback before the router initializes in a new document", () => {
     const document = { readyState: "loading", startViewTransition: vi.fn() };
     const reload = vi.fn();
     runInNewContext(script, { document, location: { reload } });

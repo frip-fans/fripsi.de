@@ -227,7 +227,7 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 
 ## 11. 内容入场动效
 
-`content-entry.ts` 仅对已到达的新内容播放一次 160ms 的 opacity .86→1 与 translateY(3px)→0 入场，最多同时两个小范围容器；不等待 Animation.finished、不写 resting inline styles、不改 hidden/inert/visibility，不读取页面几何。结束或取消后清除 effect，下一次导航、页面隐藏或 reduced-motion 启用时取消，保持交互和导航不受动画约束。
+`content-entry.ts` 仅对已到达的新内容播放一次 240ms ease-out 的 opacity .35→1 与 translateY(3px)→0 入场，最多同时两个小范围容器；不等待 Animation.finished、不写 resting inline styles、不改 hidden/inert/visibility，不读取页面几何。结束或取消后清除 effect，下一次导航、页面隐藏或 reduced-motion 启用时取消，保持交互和导航不受动画约束。
 
 `page-entry-navigation.ts` 在 Astro after-swap 对普通新页的显式 data-page-entry 首屏区域入场，页头、全局背景、旧页面不参与；音乐结果等 page-load 初始化后再入场，避免响应式批量刷新和临时 SSR 结果重复播放。音乐库列表之间切 Tab 只动画结果；日历同模式切月份/分类只动画可见日历网格或首个日程组，保留筛选区视觉稳定。页面内音乐/活动查询在成功替换结果后使用同一入场函数，等待期间不淡出旧结果；追加更多和大段累积列表不播放整片动画。
 

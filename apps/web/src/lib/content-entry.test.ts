@@ -45,8 +45,8 @@ describe("bounded content entry motion", () => {
     const { playContentEntry } = await import("./content-entry");
     playContentEntry(element(header));
     expect(header.animate).toHaveBeenCalledWith([
-      { opacity: .86, transform: "translateY(3px)" }, { opacity: 1, transform: "translateY(0)" },
-    ], { duration: 160, easing: "cubic-bezier(.2,.7,.2,1)", fill: "none" });
+      { opacity: .35, transform: "translateY(3px)" }, { opacity: 1, transform: "translateY(0)" },
+    ], { duration: 240, easing: "ease-out", fill: "none" });
     expect(header.hidden).toBe(false); expect(header.inert).toBe(false);
     expect(header.animations[0].finishedReads).toBe(0);
     header.animations[0].dispatchEvent(new Event("finish"));

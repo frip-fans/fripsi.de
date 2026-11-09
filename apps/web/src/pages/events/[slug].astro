@@ -14,8 +14,27 @@ if (!event) return Astro.redirect("/404", 302);
 const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
 const displayStatus = displayEventStatus(event);
 const returnLink = eventReturnLink(Astro.url, event.start_date.slice(0, 7), locale);
+
+// Search engines read this as the event itself: date, place and whether it still stands.
+const schemaStatus = displayStatus === "cancelled" ? "EventCancelled" : displayStatus === "postponed" ? "EventPostponed" : "EventScheduled";
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "Event",
+  name: event.title,
+  url: new URL(`/events/${event.slug}`, getEnv().SITE_URL || Astro.url.origin).href,
+  startDate: event.start_time ? `${event.start_date}T${event.start_time}` : event.start_date,
+  ...(event.end_date ? { endDate: event.end_date } : {}),
+  eventStatus: `https://schema.org/${schemaStatus}`,
+  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+  performer: { "@type": "MusicGroup", name: "fripSide" },
+  // location_label already carries the area, so the venue name alone keeps Place.name clean.
+  ...(event.venue_label || event.location_label
+    ? { location: { "@type": "Place", name: event.venue_label || event.location_label, ...(event.area_label ? { address: event.area_label } : {}) } }
+    : {}),
+  ...(event.remark ? { description: event.remark } : {}),
+};
 ---
-<SiteLayout title={event.title} description={`${formatDate(event.start_date, event.end_date, locale)} ${event.title}`}>
+<SiteLayout title={event.title} description={`${formatDate(event.start_date, event.end_date, locale)} ${event.title}`} structuredData={structuredData}>
   <div class="event-page">
   <BackLink href={returnLink.href} label={t(locale, returnLink.label)} eventReturn />
   <article class="event-detail">

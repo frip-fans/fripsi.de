@@ -1,9 +1,10 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { dateInTimeZone, listSetlists, searchEvents } from "@frip-fan/core";
+import { dateInTimeZone, eventUpdateWindowStart, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
+import SongSpotlight from "../components/SongSpotlight.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { displayEventStatus, statusLabel } from "../lib/format";
@@ -19,12 +20,52 @@ const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const [upcoming, recentSetlists] = await Promise.all([
+const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay] = await Promise.all([
   searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 4 }, true),
   listSetlists(db, { order: "desc", limit: 3 }),
+  // The date is the seed, so the spotlight holds for the whole day and for every visitor and language.
+  getSongSpotlight(db, today),
+  getMusicLibraryStats(db),
+  getLastOfficialSyncAt(db),
+  // The pill above the headline leads with what happened on this calendar day.
+  getOnThisDay(db, today),
 ]);
+// Claim the daily sync only while it is actually running: the line disappears once the last
+// completed run falls out of the window, rather than promising something that stopped.
+const SYNC_NOTE_DAYS = 7;
+const lastSyncDate = lastSyncAt ? dateInTimeZone(new Date(lastSyncAt)) : null;
+const showSyncNote = Boolean(lastSyncDate && Date.parse(today) - Date.parse(lastSyncDate) <= SYNC_NOTE_DAYS * 86_400_000);
+const siteUrl = env.SITE_URL || Astro.url.origin;
+const SOURCE_URL = "https://github.com/frip-fans/fripsi.de";
+// Split rather than interpolate markup, so the sentence stays one translatable string.
+const [subtitleBefore, subtitleAfter] = t(locale, "home.heroSubtitle").split("{link}");
+const subscriptionUrl = new URL("/calendar.ics", siteUrl);
+const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "fripSi.de Fan Site",
+  url: new URL("/", siteUrl).href,
+  inLanguage: locale,
+  description: t(locale, "site.description"),
+  about: { "@type": "MusicGroup", name: "fripSide" },
+};
 const next = upcoming[0];
 const moreEvents = upcoming.slice(1);
+// What actually changed recently, read from the audit log: events.updated_at also moves for bulk
+// archive imports, which would announce a 2005 show as freshly updated.
+const eventUpdates = await listEventUpdates(db, upcoming.map((event) => event.id), eventUpdateWindowStart(today));
+const updateLabels: Record<EventUpdateKind, Parameters<typeof t>[1]> = {
+  new: "home.updateNew",
+  status: "home.updateStatus",
+  time: "home.updateTime",
+  venue: "home.updateVenue",
+  details: "home.updateDetails",
+};
+const updateLabel = (eventId: string) => {
+  const update = eventUpdates.get(eventId);
+  return update ? t(locale, updateLabels[update.kind]) : null;
+};
 const daysUntilNext = next ? Math.max(0, Math.round((Date.parse(next.start_date) - Date.parse(today)) / 86_400_000)) : 0;
 const nextStatus = next ? displayEventStatus(next, today) : "scheduled";
 const nextCountdown = !next
@@ -37,15 +78,34 @@ const nextCountdown = !next
       ? t(locale, "home.countdownTomorrow")
       : t(locale, "home.countdownDays", { count: daysUntilNext });
 ---
-<SiteLayout>
-  <h1 class="mobile-home-title" translate="no">fripSide Fan Site</h1>
+<SiteLayout structuredData={structuredData}>
   <section class="hero" data-page-entry>
+    <div class="hero-copy">
+      {onThisDay && (
+        <a class="today-pill" href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)}>
+          <Icon name="archive" size=".8rem" />
+          <span class="today-pill-label">{t(locale, "home.onThisDay")}</span>
+          <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
+          <span class="today-pill-event"><span>{onThisDay.event.title}</span></span>
+          <Icon name="chevron-right" size=".7rem" />
+        </a>
+      )}
+      <h1 class="hero-title" lang="en" translate="no">
+        <span class="title-lead">This desire</span>
+        <span class="title-solid">is bound in the melody.</span>
+      </h1>
+      <p class="hero-subtitle">
+        {subtitleBefore}<a class="hero-source" href={SOURCE_URL} target="_blank" rel="external noopener noreferrer">{t(locale, "home.openSource")}</a>{subtitleAfter}
+      </p>
+    </div>
+
     <aside class="signal panel">
-      <div class="signal-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
+      <div class="panel-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
       {next ? (
         <>
           <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
           <h2>{next.title}</h2>
+          {updateLabel(next.id) && <p class="signal-update"><span class="tag update">{updateLabel(next.id)}</span></p>}
           <div class="signal-footer">
             <p>{next.location_label || t(locale, "common.locationPending")}</p>
             <a href={eventDetailHref(next.slug, Astro.url, locale)} aria-label={t(locale, "common.view", { title: next.title })}><Icon name="chevron-right" size=".85rem" /></a>
@@ -55,20 +115,12 @@ const nextCountdown = !next
         <div class="no-signal"><strong>—</strong><h2>{t(locale, "home.waiting")}</h2><p>{t(locale, "home.noUpcoming")}</p></div>
       )}
     </aside>
-    <div class="hero-intro">
-      <div class="hero-copy">
-        <p class="eyebrow" lang="en" translate="no">fripSide Fan Site</p>
-        <div class="hero-lyrics">
-          <h1 class="hero-title" data-lyric-rotator lang="en">
-            <span class="title-lead" data-lyric-lead>This desire</span>
-            <span class="title-solid"><span data-lyric-line-one>is bound</span><br data-lyric-break /><span data-lyric-line-two>in the melody.</span></span>
-          </h1>
-        </div>
-        <p class="hero-description">{t(locale, "home.description")}</p>
-      </div>
+
+    <div class="hero-actions">
       <div class="actions">
-        <a class="button" href="/calendar"><Icon name="calendar3" /><span class="label-full">{t(locale, "nav.calendar")}</span><span class="label-short">{t(locale, "nav.calendar")}</span></a>
-        <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" /><span class="label-full">{t(locale, "nav.music")}</span><span class="label-short">{t(locale, "nav.music")}</span></a>
+        <a class="button" href="/calendar"><Icon name="calendar3" />{t(locale, "nav.calendar")}</a>
+        <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" />{t(locale, "nav.music")}</a>
+        <a class="button secondary subscribe-action" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" /><span class="label-full">{t(locale, "home.subscribe")}</span><span class="label-short">{t(locale, "calendar.subscribeShort")}</span></a>
       </div>
       <button class="motion-toggle" type="button" data-home-motion aria-label={t(locale, "home.motionLabel")} aria-pressed="false" data-pause-label={t(locale, "home.pauseMotion")} data-resume-label={t(locale, "home.resumeMotion")}>
         <Icon name="pause-fill" /><span>{t(locale, "home.pauseMotion")}</span>
@@ -82,17 +134,23 @@ const nextCountdown = !next
         <h2><Icon name="tickets" />{t(locale, "home.moreEvents")}</h2>
         <a class="section-link all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="chevron-right" size=".75rem" /></a>
       </div>
-      <section class="event-list stack">
-        {moreEvents.map((event) => <EventCard event={event} timeInHeader />)}
+      <section class:list={["event-list", "event-grid", `count-${moreEvents.length}`]}>
+        {moreEvents.map((event) => <EventCard event={event} timeInHeader updateLabel={updateLabel(event.id)} />)}
       </section>
     </>
   )}
 
-  <section class="recent-setlists" aria-labelledby="recent-setlists-title">
+  {showSyncNote && lastSyncDate && (
+    <p class="sync-note">{t(locale, "home.syncNote", { date: formatMusicDate(lastSyncDate, locale) })}</p>
+  )}
+
+  <section class="recent-setlists" aria-labelledby="music-library-title">
     <div class="section-heading">
-      <h2 id="recent-setlists-title"><Icon name="list-music" />{t(locale, "home.latestSetlists")}</h2>
+      <h2 id="music-library-title"><Icon name="list-music" />{t(locale, "home.musicLibrary")}</h2>
       <a class="section-link recent-setlists-all" href="/music/lives">{t(locale, "home.allSetlists")} <Icon name="chevron-right" size=".75rem" /></a>
     </div>
+    {spotlight && <SongSpotlight spotlight={spotlight} locale={locale} archiveShows={libraryStats.setlist_count} />}
+    <h3 class="subsection-title">{t(locale, "home.latestSetlists")}</h3>
     {recentSetlists.length > 0 ? (
       <div class="recent-setlist-grid">
         {recentSetlists.map((setlist) => (
@@ -124,100 +182,43 @@ const nextCountdown = !next
     )}
   </section>
 
+  <a class="journey-teaser panel" href="/journey">
+    <span class="journey-teaser-text">
+      <span class="journey-teaser-label"><Icon name="globe-americas" />{t(locale, "journey.title")}</span>
+      <span class="journey-teaser-description">{t(locale, "journey.description")}</span>
+    </span>
+    <span class="journey-teaser-cta">{t(locale, "home.journeyCta")} <Icon name="chevron-right" size=".75rem" /></span>
+  </a>
+
   <CommunityDiscussion locale={locale} />
 
 </SiteLayout>
 
 <script>
+  // The toggle now only governs the background crossfade; the hero text no longer animates.
   let cleanupHome: (() => void) | undefined;
   const setupHome = () => {
     cleanupHome?.();
-    if (!document.querySelector("[data-lyric-rotator]")) return;
+    const motionToggle = document.querySelector<HTMLButtonElement>("[data-home-motion]");
+    if (!motionToggle) return;
     const controller = new AbortController();
     const { signal } = controller;
-    const rotator = document.querySelector<HTMLElement>("[data-lyric-rotator]");
-    const lead = rotator?.querySelector<HTMLElement>("[data-lyric-lead]");
-    const lineOne = rotator?.querySelector<HTMLElement>("[data-lyric-line-one]");
-    const lineTwo = rotator?.querySelector<HTMLElement>("[data-lyric-line-two]");
-    const lineBreak = rotator?.querySelector<HTMLElement>("[data-lyric-break]");
-    const lyrics = [
-      { lead: "This desire", lineOne: "is bound", lineTwo: "in the melody.", variant: "" },
-      { lead: "Did my song arrive？", lineOne: "Up to that far", lineTwo: "distant moon.", variant: "english" },
-      { lead: "変わりゆく季節が今、", lineOne: "迷いながら", lineTwo: "景色を染めてく", variant: "japanese" },
-      { lead: "ずっと忘れることのない", lineOne: "深く刻まれたこの記憶", lineTwo: "", variant: "japanese" },
-      { lead: "君と出会った必然が", lineOne: "無限の宇宙に解き放たれて輝く", lineTwo: "その絆だけが　unlimited destiny", variant: "japanese-long" }
-    ];
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const smallScreen = window.matchMedia("(max-width: 800px)");
-    let activeIndex = 0;
-    let rotationTimer: number | undefined;
-    let transitionTimer: number | undefined;
-    let cleanupTimer: number | undefined;
 
-    const renderLyric = () => {
-      const lyric = lyrics[activeIndex];
-      if (!rotator || !lead || !lineOne || !lineTwo || !lyric) return;
-      lead.textContent = lyric.lead;
-      lineOne.textContent = lyric.lineOne;
-      lineTwo.textContent = lyric.lineTwo;
-      if (lineBreak) lineBreak.hidden = !lyric.lineTwo;
-      lineTwo.hidden = !lyric.lineTwo;
-      rotator.dataset.variant = lyric.variant;
-      rotator.lang = lyric.variant.startsWith("japanese") ? "ja" : "en";
-    };
-
-    const showNextLyric = () => {
-      if (!rotator) return;
-      rotator.classList.add("is-glitching");
-      transitionTimer = window.setTimeout(() => {
-        activeIndex = (activeIndex + 1) % lyrics.length;
-        renderLyric();
-        transitionTimer = undefined;
-      }, 260);
-      cleanupTimer = window.setTimeout(() => {
-        rotator.classList.remove("is-glitching");
-        cleanupTimer = undefined;
-      }, 560);
-    };
-
-    const stopRotation = () => {
-      if (rotationTimer !== undefined) window.clearInterval(rotationTimer);
-      if (transitionTimer !== undefined) window.clearTimeout(transitionTimer);
-      if (cleanupTimer !== undefined) window.clearTimeout(cleanupTimer);
-      rotationTimer = undefined;
-      transitionTimer = undefined;
-      cleanupTimer = undefined;
-      rotator?.classList.remove("is-glitching");
-    };
-
-    const startRotation = () => {
-      stopRotation();
-      if (!smallScreen.matches && !reducedMotion.matches && lyrics.length > 1 && !document.hidden && document.documentElement.dataset.homeMotionPaused !== "true") {
-        rotationTimer = window.setInterval(showNextLyric, 8000);
-      }
-    };
-
-    const motionToggle = document.querySelector<HTMLButtonElement>("[data-home-motion]");
     const updateMotionToggle = () => {
-      if (!motionToggle) return;
       const paused = document.documentElement.dataset.homeMotionPaused === "true";
       motionToggle.setAttribute("aria-pressed", String(paused));
       motionToggle.querySelector("span")!.textContent = (paused ? motionToggle.dataset.resumeLabel : motionToggle.dataset.pauseLabel) ?? "";
       motionToggle.hidden = reducedMotion.matches;
     };
-    motionToggle?.addEventListener("click", () => {
+    motionToggle.addEventListener("click", () => {
       document.documentElement.dataset.homeMotionPaused = String(document.documentElement.dataset.homeMotionPaused !== "true");
       updateMotionToggle();
-      startRotation();
       document.dispatchEvent(new Event("home-motion-change"));
     }, { signal });
     updateMotionToggle();
     reducedMotion.addEventListener("change", updateMotionToggle, { signal });
-    reducedMotion.addEventListener("change", startRotation, { signal });
-    smallScreen.addEventListener("change", startRotation, { signal });
-    document.addEventListener("visibilitychange", startRotation, { signal });
-    startRotation();
-    cleanupHome = () => { stopRotation(); controller.abort(); };
+    cleanupHome = () => controller.abort();
   };
   document.addEventListener("astro:before-swap", () => cleanupHome?.());
   document.addEventListener("astro:page-load", setupHome);
@@ -225,67 +226,88 @@ const nextCountdown = !next
 </script>
 
 <style>
-  .mobile-home-title { display: none; }
-  .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: center; gap: clamp(2rem, 7vw, 7rem); padding: 2rem 0 .5rem; }
-  .hero-intro { grid-column: 1; grid-row: 1; min-width: 0; }
-  /* Reserve rotation space separately so the shade follows the visible lyrics. */
-  .hero-lyrics { min-height: clamp(5.25rem, 13.5vw, 10.75rem); }
-  .hero-title::before {
+  .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: start; gap: 0 clamp(1.5rem, 5vw, 4rem); padding: 2rem 0 .5rem; }
+  .hero-copy { grid-column: 1; grid-row: 1; min-width: 0; }
+  /* One shade for the whole left column — headline, subtitle and buttons alike — so no edge of
+     it cuts across the copy while the backdrop rotates to the busier photo. */
+  .hero { position: relative; isolation: isolate; }
+  .hero::before {
     content: "";
     position: absolute;
     z-index: -1;
-    inset: -2rem -3rem;
+    inset: -2.5rem auto -2rem -6rem;
+    width: min(64rem, 82%);
     pointer-events: none;
-    background: radial-gradient(ellipse closest-side at center, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%);
+    background: radial-gradient(ellipse 70% 62% at 40% 50%, rgba(7,16,28,.92) 0%, rgba(7,16,28,.78) 42%, rgba(7,16,28,.34) 70%, transparent 100%);
+    /* The radial alone still meets the viewport edge as a hard line; this fades that edge out. */
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16%);
+    mask-image: linear-gradient(to right, transparent 0, #000 16%);
   }
-  .signal { grid-column: 2; grid-row: 1; min-width: 0; }
-  .hero-title { position: relative; isolation: isolate; display: grid; width: fit-content; max-width: 100%; align-content: start; gap: .14em; margin-bottom: 0; }
-  .hero-title::after { content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(120, 225, 255, .14) 6px, transparent 7px); mix-blend-mode: screen; }
-  .hero-title.is-glitching { animation: lyric-signal-glitch .56s steps(2, end) both; }
-  .hero-title.is-glitching::after { animation: lyric-scanlines .56s steps(3, end) both; }
+  .signal { grid-column: 2; grid-row: 1 / span 2; }
+  .hero-actions { grid-column: 1; grid-row: 2; align-self: start; margin-top: 1.6rem; }
+  /* Today's archive entry rides above the headline: real content, but never the main event. */
+  .today-pill { display: inline-flex; align-items: center; gap: .45rem; max-width: 100%; margin-bottom: 1.1rem; padding: .4rem .8rem; color: var(--muted); border: 1px solid rgba(159, 180, 211, .22); border-radius: 999px; background: rgba(7, 16, 28, .72); font-size: .78rem; text-decoration: none; backdrop-filter: blur(10px); transition: border-color .18s, color .18s; }
+  .today-pill:hover { color: var(--text); border-color: rgba(var(--accent-rgb), .55); }
+  .today-pill :global(.icon) { flex: 0 0 auto; color: var(--accent); }
+  .today-pill-label { flex: 0 0 auto; font-weight: 650; }
+  .today-pill time { flex: 0 0 auto; color: var(--text); font-variant-numeric: tabular-nums; }
+  /* Collapsed the pill is just label and date; hovering widens it and scrolls the event name
+     past the window. No title attribute, so no native tooltip covers the headline, and the full
+     name stays in the DOM for screen readers. min(0px, …) keeps a short name still. */
+  .today-pill-event { --pill-window: 17rem; max-width: 0; margin-left: -.45rem; overflow: hidden; white-space: nowrap; transition: max-width .32s ease, margin-left .32s ease; }
+  .today-pill-event > span { display: inline-block; }
+  .today-pill:hover .today-pill-event, .today-pill:focus-visible .today-pill-event { max-width: var(--pill-window); margin-left: 0; mask-image: linear-gradient(to right, #000 88%, transparent); }
+  .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span {
+    animation: pill-marquee 5s linear .8s infinite alternate;
+  }
+  @keyframes pill-marquee { to { transform: translateX(min(0px, calc(var(--pill-window) - 100%))); } }
+  @media (prefers-reduced-motion: reduce) {
+    .today-pill-event { transition: none; }
+    .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span { animation: none; }
+  }
+  .hero-title { display: grid; width: fit-content; max-width: 100%; align-content: start; gap: .14em; margin: 0; font-size: clamp(2rem, 4.2vw, 3.4rem); line-height: 1.06; letter-spacing: -.045em; }
   .title-lead, .title-solid { display: block; }
   .title-lead { color: var(--text); }
   .title-solid { color: var(--text); font-size: .72em; line-height: 1.08; letter-spacing: -.045em; }
-  .hero-title[data-variant="english"] .title-lead { font-size: .7em; line-height: 1.06; letter-spacing: -.055em; }
-  .hero-title[data-variant="japanese"] .title-lead { font-size: .56em; line-height: 1.12; letter-spacing: -.06em; }
-  .hero-title[data-variant="japanese"] .title-solid { font-size: .5em; line-height: 1.28; letter-spacing: -.06em; }
-  .hero-title[data-variant="japanese-long"] .title-lead { font-size: .46em; line-height: 1.16; letter-spacing: -.055em; }
-  .hero-title[data-variant="japanese-long"] .title-solid { font-size: .34em; line-height: 1.42; letter-spacing: -.035em; }
   @supports (-webkit-text-stroke: 1px currentColor) {
     .title-solid { color: transparent; -webkit-text-stroke: 1.5px var(--text); }
   }
-  @keyframes lyric-signal-glitch {
-    0%, 100% { opacity: 1; clip-path: inset(0); transform: translate(0) skewX(0); filter: none; }
-    10% { transform: translate(3px, -1px) skewX(-1deg); filter: drop-shadow(-4px 0 rgba(102, 224, 255, .7)) drop-shadow(4px 0 rgba(var(--accent-rgb), .75)); }
-    22% { clip-path: inset(8% 0 58% 0); transform: translate(-7px, 1px) skewX(2deg); }
-    34% { clip-path: inset(52% 0 16% 0); transform: translate(6px, -2px) skewX(-2deg); filter: drop-shadow(5px 0 rgba(102, 224, 255, .8)) drop-shadow(-5px 0 rgba(var(--accent-rgb), .8)); }
-    46%, 52% { opacity: 0; clip-path: inset(0 0 82% 0); transform: translate(-10px, 0) scaleX(1.025); }
-    62% { opacity: .72; clip-path: inset(62% 0 5% 0); transform: translate(8px, 1px) skewX(2deg); filter: drop-shadow(-5px 0 rgba(102, 224, 255, .75)) drop-shadow(5px 0 rgba(var(--accent-rgb), .8)); }
-    76% { opacity: 1; clip-path: inset(18% 0 40% 0); transform: translate(-4px, -1px); }
-    88% { clip-path: inset(0); transform: translate(2px, 0); filter: drop-shadow(2px 0 rgba(var(--accent-rgb), .45)); }
-  }
-  @keyframes lyric-scanlines {
-    0%, 100% { opacity: 0; transform: translateX(0); }
-    18%, 78% { opacity: .8; transform: translateX(-5px); }
-    48% { opacity: 1; transform: translateX(7px); }
-  }
-  .hero-description { max-width: 34rem; margin: 1.15rem 0 .6rem; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
+  .hero-subtitle { max-width: 32rem; margin: 1rem 0 0; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
+  .hero-source { color: inherit; text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), .6); text-underline-offset: 3px; }
+  .hero-source:hover { color: var(--accent); }
   .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
   .motion-toggle:hover { color: var(--text); transform: none; }
   .motion-toggle[hidden] { display: none; }
   .motion-toggle[aria-pressed="true"] { color: var(--accent); }
-  .hero .actions { margin-top: 1.1rem; }
-  .hero .actions .button { min-height: 52px; padding: .82rem 1.25rem; border-radius: 12px; font-size: .95rem; }
+  .hero .actions .button { min-height: 50px; padding: .78rem 1.15rem; border-radius: 12px; font-size: .92rem; }
   .hero .actions .button.secondary { background: rgba(7,16,28,.76); border-color: rgba(200,220,237,.22); box-shadow: 0 10px 28px rgba(0,0,0,.18); backdrop-filter: blur(16px); }
   .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
   .setlist-button :global(.icon) { color: var(--accent); }
   .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
-  .hero + .section-heading { margin-top: 1.5rem; }
-  .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; }
+  .signal { position: relative; min-height: 340px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; overflow: hidden; }
+  .panel-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
+  .panel-top span { margin-right: auto; }
+  .hero + .section-heading { margin-top: 2rem; }
+  /* Section headings sit above cards that carry their own titles, so they stay quieter than h2. */
+  .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; font-size: clamp(1.15rem, 1.7vw, 1.4rem); }
+  .sync-note { margin: 1.1rem 0 0; color: var(--muted); font-size: .75rem; line-height: 1.6; }
+  .subsection-title { margin: 2.25rem 0 1rem; color: #d3dce8; font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
   .latest-events-heading h2 > :global(.icon), .recent-setlists .section-heading h2 > :global(.icon) { color: var(--accent); font-size: .9em; }
   .latest-events-heading, .recent-setlists .section-heading { align-items: center; }
   .section-link { display: inline-flex; align-items: center; justify-content: flex-end; gap: .3rem; min-height: 44px; padding: .5rem .125rem; border-radius: 6px; color: var(--muted); font-size: .8125rem; font-weight: 400; text-decoration: none; touch-action: manipulation; }
   .section-link:hover, .section-link:focus-visible { color: var(--accent); }
+  .event-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; align-items: stretch; }
+  .event-grid.count-1 { grid-template-columns: minmax(0, 1fr); }
+  .event-grid.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Three cards side by side need the footer line on one level, whatever the title wraps to. */
+  .event-grid :global(.event-card) { height: 100%; grid-template-rows: auto 1fr auto; }
+  .journey-teaser { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; margin-top: 4.5rem; padding: 1.35rem 1.5rem; color: inherit; text-decoration: none; transition: border-color .18s, transform .18s, background .18s; }
+  .journey-teaser:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }
+  .journey-teaser-text { display: grid; gap: .3rem; min-width: 0; }
+  .journey-teaser-label { display: inline-flex; align-items: center; gap: .5rem; font-size: 1.0625rem; font-weight: 650; }
+  .journey-teaser-label :global(.icon) { color: var(--accent); }
+  .journey-teaser-description { color: var(--muted); font-size: .8125rem; line-height: 1.6; }
+  .journey-teaser-cta { display: inline-flex; align-items: center; gap: .3rem; flex: 0 0 auto; color: var(--accent); font-size: .8125rem; }
   .recent-setlists { margin-top: 4.5rem; }
   .recent-setlists .section-heading { margin-top: 0; }
   .recent-setlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
@@ -315,15 +337,16 @@ const nextCountdown = !next
   .recent-setlist-card > p { margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.55; }
   .recent-setlist-meta { display: flex; align-items: center; gap: .65rem; padding-top: .75rem; color: var(--muted); border-top: 1px solid rgba(159, 180, 211, .12); font-size: .8125rem; }
   .recent-setlist-meta :global(.icon) { margin-left: auto; color: var(--accent); }
-  .signal { position: relative; min-height: 360px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
-  .signal::before { content: ""; position: absolute; inset: -20% -40% 35%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 17px, rgba(var(--accent-rgb),.12) 18px 19px); transform: rotate(-10deg); }
-  .signal-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
-  .signal-top span { margin-right: auto; }
+  /* Rings are spaced in percent and centred below the card, so the arcs sweep the whole panel
+     at any height instead of stopping part way down a tall one. */
+  .signal::before { content: ""; position: absolute; inset: 0 -45% -18%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 calc(6% - 1px), rgba(var(--accent-rgb),.13) 6% calc(6% + 1px)); transform: rotate(-8deg); }
   .signal-countdown { color: var(--accent); font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
   .label-short { display: none; }
-  .signal-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
+  .panel-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
   .signal > strong, .no-signal strong { color: var(--accent); font-size: clamp(3.7rem, 8vw, 6rem); line-height: 1; letter-spacing: -.08em; position: relative; }
   .signal h2 { font-size: 1.25rem; line-height: 1.45; overflow-wrap: anywhere; margin: 1rem 0 .4rem; position: relative; }
+  .signal-update { position: relative; margin: .1rem 0 0; }
+  .signal-update .tag.update { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .1); }
   .signal-footer { display: flex; align-items: center; gap: .65rem; margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--line); }
   .signal p { flex: 1; min-width: 0; margin: 0; color: var(--muted); position: relative; overflow-wrap: anywhere; }
   .signal a { flex: 0 0 auto; color: var(--muted); opacity: .55; margin: 0; padding: 0; font-size: .85rem; text-decoration: none; }
@@ -332,54 +355,51 @@ const nextCountdown = !next
   .signal a:focus-visible { outline: none; }
   .signal a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
   .signal a { display: inline-flex; align-items: center; gap: .35rem; }
-  @media (prefers-reduced-motion: reduce) { .hero-title.is-glitching, .hero-title.is-glitching::after { animation: none; } }
-  @media (max-width: 1100px) {
-    @supports (-webkit-text-stroke: 1px currentColor) {
-      .hero-title[data-variant^="japanese"] .title-solid {
-        color: rgba(239, 248, 255, .38);
-        -webkit-text-stroke: 1.25px rgba(239, 248, 255, .96);
-        text-shadow: 0 2px 18px rgba(0, 0, 0, .42);
-      }
-    }
-    .hero-title[data-variant="japanese"] .title-solid { letter-spacing: -.035em; }
+  @media (min-width: 801px) and (max-width: 1040px) {
+    .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 800px) {
-    .mobile-home-title { display: block; position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    /* One column, in source order: headline, next show, then the ways in. */
     .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
-    .hero-intro, .signal { grid-column: auto; grid-row: auto; }
-    .hero-intro { display: flex; flex-direction: column; }
-    .hero-copy { display: none; }
+    .hero-copy, .signal, .hero-actions { grid-column: auto; grid-row: auto; }
+    .hero::before { inset: -1rem -1.5rem auto; width: auto; height: 60%; background: radial-gradient(ellipse 90% 70% at 50% 40%, rgba(7,16,28,.92) 0%, rgba(7,16,28,.74) 48%, rgba(7,16,28,.24) 76%, transparent 100%); }
+    .hero-actions { margin-top: 0; }
+    .today-pill { margin-bottom: .85rem; padding: .35rem .7rem; font-size: .72rem; }
+    .today-pill-event { --pill-window: 9rem; }
+    .hero-title { max-width: none; font-size: clamp(1.6rem, 7.5vw, 2.1rem); }
+    @supports (-webkit-text-stroke: 1px currentColor) {
+      .title-solid { color: rgba(239, 248, 255, .4); -webkit-text-stroke: 1px rgba(239, 248, 255, .95); text-shadow: 0 2px 18px rgba(0, 0, 0, .45); }
+    }
+    .hero-subtitle { margin-top: .7rem; font-size: .9375rem; line-height: 1.65; }
     .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }
     .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
     .label-full { display: none; }
     .label-short { display: inline; overflow: hidden; text-overflow: ellipsis; }
-    .motion-toggle { align-self: flex-start; margin-top: .25rem; }
+    .hero .actions .subscribe-action { grid-column: 1 / -1; }
+    .motion-toggle { align-self: flex-start; }
     .signal { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: .75rem; min-height: 0; padding: 1rem 1.1rem 1.1rem; transition: border-color .18s; }
     .signal:has(a:hover) { border-color: rgba(var(--accent-rgb), .42); }
     .signal:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .signal-top { grid-column: 1 / -1; margin-bottom: .6rem; font-size: .6875rem; letter-spacing: .08em; }
+    .panel-top { grid-column: 1 / -1; margin-bottom: .6rem; font-size: .6875rem; letter-spacing: .08em; }
     .signal > strong, .no-signal strong { font-size: clamp(2.125rem, 9vw, 2.5rem); letter-spacing: -.05em; }
     .signal > strong { grid-column: 1; }
     .no-signal { grid-column: 1 / -1; }
     .signal h2 { grid-column: 1 / -1; margin: .5rem 0 .2rem; font-size: 1.0625rem; font-weight: 600; line-height: 1.45; letter-spacing: -.015em; }
     .signal-footer { grid-column: 1 / -1; margin-top: .65rem; }
     .signal p { font-size: .8125rem; line-height: 1.55; }
-    .latest-events-heading h2, .recent-setlists .section-heading h2 { color: #d3dce8; font-size: 1.375rem; font-weight: 600; }
+    .latest-events-heading h2, .recent-setlists .section-heading h2 { color: #d3dce8; font-size: 1.125rem; font-weight: 600; }
+    .subsection-title { margin: 1.75rem 0 .85rem; font-size: .9375rem; }
     .event-list { --event-title-color: #d3dce8; --event-title-weight: 600; --event-title-size: 1.0625rem; --event-time-color: #a8b6c8; --event-venue-color: #8f9fb4; --event-year-color: #8998ac; }
+    .event-grid, .event-grid.count-1, .event-grid.count-2 { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+    .event-grid :global(.event-card) { height: auto; }
+    .journey-teaser { margin-top: 3rem; padding: 1.15rem; }
     .recent-setlists { margin-top: 3rem; }
     .recent-setlist-grid { grid-template-columns: 1fr; }
     .recent-setlist-card { min-height: 0; }
     .recent-setlist-card h3 { color: #d3dce8; font-weight: 600; }
-    @supports (-webkit-text-stroke: 1px currentColor) {
-      .hero-title[data-variant^="japanese"] .title-solid {
-        color: rgba(239, 248, 255, .92);
-        -webkit-text-stroke: .4px rgba(239, 248, 255, .72);
-        text-shadow: 0 2px 20px rgba(0, 0, 0, .55);
-      }
-    }
   }
   @media (max-width: 480px) {
-    .latest-events-heading h2, .recent-setlists .section-heading h2 { font-size: 1.25rem; }
+    .latest-events-heading h2, .recent-setlists .section-heading h2 { font-size: 1.0625rem; }
   }
   @media (max-width: 560px) {
     .event-list { --event-title-size: .9375rem; --event-title-line-height: 1.5; }

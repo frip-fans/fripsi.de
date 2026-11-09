@@ -50,8 +50,9 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
       </div>
     </header>
 
-    <section class="music-section" aria-labelledby="tracks-heading">
-      <div class="music-section-head"><h2 id="tracks-heading">{t(locale, "music.trackList")}</h2></div>
+    <section class="music-section release-tracks-section" aria-labelledby="tracks-heading">
+      {/* The list explains itself; keep the heading for screen readers only. */}
+      <h2 id="tracks-heading" class="visually-hidden">{t(locale, "music.trackList")}</h2>
       {release.tracks.length ? (
         <ol class="release-tracks">
           {release.tracks.map((track) => {
@@ -97,6 +98,7 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
 </SiteLayout>
 
 <style>
+  .release-tracks-section { margin-top: 2rem; }
   .release-rate { display: inline-flex; align-items: center; gap: .75rem; margin-top: 1.1rem; }
   .release-rate-ring { width: 56px; height: 56px; flex: 0 0 auto; }
   .release-rate-track, .release-rate-fill { fill: none; stroke-width: 6; }

@@ -7,6 +7,7 @@ import { formatMusicDate, setlistCompletenessLabel, setlistDisplayTitle, setlist
 import { getLocale, t } from "../lib/i18n";
 interface Props { kind: MusicBrowseKind; append?: boolean; }
 const { kind, append = false } = Astro.props;
+// API fragments are parsed by DOMParser, where noscript images can trigger requests.
 const locale = getLocale(Astro.request);
 const db = getEnv().DB;
 const results = await getMusicBrowseResults(db, kind, Astro.url.searchParams, append);
@@ -37,7 +38,7 @@ const nextHref = `/music/${kind}?${next}`;
     ))}
     {results.releases.map(release => (
       <a class="music-card" data-music-id={release.id} href={`/music/releases/${encodeURIComponent(release.slug)}`}>
-        <ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
+        <ReleaseCover noScriptFallback={!append} url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
         <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
         <h2>{release.title}</h2>
         <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>

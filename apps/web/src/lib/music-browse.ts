@@ -1,8 +1,9 @@
 import { countSetlists, listSetlists, listSongCatalog, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
 import { releaseTypeLabels } from "./music";
+import { MUSIC_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE } from "./music-batch";
 
 export type MusicBrowseKind = "lives" | "songs" | "releases";
-export const MUSIC_BATCH_SIZE = 6;
+export { MUSIC_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE };
 export const musicSorts = {
   lives: ["desc", "asc"],
   songs: ["live-desc", "live-asc", "title-asc", "title-desc", "release-desc", "release-asc"],
@@ -17,7 +18,7 @@ export function parseMusicBrowse(kind: MusicBrowseKind, params: URLSearchParams)
   const type = params.get("type") ?? "";
   const requestedPage = params.get("page") ?? "1";
   return {
-    batch: kind === "releases" && params.get("batch") === "8" ? 8 : MUSIC_BATCH_SIZE,
+    batch: kind === "releases" && params.get("batch") === String(MUSIC_WIDE_RELEASE_BATCH_SIZE) ? MUSIC_WIDE_RELEASE_BATCH_SIZE : MUSIC_BATCH_SIZE,
     query: (params.get("q") ?? "").trim().slice(0, 200),
     year: kind === "lives" && /^\d{4}$/.test(requestedYear) ? requestedYear : "",
     classification: kind === "lives" && ["专场", "拼盘"].includes(classification) ? classification : "",

@@ -6,7 +6,7 @@ import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
-import { formatMusicDate, releaseTypeLabels, setlistSectionLabels, versionRelationLabel } from "../../../lib/music";
+import { formatMusicDate, releaseTypeLabel, setlistSectionLabel, versionRelationLabel } from "../../../lib/music";
 import { getLocale, t } from "../../../lib/i18n";
 import "../../../styles/music.css";
 
@@ -27,18 +27,18 @@ const sortHref = (order: "asc" | "desc") => {
   <div class="music-page" data-music-detail>
     <MusicBackLink href="/music/songs" storageKey="music:list:songs" label={t(locale, "music.backSongs")} />
     <header class="music-detail-head" data-page-entry>
-      <p class="eyebrow">Song · {song.original_artist}</p>
-      <h1>{song.title}</h1>
+      <p class="eyebrow" translate="no">{song.original_artist}</p>
+      <h1 translate="no">{song.title}</h1>
       <div class="music-detail-meta">
         <span class="tag">{t(locale, "music.versionsCount", { count: song.version_count })}</span>
         <span class="tag">{t(locale, "music.releasesCount", { count: song.release_count })}</span>
         <span class="tag">{t(locale, "music.showsCount", { count: song.show_count })}</span>
-        {song.aliases.map((alias) => <span class="tag">aka {alias}</span>)}
+        {song.aliases.map((alias) => <span class="tag">{t(locale, "music.alias", { alias })}</span>)}
       </div>
     </header>
 
     <section class="music-section" aria-labelledby="performances-heading">
-      <div class="music-section-head"><div><p class="music-kicker">Live history</p><h2 id="performances-heading">{t(locale, "music.liveHistory")}</h2></div><span class="muted">{t(locale, "music.timesCount", { count: song.performance_count })}</span></div>
+      <div class="music-section-head"><h2 id="performances-heading">{t(locale, "music.liveHistory")}</h2><span class="muted">{t(locale, "music.timesCount", { count: song.performance_count })}</span></div>
       {song.performance_count > 0 && <nav class="music-chips performance-sort" aria-label={t(locale, "music.sortOrder")}>
         <a href={sortHref("asc")} class:list={{ active: performanceOrder === "asc" }} aria-current={performanceOrder === "asc" ? "true" : undefined} data-performance-order="asc">{t(locale, "music.oldestFirst")}</a>
         <a href={sortHref("desc")} class:list={{ active: performanceOrder === "desc" }} aria-current={performanceOrder === "desc" ? "true" : undefined} data-performance-order="desc">{t(locale, "music.newestFirst")}</a>
@@ -50,9 +50,9 @@ const sortHref = (order: "asc" | "desc") => {
               <span class="music-track-number">{formatMusicDate(performance.start_date, locale)}</span>
               <div class="music-track-main">
                 <a href={`/music/lives/${encodeURIComponent(performance.setlist_id)}`}><strong>{performance.event_title}</strong></a>
-                <small>{performance.performance_label} · {setlistSectionLabels[performance.section]} #{performance.position}{performance.performed_version_title ? ` · ${performance.performed_version_title}` : song.version_count > 1 ? ` · ${t(locale, "music.versionUnknown")}` : ""}</small>
+                <small>{performance.performance_label} · {t(locale, "music.performancePosition", { section: setlistSectionLabel(performance.section, locale), position: performance.position })}{performance.performed_version_title ? ` · ${performance.performed_version_title}` : song.version_count > 1 ? ` · ${t(locale, "music.versionUnknown")}` : ""}</small>
               </div>
-              <div class="music-track-stats"><span>{performance.venue || t(locale, "common.venuePending")}<br />{performance.region || ""}</span></div>
+              {!(performance.venue && performance.event_title.includes(performance.venue)) && <div class="music-track-stats"><span>{performance.venue || t(locale, "common.venuePending")}<br />{performance.region || ""}</span></div>}
             </article>
           ))}
         </div>
@@ -61,13 +61,13 @@ const sortHref = (order: "asc" | "desc") => {
     </section>
 
     <section class="music-section" aria-labelledby="versions-heading">
-      <div class="music-section-head"><div><p class="music-kicker">Recordings</p><h2 id="versions-heading">{t(locale, "music.songVersions")}</h2></div></div>
+      <div class="music-section-head"><h2 id="versions-heading">{t(locale, "music.songVersions")}</h2></div>
       {song.versions.length ? (
         <div class="music-grid">
           {song.versions.map((version) => (
             <article class="music-card">
-              <span class="music-kicker">{formatMusicDate(version.release_date, locale)}</span>
-              <h3>{version.title}</h3>
+              <span class="music-release-meta">{formatMusicDate(version.release_date, locale)}</span>
+              <h3 translate="no">{version.title}</h3>
               <div class="music-card-meta"><span>{version.version_label || t(locale, "common.originalRecording")}</span><span>·</span><span>{version.artist_credit}</span></div>
             </article>
           ))}
@@ -77,7 +77,7 @@ const sortHref = (order: "asc" | "desc") => {
 
     {song.relations.length > 0 && (
       <section class="music-section" aria-labelledby="relations-heading">
-        <div class="music-section-head"><div><p class="music-kicker">Version graph</p><h2 id="relations-heading">{t(locale, "music.versionRelations")}</h2></div></div>
+        <div class="music-section-head"><h2 id="relations-heading">{t(locale, "music.versionRelations")}</h2></div>
         <div class="version-graph">
           {song.relations.map((relation) => (
             <div class="version-node">
@@ -91,16 +91,16 @@ const sortHref = (order: "asc" | "desc") => {
     )}
 
     <section class="music-section" aria-labelledby="releases-heading">
-      <div class="music-section-head"><div><p class="music-kicker">Discography</p><h2 id="releases-heading">{t(locale, "music.inAlbums")}</h2></div></div>
+      <div class="music-section-head"><h2 id="releases-heading">{t(locale, "music.inAlbums")}</h2></div>
       {song.releases.length ? (
         <div class="music-grid">
           {song.releases.map((release) => (
             <a class="music-card song-release-card" href={`/music/releases/${encodeURIComponent(release.release_slug)}`}>
               <div class="song-release-cover"><ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.release_title })} /></div>
               <div class="song-release-info">
-                <span class="music-kicker">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
-                <h3>{release.release_title}</h3>
-                <div class="music-card-meta"><span>Disc {release.disc_number} / Track {release.track_number}</span><span>·</span><span>{release.version_label || release.version_title}</span></div>
+                <span class="music-release-meta">{releaseTypeLabel(release.release_type, locale)} · {formatMusicDate(release.release_date, locale)}</span>
+                <h3 translate="no">{release.release_title}</h3>
+                <div class="music-card-meta"><span>{t(locale, "music.discTrack", { disc: release.disc_number, track: release.track_number })}</span><span>·</span><span>{release.version_label || release.version_title}</span></div>
               </div>
             </a>
           ))}
@@ -125,5 +125,6 @@ const sortHref = (order: "asc" | "desc") => {
   .song-release-info { display: grid; min-width: 0; gap: .65rem; }
   @media (max-width: 480px) { .song-release-card { grid-template-columns: 72px minmax(0, 1fr); gap: .75rem; } .song-release-cover { width: 72px; } }
   .performance-row { grid-template-columns: 7.5rem minmax(0, 1fr) auto; }
+  .performance-row :global(.music-track-number) { line-height: 1.4; }
   @media (max-width: 640px) { .performance-row { grid-template-columns: 1fr; } .performance-row :global(.music-track-stats) { grid-column: 1; } }
 </style>

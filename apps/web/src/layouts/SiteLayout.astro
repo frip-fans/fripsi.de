@@ -65,7 +65,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={new URL(Astro.url.pathname, canonicalBase)} />
     <title>{title === siteName ? title : `${title} · ${siteName}`}</title>
-    {clientRouting && <script is:inline src={routerBootstrap}></script>}
+    {clientRouting && <script is:inline src={`${routerBootstrap}?release=${encodeURIComponent(getEnv().FRIP_RELEASE_SHA || "development")}`}></script>}
     {clientRouting && <ClientRouter fallback="swap" />}
   </head>
   <body class:list={{ admin }}>
@@ -112,7 +112,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         <span>{t(locale, "nav.menu")}</span>
       </button>
     </header>
-    <dialog id="mobile-menu" class="mobile-menu" data-mobile-menu aria-label={t(locale, "nav.menu")}>
+    <div id="mobile-menu" class="mobile-menu" role="dialog" aria-modal="true" hidden data-mobile-menu aria-label={t(locale, "nav.menu")}>
       <div class="mobile-menu-top">
         <div class="mobile-menu-brand"><img src="/fan-site-logo.svg" width="40" height="40" alt="" /><span>fripSi<span class="brand-tld">.de</span></span></div>
         <button type="button" class="mobile-menu-close" data-menu-close aria-label={t(locale, "nav.closeMenu")}>
@@ -131,7 +131,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         {admin ? <a href="/">查看网站 <Icon name="chevron-right" /></a> : <a class="mobile-menu-community" href="/discuss" aria-current={current.startsWith("/discuss") ? "page" : undefined}><span><Icon name="chat-dots" />{t(locale, "nav.community")}</span><Icon name="chevron-right" /></a>}
       </nav>
       {!admin && <div class="mobile-menu-language"><span>{t(locale, "language.label")}</span><LanguageSwitcher /></div>}
-    </dialog>
+    </div>
     {!admin && <OfficialSiteGate autoOpen={autoOpenOfficialSiteGate} />}
     <main id="main-content" tabindex="-1"><slot /></main>
     {!admin && <NavigationLoading />}
@@ -162,7 +162,9 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 
   import "../lib/event-navigation-client";
   let navigationController: AbortController | undefined;
+  let cleanupNavigation: (() => void) | undefined;
   const setupNavigation = () => {
+    cleanupNavigation?.();
     navigationController?.abort();
     navigationController = new AbortController();
     const { signal } = navigationController;
@@ -185,7 +187,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
       if (!group.contains(event.relatedTarget as Node | null)) group.open = false;
     }, { signal }));
     document.addEventListener("astro:before-swap", closeGroups, { signal });
-    const menu = document.querySelector<HTMLDialogElement>("[data-mobile-menu]");
+    const menu = document.querySelector<HTMLElement>("[data-mobile-menu]");
     const trigger = document.querySelector<HTMLButtonElement>("[data-menu-open]");
     const close = document.querySelector<HTMLButtonElement>("[data-menu-close]");
     if (!menu || !trigger || !close) return;
@@ -193,22 +195,33 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
       trigger.setAttribute("aria-expanded", String(open));
       document.documentElement.classList.toggle("mobile-menu-open", open);
     };
+    let background: { element: HTMLElement; inert: boolean }[] = [];
     const closeMenu = (restoreFocus = true) => {
-      if (menu.open) menu.close();
+      const wasOpen = !menu.hidden;
+      menu.hidden = true;
+      background.forEach(({ element, inert }) => { element.inert = inert; });
+      background = [];
       setOpenState(false);
-      if (restoreFocus && trigger.checkVisibility()) trigger.focus();
+      if (restoreFocus && wasOpen && trigger.getClientRects().length > 0) trigger.focus();
     };
+    cleanupNavigation = () => closeMenu(false);
     trigger.addEventListener("click", () => {
-      menu.showModal();
+      if (!menu.hidden) return;
+      menu.hidden = false;
+      background = [...document.querySelectorAll<HTMLElement>(".site-header, main, footer")].map(element => ({ element, inert: element.inert }));
+      background.forEach(({ element }) => { element.inert = true; });
       setOpenState(true);
       close.focus();
     }, { signal });
     close.addEventListener("click", () => closeMenu(), { signal });
-    menu.addEventListener("cancel", event => { event.preventDefault(); closeMenu(); }, { signal });
-    menu.addEventListener("close", () => setOpenState(false), { signal });
     menu.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMenu();
+        return;
+      }
       if (event.key !== "Tab") return;
-      const items = [...menu.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), select:not(:disabled), summary, [tabindex="0"]')].filter(item => item.checkVisibility());
+      const items = [...menu.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), select:not(:disabled), summary, [tabindex="0"]')].filter(item => item.getClientRects().length > 0);
       const first = items[0], last = items.at(-1);
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault(); last?.focus();
@@ -216,11 +229,18 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         event.preventDefault(); first?.focus();
       }
     }, { signal });
-    menu.addEventListener("click", event => {
-      if (event.target instanceof Element && event.target.closest("a[href]")) closeMenu(false);
-    }, { signal });
+    // Bind to the anchor itself: close even when nested content stops bubbling
+    // or a browser reports a non-Element target for touch activation.
+    menu.querySelectorAll<HTMLAnchorElement>("a[href]").forEach(link => {
+      link.addEventListener("click", event => {
+        if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || (link.target && link.target !== "_self")) return;
+        closeMenu(false);
+      }, { capture: true, signal });
+    });
     const mobile = matchMedia("(max-width: 760px)");
     mobile.addEventListener("change", () => { if (!mobile.matches) closeMenu(false); }, { signal });
+    // Close before loading feedback captures the background inert state.
+    document.addEventListener("astro:before-preparation", () => closeMenu(false), { capture: true, signal });
     document.addEventListener("astro:before-swap", () => closeMenu(false), { signal });
     document.documentElement.classList.add("mobile-menu-ready");
     setOpenState(false);
@@ -417,11 +437,10 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   pre { overflow: auto; color: #cde5f5; background: #050c15; border: 1px solid var(--line); border-radius: 12px; padding: 1rem; }
   .mobile-menu-trigger { display: none; min-width: 48px; min-height: 48px; padding: .6rem .75rem; color: var(--text); background: rgba(255,255,255,.055); border: 1px solid var(--line); font-size: .85rem; }
-  .mobile-menu { position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; height: 100dvh; max-height: none; margin: 0; padding: max(1rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); color: var(--text); background: radial-gradient(ellipse at top right, rgba(var(--accent-rgb), .09), transparent 50%), #07101c; border: 0; overflow-y: auto; overscroll-behavior: contain; }
-  .mobile-menu:not([open]) { display: none; }
-  .mobile-menu[open] { display: flex; flex-direction: column; }
+  .mobile-menu { position: fixed; z-index: 1200; inset: 0; width: 100%; max-width: none; height: 100%; height: 100dvh; max-height: none; margin: 0; padding: max(1rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right)) max(1.5rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left)); color: var(--text); background: radial-gradient(ellipse at top right, rgba(var(--accent-rgb), .09), transparent 50%), #07101c; border: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .mobile-menu[hidden] { display: none !important; }
+  .mobile-menu:not([hidden]) { display: flex; flex-direction: column; }
   .mobile-menu > * { flex-shrink: 0; }
-  .mobile-menu::backdrop { background: #07101c; }
   html.mobile-menu-open { overflow: hidden; }
   .mobile-menu-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
   .mobile-menu-brand { display: flex; align-items: center; gap: .75rem; font-weight: 800; font-size: 1.2rem; }

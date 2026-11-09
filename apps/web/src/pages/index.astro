@@ -406,6 +406,14 @@ const nextCountdown = !next
     .recent-setlist-card { min-height: 0; }
     .recent-setlist-card h3 { color: #d3dce8; font-weight: 600; }
   }
+  /* Phones lead with the content: of the hero copy only the on-this-day badge stays visible.
+     The headline is the page's h1, so it is hidden visually but kept for screen readers. */
+  @media (max-width: 760px) {
+    .hero-title { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .hero-subtitle { display: none; }
+    .hero-copy:not(:has(.today-pill)) { display: none; }
+    .today-pill { margin-bottom: 0; }
+  }
   @media (max-width: 480px) {
     .latest-events-heading h2, .recent-setlists .section-heading h2 { font-size: 1.0625rem; }
   }

@@ -20,6 +20,7 @@ import type {
   SongVersionRecord,
   VersionRelationRecord,
 } from "./music-types";
+import { computeSetlistHighlights, type SetlistHighlightOptions, type SetlistHighlightRow, type SetlistHighlights } from "./setlist-highlights";
 
 function safeLimit(value: number | undefined, fallback = 100, maximum = 500): number {
   return Math.max(1, Math.min(value ?? fallback, maximum));
@@ -405,6 +406,21 @@ export async function listSetlistYears(
     ORDER BY year DESC
   `).bind(...bindings).all<{ year: string; count: number }>();
   return result.results;
+}
+
+/** Debuts, long-gap returns and song lists for every public setlist, derived from the whole archive. */
+export async function getSetlistHighlights(db: D1Database, options: SetlistHighlightOptions = {}): Promise<Map<string, SetlistHighlights>> {
+  const result = await db.prepare(`
+    SELECT sl.id AS setlist_id, e.start_date, se.song_id, s.title AS song_title,
+      COALESCE(NULLIF(TRIM(se.display_title), ''), s.title) AS display_title, s.first_release_date
+    FROM setlist_entries se
+    JOIN setlists sl ON sl.id = se.setlist_id
+    JOIN events e ON e.id = sl.event_id
+    JOIN songs s ON s.id = se.song_id
+    WHERE sl.published = 1 AND e.published = 1 AND e.archived_at IS NULL AND e.start_date IS NOT NULL
+    ORDER BY e.start_date, COALESCE(e.start_time, ''), sl.id, se.position
+  `).all<SetlistHighlightRow>();
+  return computeSetlistHighlights(result.results ?? [], options);
 }
 
 export async function getSetlistById(db: D1Database, id: string): Promise<SetlistDetail | null> {

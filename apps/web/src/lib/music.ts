@@ -76,6 +76,11 @@ export function formatMusicDate(value: string | null, locale: Locale = "zh-CN"):
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
+/** Years between two performances, one decimal, in the page locale (e.g. 7.8). */
+export function formatGapYears(days: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 0 }).format(Math.floor((days / 365.25) * 10) / 10);
+}
+
 /** Month, day and weekday labels for a date block, formatted for the page locale. */
 export function musicDateParts(value: string | null, locale: Locale): { year: string; month: string; day: string; weekday: string } | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;

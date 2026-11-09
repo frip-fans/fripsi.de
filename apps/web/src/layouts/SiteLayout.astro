@@ -302,7 +302,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
         overlay.setAttribute("aria-hidden", "true");
         overlay.inert = true;
         menuExitOverlay = overlay;
-        document.body.append(overlay);
+        document.body.appendChild(overlay);
         const animation = overlay.animate([{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(10px)" }], { duration: 140, easing: "ease-in", fill: "forwards" });
         const remove = () => { overlay.remove(); if (menuExitOverlay === overlay) menuExitOverlay = undefined; };
         animation.addEventListener("finish", remove, { once: true });

@@ -47,7 +47,7 @@ function setupMusicNav() {
       // can reflect its current animation rather than its full text width.
       const measure = link.querySelector("span")!.cloneNode(true) as HTMLElement;
       measure.style.cssText = "position:fixed;visibility:hidden;width:max-content;max-width:none;white-space:nowrap;transition:none";
-      link.append(measure);
+      link.appendChild(measure);
       const textWidth = measure.getBoundingClientRect().width;
       measure.remove();
       return textWidth + link.querySelector(".icon")!.getBoundingClientRect().width

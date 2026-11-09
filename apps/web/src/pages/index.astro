@@ -1,6 +1,6 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { dateInTimeZone, eventUpdateWindowStart, getLastOfficialSyncAt, getMusicLibraryStats, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
+import { countEvents, dateInTimeZone, eventUpdateWindowStart, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
@@ -20,13 +20,16 @@ const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt] = await Promise.all([
+const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay, eventCount] = await Promise.all([
   searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 4 }, true),
   listSetlists(db, { order: "desc", limit: 3 }),
   // The date is the seed, so the spotlight holds for the whole day and for every visitor and language.
   getSongSpotlight(db, today),
   getMusicLibraryStats(db),
   getLastOfficialSyncAt(db),
+  // The hero leads with what happened on this calendar day instead of decorative lyrics.
+  getOnThisDay(db, today),
+  countEvents(db, {}, true),
 ]);
 // Claim the daily sync only while it is actually running: the line disappears once the last
 // completed run falls out of the window, rather than promising something that stopped.
@@ -95,13 +98,32 @@ const nextCountdown = !next
     <div class="hero-intro">
       <div class="hero-copy">
         <p class="eyebrow" lang="en" translate="no">fripSide Fan Site</p>
-        <div class="hero-lyrics">
-          <h1 class="hero-title" data-lyric-rotator lang="en">
-            <span class="title-lead" data-lyric-lead>This desire</span>
-            <span class="title-solid"><span data-lyric-line-one>is bound</span><br data-lyric-break /><span data-lyric-line-two>in the melody.</span></span>
-          </h1>
-        </div>
-        <p class="hero-description">{t(locale, "home.description")}</p>
+        {onThisDay ? (
+          <div class="hero-today">
+            <p class="hero-today-label">
+              <Icon name="archive" />{t(locale, "home.onThisDay")}
+              {onThisDay.total > 1 && <span class="hero-today-count">{t(locale, "home.onThisDayCount", { count: onThisDay.total })}</span>}
+            </p>
+            <h1 class="hero-title">
+              <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
+              <span class="hero-today-ago">{onThisDay.years_ago > 0 ? t(locale, "home.yearsAgo", { count: onThisDay.years_ago }) : t(locale, "home.yearsAgoSame")}</span>
+            </h1>
+            <p class="hero-today-title">
+              <a href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)}>{onThisDay.event.title}</a>
+            </p>
+            {onThisDay.event.setlist_id && (
+              <a class="hero-today-setlist" href={`/music/lives/${encodeURIComponent(onThisDay.event.setlist_id)}`}>
+                <Icon name="list-music" size=".85rem" />{t(locale, "home.viewSetlist")}
+              </a>
+            )}
+          </div>
+        ) : (
+          <div class="hero-today">
+            <h1 class="hero-title hero-tagline">{t(locale, "home.heroTagline")}</h1>
+            <p class="hero-description">{t(locale, "home.description")}</p>
+          </div>
+        )}
+        <p class="hero-scale">{t(locale, "home.archiveScale", { events: eventCount, setlists: libraryStats.setlist_count, songs: libraryStats.song_count })}</p>
       </div>
       <div class="actions">
         <a class="button" href="/calendar"><Icon name="calendar3" /><span class="label-full">{t(locale, "nav.calendar")}</span><span class="label-short">{t(locale, "nav.calendar")}</span></a>
@@ -181,95 +203,30 @@ const nextCountdown = !next
 </SiteLayout>
 
 <script>
+  // The toggle now only governs the background crossfade; the hero text no longer animates.
   let cleanupHome: (() => void) | undefined;
   const setupHome = () => {
     cleanupHome?.();
-    if (!document.querySelector("[data-lyric-rotator]")) return;
+    const motionToggle = document.querySelector<HTMLButtonElement>("[data-home-motion]");
+    if (!motionToggle) return;
     const controller = new AbortController();
     const { signal } = controller;
-    const rotator = document.querySelector<HTMLElement>("[data-lyric-rotator]");
-    const lead = rotator?.querySelector<HTMLElement>("[data-lyric-lead]");
-    const lineOne = rotator?.querySelector<HTMLElement>("[data-lyric-line-one]");
-    const lineTwo = rotator?.querySelector<HTMLElement>("[data-lyric-line-two]");
-    const lineBreak = rotator?.querySelector<HTMLElement>("[data-lyric-break]");
-    const lyrics = [
-      { lead: "This desire", lineOne: "is bound", lineTwo: "in the melody.", variant: "" },
-      { lead: "Did my song arrive？", lineOne: "Up to that far", lineTwo: "distant moon.", variant: "english" },
-      { lead: "変わりゆく季節が今、", lineOne: "迷いながら", lineTwo: "景色を染めてく", variant: "japanese" },
-      { lead: "ずっと忘れることのない", lineOne: "深く刻まれたこの記憶", lineTwo: "", variant: "japanese" },
-      { lead: "君と出会った必然が", lineOne: "無限の宇宙に解き放たれて輝く", lineTwo: "その絆だけが　unlimited destiny", variant: "japanese-long" }
-    ];
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const smallScreen = window.matchMedia("(max-width: 800px)");
-    let activeIndex = 0;
-    let rotationTimer: number | undefined;
-    let transitionTimer: number | undefined;
-    let cleanupTimer: number | undefined;
 
-    const renderLyric = () => {
-      const lyric = lyrics[activeIndex];
-      if (!rotator || !lead || !lineOne || !lineTwo || !lyric) return;
-      lead.textContent = lyric.lead;
-      lineOne.textContent = lyric.lineOne;
-      lineTwo.textContent = lyric.lineTwo;
-      if (lineBreak) lineBreak.hidden = !lyric.lineTwo;
-      lineTwo.hidden = !lyric.lineTwo;
-      rotator.dataset.variant = lyric.variant;
-      rotator.lang = lyric.variant.startsWith("japanese") ? "ja" : "en";
-    };
-
-    const showNextLyric = () => {
-      if (!rotator) return;
-      rotator.classList.add("is-glitching");
-      transitionTimer = window.setTimeout(() => {
-        activeIndex = (activeIndex + 1) % lyrics.length;
-        renderLyric();
-        transitionTimer = undefined;
-      }, 260);
-      cleanupTimer = window.setTimeout(() => {
-        rotator.classList.remove("is-glitching");
-        cleanupTimer = undefined;
-      }, 560);
-    };
-
-    const stopRotation = () => {
-      if (rotationTimer !== undefined) window.clearInterval(rotationTimer);
-      if (transitionTimer !== undefined) window.clearTimeout(transitionTimer);
-      if (cleanupTimer !== undefined) window.clearTimeout(cleanupTimer);
-      rotationTimer = undefined;
-      transitionTimer = undefined;
-      cleanupTimer = undefined;
-      rotator?.classList.remove("is-glitching");
-    };
-
-    const startRotation = () => {
-      stopRotation();
-      if (!smallScreen.matches && !reducedMotion.matches && lyrics.length > 1 && !document.hidden && document.documentElement.dataset.homeMotionPaused !== "true") {
-        rotationTimer = window.setInterval(showNextLyric, 8000);
-      }
-    };
-
-    const motionToggle = document.querySelector<HTMLButtonElement>("[data-home-motion]");
     const updateMotionToggle = () => {
-      if (!motionToggle) return;
       const paused = document.documentElement.dataset.homeMotionPaused === "true";
       motionToggle.setAttribute("aria-pressed", String(paused));
       motionToggle.querySelector("span")!.textContent = (paused ? motionToggle.dataset.resumeLabel : motionToggle.dataset.pauseLabel) ?? "";
       motionToggle.hidden = reducedMotion.matches;
     };
-    motionToggle?.addEventListener("click", () => {
+    motionToggle.addEventListener("click", () => {
       document.documentElement.dataset.homeMotionPaused = String(document.documentElement.dataset.homeMotionPaused !== "true");
       updateMotionToggle();
-      startRotation();
       document.dispatchEvent(new Event("home-motion-change"));
     }, { signal });
     updateMotionToggle();
     reducedMotion.addEventListener("change", updateMotionToggle, { signal });
-    reducedMotion.addEventListener("change", startRotation, { signal });
-    smallScreen.addEventListener("change", startRotation, { signal });
-    document.addEventListener("visibilitychange", startRotation, { signal });
-    startRotation();
-    cleanupHome = () => { stopRotation(); controller.abort(); };
+    cleanupHome = () => controller.abort();
   };
   document.addEventListener("astro:before-swap", () => cleanupHome?.());
   document.addEventListener("astro:page-load", setupHome);
@@ -280,47 +237,32 @@ const nextCountdown = !next
   .mobile-home-title { display: none; }
   .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: center; gap: clamp(2rem, 7vw, 7rem); padding: 2rem 0 .5rem; }
   .hero-intro { grid-column: 1; grid-row: 1; min-width: 0; }
-  /* Reserve rotation space separately so the shade follows the visible lyrics. */
-  .hero-lyrics { min-height: clamp(5.25rem, 13.5vw, 10.75rem); }
-  .hero-title::before {
+  .signal { grid-column: 2; grid-row: 1; min-width: 0; }
+  /* The shade keeps the hero text readable over the photo backdrop. */
+  .hero-today { position: relative; isolation: isolate; }
+  .hero-today::before {
     content: "";
     position: absolute;
     z-index: -1;
-    inset: -2rem -3rem;
+    inset: -1.5rem -2.5rem;
     pointer-events: none;
     background: radial-gradient(ellipse closest-side at center, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%);
   }
-  .signal { grid-column: 2; grid-row: 1; min-width: 0; }
-  .hero-title { position: relative; isolation: isolate; display: grid; width: fit-content; max-width: 100%; align-content: start; gap: .14em; margin-bottom: 0; }
-  .hero-title::after { content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(120, 225, 255, .14) 6px, transparent 7px); mix-blend-mode: screen; }
-  .hero-title.is-glitching { animation: lyric-signal-glitch .56s steps(2, end) both; }
-  .hero-title.is-glitching::after { animation: lyric-scanlines .56s steps(3, end) both; }
-  .title-lead, .title-solid { display: block; }
-  .title-lead { color: var(--text); }
-  .title-solid { color: var(--text); font-size: .72em; line-height: 1.08; letter-spacing: -.045em; }
-  .hero-title[data-variant="english"] .title-lead { font-size: .7em; line-height: 1.06; letter-spacing: -.055em; }
-  .hero-title[data-variant="japanese"] .title-lead { font-size: .56em; line-height: 1.12; letter-spacing: -.06em; }
-  .hero-title[data-variant="japanese"] .title-solid { font-size: .5em; line-height: 1.28; letter-spacing: -.06em; }
-  .hero-title[data-variant="japanese-long"] .title-lead { font-size: .46em; line-height: 1.16; letter-spacing: -.055em; }
-  .hero-title[data-variant="japanese-long"] .title-solid { font-size: .34em; line-height: 1.42; letter-spacing: -.035em; }
-  @supports (-webkit-text-stroke: 1px currentColor) {
-    .title-solid { color: transparent; -webkit-text-stroke: 1.5px var(--text); }
-  }
-  @keyframes lyric-signal-glitch {
-    0%, 100% { opacity: 1; clip-path: inset(0); transform: translate(0) skewX(0); filter: none; }
-    10% { transform: translate(3px, -1px) skewX(-1deg); filter: drop-shadow(-4px 0 rgba(102, 224, 255, .7)) drop-shadow(4px 0 rgba(var(--accent-rgb), .75)); }
-    22% { clip-path: inset(8% 0 58% 0); transform: translate(-7px, 1px) skewX(2deg); }
-    34% { clip-path: inset(52% 0 16% 0); transform: translate(6px, -2px) skewX(-2deg); filter: drop-shadow(5px 0 rgba(102, 224, 255, .8)) drop-shadow(-5px 0 rgba(var(--accent-rgb), .8)); }
-    46%, 52% { opacity: 0; clip-path: inset(0 0 82% 0); transform: translate(-10px, 0) scaleX(1.025); }
-    62% { opacity: .72; clip-path: inset(62% 0 5% 0); transform: translate(8px, 1px) skewX(2deg); filter: drop-shadow(-5px 0 rgba(102, 224, 255, .75)) drop-shadow(5px 0 rgba(var(--accent-rgb), .8)); }
-    76% { opacity: 1; clip-path: inset(18% 0 40% 0); transform: translate(-4px, -1px); }
-    88% { clip-path: inset(0); transform: translate(2px, 0); filter: drop-shadow(2px 0 rgba(var(--accent-rgb), .45)); }
-  }
-  @keyframes lyric-scanlines {
-    0%, 100% { opacity: 0; transform: translateX(0); }
-    18%, 78% { opacity: .8; transform: translateX(-5px); }
-    48% { opacity: 1; transform: translateX(7px); }
-  }
+  .hero-today-label { display: flex; align-items: center; gap: .4rem; margin: 0 0 .5rem; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
+  .hero-today-label :global(.icon) { color: var(--accent); }
+  .hero-today-count { color: var(--muted); font-weight: 400; letter-spacing: .04em; opacity: .85; }
+  .hero-today-count::before { content: "·"; margin-right: .4rem; }
+  .hero-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25em .6rem; margin-bottom: 0; font-size: clamp(2.4rem, 6vw, 4.25rem); line-height: 1.05; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  /* The accent date belongs to the next show on the right; this one stays in text ink. */
+  .hero-title time { color: var(--text); }
+  .hero-today-ago { color: var(--muted); font-size: .3em; font-weight: 500; letter-spacing: 0; }
+  .hero-tagline { font-size: clamp(1.9rem, 4.2vw, 3rem); letter-spacing: -.03em; }
+  .hero-today-title { max-width: 32rem; margin: .9rem 0 0; font-size: 1.0625rem; line-height: 1.55; }
+  .hero-today-title a { color: var(--text); text-decoration: none; }
+  .hero-today-title a:hover { color: var(--accent); }
+  .hero-today-setlist { display: inline-flex; align-items: center; gap: .35rem; min-height: 36px; margin-top: .35rem; color: var(--accent); font-size: .8125rem; text-decoration: none; }
+  .hero-today-setlist:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .hero-scale { margin: 1.1rem 0 0; color: var(--muted); font-size: .78rem; letter-spacing: .01em; }
   .hero-description { max-width: 34rem; margin: 1.15rem 0 .6rem; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
   .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
   .motion-toggle:hover { color: var(--text); transform: none; }
@@ -403,26 +345,21 @@ const nextCountdown = !next
   .signal a:focus-visible { outline: none; }
   .signal a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
   .signal a { display: inline-flex; align-items: center; gap: .35rem; }
-  @media (prefers-reduced-motion: reduce) { .hero-title.is-glitching, .hero-title.is-glitching::after { animation: none; } }
   @media (min-width: 801px) and (max-width: 1040px) {
     .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 1100px) {
-    @supports (-webkit-text-stroke: 1px currentColor) {
-      .hero-title[data-variant^="japanese"] .title-solid {
-        color: rgba(239, 248, 255, .38);
-        -webkit-text-stroke: 1.25px rgba(239, 248, 255, .96);
-        text-shadow: 0 2px 18px rgba(0, 0, 0, .42);
-      }
-    }
-    .hero-title[data-variant="japanese"] .title-solid { letter-spacing: -.035em; }
   }
   @media (max-width: 800px) {
     .mobile-home-title { display: block; position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
     .hero-intro, .signal { grid-column: auto; grid-row: auto; }
     .hero-intro { display: flex; flex-direction: column; }
-    .hero-copy { display: none; }
+    .hero-copy { order: -1; margin-bottom: .35rem; }
+    .hero-today::before { inset: -1rem -1.25rem; }
+    .hero-title { font-size: clamp(1.75rem, 9vw, 2.25rem); }
+    .hero-today-ago { font-size: .42em; }
+    .hero-tagline { font-size: 1.5rem; }
+    .hero-today-title { margin-top: .6rem; font-size: .9375rem; line-height: 1.5; }
+    .hero-scale { margin-top: .8rem; font-size: .72rem; }
     .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }
     .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
     .label-full { display: none; }
@@ -449,13 +386,6 @@ const nextCountdown = !next
     .recent-setlist-grid { grid-template-columns: 1fr; }
     .recent-setlist-card { min-height: 0; }
     .recent-setlist-card h3 { color: #d3dce8; font-weight: 600; }
-    @supports (-webkit-text-stroke: 1px currentColor) {
-      .hero-title[data-variant^="japanese"] .title-solid {
-        color: rgba(239, 248, 255, .92);
-        -webkit-text-stroke: .4px rgba(239, 248, 255, .72);
-        text-shadow: 0 2px 20px rgba(0, 0, 0, .55);
-      }
-    }
   }
   @media (max-width: 480px) {
     .latest-events-heading h2, .recent-setlists .section-heading h2 { font-size: 1.0625rem; }

@@ -63,6 +63,14 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content={resolvedDescription} />
     <meta name="theme-color" content="#07101c" />
+    <!-- Select the responsive navigation before external styles or scripts load. -->
+    <style is:inline data-critical-navigation>
+      .mobile-menu-trigger { display: none; }
+      @media (max-width: 760px) {
+        .header-actions { display: none; }
+        .mobile-menu-trigger { display: inline-flex; }
+      }
+    </style>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={new URL(Astro.url.pathname, canonicalBase)} />
     <title>{title === siteName ? title : `${title} · ${siteName}`}</title>
@@ -167,6 +175,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   import "../lib/event-navigation-client";
   let navigationController: AbortController | undefined;
   let cleanupNavigation: (() => void) | undefined;
+  let menuExitOverlay: HTMLElement | undefined;
   const setupNavigation = () => {
     cleanupNavigation?.();
     navigationController?.abort();
@@ -200,7 +209,16 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
       document.documentElement.classList.toggle("mobile-menu-open", open);
     };
     let background: { element: HTMLElement; inert: boolean }[] = [];
-    const closeMenu = (restoreFocus = true) => {
+    let menuAnimation: Animation | undefined;
+    let closing = false;
+    let menuCloseTimer: number | undefined;
+    const reducedMenuMotion = matchMedia("(prefers-reduced-motion: reduce)");
+    const finishClose = (restoreFocus: boolean) => {
+      window.clearTimeout(menuCloseTimer);
+      menuCloseTimer = undefined;
+      menuAnimation?.cancel();
+      menuAnimation = undefined;
+      closing = false;
       const wasOpen = !menu.hidden;
       menu.hidden = true;
       background.forEach(({ element, inert }) => { element.inert = inert; });
@@ -208,13 +226,34 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
       setOpenState(false);
       if (restoreFocus && wasOpen && trigger.getClientRects().length > 0) trigger.focus();
     };
-    cleanupNavigation = () => closeMenu(false);
+    const closeMenu = (restoreFocus = true, animate = true) => {
+      if (closing && animate) return;
+      if (!animate || menu.hidden || reducedMenuMotion.matches) { finishClose(restoreFocus); return; }
+      const current = getComputedStyle(menu);
+      const from = { opacity: current.opacity, transform: current.transform };
+      menuAnimation?.cancel();
+      closing = true;
+      menuAnimation = menu.animate([from, { opacity: 0, transform: "translateY(10px)" }], { duration: 140, easing: "ease-in", fill: "forwards" });
+      menuAnimation.addEventListener("finish", () => finishClose(restoreFocus), { once: true });
+      // Backgrounded renderers can pause animation events; never leave a closing
+      // menu trapping focus or scrolling after its short exit has elapsed.
+      menuCloseTimer = window.setTimeout(() => finishClose(restoreFocus), 180);
+    };
+    cleanupNavigation = () => closeMenu(false, false);
+    reducedMenuMotion.addEventListener("change", () => {
+      if (reducedMenuMotion.matches) menuAnimation?.finish();
+    }, { signal });
     trigger.addEventListener("click", () => {
       if (!menu.hidden) return;
+      menuExitOverlay?.remove();
+      menuExitOverlay = undefined;
       menu.hidden = false;
       background = [...document.querySelectorAll<HTMLElement>(".site-header, main, footer")].map(element => ({ element, inert: element.inert }));
       background.forEach(({ element }) => { element.inert = true; });
       setOpenState(true);
+      if (!reducedMenuMotion.matches) {
+        menuAnimation = menu.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 180, easing: "ease-out" });
+      }
       close.focus();
     }, { signal });
     close.addEventListener("click", () => closeMenu(), { signal });
@@ -243,10 +282,36 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
       }, { signal });
     });
     const mobile = matchMedia("(max-width: 760px)");
-    mobile.addEventListener("change", () => { if (!mobile.matches) closeMenu(false); }, { signal });
+    mobile.addEventListener("change", () => { if (!mobile.matches) closeMenu(false, false); }, { signal });
     // The old DOM is detached now: cleanup cannot reveal the outgoing page.
-    document.addEventListener("astro:after-swap", () => closeMenu(false), { signal });
-    window.addEventListener("pageshow", event => { if (event.persisted) closeMenu(false); }, { signal });
+    document.addEventListener("astro:after-swap", () => {
+      // Fade a non-interactive copy over the NEW page. The outgoing page has
+      // already been replaced, so closing the menu cannot reveal stale content.
+      if (!menu.hidden && !reducedMenuMotion.matches) {
+        menuExitOverlay?.remove();
+        const overlay = menu.cloneNode(true) as HTMLElement;
+        for (const element of [overlay, ...overlay.querySelectorAll("*")]) {
+          element.removeAttribute("id");
+          for (const attribute of [...element.attributes]) {
+            if (attribute.name.startsWith("data-") && !attribute.name.startsWith("data-astro-")) element.removeAttribute(attribute.name);
+          }
+        }
+        overlay.dataset.menuExitOverlay = "true";
+        overlay.removeAttribute("role");
+        overlay.removeAttribute("aria-modal");
+        overlay.setAttribute("aria-hidden", "true");
+        overlay.inert = true;
+        menuExitOverlay = overlay;
+        document.body.append(overlay);
+        const animation = overlay.animate([{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: "translateY(10px)" }], { duration: 140, easing: "ease-in", fill: "forwards" });
+        const remove = () => { overlay.remove(); if (menuExitOverlay === overlay) menuExitOverlay = undefined; };
+        animation.addEventListener("finish", remove, { once: true });
+        animation.addEventListener("cancel", remove, { once: true });
+        window.setTimeout(remove, 220);
+      }
+      closeMenu(false, false);
+    }, { signal });
+    window.addEventListener("pageshow", event => { if (event.persisted) closeMenu(false, false); }, { signal });
     setOpenState(false);
   };
   setupNavigation();

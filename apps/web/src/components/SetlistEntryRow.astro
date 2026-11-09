@@ -1,0 +1,153 @@
+---
+import type { AdminSetlistDetail, MusicEditorOptions } from "@frip-fan/core";
+import Icon from "./Icon.astro";
+import SearchSelect from "./SearchSelect.astro";
+
+interface Props {
+  entry?: AdminSetlistDetail["entries"][number];
+  index?: number;
+  songChoices: Array<{ value: string; label: string; searchText?: string; title?: string }>;
+  versions: MusicEditorOptions["versions"];
+  sectionLabels: Record<string, string>;
+}
+
+const { entry, index = 0, songChoices, versions, sectionLabels } = Astro.props;
+const position = String(index + 1).padStart(2, "0");
+---
+<div class="entry-row" data-entry-row data-section={entry?.section ?? "main"}>
+  <button type="button" class="drag-handle" data-drag-handle aria-label="拖动排序；聚焦时可用 ↑ ↓ 移动，Home / End 移到首尾" title="拖动排序">
+    <Icon name="grip-vertical" />
+  </button>
+  <input class="row-position" data-row-position type="text" inputmode="numeric" autocomplete="off" value={position} aria-label="位置（输入数字后回车移动）" title="输入数字后回车移动到该位置" />
+  <div class="cell cell-song">
+    <span class="field-label">歌曲 *</span>
+    <SearchSelect
+      name="entry_song_id"
+      choices={songChoices}
+      value={entry?.song_id}
+      placeholder="选择歌曲…"
+      searchPlaceholder="搜索歌曲名或别名"
+      emptyText="没有匹配的歌曲"
+      ariaLabel="歌曲"
+      required
+    />
+  </div>
+  <label class="cell cell-version"><span class="field-label">演唱版本</span>
+    <select name="entry_version_id">
+      <option value="">未指定版本</option>
+      {versions.map((version) => <option value={version.id} data-song-id={version.song_id} data-title={version.title} selected={entry?.performed_version_id === version.id}>{version.title}</option>)}
+    </select>
+  </label>
+  <label class="cell cell-section"><span class="field-label">段落</span>
+    <select name="entry_section">
+      {Object.entries(sectionLabels).map(([value, label]) => <option value={value} selected={(entry?.section ?? "main") === value}>{label}</option>)}
+    </select>
+  </label>
+  <label class="cell cell-medley"><span class="field-label">Medley</span><input name="entry_medley" maxlength="40" value={entry?.medley_group ?? ""} placeholder="组" /></label>
+  <div class="row-actions">
+    <button type="button" class="ghost icon-button" data-toggle-details aria-expanded="false" aria-label="显示标题与备注" title="显示标题与备注"><Icon name="three-dots" /><i class="dot" aria-hidden="true"></i></button>
+    <button type="button" class="ghost icon-button" data-insert-below aria-label="在下方插入歌曲" title="在下方插入歌曲"><Icon name="plus" /></button>
+    <button type="button" class="ghost icon-button danger-ghost" data-remove-row aria-label="删除这首" title="删除（可撤销）"><Icon name="trash" /></button>
+  </div>
+  <div class="row-details">
+    <label><span class="field-label">显示标题</span><input name="entry_title" maxlength="240" value={entry?.display_title ?? ""} placeholder="留空时使用演唱版本名或歌曲名" /></label>
+    <label><span class="field-label">备注</span><input name="entry_notes" maxlength="1000" value={entry?.notes ?? ""} placeholder="例如演出成员、特别版本说明" /></label>
+  </div>
+</div>
+
+<style>
+  .entry-row {
+    --section-color: transparent;
+    position: relative;
+    display: grid;
+    grid-template-columns: 2rem 2.8rem minmax(11rem, 1.35fr) minmax(10rem, 1.2fr) 7rem 4.6rem auto;
+    grid-template-areas: "handle pos song version section medley actions" ". . details details details details details";
+    gap: 0 .5rem;
+    align-items: center;
+    padding: .45rem .55rem .45rem .35rem;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--section-color);
+    border-radius: 11px;
+    background: rgba(4, 11, 20, .58);
+    transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+  }
+  .entry-row[data-section="encore"] { --section-color: #7cc7ff; }
+  .entry-row[data-section="double_encore"] { --section-color: #b99cff; }
+  .entry-row[data-section="opening"] { --section-color: #79d9a6; }
+  .entry-row[data-section="other"] { --section-color: #8d96a8; }
+  .entry-row[data-section-start]::before {
+    content: attr(data-section-start);
+    position: absolute;
+    top: -.72rem;
+    left: 3.2rem;
+    padding: 0 .45rem;
+    color: var(--section-color);
+    background: #08111e;
+    border-radius: 4px;
+    font: 800 .66rem/1.4 ui-monospace, monospace;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+  }
+  .entry-row[data-section-start] { margin-top: .9rem; }
+  .entry-row:focus-within { border-color: rgba(var(--accent-rgb), .38); border-left-color: var(--section-color); }
+  .entry-row.dragging { z-index: 5; background: #101b2c; border-color: rgba(var(--accent-rgb), .6); box-shadow: 0 16px 40px rgba(0,0,0,.5); cursor: grabbing; }
+  .entry-row.flash { animation: row-flash 1.1s ease; }
+  .entry-row.unmatched { border-color: rgba(255, 190, 110, .6); background: rgba(255, 170, 70, .07); }
+  @keyframes row-flash { 0% { background: rgba(var(--accent-rgb), .22); } 100% { background: rgba(4, 11, 20, .58); } }
+
+  .drag-handle { grid-area: handle; width: 2rem; min-height: 2.4rem; padding: 0; color: var(--muted); background: transparent; border: 0; border-radius: 7px; cursor: grab; touch-action: none; }
+  .drag-handle:hover, .drag-handle:focus-visible { color: var(--accent); background: rgba(255,255,255,.06); filter: none; transform: none; }
+  .drag-handle:focus-visible { outline: 2px solid rgba(var(--accent-rgb), .7); outline-offset: 1px; }
+  .drag-handle :global(.icon) { width: 1.1rem; height: 1.1rem; }
+  .row-position { grid-area: pos; width: 2.8rem; min-height: 2.4rem; padding: .3rem .2rem; color: var(--accent); background: transparent; border: 1px solid transparent; border-radius: 7px; font: 800 .82rem/1 ui-monospace, monospace; text-align: center; }
+  .row-position:hover { border-color: var(--line); }
+  .row-position:focus { color: var(--text); background: rgba(2,8,16,.9); border-color: rgba(var(--accent-rgb), .55); outline: 0; }
+
+  .cell { display: grid; gap: .3rem; min-width: 0; }
+  .cell-song { grid-area: song; }
+  .cell-version { grid-area: version; }
+  .cell-section { grid-area: section; }
+  .cell-medley { grid-area: medley; }
+  .cell select, .cell input, .row-details input { min-height: 2.4rem; padding-block: .45rem; font-size: .86rem; }
+  .cell-song :global(button.search-select-trigger) { min-height: 2.4rem; padding-block: .45rem; }
+  .field-label { color: var(--muted); font-size: .74rem; }
+  /* Compact view keeps the column header for sighted users and the visible label text for screen readers. */
+  :global(.view-compact) .cell .field-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+  .row-actions { grid-area: actions; display: flex; gap: .1rem; }
+  .icon-button { position: relative; width: 2.2rem; min-height: 2.2rem; padding: 0; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 8px; }
+  .icon-button:hover, .icon-button:focus-visible { color: var(--text); background: rgba(255,255,255,.07); border-color: var(--line); filter: none; transform: none; }
+  .icon-button[aria-expanded="true"] { color: var(--accent); }
+  .danger-ghost:hover, .danger-ghost:focus-visible { color: #ffb3c1; border-color: rgba(255, 120, 150, .4); background: rgba(255, 90, 120, .1); }
+  .dot { position: absolute; top: .35rem; right: .35rem; width: .38rem; height: .38rem; border-radius: 50%; background: var(--accent); opacity: 0; }
+  .entry-row.has-details .dot { opacity: 1; }
+
+  .row-details { grid-area: details; display: none; grid-template-columns: 1fr 1fr; gap: .5rem; padding: .5rem 0 .2rem; }
+  .row-details label { display: grid; gap: .3rem; min-width: 0; }
+  .entry-row.expanded .row-details, :global(.view-detailed) .row-details { display: grid; }
+  :global(.view-detailed) [data-toggle-details] { display: none; }
+
+  @media (max-width: 1050px) {
+    .entry-row {
+      grid-template-columns: 2rem 2.8rem minmax(0, 1fr) 7rem 4.6rem auto;
+      grid-template-areas: "handle pos song song song actions" ". . version section medley medley" ". . details details details details";
+      row-gap: .45rem;
+    }
+    .row-details { padding-top: 0; }
+  }
+  @media (max-width: 640px) {
+    .entry-row {
+      grid-template-columns: 2.1rem minmax(0, 1fr) 3rem auto;
+      grid-template-areas: "pos song song song" "handle version version version" "handle section medley actions" ". details details details";
+      row-gap: .4rem;
+      padding: .5rem .45rem .5rem .2rem;
+    }
+    .drag-handle { width: 100%; align-self: stretch; height: auto; }
+    .row-position { width: 100%; }
+    .entry-row[data-section-start]::before { left: 2.4rem; }
+    .cell-medley input { padding-inline: .4rem; text-align: center; }
+    .row-actions { gap: 0; }
+    .icon-button { width: 2rem; }
+    .row-details { grid-template-columns: 1fr; }
+  }
+</style>

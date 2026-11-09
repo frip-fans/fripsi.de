@@ -91,6 +91,8 @@ export interface SongReleaseAppearance {
 
 export interface SongPerformance {
   setlist_id: string;
+  setlist_title?: string | null;
+  event_classification?: string | null;
   performance_label: string;
   event_slug: string;
   event_title: string;
@@ -164,6 +166,8 @@ export interface ReleaseTrackRecord {
   version_label: string | null;
   work_show_count: number;
   exact_version_show_count: number;
+  /** 1 when this version is recorded as an instrumental of another version (public release pages only). */
+  is_instrumental?: number;
 }
 
 export interface ReleaseDetail extends ReleaseSummary {

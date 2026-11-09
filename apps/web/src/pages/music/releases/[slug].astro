@@ -13,6 +13,14 @@ const locale = getLocale(Astro.request);
 const release = await getReleaseBySlug(getEnv().DB, Astro.params.slug!);
 if (!release) return Astro.redirect("/404", 302);
 let previousDisc = 0;
+// One metric per track: shows where any version of the song was performed. Instrumentals are never sung.
+const vocalTracks = release.tracks.filter(track => !track.is_instrumental);
+const performedTracks = vocalTracks.filter(track => track.work_show_count > 0).length;
+const maxShows = Math.max(0, ...vocalTracks.map(track => track.work_show_count));
+const ringRadius = 22;
+const ringLength = 2 * Math.PI * ringRadius;
+const ringFill = vocalTracks.length ? (performedTracks / vocalTracks.length) * ringLength : 0;
+const performedLabel = t(locale, "music.performedRate", { performed: performedTracks, total: vocalTracks.length });
 ---
 <SiteLayout title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
   <div class="music-page" data-music-detail>
@@ -29,36 +37,54 @@ let previousDisc = 0;
         {release.catalog_number && <span class="tag">{release.catalog_number}</span>}
         {release.edition && <span class="tag">{release.edition}</span>}
         <span class="tag">{t(locale, "music.tracksCount", { count: release.track_count })}</span>
-        <span class="tag">{t(locale, "music.performedLive", { count: release.performed_song_count })}</span>
       </div>
+      {vocalTracks.length > 0 && (
+        <div class="release-rate">
+          <svg class="release-rate-ring" viewBox="0 0 56 56" role="img" aria-label={performedLabel}>
+            <circle class="release-rate-track" cx="28" cy="28" r={ringRadius} />
+            <circle class="release-rate-fill" cx="28" cy="28" r={ringRadius} stroke-dasharray={`${ringFill} ${ringLength}`} transform="rotate(-90 28 28)" />
+          </svg>
+          <p aria-hidden="true"><strong>{performedTracks}</strong><span>/{vocalTracks.length}</span><small>{t(locale, "music.performedRateShort")}</small></p>
+        </div>
+      )}
       </div>
     </header>
 
-    <section class="music-section" aria-labelledby="tracks-heading">
-      <div class="music-section-head"><h2 id="tracks-heading">{t(locale, "music.trackList")}</h2></div>
+    <section class="music-section release-tracks-section" aria-labelledby="tracks-heading">
+      {/* The list explains itself; keep the heading for screen readers only. */}
+      <h2 id="tracks-heading" class="visually-hidden">{t(locale, "music.trackList")}</h2>
       {release.tracks.length ? (
-        <div class="music-track-list">
+        <ol class="release-tracks">
           {release.tracks.map((track) => {
             const beginsDisc = track.disc_number !== previousDisc;
             previousDisc = track.disc_number;
+            const instrumental = Boolean(track.is_instrumental);
+            const shows = track.work_show_count;
+            const top = !instrumental && maxShows > 0 && shows === maxShows;
+            // "original" is the default and the instrumental status already shows on the right, so neither needs a label.
+            const rawVersion = track.version_label || (track.version_title !== track.song_title ? track.version_title : "");
+            const version = instrumental || rawVersion.trim().toLowerCase() === "original" ? "" : rawVersion;
             return (
               <>
-                {beginsDisc && release.tracks.some((item) => item.disc_number > 1) && <p class="setlist-section">{t(locale, "music.disc", { disc: track.disc_number })}</p>}
-                <article class="music-track">
-                  <span class="music-track-number">{String(track.track_number).padStart(2, "0")}</span>
-                  <div class="music-track-main">
-                    <a href={`/music/songs/${encodeURIComponent(track.song_slug)}`} translate="no"><strong>{track.display_title}</strong></a>
-                    <small>{track.version_label || (track.version_title !== track.song_title ? track.version_title : t(locale, "common.originalRecording"))}</small>
-                  </div>
-                  <div class="music-track-stats">
-                    <span><strong>{track.work_show_count}</strong> {t(locale, "music.workShows")}</span>
-                    <span><strong>{track.exact_version_show_count}</strong> {t(locale, "music.exactShows")}</span>
-                  </div>
-                </article>
+                {beginsDisc && release.tracks.some((item) => item.disc_number > 1) && <li class="release-disc" aria-hidden="true">{t(locale, "music.disc", { disc: track.disc_number })}</li>}
+                <li>
+                  <a class:list={["release-track", { "is-top": top, "is-silent": instrumental || shows === 0 }]} href={`/music/songs/${encodeURIComponent(track.song_slug)}`}>
+                    <span class="release-track-number">{String(track.track_number).padStart(2, "0")}</span>
+                    <span class="release-track-title"><strong translate="no">{track.display_title}</strong>{version && <small translate="no">{version}</small>}</span>
+                    {instrumental || shows === 0 ? (
+                      <span class="release-track-status">{t(locale, instrumental ? "music.instrumental" : "music.notPerformed")}</span>
+                    ) : (
+                      <>
+                        <span class="release-track-bar" aria-hidden="true"><span style={`--share: ${(shows / maxShows) * 100}%`}></span></span>
+                        <span class="release-track-shows">{t(locale, "music.showsShort", { count: shows })}</span>
+                      </>
+                    )}
+                  </a>
+                </li>
               </>
             );
           })}
-        </div>
+        </ol>
       ) : <div class="music-empty panel">{t(locale, "music.emptyRelease")}</div>}
     </section>
 
@@ -70,3 +96,45 @@ let previousDisc = 0;
     )}
   </div>
 </SiteLayout>
+
+<style>
+  .release-tracks-section { margin-top: 2rem; }
+  .release-rate { display: inline-flex; align-items: center; gap: .75rem; margin-top: 1.1rem; }
+  .release-rate-ring { width: 56px; height: 56px; flex: 0 0 auto; }
+  .release-rate-track, .release-rate-fill { fill: none; stroke-width: 6; }
+  .release-rate-track { stroke: rgba(159, 180, 211, .18); }
+  .release-rate-fill { stroke: var(--accent); stroke-linecap: round; }
+  .release-rate p { display: grid; grid-template-columns: auto 1fr; align-items: baseline; column-gap: .2rem; margin: 0; font-variant-numeric: tabular-nums; }
+  .release-rate strong { font-size: 1.5rem; line-height: 1; }
+  .release-rate span { color: var(--muted); font-weight: 650; }
+  .release-rate small { grid-column: 1 / -1; color: var(--muted); font-size: .8125rem; }
+  .release-tracks { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); overflow: hidden; }
+  .release-tracks > li + li .release-track, .release-tracks > li + .release-disc { border-top: 1px solid rgba(159, 180, 211, .1); }
+  .release-disc { padding: .9rem 1rem .5rem; color: var(--muted); font: 700 .75rem/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+  .release-track { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) minmax(4rem, 9rem) 4.5rem; align-items: center; gap: .9rem; min-height: 52px; padding: .55rem 1rem; color: inherit; text-decoration: none; }
+  .release-track:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .release-track-number { color: var(--muted); font: 700 .8rem/1 ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .release-track-title { display: flex; align-items: baseline; gap: .55rem; min-width: 0; }
+  .release-track-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .release-track-title small { flex: 0 1 auto; min-width: 0; overflow: hidden; color: var(--muted); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+  .release-track-bar { height: 6px; border-radius: 999px; background: rgba(159, 180, 211, .12); overflow: hidden; }
+  .release-track-bar span { display: block; width: var(--share); height: 100%; border-radius: inherit; background: rgba(159, 180, 211, .55); }
+  .release-track-shows { color: var(--text); font-size: .8125rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+  .release-track-status { grid-column: 3 / -1; color: var(--muted); font-size: .8125rem; text-align: right; opacity: .75; }
+  .release-track.is-silent .release-track-title strong { color: var(--muted); font-weight: 600; }
+  .release-track.is-top .release-track-number, .release-track.is-top .release-track-shows { color: var(--accent); }
+  .release-track.is-top .release-track-bar span { background: var(--accent); }
+  @media (hover: hover) and (pointer: fine) {
+    .release-track { transition: background-color .15s ease; }
+    .release-track:hover { background: rgba(255, 255, 255, .035); }
+    .release-track:hover .release-track-title strong { color: var(--accent); }
+  }
+  @media (max-width: 560px) {
+    .release-track { grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: .6rem; padding: .55rem .8rem; }
+    .release-track-title { flex-direction: column; align-items: flex-start; gap: .15rem; }
+    .release-track-title strong, .release-track-title small { max-width: 100%; }
+    .release-track-bar { grid-column: 2; grid-row: 2; margin-top: -.15rem; height: 4px; }
+    .release-track-shows { grid-column: 3; grid-row: 1; }
+    .release-track-status { grid-column: 3; }
+  }
+</style>

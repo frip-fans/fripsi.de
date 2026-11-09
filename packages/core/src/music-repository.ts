@@ -261,7 +261,7 @@ export async function getSongBySlug(db: D1Database, slug: string, performancePag
       ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC, rt.disc_number ASC, rt.track_number ASC
     `).bind(song.id).all<SongReleaseAppearance>(),
     db.prepare(`
-      SELECT sl.id AS setlist_id, sl.performance_label, e.slug AS event_slug, e.title AS event_title,
+      SELECT sl.id AS setlist_id, sl.title AS setlist_title, sl.performance_label, e.slug AS event_slug, e.title AS event_title, e.classification AS event_classification,
         e.start_date, ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,
         se.position, se.section, se.display_title,
         se.performed_version_id, pv.slug AS performed_version_slug, pv.title AS performed_version_title,
@@ -327,7 +327,9 @@ export async function getReleaseBySlug(db: D1Database, slug: string): Promise<Re
           FROM setlist_entries se
           JOIN setlists sl ON sl.id = se.setlist_id AND sl.published = 1
           JOIN events e ON e.id = sl.event_id AND e.published = 1 AND e.archived_at IS NULL
-          WHERE se.performed_version_id = sv.id) AS exact_version_show_count
+          WHERE se.performed_version_id = sv.id) AS exact_version_show_count,
+        EXISTS (SELECT 1 FROM song_version_relations svr
+          WHERE svr.child_version_id = sv.id AND svr.relation_type = 'instrumental_of') AS is_instrumental
       FROM release_tracks rt
       JOIN song_versions sv ON sv.id = rt.song_version_id AND sv.published = 1
       JOIN songs s ON s.id = sv.song_id AND s.published = 1
@@ -390,6 +392,17 @@ export async function countSetlists(db: D1Database, options: SetlistSearchOption
     ${where}
   `).bind(...bindings).first<{ count: number }>();
   return Number(row?.count ?? 0);
+}
+
+/** Public setlists on or after a date: the denominator for a song's performance rate. */
+export async function countPublicSetlistsSince(db: D1Database, date: string): Promise<number> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 0;
+  const row = await db.prepare(`
+    SELECT COUNT(*) AS count FROM setlists sl
+    JOIN events e ON e.id = sl.event_id
+    WHERE sl.published = 1 AND e.published = 1 AND e.archived_at IS NULL AND e.start_date >= ?
+  `).bind(date).first<{ count: number }>();
+  return row?.count ?? 0;
 }
 
 export async function listSetlistYears(

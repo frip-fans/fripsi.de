@@ -11,9 +11,30 @@ import { mountQuiz, type QuizPayload } from "./quiz-client";
 
 let payload: QuizPayload | null = null;
 let loading: Promise<QuizPayload | null> | null = null;
+/** Set once the dock is wired, so the greeting can run the moment the board lands. */
+let greetOnArrival: (() => void) | null = null;
 
 /** Dismissal lasts for the day it was made, so tomorrow's set shows up again. */
 const DISMISS_KEY = "frip_fan_quiz_hidden";
+/** The arrival greeting plays once per tab, not on every page within it. */
+const GREETED_KEY = "frip_fan_quiz_greeted";
+const GREETING_MS = 5200;
+
+function alreadyGreeted(): boolean {
+  try {
+    return window.sessionStorage.getItem(GREETED_KEY) === "1";
+  } catch {
+    return true;
+  }
+}
+
+function markGreeted(): void {
+  try {
+    window.sessionStorage.setItem(GREETED_KEY, "1");
+  } catch {
+    /* Without storage the greeting simply plays again next time. */
+  }
+}
 
 function dismissedFor(date: string): boolean {
   try {
@@ -116,12 +137,43 @@ export function setupQuizLauncher(): void {
     renderDots(bar, payload);
   };
 
+  const restore = bar.querySelector<HTMLButtonElement>("[data-quiz-restore]");
+  const dismiss = bar.querySelector<HTMLButtonElement>("[data-quiz-dismiss]");
+  const setTucked = (tucked: boolean) => {
+    bar.dataset.tucked = String(tucked);
+    launcher.hidden = tucked;
+    if (dismiss) dismiss.hidden = tucked;
+    if (restore) restore.hidden = !tucked;
+  };
+
   if (bar.dataset.quizLauncherReady !== "true") {
     bar.dataset.quizLauncherReady = "true";
 
-    bar.querySelector<HTMLButtonElement>("[data-quiz-dismiss]")?.addEventListener("click", () => {
-      bar.hidden = true;
+    greetOnArrival = () => {
+      if (alreadyGreeted() || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      markGreeted();
+      bar.dataset.fresh = "true";
+      window.setTimeout(() => {
+        delete bar.dataset.fresh;
+      }, GREETING_MS);
+    };
+
+    let greetingTimer: number | undefined;
+    dismiss?.addEventListener("click", () => {
+      window.clearTimeout(greetingTimer);
+      delete bar.dataset.greeting;
+      setTucked(true);
+      restore?.focus({ preventScroll: true });
       if (payload) rememberDismissal(payload.date);
+    });
+
+    restore?.addEventListener("click", () => {
+      setTucked(false);
+      try { window.localStorage.removeItem(DISMISS_KEY); } catch { /* Storage is optional. */ }
+      bar.dataset.greeting = "true";
+      window.clearTimeout(greetingTimer);
+      greetingTimer = window.setTimeout(() => delete bar.dataset.greeting, 1800);
+      launcher.focus({ preventScroll: true });
     });
 
     launcher.addEventListener("click", () => void openDialog());
@@ -157,10 +209,12 @@ export function setupQuizLauncher(): void {
   const idle = window.requestIdleCallback ?? ((callback: () => void) => window.setTimeout(callback, 1500));
   idle(() => {
     void loadBoard().then((loaded) => {
-      if (!loaded || loaded.total === 0 || dismissedFor(loaded.date)) return;
+      if (!loaded || loaded.total === 0) return;
       payload = loaded;
       renderDots(bar, loaded);
+      setTucked(dismissedFor(loaded.date));
       bar.hidden = false;
+      greetOnArrival?.();
     });
   });
 }

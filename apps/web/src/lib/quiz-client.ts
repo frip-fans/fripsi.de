@@ -90,19 +90,32 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     return payload.questions.filter((question) => question.answer !== undefined && question.choice === question.answer).length;
   }
 
+  /**
+   * Esper ranks from the series, Level 0 through Level 5. Five questions map one to one;
+   * a thinner puzzle scales so the top answer still reaches Level 5.
+   */
+  function level(): number {
+    return payload.total > 0 ? Math.round((score() / payload.total) * 5) : 0;
+  }
+
+  function levelText(): string {
+    return fill(labels.levelLabel ?? "", { level: level(), name: labels[`level${level()}`] ?? "" });
+  }
+
   function renderFinish(): void {
     card.hidden = true;
     progressNode.textContent = labels.done ?? "";
     finish.hidden = false;
     finish.querySelector<HTMLElement>("[data-quiz-finish-title]")!.textContent = labels.finishTitle ?? "";
     finish.querySelector<HTMLElement>("[data-quiz-score]")!.textContent = `${score()} / ${payload.total}`;
+    finish.querySelector<HTMLElement>("[data-quiz-level]")!.textContent = levelText();
     renderMarks(finish.querySelector<HTMLElement>("[data-quiz-marks]")!);
     finish.querySelector<HTMLElement>("[data-quiz-comeback]")!.textContent = labels.comeBack ?? "";
 
     const shareButton = finish.querySelector<HTMLButtonElement>("[data-quiz-share]")!;
     shareButton.textContent = labels.share ?? "";
     shareButton.onclick = async () => {
-      const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}`;
+      const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}\n${levelText()}`;
       const url = `${location.origin}/quiz`;
 
       // The system share sheet is the real thing where it exists; elsewhere, the

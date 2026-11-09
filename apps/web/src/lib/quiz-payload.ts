@@ -94,5 +94,12 @@ export function quizLabels(locale: Locale): Record<string, string> {
     failed: t(locale, "quiz.failed"),
     title: t(locale, "quiz.title"),
     empty: t(locale, "quiz.empty"),
+    levelLabel: t(locale, "quiz.levelLabel"),
+    level0: t(locale, "quiz.level0"),
+    level1: t(locale, "quiz.level1"),
+    level2: t(locale, "quiz.level2"),
+    level3: t(locale, "quiz.level3"),
+    level4: t(locale, "quiz.level4"),
+    level5: t(locale, "quiz.level5"),
   };
 }

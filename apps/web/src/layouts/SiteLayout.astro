@@ -17,6 +17,7 @@ import routerBootstrap from "../scripts/router-bootstrap.js?url";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import OfficialSiteGate from "../components/OfficialSiteGate.astro";
 import QuizBoard from "../components/QuizBoard.astro";
+import QuizInvite from "../components/QuizInvite.astro";
 import "../styles/quiz.css";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
 import moonBackground from "../../../../images/A_New_View_of_the_Moon-no-earth.webp?url";
@@ -180,15 +181,8 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
     <main id="main-content" tabindex="-1"><slot /></main>
     {showQuizLauncher && (
       <div class="quiz-launcher-root" transition:persist="quiz-launcher">
-        <div class="quiz-launcher-bar" data-quiz-launcher-bar hidden>
-          <button class="quiz-launcher" type="button" data-quiz-launcher aria-haspopup="dialog">
-            <span class="quiz-launcher-icon quiz-launcher-icon-open"><Icon name="lightbulb" /></span>
-            <span class="quiz-launcher-icon quiz-launcher-icon-done"><Icon name="check-circle" /></span>
-            <span class="quiz-launcher-label">{t(locale, "quiz.launcherOpen")}</span>
-            <span class="quiz-launcher-dots" data-quiz-dots aria-hidden="true"></span>
-            <span class="quiz-launcher-score" data-quiz-launcher-score aria-hidden="true" hidden></span>
-          </button>
-          <button class="quiz-launcher-dismiss" type="button" data-quiz-dismiss aria-label={t(locale, "quiz.hide")} title={t(locale, "quiz.hide")}><Icon name="x-lg" /></button>
+        <div class="quiz-launcher-dock" data-quiz-launcher-bar hidden>
+        <QuizInvite locale={locale} />
         </div>
         <dialog class="quiz-dialog" data-quiz-dialog aria-label={t(locale, "quiz.title")}>
           <div class="quiz-dialog-inner">

@@ -30,6 +30,7 @@ describe("navigation loading feedback", () => {
   };
   beforeEach(async () => {
     vi.resetModules();
+    vi.useFakeTimers();
     overlay = new Region(); main = new Region(); section = new Region(); main.section = section;
     doc = Object.assign(new EventTarget(), {
       querySelector: (selector: string) => selector === "main" ? main : selector === "[data-navigation-loading]" ? overlay : null,
@@ -39,7 +40,7 @@ describe("navigation loading feedback", () => {
     vi.stubGlobal("innerHeight", 844);
     await import("./navigation-loading");
   });
-  afterEach(() => { vi.unstubAllGlobals(); });
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
   it("allows the explicit diagnostic control to skip feedback while keeping the loader unchanged", () => {
     Object.assign(doc, { documentElement: { dataset: { navigationFeedback: "off" } } });
@@ -52,9 +53,12 @@ describe("navigation loading feedback", () => {
     expect(section.inert).toBe(false);
   });
 
-  it("shows immediately without hiding or disabling outgoing content or forcing its layout", () => {
+  it("waits 250ms before showing without changing outgoing content or forcing layout", () => {
     main.setAttribute("aria-busy", "false");
     prepare();
+    vi.advanceTimersByTime(249);
+    expect(overlay.hidden).toBe(true);
+    vi.advanceTimersByTime(1);
     expect(overlay.hidden).toBe(false);
     expect(main.getAttribute("aria-busy")).toBe("false");
     expect(section.inert).toBe(false);
@@ -65,6 +69,16 @@ describe("navigation loading feedback", () => {
     expect(main.getAttribute("aria-busy")).toBe("false");
     expect(section.inert).toBe(false);
     expect(section.getAttribute("data-navigation-obscured")).toBeNull();
+  });
+
+  it.each(["astro:before-swap", "astro:page-load", "abort", "pagehide", "pageshow"])("never flashes after a fast navigation ends with %s", reason => {
+    const { controller } = prepare();
+    vi.advanceTimersByTime(100);
+    if (reason === "abort") controller.abort();
+    else if (reason.startsWith("astro:")) fire(reason);
+    else window.dispatchEvent(new Event(reason));
+    vi.advanceTimersByTime(1000);
+    expect(overlay.hidden).toBe(true);
   });
 
   it("does not alter another component's existing interactivity state", () => {
@@ -79,6 +93,7 @@ describe("navigation loading feedback", () => {
 
   it("cleans up when the loader rejects", async () => {
     const { event } = prepare("/calendar", async () => { throw new Error("offline"); });
+    vi.advanceTimersByTime(250);
     expect(overlay.hidden).toBe(false);
     expect(main.inert).toBe(false);
     await expect(event.loader()).rejects.toThrow("offline");
@@ -94,9 +109,9 @@ describe("navigation loading feedback", () => {
     first.controller.abort();
     expect(overlay.hidden).toBe(true);
     const second = prepare("/calendar");
+    vi.advanceTimersByTime(250);
     rejectFirst(new Error("aborted"));
     await expect(pending).rejects.toThrow("aborted");
-    expect(overlay.hidden).toBe(false);
     expect(overlay.hidden).toBe(false);
     second.controller.abort();
     expect(overlay.hidden).toBe(true);
@@ -108,6 +123,7 @@ describe("navigation loading feedback", () => {
     doc.addEventListener("astro:before-preparation", event => event.preventDefault());
     prepare();
     await Promise.resolve();
+    vi.advanceTimersByTime(1000);
     expect(overlay.hidden).toBe(true);
     expect(main.getAttribute("aria-busy")).toBeNull();
     expect(section.inert).toBe(false);
@@ -115,6 +131,7 @@ describe("navigation loading feedback", () => {
 
   it("cleans up a loader that delegates to native navigation and a restored page", async () => {
     const { event } = prepare("/events/demo");
+    vi.advanceTimersByTime(250);
     expect(overlay.hidden).toBe(false);
     event.preventDefault();
     await event.loader();

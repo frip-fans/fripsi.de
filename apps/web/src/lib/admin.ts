@@ -94,6 +94,11 @@ function numeric(form: FormData, key: string, fallback = 0): number {
   return Number.isFinite(value) ? value : fallback;
 }
 
+/** One trimmed value per non-empty line. */
+function lines(value: string): string[] {
+  return value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
 function all(form: FormData, key: string): string[] {
   return form.getAll(key).map((value) => String(value).trim());
 }
@@ -141,6 +146,8 @@ export function readReleaseSave(form: FormData): ReleaseSaveInput {
     edition: optional(form, "edition"),
     notes: optional(form, "notes"),
     published: form.has("published"),
+    // Older editors without the field keep the stored aliases.
+    ...(form.has("aliases") ? { aliases: lines(String(form.get("aliases"))) } : {}),
     sources: parseSources(String(form.get("sources") ?? "")),
     tracks: versions.map((song_version_id, index) => ({
       song_version_id,
@@ -176,10 +183,7 @@ export function readSongSave(form: FormData): SongSaveInput {
   const versionNotes = all(form, "version_notes");
   const versionPublished = all(form, "version_published");
   const versionSources = all(form, "version_sources");
-  const aliases = String(form.get("aliases") ?? "")
-    .split(/\r?\n/)
-    .map((value) => value.trim())
-    .filter(Boolean);
+  const aliases = lines(String(form.get("aliases") ?? ""));
   return {
     id: optional(form, "id") ?? undefined,
     expected_updated_at: optional(form, "expected_updated_at") ?? undefined,

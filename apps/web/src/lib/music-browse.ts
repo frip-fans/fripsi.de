@@ -1,4 +1,4 @@
-import { songPhasesFromMask, countSetlists, getSetlistHighlights, listSetlists, listSetlistYears, listSongCatalog, type SetlistHighlights, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
+import { matchReleaseIds, matchSongIds, songPhasesFromMask, countSetlists, getSetlistHighlights, listSetlists, listSetlistYears, listSongCatalog, type SetlistHighlights, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
 import { releaseTypeLabels } from "./music";
 import { MUSIC_BATCH_SIZE, MUSIC_SONG_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE, musicBatchSize } from "./music-batch";
 import { rankByShows } from "./song-ranking";
@@ -57,11 +57,12 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
     yearCounts = Object.fromEntries(years.map(item => [item.year, item.count]));
     for (const setlist of lives) { const item = archive.get(setlist.id); if (item) highlights[setlist.id] = item; }
   } else if (kind === "songs") {
-    const needle = input.query.toLocaleLowerCase();
-    const scope = (await listSongCatalog(db)).filter(song => !input.phases.length || songPhasesFromMask(song.phase_mask).some(phase => input.phases.includes(String(phase))));
+    const [catalog, matched] = await Promise.all([listSongCatalog(db), input.query ? matchSongIds(db, input.query, "public") : null]);
+    const matchedIds = matched && new Set(matched);
+    const scope = catalog.filter(song => !input.phases.length || songPhasesFromMask(song.phase_mask).some(phase => input.phases.includes(String(phase))));
     ranks = Object.fromEntries(rankByShows(scope));
     maxShows = Math.max(0, ...scope.map(song => song.show_count));
-    const filtered = scope.filter(song => !needle || song.search_text.toLocaleLowerCase().includes(needle));
+    const filtered = scope.filter(song => !matchedIds || matchedIds.has(song.id));
     filtered.sort((a, b) => {
       if (input.sort === "live-asc") return a.show_count - b.show_count || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
       if (input.sort.startsWith("title-")) return (a.title.localeCompare(b.title) || a.id.localeCompare(b.id)) * (input.sort === "title-asc" ? 1 : -1);
@@ -71,10 +72,11 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
     total = filtered.length;
     songs = filtered.slice(offset, offset + limit);
   } else {
-    const needle = input.query.toLocaleLowerCase();
-    const filtered = (await listReleases(db, { limit: 500 }))
+    const [all, matched] = await Promise.all([listReleases(db, { limit: 500 }), input.query ? matchReleaseIds(db, input.query, "public") : null]);
+    const matchedIds = matched && new Set(matched);
+    const filtered = all
       .filter(release => !input.types.length || input.types.includes(release.release_type))
-      .filter(release => !needle || [release.title, release.catalog_number, release.edition].filter(Boolean).join(" ").toLocaleLowerCase().includes(needle));
+      .filter(release => !matchedIds || matchedIds.has(release.id));
     filtered.sort((a, b) => input.sort.startsWith("title-")
       ? (a.title.localeCompare(b.title) || a.id.localeCompare(b.id)) * (input.sort === "title-asc" ? 1 : -1)
       : compareDates(a.release_date, b.release_date, a.title, b.title, input.sort === "date-asc") || a.id.localeCompare(b.id));

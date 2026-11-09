@@ -39,6 +39,7 @@ const versionLabel = (version: MusicEditorOptions["versions"][number]) => {
     <label class="wide">封面来源页面<input type="url" name="cover_source_url" maxlength="2048" value={release?.cover_source_url ?? ""} placeholder="https://fripside.net/musics/…" /></label>
     <div class="wide" style="max-width: 220px" data-cover-preview><ReleaseCover url={release?.cover_url} alt="封面预览" eager /></div>
     <label class="wide">Slug<input name="slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={release?.slug ?? ""} placeholder="留空自动生成" /></label>
+    <label class="wide">别名<textarea name="aliases" maxlength="8000" placeholder="每行一个别名（中文/英文译名、简称）；用于公开和后台搜索">{release?.aliases.join("\n") ?? ""}</textarea></label>
     <label class="wide">说明<textarea name="notes" maxlength="4000">{release?.notes ?? ""}</textarea></label>
     <label class="wide">来源<textarea name="sources" placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea></label>
     <label class="publish-check wide"><input type="checkbox" name="published" checked={release?.published ?? true} />在公开歌单库显示</label>

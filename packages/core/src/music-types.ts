@@ -113,6 +113,8 @@ export interface SongReleaseAppearance {
 
 export interface SongPerformance {
   setlist_id: string;
+  /** Other names of the event's venues, joined with " / "; only used by the history search. */
+  venue_aliases?: string | null;
   setlist_title?: string | null;
   event_classification?: string | null;
   performance_label: string;
@@ -213,6 +215,7 @@ export interface AdminReleaseSummary extends ReleaseSummary {
 }
 
 export interface AdminReleaseDetail extends AdminReleaseSummary {
+  aliases: string[];
   tracks: ReleaseTrackRecord[];
   sources: CatalogSource[];
   apple_music_album_id: string | null;

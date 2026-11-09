@@ -1,4 +1,5 @@
 ---
+import { songPhasesFromMask } from "@frip-fan/core";
 import ReleaseCover from "./ReleaseCover.astro";
 import { getEnv } from "../lib/env";
 import { eventSearchRevision } from "../lib/event-search";
@@ -23,9 +24,14 @@ for (const setlist of results.lives) {
   if (group?.year === year) group.setlists.push(setlist);
   else liveGroups.push({ year, count: results.yearCounts[year], setlists: [setlist] });
 }
+// Ranks can tie; the visible number stays plain and screen readers hear "tied".
+const rankTies = new Map<number, number>();
+for (const rank of Object.values(results.ranks)) rankTies.set(rank, (rankTies.get(rank) ?? 0) + 1);
+// The main-line artist label repeats on most rows and the phase chips already cover it, so only other credits show.
+const showArtist = (artist: string) => !/^fripSide(?: \(Phase \d\))?$/.test(artist);
 ---
 <div data-music-results data-total={results.total} data-shown={results.shown} data-page={results.page} data-batch={results.batch} data-has-more={results.hasMore} data-revision={eventSearchRevision(db)}>
-  <div class:list={[kind === "lives" ? "live-timeline" : "music-grid", { "music-release-grid": kind === "releases" }]} data-music-items>
+  <div class:list={[kind === "lives" ? "live-timeline" : kind === "songs" ? "song-ranking" : "music-grid", { "music-release-grid": kind === "releases", "is-ranked": results.ranked }]} data-music-items>
     {liveGroups.map(group => (
       <>
         <h2 class="live-year" data-music-id={`year:${group.year}`} data-music-year={group.year}>
@@ -66,13 +72,26 @@ for (const setlist of results.lives) {
         })}
       </>
     ))}
-    {results.songs.map(song => (
-      <a class="music-card" data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`} data-astro-prefetch="tap">
-        <span class="music-artist">{song.original_artist}</span>
-        <h2 translate="no">{song.title}</h2>
-        <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
-      </a>
-    ))}
+    {results.songs.map(song => {
+      const rank = results.ranked ? results.ranks[song.id] : undefined;
+      const tied = rank !== undefined && (rankTies.get(rank) ?? 0) > 1;
+      // A joint song's credit lists every vocalist; the phase label says the same thing shorter.
+      const phases = songPhasesFromMask(song.phase_mask);
+      const credit = phases.length > 1 ? t(locale, "music.phaseJoint", { phases: phases.join("·") }) : showArtist(song.original_artist) ? song.original_artist : "";
+      const meta = [credit, song.version_count > 1 ? t(locale, "music.versionsCount", { count: song.version_count }) : ""].filter(Boolean);
+      return (
+        <a class:list={["song-row", { "is-podium": rank !== undefined && rank <= 3 }]} data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`} data-astro-prefetch="tap">
+          {results.ranked && <span class="song-row-rank">{rank !== undefined && <><span aria-hidden="true">{rank}</span><span class="visually-hidden">{t(locale, tied ? "music.rankTied" : "music.rank", { rank })}</span></>}</span>}
+          <span class="song-row-cover"><ReleaseCover noScriptFallback={!append} url={song.cover_url} alt="" /></span>
+          <span class="song-row-main">
+            <h2 translate="no">{song.title}</h2>
+            {meta.length > 0 && <span class="song-row-meta">{meta.join(" · ")}</span>}
+          </span>
+          <span class="song-row-bar" aria-hidden="true">{song.show_count > 0 && <span style={`--share: ${Math.max(2, (song.show_count / Math.max(1, results.maxShows)) * 100)}%`}></span>}</span>
+          <span class:list={["song-row-count", { "is-zero": song.show_count === 0 }]}>{song.show_count > 0 ? t(locale, "music.showsShort", { count: song.show_count }) : t(locale, "music.notPerformed")}</span>
+        </a>
+      );
+    })}
     {results.releases.map(release => (
       <a class="music-card" data-music-id={release.id} href={`/music/releases/${encodeURIComponent(release.slug)}`} data-astro-prefetch="tap">
         <ReleaseCover noScriptFallback={!append} url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />

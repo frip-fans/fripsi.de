@@ -141,3 +141,33 @@
   .live-date-day { font-size: 1.375rem; }
   .live-card-count strong { font-size: 1.375rem; }
 }
+
+/* Song ranking: one panel of compact rows instead of a card grid. Other sorts drop the rank column. */
+.song-ranking { display: grid; overflow: hidden; border: 1px solid var(--line); border-radius: 16px; background: var(--music-panel); }
+.song-row { display: grid; grid-template-columns: 2.75rem minmax(0, 1fr) minmax(8rem, 22rem) 4.75rem; grid-template-areas: "cover main bar count"; align-items: center; gap: .9rem; min-height: 3.9rem; padding: .5rem 1rem; color: inherit; text-decoration: none; transition: background-color .15s; }
+.song-ranking.is-ranked .song-row { grid-template-columns: 2rem 2.75rem minmax(0, 1fr) minmax(8rem, 22rem) 4.75rem; grid-template-areas: "rank cover main bar count"; }
+.song-row + .song-row { border-top: 1px solid rgba(159, 180, 211, .09); }
+.song-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.song-row-rank { grid-area: rank; color: var(--muted); font-size: .9rem; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+.song-row.is-podium .song-row-rank { color: var(--accent); font-size: 1.05rem; }
+.song-row-cover { grid-area: cover; }
+.song-row-cover .release-cover { border-radius: 6px; }
+.song-row-cover .release-cover img { object-fit: cover; }
+.song-row-cover .release-cover-placeholder { font-size: 1.1rem; }
+.song-row-main { grid-area: main; display: grid; gap: .15rem; min-width: 0; }
+.song-row-main h2 { margin: 0; overflow: hidden; font-size: .95rem; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; transition: color .15s; }
+.song-row-meta { overflow: hidden; color: var(--muted); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.song-row-bar { grid-area: bar; height: 6px; border-radius: 999px; background: rgba(159, 180, 211, .1); overflow: hidden; }
+.song-row-bar:empty { background: none; }
+.song-row-bar span { display: block; width: var(--share); height: 100%; border-radius: inherit; background: rgba(159, 180, 211, .55); }
+.song-row.is-podium .song-row-bar span { background: var(--accent); }
+.song-row-count { grid-area: count; color: var(--text); font-size: .8125rem; font-weight: 650; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.song-row-count.is-zero { color: var(--muted); font-weight: 500; }
+@media (hover: hover) and (pointer: fine) { .song-row:hover { background: rgba(255, 255, 255, .035); } .song-row:hover h2 { color: var(--accent); } }
+@media (max-width: 560px) {
+  .song-row { grid-template-columns: 2.5rem minmax(0, 1fr) auto; grid-template-areas: "cover main count" "cover bar bar"; column-gap: .7rem; row-gap: .35rem; padding: .55rem .8rem; }
+  .song-ranking.is-ranked .song-row { grid-template-columns: 1.5rem 2.5rem minmax(0, 1fr) auto; grid-template-areas: "rank cover main count" "rank cover bar bar"; }
+  .song-row-count { align-self: start; padding-top: .1rem; }
+  .song-row-bar { height: 4px; }
+  .song-row-main h2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; overflow-wrap: anywhere; }
+}

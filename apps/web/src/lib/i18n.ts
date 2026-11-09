@@ -393,6 +393,7 @@ const zhCN = {
   "quiz.failed": "没提交上去，再试一次。",
   "quiz.dataNote": "只用完整、来源可靠的歌单出题。",
   "quiz.launcherOpen": "每日厨力测试",
+  "quiz.hide": "今天不再显示",
   "quiz.close": "关闭",
 } as const;
 
@@ -780,6 +781,7 @@ const zhTW: Record<TranslationKey, string> = {
   "quiz.failed": "沒送出去，再試一次。",
   "quiz.dataNote": "只用完整、來源可靠的歌單出題。",
   "quiz.launcherOpen": "每日廚力測試",
+  "quiz.hide": "今天不再顯示",
   "quiz.close": "關閉",
 };
 
@@ -1166,6 +1168,7 @@ const ja: Record<TranslationKey, string> = {
   "quiz.failed": "送信に失敗しました。もう一度お試しください。",
   "quiz.dataNote": "完全で出典の確かなセトリだけから出題。",
   "quiz.launcherOpen": "毎日のガチ度テスト",
+  "quiz.hide": "今日は非表示",
   "quiz.close": "閉じる",
 };
 
@@ -1552,6 +1555,7 @@ const en: Record<TranslationKey, string> = {
   "quiz.failed": "That didn't go through. Try again.",
   "quiz.dataNote": "Questions come from complete setlists with reliable sources.",
   "quiz.launcherOpen": "Daily fandom test",
+  "quiz.hide": "Hide for today",
   "quiz.close": "Close",
 };
 

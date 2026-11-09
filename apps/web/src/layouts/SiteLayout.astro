@@ -180,12 +180,16 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
     <main id="main-content" tabindex="-1"><slot /></main>
     {showQuizLauncher && (
       <div class="quiz-launcher-root" transition:persist="quiz-launcher">
-        <button class="quiz-launcher" type="button" data-quiz-launcher aria-haspopup="dialog" hidden>
-          <Icon name="list-stars" />
-          <span class="quiz-launcher-label">{t(locale, "quiz.launcherOpen")}</span>
-          <span class="quiz-launcher-dots" data-quiz-dots aria-hidden="true"></span>
-          <span class="quiz-launcher-score" data-quiz-launcher-score aria-hidden="true" hidden></span>
-        </button>
+        <div class="quiz-launcher-bar" data-quiz-launcher-bar hidden>
+          <button class="quiz-launcher" type="button" data-quiz-launcher aria-haspopup="dialog">
+            <span class="quiz-launcher-icon quiz-launcher-icon-open"><Icon name="lightbulb" /></span>
+            <span class="quiz-launcher-icon quiz-launcher-icon-done"><Icon name="check-circle" /></span>
+            <span class="quiz-launcher-label">{t(locale, "quiz.launcherOpen")}</span>
+            <span class="quiz-launcher-dots" data-quiz-dots aria-hidden="true"></span>
+            <span class="quiz-launcher-score" data-quiz-launcher-score aria-hidden="true" hidden></span>
+          </button>
+          <button class="quiz-launcher-dismiss" type="button" data-quiz-dismiss aria-label={t(locale, "quiz.hide")} title={t(locale, "quiz.hide")}><Icon name="x-lg" /></button>
+        </div>
         <dialog class="quiz-dialog" data-quiz-dialog aria-label={t(locale, "quiz.title")}>
           <div class="quiz-dialog-inner">
             <header class="quiz-dialog-head">

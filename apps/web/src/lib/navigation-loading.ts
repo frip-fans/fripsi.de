@@ -3,62 +3,35 @@ export {};
 // Loading feedback follows Astro's request lifetime; it never starts a request.
 let clearLoading: (() => void) | undefined;
 
-function showLoading(target: URL, signal: AbortSignal, failOpenAfter?: number) {
+function showLoading(signal: AbortSignal, failOpenAfter?: number) {
   clearLoading?.();
   // Explicit non-production diagnostic control; Astro still owns navigation.
   if (document.documentElement?.dataset.navigationFeedback === "off") return;
-  const overlay = document.querySelector<HTMLElement>("[data-navigation-loading]");
-  const main = document.querySelector<HTMLElement>("main");
-  if (!overlay || !main || signal.aborted) return;
+  const indicator = document.querySelector<HTMLElement>("[data-navigation-loading]");
+  if (!indicator || signal.aborted) return;
 
-  const musicTab = /^\/music\/(lives|songs|releases)\/?$/.test(target.pathname);
-  // Keep the tabs available so a second selection can supersede the first request.
-  const region = (musicTab && main.querySelector<HTMLElement>("[data-music-browser] .music-list-section")) || main;
-  const previousBusy = main.getAttribute("aria-busy");
-  const footer = document.querySelector<HTMLElement>("footer");
-  const previousFooterInert = footer?.inert;
-  const previousInert = region.inert;
-  const place = () => {
-    const headerBottom = document.querySelector(".site-header")?.getBoundingClientRect().bottom ?? 0;
-    const top = Math.min(Math.max(0, headerBottom, region.getBoundingClientRect().top), innerHeight / 2);
-    overlay.style.setProperty("--navigation-loading-top", `${top}px`);
-  };
-  const lifetime = new AbortController();
+  // Keep the outgoing DOM visible and interactive. Full-page loading feedback
+  // stalled Safari in device A/B testing even with static placeholders. Avoid
+  // its outgoing-page state changes and layout work here.
   let stopped = false;
   let timeout: ReturnType<typeof setTimeout> | undefined;
   const stop = () => {
     if (stopped) return;
     stopped = true;
     clearTimeout(timeout);
-    overlay.hidden = true;
-    region.removeAttribute("data-navigation-obscured");
-    region.inert = previousInert;
-    if (footer) footer.inert = previousFooterInert ?? false;
-    if (previousBusy === null) main.removeAttribute("aria-busy");
-    else main.setAttribute("aria-busy", previousBusy);
-    lifetime.abort();
+    indicator.hidden = true;
     signal.removeEventListener("abort", stop);
     if (clearLoading === stop) clearLoading = undefined;
   };
   clearLoading = stop;
-  overlay.dataset.kind = target.pathname === "/calendar" && target.searchParams.get("view") !== "list"
-    ? "calendar" : /^\/(music\/(lives|songs|releases)|events)\/[^/]+/.test(target.pathname) ? "detail" : "cards";
-  place();
-  main.setAttribute("aria-busy", "true");
-  region.inert = true;
-  if (footer) footer.inert = true;
-  region.setAttribute("data-navigation-obscured", "");
-  overlay.hidden = false;
-  window.addEventListener("resize", place, { signal: lifetime.signal });
-  window.addEventListener("scroll", place, { signal: lifetime.signal, passive: true });
+  indicator.hidden = false;
   signal.addEventListener("abort", stop, { once: true });
-
   if (failOpenAfter) timeout = setTimeout(stop, failOpenAfter);
   return stop;
 }
 
 document.addEventListener("astro:before-preparation", event => {
-  const stop = showLoading(event.to, event.signal);
+  const stop = showLoading(event.signal);
   if (!stop) return;
   const loader = event.loader;
   event.loader = async () => {
@@ -90,6 +63,6 @@ document.addEventListener("click", event => {
   queueMicrotask(() => {
     if (event.defaultPrevented) return;
     // A cancelled native load has no Astro abort event; allow the old page again.
-    showLoading(new URL(link.href), new AbortController().signal, 15_000);
+    showLoading(new AbortController().signal, 15_000);
   });
 });

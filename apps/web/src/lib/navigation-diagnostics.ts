@@ -56,7 +56,7 @@ export function startNavigationDiagnostics(release: string, options: { disableLo
     if (!panel.isConnected) document.body.appendChild(panel);
   };
   const report = () => JSON.stringify({
-    loadingFeedback: options.disableLoadingFeedback ? "off" : "static-skeleton",
+    loadingFeedback: options.disableLoadingFeedback ? "off" : "progress",
     release, userAgent: navigator.userAgent, path: location.pathname,
     nativeViewTransitions: typeof document.startViewTransition === "function",
     clientRouter: !!document.querySelector('meta[name="astro-view-transitions-enabled"]'),

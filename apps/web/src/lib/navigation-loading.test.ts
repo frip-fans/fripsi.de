@@ -10,7 +10,7 @@ class Region {
   getAttribute(name: string) { return this.attributes.get(name) ?? null; }
   setAttribute(name: string, value: string) { this.attributes.set(name, value); }
   removeAttribute(name: string) { this.attributes.delete(name); }
-  getBoundingClientRect() { return { top: 160, bottom: 80 }; }
+  getBoundingClientRect() { throw new Error("navigation feedback must not force outgoing page layout"); }
   querySelector() { return this.section; }
 }
 
@@ -52,13 +52,14 @@ describe("navigation loading feedback", () => {
     expect(section.inert).toBe(false);
   });
 
-  it("shows synchronously before loading and restores interactivity without waiting for an animation", () => {
+  it("shows immediately without hiding or disabling outgoing content or forcing its layout", () => {
     main.setAttribute("aria-busy", "false");
     prepare();
     expect(overlay.hidden).toBe(false);
-    expect(main.getAttribute("aria-busy")).toBe("true");
-    expect(section.inert).toBe(true);
-    expect(main.inert).toBe(false); // tabs remain outside the obscured section
+    expect(main.getAttribute("aria-busy")).toBe("false");
+    expect(section.inert).toBe(false);
+    expect(main.inert).toBe(false);
+    expect(section.getAttribute("data-navigation-obscured")).toBeNull();
     fire("astro:before-swap");
     expect(overlay.hidden).toBe(true);
     expect(main.getAttribute("aria-busy")).toBe("false");
@@ -66,10 +67,20 @@ describe("navigation loading feedback", () => {
     expect(section.getAttribute("data-navigation-obscured")).toBeNull();
   });
 
+  it("does not alter another component's existing interactivity state", () => {
+    main.inert = true; section.inert = true;
+    main.setAttribute("aria-busy", "true");
+    prepare();
+    fire("astro:before-swap");
+    expect(main.inert).toBe(true);
+    expect(section.inert).toBe(true);
+    expect(main.getAttribute("aria-busy")).toBe("true");
+  });
+
   it("cleans up when the loader rejects", async () => {
     const { event } = prepare("/calendar", async () => { throw new Error("offline"); });
-    expect(overlay.dataset.kind).toBe("calendar");
-    expect(main.inert).toBe(true);
+    expect(overlay.hidden).toBe(false);
+    expect(main.inert).toBe(false);
     await expect(event.loader()).rejects.toThrow("offline");
     expect(overlay.hidden).toBe(true);
     expect(main.inert).toBe(false);
@@ -86,7 +97,7 @@ describe("navigation loading feedback", () => {
     rejectFirst(new Error("aborted"));
     await expect(pending).rejects.toThrow("aborted");
     expect(overlay.hidden).toBe(false);
-    expect(overlay.dataset.kind).toBe("calendar");
+    expect(overlay.hidden).toBe(false);
     second.controller.abort();
     expect(overlay.hidden).toBe(true);
     expect(main.inert).toBe(false);
@@ -104,7 +115,7 @@ describe("navigation loading feedback", () => {
 
   it("cleans up a loader that delegates to native navigation and a restored page", async () => {
     const { event } = prepare("/events/demo");
-    expect(overlay.dataset.kind).toBe("detail");
+    expect(overlay.hidden).toBe(false);
     event.preventDefault();
     await event.loader();
     expect(overlay.hidden).toBe(true);

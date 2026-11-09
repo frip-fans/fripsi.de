@@ -80,7 +80,7 @@ const nextCountdown = !next
   <section class="hero" data-page-entry>
     <div class="hero-copy">
       {onThisDay && (
-        <a class="today-pill" href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)} title={onThisDay.event.title}>
+        <a class="today-pill" href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)}>
           <Icon name="archive" size=".8rem" />
           <span class="today-pill-label">{t(locale, "home.onThisDay")}</span>
           <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
@@ -88,7 +88,7 @@ const nextCountdown = !next
           <Icon name="chevron-right" size=".7rem" />
         </a>
       )}
-      <h1 class="hero-title">{t(locale, "home.heroTitle")}</h1>
+      <h1 class="hero-title" lang="en" translate="no">{t(locale, "home.heroTitle")}</h1>
       <p class="hero-subtitle">{t(locale, "home.heroSubtitle")}</p>
       <p class="hero-scale">{t(locale, "home.archiveScale", { events: eventCount, setlists: libraryStats.setlist_count, songs: libraryStats.song_count })}</p>
     </div>
@@ -239,8 +239,9 @@ const nextCountdown = !next
   .today-pill :global(.icon) { flex: 0 0 auto; color: var(--accent); }
   .today-pill-label { flex: 0 0 auto; font-weight: 650; }
   .today-pill time { flex: 0 0 auto; color: var(--text); font-variant-numeric: tabular-nums; }
-  /* The event name is clipped to keep the pill small, and scrolls into view on hover.
-     min(0px, …) means a title that already fits never moves. */
+  /* The event name is clipped to keep the pill small, and scrolls into view on hover — no title
+     attribute, so no native tooltip covers the headline. The full name stays in the DOM for
+     screen readers. min(0px, …) means a name that already fits never moves. */
   .today-pill-event { --pill-window: 15rem; max-width: var(--pill-window); overflow: hidden; white-space: nowrap; mask-image: linear-gradient(to right, #000 85%, transparent); }
   .today-pill-event > span { display: inline-block; }
   .today-pill:hover .today-pill-event, .today-pill:focus-visible .today-pill-event { mask-image: none; }
@@ -251,7 +252,7 @@ const nextCountdown = !next
   @media (prefers-reduced-motion: reduce) {
     .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span { animation: none; }
   }
-  .hero-title { margin: 0; font-size: clamp(2.1rem, 4.4vw, 3.4rem); line-height: 1.12; letter-spacing: -.035em; }
+  .hero-title { max-width: 14ch; margin: 0; font-size: clamp(2.1rem, 4.6vw, 3.6rem); line-height: 1.08; letter-spacing: -.04em; }
   .hero-subtitle { max-width: 32rem; margin: 1rem 0 0; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
   .hero-scale { margin: .9rem 0 0; color: var(--muted); font-size: .78rem; letter-spacing: .01em; }
   .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
@@ -345,7 +346,7 @@ const nextCountdown = !next
     .hero-actions { margin-top: 0; }
     .today-pill { margin-bottom: .85rem; padding: .35rem .7rem; font-size: .72rem; }
     .today-pill-event { --pill-window: 7rem; }
-    .hero-title { font-size: clamp(1.6rem, 7.5vw, 2.1rem); }
+    .hero-title { max-width: none; font-size: clamp(1.6rem, 7.5vw, 2.1rem); }
     .hero-subtitle { margin-top: .7rem; font-size: .9375rem; line-height: 1.65; }
     .hero-scale { margin-top: .7rem; font-size: .72rem; }
     .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }

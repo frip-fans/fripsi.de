@@ -44,9 +44,13 @@ export function setupPageEntryTransitions() {
   // read on content that is about to be replaced; never a layout read.
   const revealShade = (root: HTMLElement) => {
     const main = document.querySelector("main");
-    const reached = main ? window.getComputedStyle(main, "::after").opacity : "";
-    if (Number(reached) > 0) root.style.setProperty("--page-shade-from", reached);
-    else root.style.removeProperty("--page-shade-from");
+    const reached = main ? Number(window.getComputedStyle(main, "::after").opacity) : NaN;
+    root.style.removeProperty("--page-shade-from");
+    // A document that arrives as the dim begins has nothing to reveal, and an
+    // unreadable shade is better dropped than guessed at: revealing from the
+    // resting value would darken the page after its content is already there.
+    if (!(reached > 0)) { delete root.dataset.pageShade; return; }
+    root.style.setProperty("--page-shade-from", String(reached));
     root.dataset.pageShade = "reveal";
   };
   const stopShade = (reveal = false) => {

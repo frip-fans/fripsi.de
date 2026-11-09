@@ -120,9 +120,30 @@ describe("bounded content entry motion", () => {
     doc.dispatchEvent(new Event("astro:after-swap")); expect(main.animate).not.toHaveBeenCalled();
   });
 
+  it("drops a dim the document arrived ahead of instead of revealing from the resting value", async () => {
+    vi.useFakeTimers();
+    const { setupPageEntryTransitions } = await import("./page-entry-navigation");
+    const main = new Region();
+    doc.querySelector.mockImplementation((selector: string) => selector === 'meta[name="astro-view-transitions-enabled"]' ? {} : selector === "main" ? main : null);
+    setupPageEntryTransitions();
+    const oldRoot = root(), newRoot = root();
+    Object.assign(doc, { documentElement: oldRoot });
+    doc.dispatchEvent(Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal: new AbortController().signal }));
+    vi.advanceTimersByTime(250);
+    expect(oldRoot.dataset.pageShade).toBe("dim");
+    // The dim is up but has not painted yet, which is what a document arriving
+    // on the threshold sees: darkening to rest here would run after the swap.
+    window.getComputedStyle = vi.fn(() => ({ opacity: "0" })) as unknown as typeof window.getComputedStyle;
+    doc.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument: { documentElement: newRoot } }));
+    expect(newRoot.dataset.pageShade).toBeUndefined();
+    expect(newRoot.style.setProperty).not.toHaveBeenCalled();
+  });
+
   it("skips the shade under reduced motion and fades it back out when a navigation is abandoned", async () => {
     vi.useFakeTimers();
     const { setupPageEntryTransitions } = await import("./page-entry-navigation");
+    const main = new Region();
+    doc.querySelector.mockImplementation((selector: string) => selector === 'meta[name="astro-view-transitions-enabled"]' ? {} : selector === "main" ? main : null);
     setupPageEntryTransitions();
     const oldRoot = root();
     Object.assign(doc, { documentElement: oldRoot });

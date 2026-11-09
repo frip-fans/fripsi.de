@@ -411,11 +411,10 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     inset: -1.5%;
     opacity: 0;
     background-image:
-      radial-gradient(ellipse 48% 46% at 20% 30%, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%),
       linear-gradient(180deg, rgba(7,16,28,.3) 0%, rgba(7,16,28,.44) 52%, rgba(7,16,28,.86) 88%, var(--bg) 100%),
       linear-gradient(90deg, rgba(7,16,28,.18), rgba(7,16,28,.02) 52%, rgba(7,16,28,.24)),
       var(--space-image);
-    background-position: center, center, center, var(--space-position);
+    background-position: center, center, var(--space-position);
     background-size: cover;
     background-repeat: no-repeat;
     filter: saturate(.76) contrast(1.08) brightness(1.08);
@@ -424,12 +423,6 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   }
   .space-backdrop.is-active { opacity: 1; transform: scale(1); }
   .iss-backdrop { filter: saturate(.68) contrast(1.06) brightness(.72); }
-  .iss-backdrop::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 62% 48% at 20% 45%, rgba(4,10,18,.78) 0%, rgba(4,10,18,.58) 52%, rgba(4,10,18,.18) 78%, transparent 100%);
-  }
   .ambient { position: fixed; width: 28rem; height: 28rem; border-radius: 50%; filter: blur(110px); opacity: .12; pointer-events: none; z-index: -1; }
   .ambient-a { background: var(--accent); left: -16rem; top: 12rem; }
   .ambient-b { background: var(--purple); right: -18rem; top: 35rem; }

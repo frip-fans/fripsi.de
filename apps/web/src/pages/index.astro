@@ -56,12 +56,14 @@ const nextCountdown = !next
       )}
     </aside>
     <div class="hero-intro">
-      <p class="eyebrow" lang="en" translate="no">fripSide Fan Site</p>
-      <h1 class="hero-title" data-lyric-rotator lang="en">
-        <span class="title-lead" data-lyric-lead>This desire</span>
-        <span class="title-solid"><span data-lyric-line-one>is bound</span><br data-lyric-break /><span data-lyric-line-two>in the melody.</span></span>
-      </h1>
-      <p class="hero-description">{t(locale, "home.description")}</p>
+      <div class="hero-copy">
+        <p class="eyebrow" lang="en" translate="no">fripSide Fan Site</p>
+        <h1 class="hero-title" data-lyric-rotator lang="en">
+          <span class="title-lead" data-lyric-lead>This desire</span>
+          <span class="title-solid"><span data-lyric-line-one>is bound</span><br data-lyric-break /><span data-lyric-line-two>in the melody.</span></span>
+        </h1>
+        <p class="hero-description">{t(locale, "home.description")}</p>
+      </div>
       <div class="actions">
         <a class="button" href="/calendar"><Icon name="calendar3" /><span class="label-full">{t(locale, "nav.calendar")}</span><span class="label-short">{t(locale, "nav.calendar")}</span></a>
         <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" /><span class="label-full">{t(locale, "nav.music")}</span><span class="label-short">{t(locale, "nav.music")}</span></a>
@@ -224,6 +226,15 @@ const nextCountdown = !next
   .mobile-home-title { display: none; }
   .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: center; gap: clamp(2rem, 7vw, 7rem); padding: 2rem 0 .5rem; }
   .hero-intro { grid-column: 1; grid-row: 1; min-width: 0; }
+  .hero-copy { position: relative; isolation: isolate; }
+  .hero-copy::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -3rem -1rem;
+    pointer-events: none;
+    background: radial-gradient(ellipse closest-side at center, rgba(7,16,28,.9) 0%, rgba(7,16,28,.72) 48%, rgba(7,16,28,.2) 78%, transparent 100%);
+  }
   .signal { grid-column: 2; grid-row: 1; min-width: 0; }
   .hero-title { position: relative; display: grid; align-content: start; gap: .14em; height: clamp(5.25rem, 13.5vw, 10.75rem); margin-bottom: 0; }
   .hero-title::after { content: ""; position: absolute; inset: 0; opacity: 0; pointer-events: none; background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(120, 225, 255, .14) 6px, transparent 7px); mix-blend-mode: screen; }
@@ -334,7 +345,7 @@ const nextCountdown = !next
     .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
     .hero-intro, .signal { grid-column: auto; grid-row: auto; }
     .hero-intro { display: flex; flex-direction: column; }
-    .hero-intro > .eyebrow, .hero-title, .hero-description { display: none; }
+    .hero-copy { display: none; }
     .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }
     .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
     .label-full { display: none; }

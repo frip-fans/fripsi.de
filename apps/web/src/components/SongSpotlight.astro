@@ -1,6 +1,7 @@
 ---
 import type { SongSpotlight } from "@frip-fan/core";
 import Icon from "./Icon.astro";
+import ReleaseCover from "./ReleaseCover.astro";
 import { formatMusicDate, setlistDisplayTitle } from "../lib/music";
 import { type Locale, t } from "../lib/i18n";
 
@@ -38,10 +39,19 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
     </a>
   </div>
 
-  <h2 id="spotlight-title" class="spotlight-song">
-    <a href={`/music/songs/${spotlight.slug}`} translate="no">{spotlight.title}</a>
-  </h2>
-  <p class="spotlight-meta"><span translate="no">{spotlight.original_artist}</span>{meta.map((item) => <span>{item}</span>)}</p>
+  <div class="spotlight-head">
+    {spotlight.release && (
+      <a class="spotlight-cover" href={`/music/releases/${spotlight.release.slug}`} aria-label={t(locale, "music.coverAlt", { title: spotlight.release.title })}>
+        <ReleaseCover url={spotlight.release.cover_url} alt="" />
+      </a>
+    )}
+    <div class="spotlight-head-text">
+      <h2 id="spotlight-title" class="spotlight-song">
+        <a href={`/music/songs/${spotlight.slug}`} translate="no">{spotlight.title}</a>
+      </h2>
+      <p class="spotlight-meta"><span translate="no">{spotlight.original_artist}</span>{meta.map((item) => <span>{item}</span>)}</p>
+    </div>
+  </div>
 
   <dl class="spotlight-stats">
     <div class="spotlight-stat">
@@ -86,9 +96,10 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
       </figcaption>
       <div class="spotlight-chart" style={`--years: ${chartYears.length}`} role="img" aria-label={chartYears.map(barLabel).join("；")}>
         {chartYears.map((year) => (
-          <div class="spotlight-bar" data-chip={`${year.year} · ${year.sung}/${year.total}`} aria-label={barLabel(year)} style={`--total: ${(year.total / maxTotal) * 100}%; --sung: ${(year.sung / maxTotal) * 100}%`}>
+          <div class="spotlight-bar" data-chip={`${year.sung}/${year.total}`} aria-label={barLabel(year)} style={`--total: ${(year.total / maxTotal) * 100}%; --sung: ${(year.sung / maxTotal) * 100}%`}>
             <span class:list={["spotlight-bar-total", { "is-gap": !year.total }]}></span>
             {year.sung > 0 && <span class="spotlight-bar-sung"></span>}
+            <span class="spotlight-bar-year" aria-hidden="true">{year.year}</span>
           </div>
         ))}
       </div>
@@ -105,10 +116,15 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
   .spotlight-label { font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
   .spotlight-more { display: inline-flex; align-items: center; gap: .3rem; min-height: 32px; color: var(--muted); font-size: .8125rem; text-decoration: none; }
   .spotlight-more:hover, .spotlight-more:focus-visible { color: var(--accent); }
+  .spotlight-head { display: flex; align-items: center; gap: 1.1rem; min-width: 0; }
+  .spotlight-cover { flex: 0 0 auto; width: 5.5rem; border-radius: 12px; text-decoration: none; transition: transform .18s; }
+  .spotlight-cover:hover { transform: translateY(-2px); }
+  .spotlight-cover:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
+  .spotlight-head-text { min-width: 0; }
   .spotlight-song { margin: 0; font-size: clamp(1.5rem, 3.2vw, 2.1rem); line-height: 1.2; letter-spacing: -.02em; overflow-wrap: anywhere; }
   .spotlight-song a { color: inherit; text-decoration: none; }
   .spotlight-song a:hover { color: var(--accent); }
-  .spotlight-meta { display: flex; flex-wrap: wrap; gap: .4rem .75rem; margin: -.35rem 0 0; color: var(--muted); font-size: .8125rem; }
+  .spotlight-meta { display: flex; flex-wrap: wrap; gap: .4rem .75rem; margin: .45rem 0 0; color: var(--muted); font-size: .8125rem; }
   .spotlight-meta span + span::before { content: "·"; margin-right: .75rem; opacity: .6; }
   .spotlight-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; margin: .25rem 0 0; }
   .spotlight-stat { min-width: 0; padding: .8rem .9rem; border: 1px solid var(--line); border-radius: 14px; background: rgba(7, 16, 28, .5); }
@@ -153,6 +169,11 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
   .spotlight-bar:first-child::after { left: 0; transform: none; }
   .spotlight-bar:last-child::after { left: auto; right: 0; transform: none; }
   .spotlight-bar:hover::after { opacity: 1; }
+  /* The hovered year appears under its own bar, where the axis labels sit, as on the song page. */
+  .spotlight-bar-year { position: absolute; left: 50%; top: calc(100% + .35rem); color: var(--text); font-size: .6875rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; opacity: 0; transform: translateX(-50%); transition: opacity .12s; }
+  .spotlight-bar:hover .spotlight-bar-year { opacity: 1; }
+  .spotlight-chart:has(.spotlight-bar:hover) + .spotlight-axis { opacity: 0; }
+  .spotlight-axis { transition: opacity .12s; }
   @media (hover: none) { .spotlight-bar::after { content: none; } }
   .spotlight-bar-total, .spotlight-bar-sung { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 4px 4px 1px 1px; }
   .spotlight-bar-total { height: var(--total); background: rgba(159, 180, 211, .22); }
@@ -162,6 +183,8 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
   .spotlight-footnote { margin: 0; color: var(--muted); font-size: .72rem; }
   @media (max-width: 800px) {
     .spotlight { padding: 1.15rem; gap: .7rem; }
+    .spotlight-head { gap: .85rem; }
+    .spotlight-cover { width: 4rem; }
     .spotlight-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .spotlight-stat strong { font-size: 1.15rem; }
     .spotlight-chart, .spotlight-axis { grid-template-columns: repeat(var(--years), minmax(0, 2rem)); }

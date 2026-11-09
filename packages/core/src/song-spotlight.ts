@@ -16,12 +16,20 @@ export interface SpotlightYear {
   sung: number;
 }
 
+export interface SpotlightRelease {
+  slug: string;
+  title: string;
+  cover_url: string | null;
+}
+
 export interface SongSpotlight {
   slug: string;
   title: string;
   original_artist: string;
   first_release_date: string | null;
   release_count: number;
+  /** The release the card shows art for: one with a cover if there is one, else the earliest. */
+  release: SpotlightRelease | null;
   /** Archived setlists containing the song; a medley reprise counts once. */
   show_count: number;
   first_performance: SpotlightPerformance | null;
@@ -74,7 +82,7 @@ export async function getSongSpotlight(db: D1Database, seed: string): Promise<So
   const song = candidates.results[pickSpotlightIndex(seed, candidates.results.length)];
   if (!song) return null;
 
-  const [counts, firstRow, lastRow, sungYears, totalYears] = await Promise.all([
+  const [counts, releaseRow, firstRow, lastRow, sungYears, totalYears] = await Promise.all([
     db.prepare(`
       SELECT
         (SELECT COUNT(DISTINCT sl.id) ${performedSetlists} WHERE se.song_id = ?) AS show_count,
@@ -84,6 +92,15 @@ export async function getSongSpotlight(db: D1Database, seed: string): Promise<So
           JOIN releases r ON r.id = rt.release_id AND r.published = 1
           WHERE sv.song_id = ? AND sv.published = 1) AS release_count
     `).bind(song.id, song.id).first<{ show_count: number; release_count: number }>(),
+    db.prepare(`
+      SELECT r.slug, r.title, r.cover_url
+      FROM release_tracks rt
+      JOIN releases r ON r.id = rt.release_id AND r.published = 1
+      JOIN song_versions sv ON sv.id = rt.song_version_id AND sv.published = 1
+      WHERE sv.song_id = ?
+      ORDER BY (r.cover_url IS NULL) ASC, r.release_date IS NULL ASC, r.release_date ASC, r.title COLLATE NOCASE ASC
+      LIMIT 1
+    `).bind(song.id).first<SpotlightRelease>(),
     db.prepare(`${boundarySelect} ORDER BY e.start_date ASC, e.start_time ASC, sl.performance_label ASC, sl.id ASC LIMIT 1`)
       .bind(song.id).first<SpotlightPerformance>(),
     db.prepare(`${boundarySelect} ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label DESC, sl.id DESC LIMIT 1`)
@@ -118,6 +135,7 @@ export async function getSongSpotlight(db: D1Database, seed: string): Promise<So
     original_artist: song.original_artist,
     first_release_date: song.first_release_date,
     release_count: Number(counts?.release_count ?? 0),
+    release: releaseRow ?? null,
     show_count: Number(counts?.show_count ?? 0),
     first_performance: firstRow ?? null,
     last_performance: lastRow ?? null,

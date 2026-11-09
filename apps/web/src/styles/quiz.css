@@ -49,10 +49,16 @@
   .quiz-next { width: 100%; margin-left: 0; }
 }
 
-/* Floating entry. Desktop only: the bottom-right corner is the thumb zone on phones and
-   already carries the menu trigger, so small screens keep the menu entry instead. */
+/* Floating entry on every public page. The visitor can drag the mascot to either side; the side
+   and height are remembered (quiz-launcher.ts sets data-side and --quiz-dock-bottom). */
 .quiz-launcher-root { position: relative; z-index: 60; }
-.quiz-launcher-dock { position: fixed; right: 1.4rem; bottom: 1.4rem; display: flex; flex-direction: column; align-items: flex-end; gap: .55rem; }
+.quiz-launcher-dock { --quiz-dock-edge: 1.4rem; position: fixed; right: var(--quiz-dock-edge); bottom: var(--quiz-dock-bottom, 1.4rem); display: flex; flex-direction: column; align-items: flex-end; gap: .55rem; }
+.quiz-launcher-dock[data-side="left"] { right: auto; left: var(--quiz-dock-edge); align-items: flex-start; }
+.quiz-launcher-dock[data-dragging="true"] { transition: none !important; }
+/* Pause rather than stop the idle bob: removing the animation restarts it and she hops on release. */
+.quiz-launcher-dock[data-dragging="true"] :is(.quiz-chibi, .quiz-coin, .quiz-sparks) { animation-play-state: paused; }
+.quiz-invite-art { touch-action: none; cursor: grab; }
+.quiz-launcher-dock[data-dragging="true"] .quiz-invite-art { cursor: grabbing; }
 .quiz-launcher-dock[hidden] { display: none !important; }
 .quiz-launcher-bar { display: inline-flex; align-items: center; max-width: min(20rem, calc(100vw - 3rem)); height: 2.9rem; background: linear-gradient(145deg, rgba(20,38,60,.97), rgba(7,17,30,.97)); border: 1px solid rgba(159,180,211,.28); border-radius: 999px; box-shadow: 0 10px 26px rgba(0,0,0,.42); }
 
@@ -84,8 +90,44 @@
 .quiz-dialog .quiz-card, .quiz-dialog .quiz-finish { border: 0; background: transparent; padding: 0; }
 .quiz-dialog .quiz-finish { padding: 1rem 0 .3rem; }
 
+/* Phones: a floating mascot would cover the content, so she moves into the header as a small
+   button beside the menu; the floating dock (with dragging) stays a desktop feature. */
+.quiz-header-slot, .quiz-header-button { display: none; }
 @media (max-width: 760px) {
   .quiz-launcher-dock { display: none; }
+  .quiz-header-slot { position: relative; display: inline-flex; flex: none; margin-left: auto; }
+  .quiz-header-button { position: relative; display: inline-grid; place-items: end center; flex: none; width: 48px; height: 48px; padding: 0; overflow: hidden; color: var(--text); background: rgba(255,255,255,.07); border: 1.5px solid rgba(239,248,255,.6); box-shadow: 0 0 0 3px rgba(239,248,255,.06); }
+  .quiz-header-button svg { display: block; width: 46px; height: 46px; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .quiz-header-button:hover { border-color: var(--accent); transform: none; filter: none; }
+  /* Speech bubble under the mascot, once per quiz day, two seconds after she appears. */
+  .quiz-header-bubble { position: absolute; z-index: 30; top: calc(100% + 10px); right: -2px; display: inline-flex; align-items: center; gap: .35rem; width: max-content; max-width: min(15rem, calc(100vw - 2rem)); min-height: 40px; padding: .5rem .8rem; color: #0b1626; background: #eff8ff; border: 0; border-radius: 14px; box-shadow: 0 10px 26px rgba(0,0,0,.45); font-size: .82rem; font-weight: 700; line-height: 1.3; white-space: nowrap; transform-origin: calc(100% - 22px) -8px; animation: quiz-bubble-in .32s cubic-bezier(.2,.9,.3,1.3); }
+  .quiz-header-bubble::before { content: ""; position: absolute; top: -6px; right: 18px; width: 12px; height: 12px; background: inherit; border-radius: 2px; transform: rotate(45deg); }
+  .quiz-header-bubble span { color: var(--accent); }
+  .quiz-header-bubble:hover { color: #0b1626; background: #fff; transform: none; filter: none; }
+  .quiz-header-bubble[hidden] { display: none; }
+  .quiz-header-bubble[data-leaving="true"] { opacity: 0; transform: translateY(-4px) scale(.96); transition: opacity .2s, transform .2s; }
+  .quiz-header-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .quiz-header-dot { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px #07101c; }
+  .quiz-header-dot[hidden] { display: none; }
+  /* She keeps the same slow idle bob as on desktop, so the button feels alive without nagging. */
+  .quiz-header-button .quiz-chibi { transform-box: fill-box; transform-origin: center bottom; animation: quiz-chibi-bob 3.6s ease-in-out infinite; }
+  .quiz-header-button[data-greeting="true"] .quiz-chibi { animation: quiz-hello-bounce .6s ease-in-out 3; }
+  .quiz-header-button[data-greeting="true"] .quiz-chibi-hand { transform-box: fill-box; transform-origin: left bottom; animation: quiz-hello-wave .3s ease-in-out 6; }
+}
+/* Brand, mascot and menu share one header row: the menu drops its label first, then the mascot shrinks. */
+@media (max-width: 440px) {
+  .site-header:has(.quiz-header-button) .mobile-menu-trigger { width: 48px; padding: .6rem; }
+  .site-header:has(.quiz-header-button) .mobile-menu-trigger span { display: none; }
+}
+@media (max-width: 360px) {
+  .site-header:has(.quiz-header-button) { gap: .35rem; }
+  .quiz-header-button { width: 40px; height: 40px; }
+  .quiz-header-button svg { width: 38px; height: 38px; }
+}
+@media (max-width: 760px) and (prefers-reduced-motion: reduce) {
+  .quiz-header-button .quiz-chibi, .quiz-header-button[data-greeting="true"] .quiz-chibi,
+  .quiz-header-button[data-greeting="true"] .quiz-chibi-hand, .quiz-header-bubble { animation: none; }
+  .quiz-header-bubble[data-leaving="true"] { transition: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .quiz-launcher-dock { transition: none; }
@@ -150,6 +192,7 @@
 .quiz-launcher-dock[data-greeting="true"] .quiz-chibi { animation: quiz-hello-bounce .6s ease-in-out 3; }
 .quiz-launcher-dock[data-greeting="true"] .quiz-chibi-hand { transform-box: fill-box; transform-origin: left bottom; animation: quiz-hello-wave .3s ease-in-out 6; }
 @keyframes quiz-hello-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px) rotate(-3deg); } }
+@keyframes quiz-bubble-in { from { opacity: 0; transform: translateY(-6px) scale(.85); } to { opacity: 1; transform: none; } }
 @keyframes quiz-hello-wave { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(12deg); } }
 @media (prefers-reduced-motion: reduce) {
   .quiz-launcher-dock, .quiz-invite-art { transition: none; }

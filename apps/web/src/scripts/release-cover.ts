@@ -1,9 +1,45 @@
-export function setupReleaseCovers(root: ParentNode = document): void {
-  root.querySelectorAll<HTMLImageElement>("[data-release-cover-image]").forEach((image) => {
-    if (image.dataset.coverBound) return;
+let coverObserver: IntersectionObserver | undefined;
+
+function loadCover(image: HTMLImageElement): void {
+  const url = image.dataset.coverSrc;
+  if (!url) return;
+  delete image.dataset.coverSrc;
+  image.hidden = false;
+  image.src = url;
+}
+
+function setupReleaseCover(image: HTMLImageElement): void {
+  if (!image.dataset.coverBound) {
     image.dataset.coverBound = "true";
+    image.addEventListener("load", () => { image.dataset.coverLoaded = "true"; });
     image.addEventListener("error", () => { image.hidden = true; });
-    if (image.complete && image.naturalWidth === 0) image.hidden = true;
+  }
+  if (image.dataset.coverSrc) {
+    if (typeof IntersectionObserver === "undefined") {
+      loadCover(image);
+      return;
+    }
+    coverObserver ??= new IntersectionObserver((entries, observer) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        observer.unobserve(entry.target);
+        const image = entry.target.querySelector<HTMLImageElement>("[data-release-cover-image]");
+        if (image) loadCover(image);
+      }
+    }, { rootMargin: "200px 0px" });
+    // Observe the sized wrapper: the deferred image stays hidden until requested.
+    coverObserver.observe(image.parentElement!);
+  } else if (image.complete) {
+    if (image.naturalWidth > 0) image.dataset.coverLoaded = "true";
+    else image.hidden = true;
+  }
+}
+
+export function setupReleaseCovers(root: ParentNode = document): void {
+  // Drop covers removed by filtering or client navigation before observing new ones.
+  coverObserver?.disconnect();
+  root.querySelectorAll<HTMLImageElement>("[data-release-cover-image]").forEach((image) => {
+    setupReleaseCover(image);
   });
 }
 
@@ -24,9 +60,11 @@ export function createReleaseCover(url: string | null, alt: string): HTMLElement
     image.loading = "lazy";
     image.decoding = "async";
     image.referrerPolicy = "no-referrer";
-    image.addEventListener("error", () => { image.hidden = true; });
-    image.src = url;
+    image.dataset.releaseCoverImage = "";
+    image.dataset.coverSrc = url;
+    image.hidden = true;
     cover.appendChild(image);
+    setupReleaseCover(image);
   }
   return cover;
 }

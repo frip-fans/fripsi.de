@@ -1,4 +1,4 @@
-import { countSetlists, getSetlistHighlights, listSetlists, listSetlistYears, listSongCatalog, type SetlistHighlights, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
+import { songPhasesFromMask, countSetlists, getSetlistHighlights, listSetlists, listSetlistYears, listSongCatalog, type SetlistHighlights, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
 import { releaseTypeLabels } from "./music";
 import { MUSIC_BATCH_SIZE, MUSIC_SONG_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE, musicBatchSize } from "./music-batch";
 import { rankByShows } from "./song-ranking";
@@ -58,7 +58,7 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
     for (const setlist of lives) { const item = archive.get(setlist.id); if (item) highlights[setlist.id] = item; }
   } else if (kind === "songs") {
     const needle = input.query.toLocaleLowerCase();
-    const scope = (await listSongCatalog(db)).filter(song => !input.phases.length || (song.phase != null && input.phases.includes(String(song.phase))));
+    const scope = (await listSongCatalog(db)).filter(song => !input.phases.length || songPhasesFromMask(song.phase_mask).some(phase => input.phases.includes(String(phase))));
     ranks = Object.fromEntries(rankByShows(scope));
     maxShows = Math.max(0, ...scope.map(song => song.show_count));
     const filtered = scope.filter(song => !needle || song.search_text.toLocaleLowerCase().includes(needle));

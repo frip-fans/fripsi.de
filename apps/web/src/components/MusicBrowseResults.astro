@@ -1,4 +1,5 @@
 ---
+import { songPhasesFromMask } from "@frip-fan/core";
 import ReleaseCover from "./ReleaseCover.astro";
 import { getEnv } from "../lib/env";
 import { eventSearchRevision } from "../lib/event-search";
@@ -74,7 +75,10 @@ const showArtist = (artist: string) => !/^fripSide(?: \(Phase \d\))?$/.test(arti
     {results.songs.map(song => {
       const rank = results.ranked ? results.ranks[song.id] : undefined;
       const tied = rank !== undefined && (rankTies.get(rank) ?? 0) > 1;
-      const meta = [showArtist(song.original_artist) ? song.original_artist : "", song.version_count > 1 ? t(locale, "music.versionsCount", { count: song.version_count }) : ""].filter(Boolean);
+      // A joint song's credit lists every vocalist; the phase label says the same thing shorter.
+      const phases = songPhasesFromMask(song.phase_mask);
+      const credit = phases.length > 1 ? t(locale, "music.phaseJoint", { phases: phases.join("·") }) : showArtist(song.original_artist) ? song.original_artist : "";
+      const meta = [credit, song.version_count > 1 ? t(locale, "music.versionsCount", { count: song.version_count }) : ""].filter(Boolean);
       return (
         <a class:list={["song-row", { "is-podium": rank !== undefined && rank <= 3 }]} data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`} data-astro-prefetch="tap">
           {results.ranked && <span class="song-row-rank">{rank !== undefined && <><span aria-hidden="true">{rank}</span><span class="visually-hidden">{t(locale, tied ? "music.rankTied" : "music.rank", { rank })}</span></>}</span>}

@@ -32,9 +32,19 @@ export interface MusicLibraryStats {
   performance_count: number;
 }
 
-/** fripSide era a song belongs to; null for covers, guest work and unclassified songs. */
+/** fripSide era; a joint song can belong to several. */
 export type SongPhase = 1 | 2 | 3;
 export const SONG_PHASES: readonly SongPhase[] = [1, 2, 3];
+
+/** Phases stored as a bit mask (Phase 1 = 1, Phase 2 = 2, Phase 3 = 4); null or empty means none. */
+export function songPhasesFromMask(mask: number | null | undefined): SongPhase[] {
+  return SONG_PHASES.filter((phase) => ((mask ?? 0) & (1 << (phase - 1))) !== 0);
+}
+
+export function songPhaseMask(phases: readonly SongPhase[]): number | null {
+  const mask = phases.reduce((value, phase) => value | (1 << (phase - 1)), 0);
+  return mask || null;
+}
 
 export interface SongSummary {
   id: string;
@@ -43,7 +53,8 @@ export interface SongSummary {
   original_artist: string;
   first_release_date: string | null;
   notes: string | null;
-  phase?: SongPhase | null;
+  /** See songPhasesFromMask; null for covers, guest work and unclassified songs. */
+  phase_mask?: number | null;
   version_count: number;
   release_count: number;
   show_count: number;

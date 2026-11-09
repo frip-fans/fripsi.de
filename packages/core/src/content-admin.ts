@@ -1,6 +1,7 @@
 import { COVER_PATH_PATTERN } from "./release-media";
 import { z } from "zod";
 import { getAdminReleaseById, getAdminSetlistById, getAdminSongById } from "./music-admin-repository";
+import { songPhaseMask } from "./music-types";
 import type {
   AdminReleaseDetail,
   AdminSetlistDetail,
@@ -51,8 +52,8 @@ export const songSaveSchema = z.object({
   title: z.string().trim().min(1).max(240),
   original_artist: z.string().trim().min(1).max(240),
   first_release_date: dateSchema.nullish(),
-  // Omitted keeps the stored phase, so callers that predate the field cannot clear it.
-  phase: z.union([z.literal(1), z.literal(2), z.literal(3)]).nullable().optional(),
+  // Omitted keeps the stored phases, so callers that predate the field cannot clear them; [] clears.
+  phases: z.array(z.union([z.literal(1), z.literal(2), z.literal(3)])).max(3).optional(),
   notes: optionalText(4000),
   published: z.boolean(),
   aliases: z.array(z.string().trim().min(1).max(240)).max(80),
@@ -403,17 +404,17 @@ export class ContentAdminService {
     const statements: D1PreparedStatement[] = [];
     if (before) {
       statements.push(this.db.prepare(`UPDATE songs SET slug = ?, title = ?, normalized_title = ?, original_artist = ?,
-        first_release_date = ?, phase = CASE WHEN ? THEN ? ELSE phase END, notes = ?, published = ?, updated_at = ?
+        first_release_date = ?, phase_mask = CASE WHEN ? THEN ? ELSE phase_mask END, notes = ?, published = ?, updated_at = ?
         WHERE id = ? AND updated_at = ?`)
         .bind(slug, input.title, normalizeForDuplicate(input.title), input.original_artist, input.first_release_date ?? null,
-          input.phase === undefined ? 0 : 1, input.phase ?? null,
+          input.phases === undefined ? 0 : 1, songPhaseMask(input.phases ?? []),
           input.notes, input.published ? 1 : 0, now, id, before.updated_at));
     } else {
       statements.push(this.db.prepare(`INSERT INTO songs (
-        id, slug, title, normalized_title, original_artist, first_release_date, phase, notes, published, created_at, updated_at
+        id, slug, title, normalized_title, original_artist, first_release_date, phase_mask, notes, published, created_at, updated_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
         .bind(id, slug, input.title, normalizeForDuplicate(input.title), input.original_artist, input.first_release_date ?? null,
-          input.phase ?? null, input.notes, input.published ? 1 : 0, now, now));
+          songPhaseMask(input.phases ?? []), input.notes, input.published ? 1 : 0, now, now));
     }
 
     statements.push(

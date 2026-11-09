@@ -182,7 +182,7 @@ export async function listSongs(db: D1Database, options: MusicSearchOptions = {}
 
 export async function listSongCatalog(db: D1Database, limit = 500): Promise<SongBrowseSummary[]> {
   const result = await db.prepare(`
-    SELECT s.id, s.slug, s.title, s.original_artist, s.first_release_date, s.notes, s.phase,
+    SELECT s.id, s.slug, s.title, s.original_artist, s.first_release_date, s.notes, s.phase_mask,
       (SELECT COUNT(*) FROM song_versions sv WHERE sv.song_id = s.id AND sv.published = 1) AS version_count,
       (SELECT r.cover_url
         FROM song_versions sv

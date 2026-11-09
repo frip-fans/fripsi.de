@@ -97,7 +97,8 @@ describe("shared music browsing", () => {
         const id = String(i).padStart(2, "0");
         sqlite.prepare("INSERT INTO songs(id,slug,title,normalized_title,created_at,updated_at) VALUES(?,?,?,?, 'now','now')").run(id, `song-${id}`, `Song ${id}`, `song ${id}`);
       }
-      sqlite.exec("UPDATE songs SET phase = 2 WHERE id IN ('00', '01', '02'); UPDATE songs SET phase = 3 WHERE id IN ('03', '04')");
+      // Song 04 is a joint Phase 2 + 3 song (mask 6).
+      sqlite.exec("UPDATE songs SET phase_mask = 2 WHERE id IN ('00', '01', '02'); UPDATE songs SET phase_mask = 4 WHERE id = '03'; UPDATE songs SET phase_mask = 6 WHERE id = '04'");
       for (const [position, setlist, song] of [[2, "00", "01"], [2, "01", "01"], [3, "00", "02"], [4, "00", "03"], [5, "00", "04"]] as const) {
         sqlite.prepare("INSERT INTO setlist_entries(id,setlist_id,position,song_id,display_title,created_at) VALUES(?,?,?,?,'x','now')").run(`extra-${setlist}-${position}`, setlist, position, song);
       }
@@ -109,6 +110,7 @@ describe("shared music browsing", () => {
       const phase3 = await getMusicBrowseResults(db, "songs", new URLSearchParams("phase=3"));
       expect(phase3.songs.map(song => song.id)).toEqual(["03", "04"]);
       expect(phase3).toMatchObject({ total: 2, maxShows: 1, ranks: { "03": 1, "04": 1 } });
+      expect((await getMusicBrowseResults(db, "songs", new URLSearchParams("phase=2"))).songs.map(song => song.id)).toEqual(["00", "01", "02", "04"]);
       const both = await getMusicBrowseResults(db, "songs", new URLSearchParams("phase=2&phase=3&q=Song+02"));
       expect(both.songs.map(song => song.id)).toEqual(["02"]);
       expect(both.ranks["02"]).toBe(3);

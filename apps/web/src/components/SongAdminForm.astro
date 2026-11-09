@@ -1,5 +1,5 @@
 ---
-import type { AdminSongDetail, AdminSongVersion, CatalogSource } from "@frip-fan/core";
+import { songPhasesFromMask, type AdminSongDetail, type AdminSongVersion, type CatalogSource } from "@frip-fan/core";
 import Icon from "./Icon.astro";
 
 interface Props {
@@ -22,10 +22,11 @@ const versions: Array<AdminSongVersion | undefined> = song?.versions.length ? so
     <label class="wide">歌曲名 *<input name="title" required maxlength="240" value={song?.title ?? ""} data-song-title /></label>
     <label>原唱 / Artist<input name="original_artist" required maxlength="240" value={song?.original_artist ?? "fripSide"} /></label>
     <label>首次发行日期<input type="date" name="first_release_date" value={song?.first_release_date ?? ""} /></label>
-    <label>期别<select name="phase">
-      <option value="" selected={!song?.phase}>不属于分期（翻唱、客演等）</option>
-      {([1, 2, 3] as const).map((phase) => <option value={String(phase)} selected={song?.phase === phase}>{phase} 期</option>)}
-    </select></label>
+    <fieldset class="wide phase-field">
+      <legend>期别（合唱曲可多选；翻唱、客演等不选）</legend>
+      <input type="hidden" name="phase_field" value="1" />
+      {([1, 2, 3] as const).map((phase) => <label class="publish-check"><input type="checkbox" name="phase" value={String(phase)} checked={songPhasesFromMask(song?.phase_mask).includes(phase)} />{phase} 期</label>)}
+    </fieldset>
     <label class="wide">Slug<input name="slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={song?.slug ?? ""} placeholder="留空自动生成" /></label>
     <label class="wide">别名<textarea name="aliases" maxlength="8000" placeholder="每行一个别名；可用于公开歌曲搜索">{song?.aliases.join("\n") ?? ""}</textarea></label>
     <label class="wide">说明<textarea name="notes" maxlength="4000">{song?.notes ?? ""}</textarea></label>
@@ -151,6 +152,8 @@ const versions: Array<AdminSongVersion | undefined> = song?.versions.length ? so
   .song-form { display: grid; gap: 2rem; }
   .publish-check { display: flex; align-items: center; gap: .55rem; }
   .publish-check input { width: auto; }
+  .phase-field { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.25rem; margin: 0; padding: .75rem 1rem; border: 1px solid var(--line); border-radius: 10px; }
+  .phase-field legend { padding: 0 .35rem; color: var(--muted); font-size: .8125rem; }
   .editor-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
   .editor-heading h2, .editor-heading p { margin-bottom: .35rem; }
   .version-rows { display: grid; gap: 1rem; }

@@ -64,7 +64,7 @@ async function listSources(db: D1Database, subjectType: CatalogSource["subject_t
 }
 
 const adminSongSelect = `
-  SELECT s.id, s.slug, s.title, s.original_artist, s.first_release_date, s.notes, s.phase, s.published,
+  SELECT s.id, s.slug, s.title, s.original_artist, s.first_release_date, s.notes, s.phase_mask, s.published,
     s.created_at, s.updated_at,
     (SELECT COUNT(*) FROM song_versions sv WHERE sv.song_id = s.id) AS version_count,
     (SELECT COUNT(DISTINCT rt.release_id)

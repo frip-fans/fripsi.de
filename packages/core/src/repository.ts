@@ -99,10 +99,12 @@ export async function getPublicEventBySlug(db: D1Database, slug: string): Promis
   return (await hydrateEventLocations(db, [event]))[0];
 }
 
-export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false): Promise<EventRecord[]> {
+/** Chronological by default; admin lists pass `newestFirst` so the latest events lead. */
+export async function searchEvents(db: D1Database, raw: Partial<SearchInput> = {}, publicOnly = false, options: { newestFirst?: boolean } = {}): Promise<EventRecord[]> {
   const input = searchInputSchema.parse(raw);
   const { where, bindings } = eventSearchWhere(input, publicOnly);
-  const statement = db.prepare(`SELECT * FROM events ${where} ORDER BY start_date ASC, start_time ASC, title ASC LIMIT ? OFFSET ?`);
+  const order = options.newestFirst ? "start_date DESC, start_time DESC, title ASC" : "start_date ASC, start_time ASC, title ASC";
+  const statement = db.prepare(`SELECT * FROM events ${where} ORDER BY ${order} LIMIT ? OFFSET ?`);
   const result = await statement.bind(...bindings, input.limit, input.offset).all<EventRow>();
   return hydrateEventLocations(db, result.results.map(mapEvent));
 }

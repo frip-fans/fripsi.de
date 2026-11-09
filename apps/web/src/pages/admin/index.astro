@@ -8,7 +8,7 @@ import { getEnv } from "../../lib/env";
 const db = getEnv().DB;
 const [proposed, recentEvents, audit, changeCounts] = await Promise.all([
   listChangeSets(db, "proposed", 8),
-  searchEvents(db, { include_archived: true, limit: 8 }),
+  searchEvents(db, { include_archived: true, limit: 8 }, false, { newestFirst: true }),
   listAuditLogs(db, 6),
   countChangeSetsByStatus(db),
 ]);

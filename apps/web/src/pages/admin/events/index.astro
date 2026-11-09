@@ -26,7 +26,7 @@ const events = await searchEvents(db, {
   ...filters,
   limit: PAGE_SIZE,
   offset: (currentPage - 1) * PAGE_SIZE,
-});
+}, false, { newestFirst: true });
 ---
 <SiteLayout title="活动管理" admin>
   <header class="list-head"><div><p class="eyebrow">Events</p><h1>活动管理</h1></div><a class="button" href="/admin/events/new"><Icon name="plus" />新活动</a></header>

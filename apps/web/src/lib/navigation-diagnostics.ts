@@ -1,3 +1,5 @@
+import { installNavigationPhaseTimings } from "./navigation-phase-timings";
+
 interface Sample { at: number; event: string; [key: string]: unknown }
 const STORAGE_KEY = "frip:navigation-diagnostics";
 
@@ -22,6 +24,7 @@ export function startNavigationDiagnostics(release: string) {
     samples.push({ at: Math.round(performance.now()), event, ...data });
     if (samples.length > 200) samples.shift();
   };
+  const restorePhaseTimings = installNavigationPhaseTimings(add);
   const labels = {
     "zh-CN": ["导航诊断", "复制记录", "关闭诊断", "复制失败，请选择下方文字复制"],
     "zh-TW": ["導覽診斷", "複製記錄", "關閉診斷", "複製失敗，請選取下方文字複製"],
@@ -100,9 +103,15 @@ export function startNavigationDiagnostics(release: string) {
     frame = requestAnimationFrame(tick);
   };
   frame = requestAnimationFrame(tick);
+  let previousTimer = performance.now();
+  const heartbeat = setInterval(() => {
+    const now = performance.now();
+    if (!document.hidden && now < activeUntil && now - previousTimer > 250) add("timer-gap", { duration: Math.round(now - previousTimer) });
+    previousTimer = now;
+  }, 100);
   stop.addEventListener("click", () => {
     try { sessionStorage.removeItem(STORAGE_KEY); } catch { /* storage is optional */ }
-    lifetime.abort(); observer.disconnect(); cancelAnimationFrame(frame); panel.remove();
+    lifetime.abort(); restorePhaseTimings(); clearInterval(heartbeat); observer.disconnect(); cancelAnimationFrame(frame); panel.remove();
   }, { signal });
   mount(); add("diagnostics-start", { path: location.pathname });
 }

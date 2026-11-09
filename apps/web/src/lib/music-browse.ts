@@ -1,27 +1,33 @@
-import { countSetlists, listSetlists, listSongCatalog, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
+import { countSetlists, getSetlistHighlights, listSetlists, listSetlistYears, listSongCatalog, type SetlistHighlights, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
 import { releaseTypeLabels } from "./music";
+import { MUSIC_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE } from "./music-batch";
 
 export type MusicBrowseKind = "lives" | "songs" | "releases";
-export const MUSIC_BATCH_SIZE = 6;
+export { MUSIC_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE };
 export const musicSorts = {
   lives: ["desc", "asc"],
   songs: ["live-desc", "live-asc", "title-asc", "title-desc", "release-desc", "release-asc"],
   releases: ["date-desc", "date-asc", "title-asc", "title-desc"],
 } as const;
 
+export const liveClassifications = ["专场", "拼盘"] as const;
+const MAX_MULTI_VALUES = 40;
+
+/** Read a repeatable query parameter, keeping valid unique values in request order. */
+function multiValues(params: URLSearchParams, key: string, valid: (value: string) => boolean): string[] {
+  return [...new Set(params.getAll(key).map(value => value.trim()).filter(valid))].slice(0, MAX_MULTI_VALUES);
+}
+
 export function parseMusicBrowse(kind: MusicBrowseKind, params: URLSearchParams) {
   const requestedSort = params.get("sort") ?? "";
   const sort = (musicSorts[kind] as readonly string[]).includes(requestedSort) ? requestedSort : musicSorts[kind][0];
-  const requestedYear = params.get("year") ?? "";
-  const classification = params.get("classification") ?? "";
-  const type = params.get("type") ?? "";
   const requestedPage = params.get("page") ?? "1";
   return {
-    batch: kind === "releases" && params.get("batch") === "8" ? 8 : MUSIC_BATCH_SIZE,
+    batch: kind === "releases" && params.get("batch") === String(MUSIC_WIDE_RELEASE_BATCH_SIZE) ? MUSIC_WIDE_RELEASE_BATCH_SIZE : MUSIC_BATCH_SIZE,
     query: (params.get("q") ?? "").trim().slice(0, 200),
-    year: kind === "lives" && /^\d{4}$/.test(requestedYear) ? requestedYear : "",
-    classification: kind === "lives" && ["专场", "拼盘"].includes(classification) ? classification : "",
-    type: kind === "releases" && Object.hasOwn(releaseTypeLabels, type) ? type : "",
+    years: kind === "lives" ? multiValues(params, "year", value => /^\d{4}$/.test(value)) : [],
+    classifications: kind === "lives" ? multiValues(params, "classification", value => (liveClassifications as readonly string[]).includes(value)) : [],
+    types: kind === "releases" ? multiValues(params, "type", value => Object.hasOwn(releaseTypeLabels, value)) : [],
     sort,
     page: /^\d+$/.test(requestedPage) ? Math.min(80, Math.max(1, Number(requestedPage))) : 1,
   };
@@ -35,9 +41,15 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
   let songs: SongBrowseSummary[] = [];
   let releases: ReleaseSummary[] = [];
   let total = 0;
+  let yearCounts: Record<string, number> = {};
+  const highlights: Record<string, SetlistHighlights> = {};
   if (kind === "lives") {
-    const filters = { query: input.query || undefined, year: input.year || undefined, classification: input.classification || undefined, order: input.sort as "asc" | "desc" };
-    [total, lives] = await Promise.all([countSetlists(db, filters), listSetlists(db, { ...filters, offset, limit })]);
+    const filters = { query: input.query || undefined, years: input.years, classifications: input.classifications, order: input.sort as "asc" | "desc" };
+    let years: Array<{ year: string; count: number }>;
+    let archive: Map<string, SetlistHighlights>;
+    [total, lives, years, archive] = await Promise.all([countSetlists(db, filters), listSetlists(db, { ...filters, offset, limit }), listSetlistYears(db, filters), getSetlistHighlights(db)]);
+    yearCounts = Object.fromEntries(years.map(item => [item.year, item.count]));
+    for (const setlist of lives) { const item = archive.get(setlist.id); if (item) highlights[setlist.id] = item; }
   } else if (kind === "songs") {
     const needle = input.query.toLocaleLowerCase();
     const filtered = (await listSongCatalog(db)).filter(song => !needle || song.search_text.toLocaleLowerCase().includes(needle));
@@ -52,7 +64,7 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
   } else {
     const needle = input.query.toLocaleLowerCase();
     const filtered = (await listReleases(db, { limit: 500 }))
-      .filter(release => !input.type || release.release_type === input.type)
+      .filter(release => !input.types.length || input.types.includes(release.release_type))
       .filter(release => !needle || [release.title, release.catalog_number, release.edition].filter(Boolean).join(" ").toLocaleLowerCase().includes(needle));
     filtered.sort((a, b) => input.sort.startsWith("title-")
       ? (a.title.localeCompare(b.title) || a.id.localeCompare(b.id)) * (input.sort === "title-asc" ? 1 : -1)
@@ -61,7 +73,7 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
     releases = filtered.slice(offset, offset + limit);
   }
   const shown = Math.min(total, offset + lives.length + songs.length + releases.length);
-  return { lives, songs, releases, total, shown, page: input.page, batch: input.batch, hasMore: shown < total };
+  return { lives, songs, releases, total, shown, yearCounts, highlights, page: input.page, batch: input.batch, hasMore: shown < total };
 }
 
 function compareDates(left: string | null, right: string | null, leftTitle: string, rightTitle: string, ascending: boolean) {

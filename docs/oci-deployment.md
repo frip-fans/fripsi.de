@@ -44,6 +44,8 @@ gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=produ
 
 Node CLI 复用现有同步代码、预算、数据库 lease 与通知状态；每五分钟 tick，和原 Worker 调度一致。可手动 `sudo systemctl start fripside-sync.service`。启动前必须核对 MCP HTTPS 地址、Access 策略及共享内部签名密钥。
 
+“未发现新公告”只在确实读到官网后才记录：新闻页首页不可访问（`official_source_unavailable`）、读到但没有带日期的公告链接（`official_layout_changed`，如验证页或改版）、或本次候选正文全部读取失败（`official_articles_unreadable`）时，当天任务保持待重试，每次 tick 重新读取官网，连续 5 次失败后标记失败并通过 Bark 推送“官网读取失败”。部分页面失败不阻止当天任务，但会推送失败页面数。这些检查不调用 OpenAI；被官网拦截时改为人工核对，不绕过拦截。
+
 ## 验收与回退
 
 - CI、独立目录启动、公开页面和手机日历/搜索路由；封面与静态资源、无横向溢出。

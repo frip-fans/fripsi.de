@@ -41,13 +41,19 @@ export function setlistEventTypeLabel(value: string | null, locale: Locale = "zh
   return value;
 }
 
-export const setlistSectionLabels: Record<SetlistSection, string> = {
-  opening: "Opening",
-  main: "Main Set",
-  encore: "Encore",
-  double_encore: "Double Encore",
-  other: "Other",
-};
+export function setlistSectionLabel(value: SetlistSection, locale: Locale): string {
+  return t(locale, `music.section.${value}` as `music.section.${SetlistSection}`);
+}
+
+export function releaseTypeLabel(value: ReleaseType, locale: Locale): string {
+  return t(locale, `music.releaseType.${value}` as `music.releaseType.${ReleaseType}`);
+}
+
+/** Avoid printing a release title beside a song when it repeats the song title. */
+export function distinctReleaseTitles(displayTitle: string, releaseTitles: string | null): string | null {
+  if (!releaseTitles) return null;
+  return normalizeForDuplicate(displayTitle) === normalizeForDuplicate(releaseTitles) ? null : releaseTitles;
+}
 
 export const versionRelationLabels: Record<VersionRelationType, string> = {
   "re-recording_of": "重新录制自",
@@ -68,6 +74,24 @@ export function formatMusicDate(value: string | null, locale: Locale = "zh-CN"):
     day: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${value}T00:00:00Z`));
+}
+
+/** Years between two performances, one decimal, in the page locale (e.g. 7.8). */
+export function formatGapYears(days: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 0 }).format(Math.floor((days / 365.25) * 10) / 10);
+}
+
+/** Month and day labels for a date block, formatted for the page locale. */
+export function musicDateParts(value: string | null, locale: Locale): { year: string; month: string; day: string } | null {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  const date = new Date(`${value}T00:00:00Z`);
+  const part = (options: Intl.DateTimeFormatOptions, type: Intl.DateTimeFormatPartTypes) =>
+    new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).formatToParts(date).find(item => item.type === type)?.value ?? "";
+  return {
+    year: value.slice(0, 4),
+    month: new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(date),
+    day: part({ day: "numeric" }, "day"),
+  };
 }
 
 export function setlistCompletenessLabel(value: SetlistCompleteness, locale: Locale): string {

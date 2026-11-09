@@ -131,7 +131,7 @@ export async function tick(env: SyncEnv, now = new Date(), trial?: TrialOptions)
         const discovery = env.SYNC_DISCOVERY_ENABLED === "false" ? { articles: [], errors: [] } : await discover(env.DB, run.id, now, trial?.forceSources);
         if (!discovery.articles.length && env.SYNC_DISCOVERY_ENABLED !== "false") {
           await env.DB.prepare("UPDATE official_sync_runs SET status='completed',result_json=?,summary_json='[]',updated_at=? WHERE id=?")
-            .bind(JSON.stringify({ summary: "未发现可读取的新公告或正文变化，未调用模型", notes: discovery.errors }), now.toISOString(), run.id).run(); return;
+            .bind(JSON.stringify({ summary: "未发现可读取的新公告或正文变化，未调用模型", notes: discovery.errors, source_errors: discovery.errors }), now.toISOString(), run.id).run(); return;
         }
         const manifest: Manifest = { model: env.OPENAI_MODEL, mcp_url: env.MCP_ENDPOINT_URL, auto_publish: run.auto_publish === 1, prompt: instructions,
           input: { today: now.toISOString(), lookback_days: DISCOVERY_LOOKBACK_DAYS, run_id: run.id, auto_publish: run.auto_publish === 1,
@@ -195,7 +195,7 @@ export async function tick(env: SyncEnv, now = new Date(), trial?: TrialOptions)
     }
     await finish(env.DB, run, primaryWithUsage, run.review_report_json ? JSON.parse(run.review_report_json) as AgentReport : null, budget, now.toISOString());
   } catch (error) {
-    const code = error instanceof Error && /^(openai_http_\d{3}|openai_key_format_invalid|agent_turn_failed|review_turn_failed|agent_output_missing|soft_budget_exhausted|budget_model_unconfigured)$/.test(error.message)
+    const code = error instanceof Error && /^(official_source_unavailable|official_layout_changed|official_articles_unreadable|openai_http_\d{3}|openai_key_format_invalid|agent_turn_failed|review_turn_failed|agent_output_missing|soft_budget_exhausted|budget_model_unconfigured)$/.test(error.message)
       ? error.message : "sync_step_failed";
     if (run) {
       const failed = run.attempts >= 4 || ["agent_turn_failed", "review_turn_failed", "agent_output_missing", "soft_budget_exhausted", "budget_model_unconfigured", "openai_key_format_invalid"].includes(code)

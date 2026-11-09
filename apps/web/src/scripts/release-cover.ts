@@ -1,17 +1,32 @@
 let coverObserver: IntersectionObserver | undefined;
+const coverRequestedAt = new WeakMap<HTMLImageElement, number>();
+/** Loads faster than this come from the browser cache, so they skip the first-load fade. */
+export const CACHED_COVER_MS = 120;
+
+function showCover(image: HTMLImageElement, cached: boolean): void {
+  if (cached) image.dataset.coverCached = "true";
+  image.dataset.coverLoaded = "true";
+}
 
 function loadCover(image: HTMLImageElement): void {
   const url = image.dataset.coverSrc;
   if (!url) return;
   delete image.dataset.coverSrc;
   image.hidden = false;
+  coverRequestedAt.set(image, performance.now());
   image.src = url;
+  // Memory-cached images are complete synchronously once src is set.
+  if (image.complete && image.naturalWidth > 0) showCover(image, true);
 }
 
 function setupReleaseCover(image: HTMLImageElement): void {
   if (!image.dataset.coverBound) {
     image.dataset.coverBound = "true";
-    image.addEventListener("load", () => { image.dataset.coverLoaded = "true"; });
+    image.addEventListener("load", () => {
+      if (image.dataset.coverLoaded) return;
+      const requestedAt = coverRequestedAt.get(image);
+      showCover(image, requestedAt !== undefined && performance.now() - requestedAt < CACHED_COVER_MS);
+    });
     image.addEventListener("error", () => { image.hidden = true; });
   }
   if (image.dataset.coverSrc) {

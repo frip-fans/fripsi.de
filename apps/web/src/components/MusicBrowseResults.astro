@@ -3,7 +3,7 @@ import ReleaseCover from "./ReleaseCover.astro";
 import { getEnv } from "../lib/env";
 import { eventSearchRevision } from "../lib/event-search";
 import { getMusicBrowseResults, type MusicBrowseKind } from "../lib/music-browse";
-import { formatMusicDate, setlistCompletenessLabel, setlistDisplayTitle, setlistEventTypeLabel, releaseTypeLabels } from "../lib/music";
+import { formatGapYears, formatMusicDate, musicDateParts, setlistCompletenessLabel, setlistDisplayTitle, setlistEventTypeLabel, releaseTypeLabel } from "../lib/music";
 import { getLocale, t } from "../lib/i18n";
 interface Props { kind: MusicBrowseKind; append?: boolean; }
 const { kind, append = false } = Astro.props;
@@ -15,32 +15,69 @@ const next = new URLSearchParams(Astro.url.searchParams);
 next.set("page", String(results.page + 1));
 next.set("lang", locale);
 const nextHref = `/music/${kind}?${next}`;
+// Year headers carry a data-music-id so appended batches skip a header that is already on the page.
+const liveGroups: Array<{ year: string; count?: number; setlists: typeof results.lives }> = [];
+for (const setlist of results.lives) {
+  const year = setlist.start_date?.slice(0, 4) || "—";
+  const group = liveGroups.at(-1);
+  if (group?.year === year) group.setlists.push(setlist);
+  else liveGroups.push({ year, count: results.yearCounts[year], setlists: [setlist] });
+}
 ---
 <div data-music-results data-total={results.total} data-shown={results.shown} data-page={results.page} data-batch={results.batch} data-has-more={results.hasMore} data-revision={eventSearchRevision(db)}>
-  <div class:list={["music-grid", { "music-release-grid": kind === "releases" }]} data-music-items>
-    {results.lives.map(setlist => (
-      <a class="music-card" data-music-id={setlist.id} href={`/music/lives/${encodeURIComponent(setlist.id)}`} data-astro-prefetch="tap">
-        <div class="music-card-top">
-          <time class="music-card-date" datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
-          <span class:list={["music-event-type", { "is-solo": setlist.event_classification === "专场", "is-festival": setlist.event_classification === "拼盘" }]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
-        </div>
-        <h2>{setlistDisplayTitle(setlist)}</h2>
-        <div class="music-card-meta"><span>{setlist.venue || t(locale, "common.venuePending")}</span><span>·</span><span>{setlist.region || t(locale, "common.regionPending")}</span></div>
-        <div class="music-card-stats"><span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span><span>{setlistCompletenessLabel(setlist.completeness, locale)}</span></div>
-      </a>
+  <div class:list={[kind === "lives" ? "live-timeline" : "music-grid", { "music-release-grid": kind === "releases" }]} data-music-items>
+    {liveGroups.map(group => (
+      <>
+        <h2 class="live-year" data-music-id={`year:${group.year}`} data-music-year={group.year}>
+          <span translate="no">{group.year}</span>
+          {group.count !== undefined && <small>{t(locale, "music.showsCount", { count: group.count })}</small>}
+        </h2>
+        {group.setlists.map(setlist => {
+          const date = musicDateParts(setlist.start_date, locale);
+          const solo = setlist.event_classification === "专场";
+          const highlight = results.highlights[setlist.id];
+          const debuts = highlight?.debuts ?? [];
+          const returns = (highlight?.returns ?? []).slice(0, 2);
+          // Festival slots are short, so the whole set is more useful than a summary.
+          const festivalSongs = setlist.event_classification === "拼盘" ? highlight?.songs ?? [] : [];
+          return (
+            <a class:list={["music-card live-card", { "is-solo": solo, "is-festival": setlist.event_classification === "拼盘" }]} data-music-id={setlist.id} href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
+              <time class="live-date" datetime={setlist.start_date}>
+                {date ? <><span class="live-date-month">{date.month}</span><span class="live-date-day">{date.day}</span></> : <span class="live-date-month">{formatMusicDate(setlist.start_date, locale)}</span>}
+              </time>
+              <div class="live-card-main">
+                <h3>{setlistDisplayTitle(setlist)}</h3>
+                {/* Solo and festival differ by color only; screen readers get the type as text. */}
+                <span class="visually-hidden">{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
+                {festivalSongs.length > 0 && <p class="live-card-songs" translate="no">{festivalSongs.join(" / ")}</p>}
+                {(debuts.length > 0 || returns.length > 0) && (
+                  <ul class="live-highlights" aria-label={t(locale, "music.highlights")}>
+                    {debuts.length > 0 && <li class="live-highlight is-debut" title={debuts.map(item => item.title).join(" / ")}>{t(locale, "music.highlightDebut", { count: debuts.length })}</li>}
+                    {returns.map(item => <li class="live-highlight is-return"><span translate="no">{item.title}</span><span aria-hidden="true">·</span><span>{t(locale, "music.highlightGap", { years: formatGapYears(item.gap_days, locale) })}</span></li>)}
+                  </ul>
+                )}
+              </div>
+              <div class="live-card-side">
+                <span class="live-card-count"><strong>{setlist.entry_count}</strong> <small>{t(locale, "music.songsUnit")}</small></span>
+                {setlist.completeness !== "complete" && <span class="music-card-flag">{setlistCompletenessLabel(setlist.completeness, locale)}</span>}
+              </div>
+            </a>
+          );
+        })}
+      </>
     ))}
     {results.songs.map(song => (
       <a class="music-card" data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`} data-astro-prefetch="tap">
         <span class="music-artist">{song.original_artist}</span>
-        <h2>{song.title}</h2>
+        <h2 translate="no">{song.title}</h2>
         <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
       </a>
     ))}
     {results.releases.map(release => (
       <a class="music-card" data-music-id={release.id} href={`/music/releases/${encodeURIComponent(release.slug)}`} data-astro-prefetch="tap">
         <ReleaseCover noScriptFallback={!append} url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
-        <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
-        <h2>{release.title}</h2>
+        <span class="music-release-meta">{releaseTypeLabel(release.release_type, locale)} · {formatMusicDate(release.release_date, locale)}</span>
+        <h2 translate="no">{release.title}</h2>
         <div class="music-card-meta">{release.catalog_number && <span>{release.catalog_number}</span>}{release.edition && <span>{release.edition}</span>}</div>
         <div class="music-card-stats"><span>{t(locale, "music.tracksCount", { count: release.track_count })}</span><span>{t(locale, "music.performedSongs", { count: release.performed_song_count })}</span></div>
       </a>

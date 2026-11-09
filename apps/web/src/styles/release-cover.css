@@ -1,14 +1,20 @@
 .release-cover { position: relative; display: block; width: 100%; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, rgba(var(--accent-rgb), .13), rgba(4,11,20,.8)); }
-.release-cover-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 3rem; opacity: .45; }
+.release-cover-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 3rem; opacity: .45; animation: release-cover-placeholder-in 200ms ease-out 160ms both; }
 .release-cover img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; background: #08111d; }
 .release-cover img[loading="lazy"][data-release-cover-image] { opacity: 0; }
 .release-cover img[loading="lazy"][data-cover-loaded] { opacity: 1; animation: release-cover-fade-in 280ms ease-out; }
+.release-cover img[loading="lazy"][data-cover-cached] { animation: none; }
 @keyframes release-cover-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
+/* Delay the placeholder so covers served from cache appear without a placeholder flash. */
+@keyframes release-cover-placeholder-in {
+  from { opacity: 0; }
+  to { opacity: .45; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .release-cover img[data-cover-loaded] { animation: none; }
+  .release-cover img[data-cover-loaded], .release-cover-placeholder { animation: none; }
 }
 .release-cover img[hidden] { display: none; }
 .release-detail-header { display: grid; grid-template-columns: minmax(180px, 260px) minmax(0, 1fr); gap: 2rem; align-items: center; }

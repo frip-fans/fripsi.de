@@ -7,11 +7,17 @@ export interface BarkEnv {
   BARK_SITE_URL?: string;
 }
 interface NotificationPayload { title: string; body: string; url: string; group: string }
-interface TerminalRun { id: string; status: string; error_code: string | null }
+interface TerminalRun { id: string; status: string; error_code: string | null; source_errors: number }
 interface PublishedChange { event_id: string; operation: string; title: string; slug: string; start_date: string; start_time: string | null; status: string }
 interface Delivery { run_id: string; payload_json: string; attempts: number }
 // Keep the icon publicly reachable even when a staging site is Access-protected.
 const BARK_ICON_URL = "https://fripsi.de/bark-icon-v2.png";
+// Source health failures are actionable for a person, so explain them in words.
+const SOURCE_FAILURES: Record<string, string> = {
+  official_source_unavailable: "官网新闻页无法访问（可能被拦截、限流或宕机），今天未能检查公告",
+  official_layout_changed: "官网新闻页读到了内容但识别不出公告列表（可能改版或返回了验证页），今天未能检查公告",
+  official_articles_unreadable: "官网公告正文全部无法读取（可能被拦截或页面改版），今天未能检查公告",
+};
 class DeliveryError extends Error { constructor(readonly code: string) { super(code); } }
 
 function truncate(text: string, bytes: number): string {
@@ -42,7 +48,9 @@ async function payloadForRun(db: D1Database, run: TerminalRun, site: string): Pr
     ...change, operation: unique.get(change.event_id)?.operation === "create" ? "create" : change.operation,
   });
   const changes = [...unique.values()], failed = run.status === "failed", needsAttention = Boolean(pending?.needed);
-  if (!changes.length && !failed && !needsAttention) return null;
+  const sourceFailure = failed && run.error_code ? SOURCE_FAILURES[run.error_code] : undefined;
+  const partialSourceErrors = !failed && run.source_errors > 0 ? run.source_errors : 0;
+  if (!changes.length && !failed && !needsAttention && !partialSourceErrors) return null;
   const created = changes.filter((change) => change.operation === "create").length;
   const lines: string[] = [];
   if (changes.length) lines.push(`已发布：新增 ${created} 条，更新 ${changes.length - created} 条。`);
@@ -51,11 +59,13 @@ async function payloadForRun(db: D1Database, run: TerminalRun, site: string): Pr
     lines.push(`${label} ${change.start_date}${change.start_time ? ` ${change.start_time}` : ""} ${truncate(change.title, 160)}\n${site}/events/${encodeURIComponent(change.slug)}`);
   }
   if (changes.length > 4) lines.push(`另有 ${changes.length - 4} 条，请查看站点。`);
-  if (failed) lines.push(`同步任务未完成${run.error_code && /^[a-z0-9_]{1,80}$/.test(run.error_code) ? `（${run.error_code}）` : ""}。`);
+  if (sourceFailure) lines.push(`${sourceFailure}（${run.error_code}）。已自动重试仍失败，请人工查看官网。`);
+  else if (failed) lines.push(`同步任务未完成${run.error_code && /^[a-z0-9_]{1,80}$/.test(run.error_code) ? `（${run.error_code}）` : ""}。`);
   if (needsAttention) lines.push("自动复核后仍有事项待核实，可查看后台变更记录。");
+  if (partialSourceErrors) lines.push(`官网有 ${partialSourceErrors} 个页面读取失败，这些页面今天未检查。`);
   const prefix = new URL(site).hostname === "fripsi.de" ? "fripSi.de" : "fripSi.de [测试]";
   return {
-    title: `${prefix} ${failed ? "同步异常" : needsAttention ? "更新与待核实事项" : "活动更新"}`,
+    title: `${prefix} ${sourceFailure ? "官网读取失败" : failed ? "同步异常" : needsAttention ? "更新与待核实事项" : changes.length ? "活动更新" : "官网部分读取失败"}`,
     body: truncate(lines.join("\n\n"), 2000),
     url: changes.length === 1 ? `${site}/events/${encodeURIComponent(changes[0].slug)}` : changes.length ? `${site}/` : `${site}/admin/changes`,
     group: "fripsi-official-sync",
@@ -67,7 +77,9 @@ async function enqueue(db: D1Database, site: string, now: Date): Promise<void> {
   await db.prepare("INSERT OR IGNORE INTO official_sync_notification_state(channel,activated_at) VALUES ('bark',?)").bind(timestamp).run();
   const state = await db.prepare("SELECT activated_at FROM official_sync_notification_state WHERE channel='bark'").first<{ activated_at: string }>();
   if (!state) return;
-  const runs = await db.prepare(`SELECT r.id,r.status,r.error_code FROM official_sync_runs r
+  const runs = await db.prepare(`SELECT r.id,r.status,r.error_code,
+    COALESCE(json_array_length(r.input_json,'$.input.source_errors'),json_array_length(r.result_json,'$.source_errors'),0) AS source_errors
+    FROM official_sync_runs r
     WHERE r.auto_publish=1 AND r.status IN ('completed','failed') AND r.updated_at>=?
     AND NOT EXISTS (SELECT 1 FROM official_sync_notifications n WHERE n.run_id=r.id)
     ORDER BY r.updated_at,r.id LIMIT 10`).bind(state.activated_at).all<TerminalRun>();

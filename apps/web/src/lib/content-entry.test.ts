@@ -25,6 +25,7 @@ class Region {
   });
 }
 const element = (region: Region) => region as unknown as HTMLElement;
+const root = () => ({ dataset: {} as Record<string, string>, style: { setProperty: vi.fn(), removeProperty: vi.fn() } });
 
 describe("bounded content entry motion", () => {
   let reduced: Motion;
@@ -36,10 +37,13 @@ describe("bounded content entry motion", () => {
     doc = Object.assign(new EventTarget(), { hidden: false, querySelector: vi.fn((selector: string) => selector === 'meta[name="astro-view-transitions-enabled"]' ? {} : null), querySelectorAll: vi.fn(() => [header]) });
     vi.stubGlobal("document", doc);
     vi.stubGlobal("Element", Region);
-    vi.stubGlobal("window", Object.assign(new EventTarget(), { matchMedia: (query: string) => query.includes("prefers-reduced-motion") ? reduced : mobile }));
+    vi.stubGlobal("window", Object.assign(new EventTarget(), {
+      matchMedia: (query: string) => query.includes("prefers-reduced-motion") ? reduced : mobile,
+      getComputedStyle: vi.fn(() => ({ opacity: "0.31" })),
+    }));
     vi.stubGlobal("location", new URL("https://fripsi.de/about"));
   });
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
   it("animates only visible incoming content, without resting style changes or awaiting finished", async () => {
     const { playContentEntry } = await import("./content-entry");
@@ -77,20 +81,57 @@ describe("bounded content entry motion", () => {
     playResultsEntry(element(header)); expect(header.animate).not.toHaveBeenCalled();
   });
 
-  it("keeps loading unchanged and selects one layout fade for full page changes", async () => {
+  it("keeps loading unchanged and leaves a quick page navigation unshaded", async () => {
+    vi.useFakeTimers();
     const { setupPageEntryTransitions } = await import("./page-entry-navigation");
     setupPageEntryTransitions();
     doc.dispatchEvent(new Event("astro:page-load")); expect(header.animate).not.toHaveBeenCalled();
-    const loader = vi.fn(async () => {}); const controller = new AbortController();
-    const event = Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal: controller.signal, loader });
-    doc.dispatchEvent(event); expect(event.loader).toBe(loader); expect(header.animate).not.toHaveBeenCalled();
-    const oldRoot = { toggleAttribute: vi.fn() }, newRoot = { toggleAttribute: vi.fn() };
+    const oldRoot = root(), newRoot = root();
     Object.assign(doc, { documentElement: oldRoot });
+    const loader = vi.fn(async () => {});
+    const event = Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal: new AbortController().signal, loader });
+    doc.dispatchEvent(event); expect(event.loader).toBe(loader); expect(header.animate).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(90);
     doc.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument: { documentElement: newRoot } }));
-    expect(oldRoot.toggleAttribute).toHaveBeenCalledWith("data-page-transition", true);
-    expect(newRoot.toggleAttribute).toHaveBeenCalledWith("data-page-transition", true);
+    vi.advanceTimersByTime(500);
+    expect(oldRoot.dataset).toEqual({}); expect(newRoot.dataset).toEqual({});
+    expect(newRoot.style.setProperty).not.toHaveBeenCalled();
     doc.dispatchEvent(new Event("astro:after-swap")); expect(header.animate).not.toHaveBeenCalled();
     expect(header.hidden).toBe(false); expect(header.inert).toBe(false);
+  });
+
+  it("dims a slow page navigation while it loads and hands the reveal to the incoming document", async () => {
+    vi.useFakeTimers();
+    const { setupPageEntryTransitions } = await import("./page-entry-navigation");
+    const main = new Region();
+    doc.querySelector.mockImplementation((selector: string) => selector === 'meta[name="astro-view-transitions-enabled"]' ? {} : selector === "main" ? main : null);
+    setupPageEntryTransitions();
+    const oldRoot = root(), newRoot = root();
+    Object.assign(doc, { documentElement: oldRoot });
+    doc.dispatchEvent(Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal: new AbortController().signal }));
+    expect(oldRoot.dataset.pageShade).toBeUndefined();
+    vi.advanceTimersByTime(120);
+    expect(oldRoot.dataset.pageShade).toBe("dim");
+    doc.dispatchEvent(Object.assign(new Event("astro:before-swap"), { newDocument: { documentElement: newRoot } }));
+    expect(newRoot.dataset.pageShade).toBe("reveal");
+    expect(newRoot.style.setProperty).toHaveBeenCalledWith("--page-shade-from", "0.31");
+    doc.dispatchEvent(new Event("astro:after-swap")); expect(main.animate).not.toHaveBeenCalled();
+  });
+
+  it("skips the shade under reduced motion and fades it back out when a navigation is abandoned", async () => {
+    vi.useFakeTimers();
+    const { setupPageEntryTransitions } = await import("./page-entry-navigation");
+    setupPageEntryTransitions();
+    const oldRoot = root();
+    Object.assign(doc, { documentElement: oldRoot });
+    const prepare = (signal: AbortSignal) => doc.dispatchEvent(Object.assign(new Event("astro:before-preparation"), { from: new URL("https://fripsi.de/"), to: new URL("https://fripsi.de/about"), navigationType: "push", signal }));
+    reduced.matches = true; prepare(new AbortController().signal); vi.advanceTimersByTime(500);
+    expect(oldRoot.dataset.pageShade).toBeUndefined();
+    reduced.matches = false;
+    const abandoned = new AbortController(); prepare(abandoned.signal); vi.advanceTimersByTime(120);
+    expect(oldRoot.dataset.pageShade).toBe("dim");
+    abandoned.abort();
+    expect(oldRoot.dataset.pageShade).toBe("reveal");
   });
 
   it("keeps music controls static and waits for their setup before entering results", async () => {

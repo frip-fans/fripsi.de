@@ -394,6 +394,8 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     --danger: #ff8498;
     --warning: #ffc56c;
     --radius: 20px;
+    /* Resting opacity of the navigation shade while the next document loads. */
+    --page-shade: .55;
     --heading-1-size: clamp(2rem, 5vw, 4rem);
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: var(--bg);
@@ -468,13 +470,15 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
   .mobile-nav-group > summary { min-height: 56px; padding: .85rem 1rem; font-size: 1.125rem; font-weight: 650; }
   .mobile-nav-group > summary:hover { background: rgba(255,255,255,.07); }
   .mobile-nav-submenu { margin-left: 1rem; padding-left: .5rem; border-left: 1px solid var(--line); }
-  /* Fade through black without reducing translucent cards' opacity: otherwise
+  /* The dim starts while the next document is still loading, so it covers the
+     wait instead of replaying it as an animation once the content is ready.
+     Shade through black without reducing translucent cards' opacity: otherwise
      the bright background leaks through and makes dark panels flash lighter. */
-  @keyframes page-shade-out { from { opacity: 0; } to { opacity: 1; } }
-  @keyframes page-shade-in { from { opacity: 1; } to { opacity: 0; } }
+  @keyframes page-shade-dim { from { opacity: 0; } to { opacity: var(--page-shade); } }
+  @keyframes page-shade-reveal { from { opacity: var(--page-shade-from, var(--page-shade)); } to { opacity: 0; } }
   main::after { content: ""; position: absolute; inset: 0; z-index: 100; background: #000; opacity: 0; pointer-events: none; }
-  html[data-page-transition][data-astro-transition-fallback="old"] main::after { animation: page-shade-out 120ms ease-in both; }
-  html[data-page-transition][data-astro-transition-fallback="new"] main::after { animation: page-shade-in 187ms ease-out both; }
+  html[data-page-shade="dim"] main::after { animation: page-shade-dim 110ms ease-out both; }
+  html[data-page-shade="reveal"] main::after { animation: page-shade-reveal 150ms ease-out both; }
   main { position: relative; isolation: isolate; width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 3rem 0 6rem; min-height: calc(100vh - 180px); }
   footer { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; border-top: 1px solid var(--line); padding: 1.5rem 0 2.5rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--muted); font-size: .78rem; }
   .footer-links { display: flex; align-items: center; justify-content: flex-end; gap: .9rem 1.15rem; flex-wrap: wrap; }
@@ -575,6 +579,6 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     *, *::before, *::after { scroll-behavior: auto !important; }
     .space-backdrop { transition: none; transform: none; }
     .header-actions nav a, .header-actions .nav-group > summary { transition: none; }
-    main::after { animation: none !important; }
+    main::after { animation: none !important; opacity: 0 !important; }
   }
 </style>

@@ -36,7 +36,11 @@ if ! test -f /opt/actions-runner/config.sh; then
   tar -xzf runner.tar.gz -C /opt/actions-runner
   chown -R frip-deploy:fripside /opt/actions-runner
 fi
-printf 'frip-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart fripside-web.service\n' > /etc/sudoers.d/fripside-deploy
+# The runner may restart the web service and run the root-owned migration script as the
+# database owner; fripside-migrate itself refuses non-additive migrations for this caller.
+printf '%s\n' \
+  'frip-deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart fripside-web.service' \
+  'frip-deploy ALL=(frip-app) NOPASSWD: /usr/local/bin/fripside-migrate' > /etc/sudoers.d/fripside-deploy
 chmod 0440 /etc/sudoers.d/fripside-deploy
 visudo -cf /etc/sudoers.d/fripside-deploy
 /usr/local/bin/node --version

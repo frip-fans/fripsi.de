@@ -8,7 +8,8 @@ interface Props {
 }
 const { url, alt, eager = false, noScriptFallback = true } = Astro.props;
 ---
-<span class="release-cover" role="img" aria-label={alt}>
+{/* An empty alt marks a decorative cover, e.g. a thumbnail beside a song title that already names it. */}
+<span class="release-cover" role={alt ? "img" : undefined} aria-label={alt || undefined} aria-hidden={alt ? undefined : "true"}>
   <span class="release-cover-placeholder" aria-hidden="true">♫</span>
   {url && <img src={eager ? url : undefined} data-cover-src={eager ? undefined : url} hidden={!eager} alt="" width="480" height="480" loading={eager ? "eager" : "lazy"} decoding="async" referrerpolicy="no-referrer" data-release-cover-image />}
   {url && !eager && noScriptFallback && <noscript><img src={url} alt="" width="480" height="480" loading="lazy" decoding="async" referrerpolicy="no-referrer" /></noscript>}

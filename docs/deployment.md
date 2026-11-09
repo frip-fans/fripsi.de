@@ -160,6 +160,8 @@ SITE_URL
 
 ## 5. 数据库 migration
 
+> 当前 OCI 环境由部署流程执行增量 migration，见 [发布流程](release-workflow.md#数据库结构变更) 和 [OCI 自托管部署](oci-deployment.md#schema-migration)。本节保留给 Workers/D1 回退环境。
+
 Migration 存放在：
 
 ```text

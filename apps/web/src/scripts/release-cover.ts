@@ -3,6 +3,11 @@ const coverRequestedAt = new WeakMap<HTMLImageElement, number>();
 /** Loads faster than this come from the browser cache, so they skip the first-load fade. */
 export const CACHED_COVER_MS = 120;
 
+/** Some official pages without artwork serve a 1×1 pixel image; treat it like a missing cover. */
+export function hasArtwork(image: Pick<HTMLImageElement, "naturalWidth">): boolean {
+  return image.naturalWidth > 1;
+}
+
 function showCover(image: HTMLImageElement, cached: boolean): void {
   if (cached) image.dataset.coverCached = "true";
   image.dataset.coverLoaded = "true";
@@ -16,7 +21,7 @@ function loadCover(image: HTMLImageElement): void {
   coverRequestedAt.set(image, performance.now());
   image.src = url;
   // Memory-cached images are complete synchronously once src is set.
-  if (image.complete && image.naturalWidth > 0) showCover(image, true);
+  if (image.complete && hasArtwork(image)) showCover(image, true);
 }
 
 function setupReleaseCover(image: HTMLImageElement): void {
@@ -24,6 +29,7 @@ function setupReleaseCover(image: HTMLImageElement): void {
     image.dataset.coverBound = "true";
     image.addEventListener("load", () => {
       if (image.dataset.coverLoaded) return;
+      if (!hasArtwork(image)) { image.hidden = true; return; }
       const requestedAt = coverRequestedAt.get(image);
       showCover(image, requestedAt !== undefined && performance.now() - requestedAt < CACHED_COVER_MS);
     });
@@ -45,7 +51,7 @@ function setupReleaseCover(image: HTMLImageElement): void {
     // Observe the sized wrapper: the deferred image stays hidden until requested.
     coverObserver.observe(image.parentElement!);
   } else if (image.complete) {
-    if (image.naturalWidth > 0) image.dataset.coverLoaded = "true";
+    if (hasArtwork(image)) image.dataset.coverLoaded = "true";
     else image.hidden = true;
   }
 }

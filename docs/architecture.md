@@ -176,7 +176,7 @@ sequenceDiagram
 - 所有写操作支持幂等键。
 - 更新使用乐观锁 `expected_version`。
 - 发布 change set 使用 D1 batch/事务语义，避免活动和审计记录部分成功。
-- 数据库 migration 与应用部署分开执行。
+- 应用代码不在请求中执行 migration；部署流程在切换代码前执行增量 migration，非增量 migration 由管理员单独执行。
 
 ### 可移植性
 

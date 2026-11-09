@@ -28,9 +28,9 @@ export function playContentEntry(element: HTMLElement | null): void {
   if (active.size >= 2) cancelContentEntry(active.keys().next().value ?? null);
   try {
     const animation = element.animate([
-      { opacity: .86, transform: "translateY(3px)" },
+      { opacity: .35, transform: "translateY(3px)" },
       { opacity: 1, transform: "translateY(0)" },
-    ], { duration: 160, easing: "cubic-bezier(.2,.7,.2,1)", fill: "none" });
+    ], { duration: 240, easing: "ease-out", fill: "none" });
     animation.id = "frip-content-entry";
     active.set(element, animation);
     const forget = () => { if (active.get(element) === animation) active.delete(element); };

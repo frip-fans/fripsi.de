@@ -39,7 +39,7 @@ const nextCountdown = !next
 ---
 <SiteLayout>
   <h1 class="mobile-home-title" translate="no">fripSide Fan Site</h1>
-  <section class="hero">
+  <section class="hero" data-page-entry>
     <aside class="signal panel">
       <div class="signal-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
       {next ? (

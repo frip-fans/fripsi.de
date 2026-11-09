@@ -1,3 +1,4 @@
+import { cancelContentEntry, playResultsEntry } from "./content-entry";
 import { replacePublicUrl } from "./public-navigation";
 import { setupReleaseCovers } from "../scripts/release-cover";
 
@@ -92,6 +93,7 @@ export function setupMusicBrowser() {
   const fetchResults = async (append = false) => {
     clearTimeout(timer);
     request?.abort();
+    cancelContentEntry(results());
     const current = ++serial;
     request = new AbortController();
     retryMore = append;
@@ -129,6 +131,7 @@ export function setupMusicBrowser() {
       } else {
         results().replaceWith(next);
       }
+      if (!append) playResultsEntry(next);
       setupReleaseCovers();
       const url = new URL(location.href);
       for (const key of ["q", "year", "classification", "type", "sort", "page", "batch"]) url.searchParams.delete(key);

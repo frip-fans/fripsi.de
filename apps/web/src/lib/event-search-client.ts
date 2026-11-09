@@ -1,3 +1,4 @@
+import { cancelContentEntry, playResultsEntry } from "./content-entry";
 import { replacePublicUrl, publicUrl } from "./public-navigation";
 let mounted: HTMLElement | null = null;
 let dispose: (() => void) | undefined;
@@ -88,6 +89,7 @@ export function setupEventSearch() {
   const fetchResults = async (more = false) => {
     clearTimeout(timer);
     request?.abort();
+    cancelContentEntry(results());
     const current = ++serial;
     request = new AbortController();
     const nextParams = params();
@@ -133,6 +135,7 @@ export function setupEventSearch() {
         for (const [key, value] of nextParams) if (!["month", "lang", "view"].includes(key)) url.searchParams.append(key, value);
         replacePublicUrl(url);
       }
+      if (!more) playResultsEntry(next);
       setBusy(false, more);
       save();
     } catch (cause) {

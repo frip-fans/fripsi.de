@@ -42,7 +42,7 @@ const filterCount = Number(Boolean(input.year)) + Number(Boolean(input.classific
     <MusicNav />
     <section class="music-section music-list-section" aria-label={t(locale, titles[kind])}>
       <h1 class="visually-hidden">{t(locale, titles[kind])}</h1>
-      <form class="music-browser-form" method="get" action={`/music/${kind}`} data-music-form>
+      <form class="music-browser-form" method="get" action={`/music/${kind}`} data-music-form data-page-entry>
         <input type="hidden" name="lang" value={locale} />
         <div class="music-toolbar music-browser-toolbar">
           <label class="music-search">

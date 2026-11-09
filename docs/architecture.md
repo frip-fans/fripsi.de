@@ -224,3 +224,11 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 导航真机诊断只在 staging/development 公共布局提供：用 `?navDebug=1` 显式开启，当前标签页通过 sessionStorage 保持启用；面板的关闭按钮或 `?navDebug=0` 停止。默认不加载诊断模块；生产不输出诊断入口。面板记录最多 200 条触摸/点击（含 dispatch delay）、Astro 五阶段、同源 Resource Timing 和交互期间超过 100ms 的 rAF 间隔，可手动复制记录，不发送遥测。URL 仅保留 pathname，不记录查询值、fragment、Cookie、请求头或请求/响应内容。rAF 条目仅表示回调执行时间，不等同于屏幕实际呈现时间。诊断不拦截事件、不替换 loader/swap、不改变导航策略；显式启用期间对 `fetch`、`Response.text` 和 `DOMParser.parseFromString` 添加转发原接收者/参数的计时包装，用于区分响应正文读取与同步 HTML 解析，关闭时恢复原方法且不覆盖其他代码随后安装的包装；不导出 HTML 内容；增加低频定时器间隔记录，辅助区分 rAF 暂停与整个事件循环的停顿；真实 Safari 的停顿仍须根据记录定位，不能把诊断功能当作性能修复。
 
 真机加载反馈对照只随显式诊断启用：`?navDebug=1&navLoading=off` 跳过加载遮罩、inert 和 visibility 处理，但保留 Astro 局部导航；`navLoading=on` 恢复轻量进度条与状态提示。选择只保存在当前标签页，复制记录包含 `loadingFeedback`，跨 DOM swap 保持，关闭诊断时清理。此对照用于验证 Safari 浏览器侧停顿是否由加载反馈的绘制/交互状态触发，不把本地结果当成真机修复证明。
+
+## 11. 内容入场动效
+
+`content-entry.ts` 仅对已到达的新内容播放一次 160ms 的 opacity .86→1 与 translateY(3px)→0 入场，最多同时两个小范围容器；不等待 Animation.finished、不写 resting inline styles、不改 hidden/inert/visibility，不读取页面几何。结束或取消后清除 effect，下一次导航、页面隐藏或 reduced-motion 启用时取消，保持交互和导航不受动画约束。
+
+`page-entry-navigation.ts` 在 Astro after-swap 对普通新页的显式 data-page-entry 首屏区域入场，页头、全局背景、旧页面不参与；音乐结果等 page-load 初始化后再入场，避免响应式批量刷新和临时 SSR 结果重复播放。音乐库列表之间切 Tab 只动画结果；日历同模式切月份/分类只动画可见日历网格或首个日程组，保留筛选区视觉稳定。页面内音乐/活动查询在成功替换结果后使用同一入场函数，等待期间不淡出旧结果；追加更多和大段累积列表不播放整片动画。
+
+首次直接加载、浏览器历史遍历、显式返回列表及锚点定位不播放跨页入场，滚动与焦点仍由既有逻辑恢复；API 结果更新按成功回调单独入场。地图、工具、讨论和后台仍遵循既有整页导航策略。仍需 Safari 真机同时验收过渡效果和已修复的导航耗时。

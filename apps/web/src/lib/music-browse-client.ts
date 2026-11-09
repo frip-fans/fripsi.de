@@ -163,6 +163,14 @@ export function setupMusicBrowser() {
       if (moreLink.getAttribute("aria-disabled") !== "true") void fetchResults(true);
     }
     if (event.target.closest("[data-music-retry]")) void fetchResults(retryMore);
+    const olderToggle = event.target.closest<HTMLButtonElement>("[data-music-older-toggle]");
+    if (olderToggle) {
+      const expanded = olderToggle.getAttribute("aria-expanded") !== "true";
+      olderToggle.setAttribute("aria-expanded", String(expanded));
+      root.querySelector<HTMLElement>(`#${olderToggle.getAttribute("aria-controls")}`)?.toggleAttribute("data-expanded", expanded);
+      const label = olderToggle.querySelector<HTMLElement>("[data-music-older-label]");
+      if (label) label.textContent = (expanded ? olderToggle.dataset.labelLess : olderToggle.dataset.labelMore) ?? "";
+    }
     if (event.target.closest("[data-music-close]")) closePanels(true);
     if (event.target.closest("[data-music-clear]")) {
       form.querySelectorAll<HTMLInputElement>("input[data-music-filter]").forEach(input => { input.checked = false; });

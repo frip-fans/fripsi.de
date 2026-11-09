@@ -76,8 +76,13 @@ export function formatMusicDate(value: string | null, locale: Locale = "zh-CN"):
   }).format(new Date(`${value}T00:00:00Z`));
 }
 
-/** Month, day and weekday labels for a date block, formatted for the page locale. */
-export function musicDateParts(value: string | null, locale: Locale): { year: string; month: string; day: string; weekday: string } | null {
+/** Years between two performances, one decimal, in the page locale (e.g. 7.8). */
+export function formatGapYears(days: number, locale: Locale): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 1, minimumFractionDigits: 0 }).format(Math.floor((days / 365.25) * 10) / 10);
+}
+
+/** Month and day labels for a date block, formatted for the page locale. */
+export function musicDateParts(value: string | null, locale: Locale): { year: string; month: string; day: string } | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(`${value}T00:00:00Z`);
   const part = (options: Intl.DateTimeFormatOptions, type: Intl.DateTimeFormatPartTypes) =>
@@ -86,7 +91,6 @@ export function musicDateParts(value: string | null, locale: Locale): { year: st
     year: value.slice(0, 4),
     month: new Intl.DateTimeFormat(locale, { month: "short", timeZone: "UTC" }).format(date),
     day: part({ day: "numeric" }, "day"),
-    weekday: new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(date),
   };
 }
 

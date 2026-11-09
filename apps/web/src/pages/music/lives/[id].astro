@@ -1,10 +1,11 @@
 ---
-import { getSetlistById } from "@frip-fan/core";
+import { getSetlistById, getSetlistHighlights } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import {
+  formatGapYears,
   formatMusicDate,
   setlistCompletenessLabel,
   setlistConfidenceLabel,
@@ -18,8 +19,12 @@ import { getLocale, t } from "../../../lib/i18n";
 import "../../../styles/music.css";
 
 const locale = getLocale(Astro.request);
-const setlist = await getSetlistById(getEnv().DB, Astro.params.id!);
+const db = getEnv().DB;
+const [setlist, archiveHighlights] = await Promise.all([getSetlistById(db, Astro.params.id!), getSetlistHighlights(db)]);
 if (!setlist) return Astro.redirect("/404", 302);
+const highlight = archiveHighlights.get(setlist.id);
+const debutSongs = new Set(highlight?.debuts.map(item => item.song_id));
+const returnGaps = new Map(highlight?.returns.map(item => [item.song_id, item.gap_days]));
 type SetlistEntry = (typeof setlist.entries)[number];
 interface EntryGroup {
   section: SetlistEntry["section"];
@@ -97,6 +102,8 @@ let previousSection = "";
                           <b>{String(medleyEntry.position).padStart(2, "0")}</b>
                           <div class="setlist-entry-main">
                             <a href={`/music/songs/${encodeURIComponent(medleyEntry.song_slug)}`} translate="no">{medleyEntry.display_title}</a>
+                            {debutSongs.has(medleyEntry.song_id) && <span class="setlist-badge is-debut">{t(locale, "music.debutBadge")}</span>}
+                            {returnGaps.has(medleyEntry.song_id) && <span class="setlist-badge is-return">{t(locale, "music.highlightGap", { years: formatGapYears(returnGaps.get(medleyEntry.song_id)!, locale) })}</span>}
                             {versionNote(medleyEntry) && <small>{versionNote(medleyEntry)}</small>}
                             {medleyEntry.notes && <small class="setlist-entry-note">{medleyEntry.notes}</small>}
                           </div>
@@ -112,6 +119,8 @@ let previousSection = "";
                     <b>{String(entry.position).padStart(2, "0")}</b>
                     <div class="setlist-entry-main">
                       <a href={`/music/songs/${encodeURIComponent(entry.song_slug)}`} translate="no">{entry.display_title}</a>
+                            {debutSongs.has(entry.song_id) && <span class="setlist-badge is-debut">{t(locale, "music.debutBadge")}</span>}
+                            {returnGaps.has(entry.song_id) && <span class="setlist-badge is-return">{t(locale, "music.highlightGap", { years: formatGapYears(returnGaps.get(entry.song_id)!, locale) })}</span>}
                       {versionNote(entry) && <small>{versionNote(entry)}</small>}
                       {entry.notes && <small class="setlist-entry-note">{entry.notes}</small>}
                     </div>
@@ -142,6 +151,9 @@ let previousSection = "";
 
 <style>
   .setlist-overview { margin-top: 1.5rem; }
+  .setlist-entry-main :global(.setlist-badge) { justify-self: start; padding: .2rem .5rem; border: 1px solid; border-radius: 999px; font-size: .75rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .setlist-entry-main :global(.setlist-badge.is-debut) { color: #08111d; background: var(--accent); border-color: var(--accent); }
+  .setlist-entry-main :global(.setlist-badge.is-return) { color: var(--accent); border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .1); }
   .setlist-overview + .music-section { margin-top: 2rem; }
   .setlist-facts { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1rem; margin: 0; }
   .setlist-facts div { display: grid; min-width: 0; align-content: start; gap: .4rem; }

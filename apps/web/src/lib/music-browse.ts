@@ -1,4 +1,4 @@
-import { countSetlists, listSetlists, listSetlistYears, listSongCatalog, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
+import { countSetlists, getSetlistHighlights, listSetlists, listSetlistYears, listSongCatalog, type SetlistHighlights, listReleases, type SetlistSummary, type SongBrowseSummary, type ReleaseSummary } from "@frip-fan/core";
 import { releaseTypeLabels } from "./music";
 import { MUSIC_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE } from "./music-batch";
 
@@ -42,11 +42,14 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
   let releases: ReleaseSummary[] = [];
   let total = 0;
   let yearCounts: Record<string, number> = {};
+  const highlights: Record<string, SetlistHighlights> = {};
   if (kind === "lives") {
     const filters = { query: input.query || undefined, years: input.years, classifications: input.classifications, order: input.sort as "asc" | "desc" };
     let years: Array<{ year: string; count: number }>;
-    [total, lives, years] = await Promise.all([countSetlists(db, filters), listSetlists(db, { ...filters, offset, limit }), listSetlistYears(db, filters)]);
+    let archive: Map<string, SetlistHighlights>;
+    [total, lives, years, archive] = await Promise.all([countSetlists(db, filters), listSetlists(db, { ...filters, offset, limit }), listSetlistYears(db, filters), getSetlistHighlights(db)]);
     yearCounts = Object.fromEntries(years.map(item => [item.year, item.count]));
+    for (const setlist of lives) { const item = archive.get(setlist.id); if (item) highlights[setlist.id] = item; }
   } else if (kind === "songs") {
     const needle = input.query.toLocaleLowerCase();
     const filtered = (await listSongCatalog(db)).filter(song => !needle || song.search_text.toLocaleLowerCase().includes(needle));
@@ -70,7 +73,7 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
     releases = filtered.slice(offset, offset + limit);
   }
   const shown = Math.min(total, offset + lives.length + songs.length + releases.length);
-  return { lives, songs, releases, total, shown, yearCounts, page: input.page, batch: input.batch, hasMore: shown < total };
+  return { lives, songs, releases, total, shown, yearCounts, highlights, page: input.page, batch: input.batch, hasMore: shown < total };
 }
 
 function compareDates(left: string | null, right: string | null, leftTitle: string, rightTitle: string, ascending: boolean) {

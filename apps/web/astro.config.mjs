@@ -6,8 +6,11 @@ const selfHosted = process.env.FRIP_RUNTIME === "node";
 
 export default defineConfig({
   output: "server",
-  // Fetch pages on navigation only, including when ClientRouter is installed.
-  prefetch: false,
+  // Fetch a page ahead of a navigation only where a link opts in: ClientRouter
+  // would otherwise enable prefetching for every link it sees, and this site is
+  // served from a single small host. `prefetchAll: false` is set explicitly so
+  // it wins over that default rather than falling back to it.
+  prefetch: { prefetchAll: false, defaultStrategy: "tap" },
   devToolbar: { enabled: false },
   integrations: selfHosted ? [{
     name: "node-workspace-dependencies",

@@ -54,6 +54,11 @@ const navigationLinks: NavigationItem[] = admin ? [
   { label: t(locale, "nav.fun"), active: funLinks.some(link => link.active), children: funLinks },
   { href: "/about", label: t(locale, "nav.about"), active: current.startsWith("/about") },
 ];
+// A hover reliably precedes a desktop click, so it buys the most time; touch
+// input has no hover, so the mobile menu starts on the pointer going down
+// instead. Admin documents are private and never cached: leave them alone.
+const hoverPrefetch = admin ? undefined : "hover";
+const tapPrefetch = admin ? undefined : "tap";
 const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 ---
 <!doctype html>
@@ -108,10 +113,10 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
           <details class="nav-group" data-nav-group>
             <summary class:list={{ active: link.active }}>{link.label}<Icon name="chevron-down" /></summary>
             <div class="nav-submenu">
-              {link.children.map(child => <a href={child.href} aria-current={child.active ? "page" : undefined}>{child.label}</a>)}
+              {link.children.map(child => <a href={child.href} aria-current={child.active ? "page" : undefined} data-astro-prefetch={hoverPrefetch}>{child.label}</a>)}
             </div>
           </details>
-        ) : <a class:list={{ active: link.active }} aria-current={link.active ? "page" : undefined} href={link.href} data-music-entry={!admin && link.href === "/music/lives" || undefined}>{link.label}</a>)}
+        ) : <a class:list={{ active: link.active }} aria-current={link.active ? "page" : undefined} href={link.href} data-astro-prefetch={hoverPrefetch} data-music-entry={!admin && link.href === "/music/lives" || undefined}>{link.label}</a>)}
         {admin && <a href="/" target="_blank">查看网站 <Icon name="box-arrow-up-right" /></a>}
       </nav>
       <span class="menu-loading-status" data-menu-loading-status role="status" aria-live="polite"></span>
@@ -133,10 +138,10 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
           <details class="mobile-nav-group" open={link.active}>
             <summary>{link.label}<Icon name="chevron-down" /></summary>
             <div class="mobile-nav-submenu">
-              {link.children.map(child => <a href={child.href} aria-current={child.active ? "page" : undefined}><span>{child.label}</span><Icon name="chevron-right" /></a>)}
+              {link.children.map(child => <a href={child.href} aria-current={child.active ? "page" : undefined} data-astro-prefetch={tapPrefetch}><span>{child.label}</span><Icon name="chevron-right" /></a>)}
             </div>
           </details>
-        ) : <a href={link.href} aria-current={link.active ? "page" : undefined}><span>{link.label}</span><Icon name="chevron-right" /></a>)}
+        ) : <a href={link.href} aria-current={link.active ? "page" : undefined} data-astro-prefetch={tapPrefetch}><span>{link.label}</span><Icon name="chevron-right" /></a>)}
         {admin && <a href="/">查看网站 <Icon name="chevron-right" /></a>}
       </nav>
       <span class="menu-loading-status" data-menu-loading-status role="status" aria-live="polite"></span>

@@ -19,7 +19,7 @@ const nextHref = `/music/${kind}?${next}`;
 <div data-music-results data-total={results.total} data-shown={results.shown} data-page={results.page} data-batch={results.batch} data-has-more={results.hasMore} data-revision={eventSearchRevision(db)}>
   <div class:list={["music-grid", { "music-release-grid": kind === "releases" }]} data-music-items>
     {results.lives.map(setlist => (
-      <a class="music-card" data-music-id={setlist.id} href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
+      <a class="music-card" data-music-id={setlist.id} href={`/music/lives/${encodeURIComponent(setlist.id)}`} data-astro-prefetch="tap">
         <div class="music-card-top">
           <time class="music-card-date" datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
           <span class:list={["music-event-type", { "is-solo": setlist.event_classification === "专场", "is-festival": setlist.event_classification === "拼盘" }]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
@@ -30,14 +30,14 @@ const nextHref = `/music/${kind}?${next}`;
       </a>
     ))}
     {results.songs.map(song => (
-      <a class="music-card" data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`}>
+      <a class="music-card" data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`} data-astro-prefetch="tap">
         <span class="music-artist">{song.original_artist}</span>
         <h2>{song.title}</h2>
         <div class="music-card-stats"><span>{t(locale, "music.versionsCount", { count: song.version_count })}</span><span>{t(locale, "music.releasesCount", { count: song.release_count })}</span><span>{t(locale, "music.showsCount", { count: song.show_count })}</span></div>
       </a>
     ))}
     {results.releases.map(release => (
-      <a class="music-card" data-music-id={release.id} href={`/music/releases/${encodeURIComponent(release.slug)}`}>
+      <a class="music-card" data-music-id={release.id} href={`/music/releases/${encodeURIComponent(release.slug)}`} data-astro-prefetch="tap">
         <ReleaseCover noScriptFallback={!append} url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
         <span class="music-release-meta">{releaseTypeLabels[release.release_type]} · {formatMusicDate(release.release_date, locale)}</span>
         <h2>{release.title}</h2>

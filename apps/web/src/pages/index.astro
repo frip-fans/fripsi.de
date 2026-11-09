@@ -1,9 +1,10 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { dateInTimeZone, listSetlists, searchEvents } from "@frip-fan/core";
+import { dateInTimeZone, getMusicLibraryStats, getSongSpotlight, listSetlists, searchEvents } from "@frip-fan/core";
 import EventCard from "../components/EventCard.astro";
 import CommunityDiscussion from "../components/CommunityDiscussion.astro";
 import Icon from "../components/Icon.astro";
+import SongSpotlight from "../components/SongSpotlight.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { displayEventStatus, statusLabel } from "../lib/format";
@@ -19,10 +20,25 @@ const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const [upcoming, recentSetlists] = await Promise.all([
+const [upcoming, recentSetlists, spotlight, libraryStats] = await Promise.all([
   searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 4 }, true),
   listSetlists(db, { order: "desc", limit: 3 }),
+  // The date is the seed, so the spotlight holds for the whole day and for every visitor and language.
+  getSongSpotlight(db, today),
+  getMusicLibraryStats(db),
 ]);
+const siteUrl = env.SITE_URL || Astro.url.origin;
+const subscriptionUrl = new URL("/calendar.ics", siteUrl);
+const webcalUrl = subscriptionUrl.href.replace(/^https?:/, "webcal:");
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "fripSi.de Fan Site",
+  url: new URL("/", siteUrl).href,
+  inLanguage: locale,
+  description: t(locale, "site.description"),
+  about: { "@type": "MusicGroup", name: "fripSide" },
+};
 const next = upcoming[0];
 const moreEvents = upcoming.slice(1);
 const daysUntilNext = next ? Math.max(0, Math.round((Date.parse(next.start_date) - Date.parse(today)) / 86_400_000)) : 0;
@@ -37,7 +53,7 @@ const nextCountdown = !next
       ? t(locale, "home.countdownTomorrow")
       : t(locale, "home.countdownDays", { count: daysUntilNext });
 ---
-<SiteLayout>
+<SiteLayout structuredData={structuredData}>
   <h1 class="mobile-home-title" translate="no">fripSide Fan Site</h1>
   <section class="hero" data-page-entry>
     <aside class="signal panel">
@@ -69,6 +85,7 @@ const nextCountdown = !next
       <div class="actions">
         <a class="button" href="/calendar"><Icon name="calendar3" /><span class="label-full">{t(locale, "nav.calendar")}</span><span class="label-short">{t(locale, "nav.calendar")}</span></a>
         <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" /><span class="label-full">{t(locale, "nav.music")}</span><span class="label-short">{t(locale, "nav.music")}</span></a>
+        <a class="button secondary subscribe-action" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" /><span class="label-full">{t(locale, "home.subscribe")}</span><span class="label-short">{t(locale, "calendar.subscribeShort")}</span></a>
       </div>
       <button class="motion-toggle" type="button" data-home-motion aria-label={t(locale, "home.motionLabel")} aria-pressed="false" data-pause-label={t(locale, "home.pauseMotion")} data-resume-label={t(locale, "home.resumeMotion")}>
         <Icon name="pause-fill" /><span>{t(locale, "home.pauseMotion")}</span>
@@ -82,10 +99,16 @@ const nextCountdown = !next
         <h2><Icon name="tickets" />{t(locale, "home.moreEvents")}</h2>
         <a class="section-link all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="chevron-right" size=".75rem" /></a>
       </div>
-      <section class="event-list stack">
+      <section class:list={["event-list", "event-grid", `count-${moreEvents.length}`]}>
         {moreEvents.map((event) => <EventCard event={event} timeInHeader />)}
       </section>
     </>
+  )}
+
+  {spotlight && (
+    <div class="home-spotlight">
+      <SongSpotlight spotlight={spotlight} locale={locale} archiveShows={libraryStats.setlist_count} />
+    </div>
   )}
 
   <section class="recent-setlists" aria-labelledby="recent-setlists-title">
@@ -123,6 +146,14 @@ const nextCountdown = !next
       <div class="empty panel">{t(locale, "home.noSetlists")}</div>
     )}
   </section>
+
+  <a class="journey-teaser panel" href="/journey">
+    <span class="journey-teaser-text">
+      <span class="journey-teaser-label"><Icon name="globe-americas" />{t(locale, "journey.title")}</span>
+      <span class="journey-teaser-description">{t(locale, "journey.description")}</span>
+    </span>
+    <span class="journey-teaser-cta">{t(locale, "home.journeyCta")} <Icon name="chevron-right" size=".75rem" /></span>
+  </a>
 
   <CommunityDiscussion locale={locale} />
 
@@ -286,6 +317,19 @@ const nextCountdown = !next
   .latest-events-heading, .recent-setlists .section-heading { align-items: center; }
   .section-link { display: inline-flex; align-items: center; justify-content: flex-end; gap: .3rem; min-height: 44px; padding: .5rem .125rem; border-radius: 6px; color: var(--muted); font-size: .8125rem; font-weight: 400; text-decoration: none; touch-action: manipulation; }
   .section-link:hover, .section-link:focus-visible { color: var(--accent); }
+  .event-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; align-items: stretch; }
+  .event-grid.count-1 { grid-template-columns: minmax(0, 1fr); }
+  .event-grid.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Three cards side by side need the footer line on one level, whatever the title wraps to. */
+  .event-grid :global(.event-card) { height: 100%; grid-template-rows: auto 1fr auto; }
+  .home-spotlight { margin-top: 4.5rem; }
+  .journey-teaser { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; margin-top: 4.5rem; padding: 1.35rem 1.5rem; color: inherit; text-decoration: none; transition: border-color .18s, transform .18s, background .18s; }
+  .journey-teaser:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }
+  .journey-teaser-text { display: grid; gap: .3rem; min-width: 0; }
+  .journey-teaser-label { display: inline-flex; align-items: center; gap: .5rem; font-size: 1.0625rem; font-weight: 650; }
+  .journey-teaser-label :global(.icon) { color: var(--accent); }
+  .journey-teaser-description { color: var(--muted); font-size: .8125rem; line-height: 1.6; }
+  .journey-teaser-cta { display: inline-flex; align-items: center; gap: .3rem; flex: 0 0 auto; color: var(--accent); font-size: .8125rem; }
   .recent-setlists { margin-top: 4.5rem; }
   .recent-setlists .section-heading { margin-top: 0; }
   .recent-setlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
@@ -333,6 +377,9 @@ const nextCountdown = !next
   .signal a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
   .signal a { display: inline-flex; align-items: center; gap: .35rem; }
   @media (prefers-reduced-motion: reduce) { .hero-title.is-glitching, .hero-title.is-glitching::after { animation: none; } }
+  @media (min-width: 801px) and (max-width: 1040px) {
+    .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   @media (max-width: 1100px) {
     @supports (-webkit-text-stroke: 1px currentColor) {
       .hero-title[data-variant^="japanese"] .title-solid {
@@ -353,6 +400,7 @@ const nextCountdown = !next
     .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
     .label-full { display: none; }
     .label-short { display: inline; overflow: hidden; text-overflow: ellipsis; }
+    .hero .actions .subscribe-action { grid-column: 1 / -1; }
     .motion-toggle { align-self: flex-start; margin-top: .25rem; }
     .signal { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: .75rem; min-height: 0; padding: 1rem 1.1rem 1.1rem; transition: border-color .18s; }
     .signal:has(a:hover) { border-color: rgba(var(--accent-rgb), .42); }
@@ -366,6 +414,10 @@ const nextCountdown = !next
     .signal p { font-size: .8125rem; line-height: 1.55; }
     .latest-events-heading h2, .recent-setlists .section-heading h2 { color: #d3dce8; font-size: 1.375rem; font-weight: 600; }
     .event-list { --event-title-color: #d3dce8; --event-title-weight: 600; --event-title-size: 1.0625rem; --event-time-color: #a8b6c8; --event-venue-color: #8f9fb4; --event-year-color: #8998ac; }
+    .event-grid, .event-grid.count-1, .event-grid.count-2 { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+    .event-grid :global(.event-card) { height: auto; }
+    .home-spotlight { margin-top: 3rem; }
+    .journey-teaser { margin-top: 3rem; padding: 1.15rem; }
     .recent-setlists { margin-top: 3rem; }
     .recent-setlist-grid { grid-template-columns: 1fr; }
     .recent-setlist-card { min-height: 0; }

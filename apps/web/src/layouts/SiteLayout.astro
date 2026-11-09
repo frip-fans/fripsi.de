@@ -241,7 +241,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     });
     const mobile = matchMedia("(max-width: 760px)");
     mobile.addEventListener("change", () => { if (!mobile.matches) closeMenu(false); }, { signal });
-    // Close before loading feedback captures the background inert state.
+    // Close the menu before starting public navigation feedback.
     document.addEventListener("astro:before-preparation", () => closeMenu(false), { capture: true, signal });
     document.addEventListener("astro:before-swap", () => closeMenu(false), { signal });
     document.documentElement.classList.add("mobile-menu-ready");
@@ -318,7 +318,7 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
     color: var(--text);
   }
   * { box-sizing: border-box; }
-  /* Navigation uses a loading skeleton; avoid native full-page snapshots,
+  /* Navigation uses a small progress indicator; avoid native full-page snapshots,
      which can stall WebKit compositing even with animation="none". */
   html { view-transition-name: none; min-width: 320px; background: var(--bg); scroll-behavior: smooth; scrollbar-gutter: stable; scroll-padding-top: var(--safe-area-top); }
   body { position: relative; isolation: isolate; margin: 0; min-height: 100vh; min-height: 100svh; padding: var(--safe-area-top) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); background: var(--bg); }

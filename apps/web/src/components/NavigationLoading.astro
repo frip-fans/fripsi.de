@@ -4,59 +4,18 @@ const locale = getLocale(Astro.request);
 ---
 <div class="navigation-loading" data-navigation-loading hidden>
   <div class="navigation-progress" aria-hidden="true"></div>
-  <div class="navigation-skeleton">
-    <p role="status" aria-live="polite" class="navigation-status">{t(locale, "search.loading")}</p>
-    <div aria-hidden="true">
-      <div class="skeleton-block skeleton-heading"></div>
-      <div class="skeleton-toolbar"><div class="skeleton-block"></div><div class="skeleton-block"></div></div>
-      <div class="skeleton-cards">
-        {Array.from({ length: 6 }, () => <div class="skeleton-card"><div class="skeleton-block skeleton-caption"></div><div class="skeleton-block skeleton-title"></div><div class="skeleton-block skeleton-line"></div><div class="skeleton-block skeleton-line short"></div></div>)}
-      </div>
-      <div class="skeleton-calendar">
-        {Array.from({ length: 35 }, () => <div class="skeleton-block"></div>)}
-      </div>
-    </div>
-  </div>
+  <p role="status" aria-live="polite" class="navigation-status">{t(locale, "search.loading")}</p>
 </div>
 <script>
   import "../lib/navigation-loading";
 </script>
 <style>
-  .navigation-loading { position: fixed; inset: var(--navigation-loading-top, 88px) 0 0; z-index: 20; overflow: hidden; pointer-events: none; background: var(--bg, #07101c); }
+  .navigation-loading { position: fixed; top: var(--safe-area-top, 0px); left: 0; right: 0; z-index: 20; pointer-events: none; }
   .navigation-loading[hidden] { display: none; }
-  .navigation-progress { position: fixed; inset: 0 0 auto; height: 3px; overflow: hidden; background: rgba(var(--accent-rgb), .12); }
+  .navigation-progress { height: 3px; overflow: hidden; background: rgba(var(--accent-rgb), .12); }
   .navigation-progress::after { content: ""; display: block; width: 40%; height: 100%; background: var(--accent); animation: navigation-progress 1.1s ease-in-out infinite; }
-  .navigation-skeleton { width: min(1180px, calc(100% - 2rem)); margin: 0 auto; padding: 1rem 0 3rem; }
-  .navigation-status { margin: 0 0 1rem; color: var(--muted); font-size: .8125rem; }
-  /* Keep placeholders static: one progress indicator is enough, without a
-     clipped, continuously composited gradient layer for every skeleton block. */
-  .skeleton-block { border-radius: 7px; background: rgba(173, 206, 231, .09); }
-  .skeleton-heading { width: min(45%, 20rem); height: 1.8rem; margin-bottom: 1.4rem; }
-  .skeleton-toolbar { display: grid; grid-template-columns: 1fr 6rem; gap: .75rem; margin-bottom: 1.5rem; max-width: 40rem; }
-  .skeleton-toolbar > div { height: 44px; }
-  .skeleton-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-  .skeleton-card { display: grid; align-content: start; gap: 1rem; min-height: 170px; padding: 1.25rem; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
-  .skeleton-caption { width: 35%; height: .7rem; }
-  .skeleton-title { width: 85%; height: 1.2rem; }
-  .skeleton-line { width: 90%; height: .75rem; }
-  .skeleton-line.short { width: 55%; }
-  .skeleton-calendar { display: none; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .5rem; }
-  .skeleton-calendar > div { min-height: 90px; }
-  [data-kind="calendar"] .skeleton-cards { display: none; }
-  [data-kind="calendar"] .skeleton-calendar { display: grid; }
-  [data-kind="detail"] .skeleton-cards { grid-template-columns: 1fr; }
-  [data-kind="detail"] .skeleton-card { min-height: 120px; }
-  [data-kind="detail"] .skeleton-card:nth-child(n+4) { display: none; }
-  :global([data-navigation-obscured]) { visibility: hidden !important; }
+  .navigation-status { position: fixed; left: 50%; bottom: max(1rem, env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); max-width: calc(100vw - 2rem); margin: 0; padding: .45rem .8rem; border: 1px solid var(--line); border-radius: 999px; color: var(--text); background: var(--bg, #07101c); font-size: .8125rem; }
   @keyframes navigation-progress { from { transform: translateX(-100%); } to { transform: translateX(350%); } }
-  @media (max-width: 760px) {
-    .skeleton-cards { grid-template-columns: 1fr; gap: .75rem; }
-    .skeleton-card { min-height: 150px; }
-    .skeleton-calendar { gap: .25rem; }
-    .skeleton-calendar > div { min-height: 65px; }
-    [data-kind="calendar"] .skeleton-cards { display: grid; }
-    [data-kind="calendar"] .skeleton-calendar { display: none; }
-  }
   @media (prefers-reduced-motion: reduce) {
     .navigation-progress::after { animation: none; }
   }

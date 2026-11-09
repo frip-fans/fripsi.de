@@ -307,7 +307,8 @@ const nextCountdown = !next
   .event-grid :global(.event-card .event-details) { align-self: end; }
   /* Same frosted panel as the recent setlist cards below; only these few homepage cards blur,
      long calendar lists keep the cheaper translucent gradient. */
-  .event-grid :global(.event-card) { background: rgba(10, 22, 39, .76); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
+  /* Unprefixed only: with both written, the production minifier kept just -webkit-, which Chromium ignores. */
+  .event-grid :global(.event-card) { background: rgba(10, 22, 39, .76); backdrop-filter: blur(18px); }
   .event-grid :global(.event-card:hover) { background: rgba(14, 29, 49, .88); }
   .journey-teaser { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; margin-top: 4.5rem; padding: 1.35rem 1.5rem; color: inherit; text-decoration: none; transition: border-color .18s, transform .18s, background .18s; }
   .journey-teaser:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }

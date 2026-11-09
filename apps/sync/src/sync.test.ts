@@ -163,6 +163,20 @@ describe("Agents API and scheduled recovery", () => {
     expect(sqlite.prepare("SELECT status FROM official_sync_runs").get()).toMatchObject({ status: "completed" });
     expect(sqlite.prepare("SELECT COUNT(*) AS n FROM official_sync_runs").get()).toMatchObject({ n: 1 });
   });
+  it("retries an unreadable official site and then fails visibly without calling OpenAI", async () => {
+    const { db, sqlite } = database();
+    const request = vi.fn<typeof fetch>().mockImplementation(async () => new Response("Forbidden", { status: 403, headers: { "content-type": "text/html" } }));
+    vi.stubGlobal("fetch", request);
+    const env = { ...config, SYNC_DISCOVERY_ENABLED: "true", DB: db, SYNC_ENABLED: "true", SYNC_AUTO_PUBLISH: "true", OPENAI_API_KEY: "test", OPENAI_MODEL: "gpt-6-luna" };
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await expect(tick(env, new Date(Date.parse("2026-11-09T15:00:00Z") + attempt * 300_000))).rejects.toThrow("official_source_unavailable");
+      expect(sqlite.prepare("SELECT status FROM official_sync_runs").get()).toMatchObject({ status: attempt < 4 ? "starting" : "failed" });
+    }
+    expect(sqlite.prepare("SELECT error_code,attempts,result_json FROM official_sync_runs").get()).toMatchObject({ error_code: "official_source_unavailable", attempts: 5, result_json: null });
+    expect(request.mock.calls.every(([url]) => String(url).startsWith("https://fripside.net/"))).toBe(true);
+    await tick(env, new Date("2026-11-09T15:30:00Z"));
+    expect(request).toHaveBeenCalledTimes(5);
+  });
   it("does nothing when disabled or when another tick owns the lease", async () => {
     const { db, sqlite } = database();
     const request = vi.fn<typeof fetch>(); vi.stubGlobal("fetch", request);

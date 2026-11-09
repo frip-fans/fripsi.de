@@ -1,6 +1,7 @@
 export {};
 
 // Loading feedback follows Astro's request lifetime; it never starts a request.
+const LOADING_DELAY_MS = 250;
 let clearLoading: (() => void) | undefined;
 
 function showLoading(signal: AbortSignal, failOpenAfter?: number) {
@@ -15,16 +16,20 @@ function showLoading(signal: AbortSignal, failOpenAfter?: number) {
   // its outgoing-page state changes and layout work here.
   let stopped = false;
   let timeout: ReturnType<typeof setTimeout> | undefined;
+  let showTimer: ReturnType<typeof setTimeout> | undefined;
   const stop = () => {
     if (stopped) return;
     stopped = true;
     clearTimeout(timeout);
+    clearTimeout(showTimer);
     indicator.hidden = true;
     signal.removeEventListener("abort", stop);
     if (clearLoading === stop) clearLoading = undefined;
   };
   clearLoading = stop;
-  indicator.hidden = false;
+  showTimer = setTimeout(() => {
+    if (!stopped && !signal.aborted) indicator.hidden = false;
+  }, LOADING_DELAY_MS);
   signal.addEventListener("abort", stop, { once: true });
   if (failOpenAfter) timeout = setTimeout(stop, failOpenAfter);
   return stop;

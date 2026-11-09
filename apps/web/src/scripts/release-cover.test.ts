@@ -17,9 +17,9 @@ class FakeCover extends EventTarget {
     this.source = value;
     if (this.cachedInMemory) { this.complete = true; this.naturalWidth = 480; }
   }
-  finishLoading() {
+  finishLoading(width = 480) {
     this.complete = true;
-    this.naturalWidth = 480;
+    this.naturalWidth = width;
     this.dispatchEvent(new Event("load"));
   }
 }
@@ -55,5 +55,13 @@ describe("release cover loading", () => {
     cover.finishLoading();
     expect(cover.dataset.coverLoaded).toBe("true");
     expect(cover.dataset.coverCached).toBeUndefined();
+  });
+
+  it("falls back to the placeholder when the source serves a 1x1 pixel instead of artwork", () => {
+    const cover = new FakeCover("/media/covers/blank.png");
+    setup(cover);
+    cover.finishLoading(1);
+    expect(cover.hidden).toBe(true);
+    expect(cover.dataset.coverLoaded).toBeUndefined();
   });
 });

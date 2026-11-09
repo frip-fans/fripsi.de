@@ -7,7 +7,7 @@ import MusicBrowseResults from "./MusicBrowseResults.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { getLocale, t, type TranslationKey } from "../lib/i18n";
-import { liveClassifications, parseMusicBrowse, musicSorts, type MusicBrowseKind } from "../lib/music-browse";
+import { liveClassifications, parseMusicBrowse, musicSorts, songPhaseValues, type MusicBrowseKind } from "../lib/music-browse";
 import { releaseTypeLabel, releaseTypeLabels, setlistEventTypeLabel } from "../lib/music";
 import "../styles/music.css";
 import "../styles/music-browser.css";
@@ -40,13 +40,15 @@ const filterGroups: FilterGroup[] = kind === "lives"
     ]
   : kind === "releases"
     ? [{ name: "type", label: t(locale, "music.releaseType"), selected: input.types, options: (Object.keys(releaseTypeLabels) as (keyof typeof releaseTypeLabels)[]).map(value => ({ value, label: releaseTypeLabel(value, locale), count: undefined as number | undefined, tone: undefined as string | undefined })) }]
-    : [];
+    : kind === "songs"
+      ? [{ name: "phase", label: t(locale, "music.phase"), selected: input.phases, options: songPhaseValues.map(value => ({ value, label: t(locale, "music.phaseLabel", { phase: value }), count: undefined as number | undefined, tone: undefined as string | undefined })) }]
+      : [];
 const chipGroups = filterGroups.map(group => {
   const limit = group.collapseAfter ?? group.options.length;
   const older = group.options.slice(limit);
   return { ...group, recent: group.options.slice(0, limit), older, expanded: older.some(option => group.selected.includes(option.value)) };
 });
-const filterCount = input.years.length + input.classifications.length + input.types.length;
+const filterCount = input.years.length + input.classifications.length + input.types.length + input.phases.length;
 ---
 <SiteLayout title={t(locale, titles[kind])}>
   <div class="music-page music-browser" data-music-browser data-kind={kind} data-locale={locale} data-loading={t(locale, "search.loading")}>

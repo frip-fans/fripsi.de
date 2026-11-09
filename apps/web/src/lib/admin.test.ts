@@ -35,6 +35,11 @@ describe("song admin form", () => {
 
     const result = readSongSave(form);
     expect(result.aliases).toEqual(["only my railgun", "OMR"]);
+    expect(result.phase).toBeUndefined();
+    form.set("phase", "2");
+    expect(readSongSave(form).phase).toBe(2);
+    form.set("phase", "");
+    expect(readSongSave(form).phase).toBeNull();
     expect(result.versions).toEqual([{
       id: "version-1",
       slug: "only-my-railgun-version-2024",

@@ -32,6 +32,10 @@ export interface MusicLibraryStats {
   performance_count: number;
 }
 
+/** fripSide era a song belongs to; null for covers, guest work and unclassified songs. */
+export type SongPhase = 1 | 2 | 3;
+export const SONG_PHASES: readonly SongPhase[] = [1, 2, 3];
+
 export interface SongSummary {
   id: string;
   slug: string;
@@ -39,6 +43,7 @@ export interface SongSummary {
   original_artist: string;
   first_release_date: string | null;
   notes: string | null;
+  phase?: SongPhase | null;
   version_count: number;
   release_count: number;
   show_count: number;
@@ -47,6 +52,8 @@ export interface SongSummary {
 
 export interface SongBrowseSummary extends SongSummary {
   search_text: string;
+  /** Cover of the earliest published release carrying a vocal version of the song. */
+  cover_url: string | null;
 }
 
 export interface SongVersionRecord {

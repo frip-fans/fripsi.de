@@ -1,7 +1,7 @@
 import { cancelContentEntry, playResultsEntry } from "./content-entry";
 import { replacePublicUrl } from "./public-navigation";
 import { setupReleaseCovers } from "../scripts/release-cover";
-import { MUSIC_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE, MUSIC_WIDE_RELEASE_QUERY } from "./music-batch";
+import { MUSIC_WIDE_RELEASE_BATCH_SIZE, MUSIC_WIDE_RELEASE_QUERY, musicBatchSize } from "./music-batch";
 
 let mounted: HTMLElement | null = null;
 let dispose: (() => void) | undefined;
@@ -124,7 +124,7 @@ export function setupMusicBrowser() {
       if (!append) playResultsEntry(next);
       setupReleaseCovers();
       const url = new URL(location.href);
-      for (const key of new Set(["q", "year", "classification", "type", "sort", "page", "batch", ...nextParams.keys()])) url.searchParams.delete(key);
+      for (const key of new Set(["q", "year", "classification", "type", "phase", "sort", "page", "batch", ...nextParams.keys()])) url.searchParams.delete(key);
       for (const [key, value] of nextParams) {
         if (key === "page" && value === "1") continue;
         url.searchParams.append(key, value);
@@ -207,7 +207,7 @@ export function setupMusicBrowser() {
   if (root.dataset.kind === "releases") {
     matchMedia(MUSIC_WIDE_RELEASE_QUERY).addEventListener("change", () => void fetchResults(), { signal });
   }
-  const desiredBatch = root.dataset.kind === "releases" && matchMedia(MUSIC_WIDE_RELEASE_QUERY).matches ? MUSIC_WIDE_RELEASE_BATCH_SIZE : MUSIC_BATCH_SIZE;
+  const desiredBatch = musicBatchSize(root.dataset.kind, root.dataset.kind === "releases" && matchMedia(MUSIC_WIDE_RELEASE_QUERY).matches);
   if (Number(results().dataset.batch) !== desiredBatch) void fetchResults();
   dispose = () => {
     request?.abort(); ++serial; clearTimeout(timer); closePanels(); lifetime.abort();

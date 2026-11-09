@@ -22,6 +22,10 @@ const versions: Array<AdminSongVersion | undefined> = song?.versions.length ? so
     <label class="wide">歌曲名 *<input name="title" required maxlength="240" value={song?.title ?? ""} data-song-title /></label>
     <label>原唱 / Artist<input name="original_artist" required maxlength="240" value={song?.original_artist ?? "fripSide"} /></label>
     <label>首次发行日期<input type="date" name="first_release_date" value={song?.first_release_date ?? ""} /></label>
+    <label>期别<select name="phase">
+      <option value="" selected={!song?.phase}>不属于分期（翻唱、客演等）</option>
+      {([1, 2, 3] as const).map((phase) => <option value={String(phase)} selected={song?.phase === phase}>{phase} 期</option>)}
+    </select></label>
     <label class="wide">Slug<input name="slug" maxlength="180" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" value={song?.slug ?? ""} placeholder="留空自动生成" /></label>
     <label class="wide">别名<textarea name="aliases" maxlength="8000" placeholder="每行一个别名；可用于公开歌曲搜索">{song?.aliases.join("\n") ?? ""}</textarea></label>
     <label class="wide">说明<textarea name="notes" maxlength="4000">{song?.notes ?? ""}</textarea></label>

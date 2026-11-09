@@ -161,6 +161,7 @@ export function readSongSave(form: FormData): SongSaveInput {
     title: String(form.get("title") ?? ""),
     original_artist: String(form.get("original_artist") ?? "fripSide"),
     first_release_date: optional(form, "first_release_date"),
+    phase: parseSongPhase(form.get("phase")),
     notes: optional(form, "notes"),
     published: form.has("published"),
     aliases,
@@ -226,4 +227,11 @@ export function htmlError(error: unknown, back = "/admin"): Response {
     status,
     headers: { "content-type": "text/html; charset=utf-8" }
   });
+}
+
+/** The admin form always sends the phase select; an empty value clears it. */
+function parseSongPhase(value: FormDataEntryValue | null): 1 | 2 | 3 | null | undefined {
+  if (value === null) return undefined;
+  const phase = Number(value);
+  return phase === 1 || phase === 2 || phase === 3 ? phase : null;
 }

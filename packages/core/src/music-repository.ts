@@ -182,8 +182,16 @@ export async function listSongs(db: D1Database, options: MusicSearchOptions = {}
 
 export async function listSongCatalog(db: D1Database, limit = 500): Promise<SongBrowseSummary[]> {
   const result = await db.prepare(`
-    SELECT s.id, s.slug, s.title, s.original_artist, s.first_release_date, s.notes,
+    SELECT s.id, s.slug, s.title, s.original_artist, s.first_release_date, s.notes, s.phase,
       (SELECT COUNT(*) FROM song_versions sv WHERE sv.song_id = s.id AND sv.published = 1) AS version_count,
+      (SELECT r.cover_url
+        FROM song_versions sv
+        JOIN release_tracks rt ON rt.song_version_id = sv.id
+        JOIN releases r ON r.id = rt.release_id AND r.published = 1
+        WHERE sv.song_id = s.id AND sv.published = 1 AND r.cover_url IS NOT NULL AND r.cover_url <> ''
+          AND NOT EXISTS (SELECT 1 FROM song_version_relations rel WHERE rel.child_version_id = sv.id AND rel.relation_type = 'instrumental_of')
+        ORDER BY r.release_date IS NULL, r.release_date ASC, rt.disc_number ASC, rt.track_number ASC
+        LIMIT 1) AS cover_url,
       (SELECT COUNT(DISTINCT rt.release_id)
         FROM song_versions sv
         JOIN release_tracks rt ON rt.song_version_id = sv.id

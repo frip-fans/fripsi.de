@@ -1,7 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { getMusicBrowseResults, MUSIC_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE, parseMusicBrowse } from "./music-browse";
+import { getMusicBrowseResults, MUSIC_BATCH_SIZE, MUSIC_SONG_BATCH_SIZE, MUSIC_WIDE_RELEASE_BATCH_SIZE, parseMusicBrowse } from "./music-browse";
 
 const FIXTURE_SIZE = MUSIC_BATCH_SIZE + 2;
 
@@ -41,11 +41,13 @@ describe("shared music browsing", () => {
     expect(parseMusicBrowse("releases", new URLSearchParams("type=album&type=single&type=nope")).types).toEqual(["album", "single"]);
     expect(parseMusicBrowse("songs", new URLSearchParams("year=2026&type=album"))).toMatchObject({ years: [], types: [] });
     expect(parseMusicBrowse("songs", new URLSearchParams({ q: "x".repeat(300) })).query).toHaveLength(200);
+    expect(parseMusicBrowse("songs", new URLSearchParams("phase=3&phase=4&phase=1&phase=3")).phases).toEqual(["3", "1"]);
+    expect(parseMusicBrowse("lives", new URLSearchParams("phase=1")).phases).toEqual([]);
   });
-  it("returns one batch initially, appends the next batch, and restores loaded items on all three pages", async () => {
+  it("returns one batch initially, appends the next batch, and restores loaded items on the live and release pages", async () => {
     const { sqlite, db } = fixture();
     try {
-      for (const kind of ["lives", "songs", "releases"] as const) {
+      for (const kind of ["lives", "releases"] as const) {
         const first = await getMusicBrowseResults(db, kind, new URLSearchParams());
         const next = await getMusicBrowseResults(db, kind, new URLSearchParams("page=2"), true);
         const restored = await getMusicBrowseResults(db, kind, new URLSearchParams("page=2"));
@@ -85,6 +87,32 @@ describe("shared music browsing", () => {
       expect((await getMusicBrowseResults(db, "releases", new URLSearchParams("type=album"))).total).toBe(Math.floor(FIXTURE_SIZE / 2));
       expect((await getMusicBrowseResults(db, "releases", new URLSearchParams("type=album&type=single"))).total).toBe(FIXTURE_SIZE);
       expect((await getMusicBrowseResults(db, "releases", new URLSearchParams("type=ep"))).total).toBe(0);
+    } finally { sqlite.close(); }
+  });
+  it("loads song rankings in larger batches and ranks within the selected phases", async () => {
+    const { sqlite, db } = fixture();
+    try {
+      // Song 00 is in every fixture setlist; give a few more songs shows and phases.
+      for (let i = FIXTURE_SIZE; i < MUSIC_SONG_BATCH_SIZE + 2; i++) {
+        const id = String(i).padStart(2, "0");
+        sqlite.prepare("INSERT INTO songs(id,slug,title,normalized_title,created_at,updated_at) VALUES(?,?,?,?, 'now','now')").run(id, `song-${id}`, `Song ${id}`, `song ${id}`);
+      }
+      sqlite.exec("UPDATE songs SET phase = 2 WHERE id IN ('00', '01', '02'); UPDATE songs SET phase = 3 WHERE id IN ('03', '04')");
+      for (const [position, setlist, song] of [[2, "00", "01"], [2, "01", "01"], [3, "00", "02"], [4, "00", "03"], [5, "00", "04"]] as const) {
+        sqlite.prepare("INSERT INTO setlist_entries(id,setlist_id,position,song_id,display_title,created_at) VALUES(?,?,?,?,'x','now')").run(`extra-${setlist}-${position}`, setlist, position, song);
+      }
+      const first = await getMusicBrowseResults(db, "songs", new URLSearchParams());
+      expect(first).toMatchObject({ batch: MUSIC_SONG_BATCH_SIZE, shown: MUSIC_SONG_BATCH_SIZE, hasMore: true, ranked: true, maxShows: FIXTURE_SIZE });
+      expect(first.songs.slice(0, 2).map(song => song.id)).toEqual(["00", "01"]);
+      expect(first.ranks).toMatchObject({ "00": 1, "01": 2, "02": 3, "03": 3, "04": 3 });
+      expect(first.ranks["05"]).toBeUndefined();
+      const phase3 = await getMusicBrowseResults(db, "songs", new URLSearchParams("phase=3"));
+      expect(phase3.songs.map(song => song.id)).toEqual(["03", "04"]);
+      expect(phase3).toMatchObject({ total: 2, maxShows: 1, ranks: { "03": 1, "04": 1 } });
+      const both = await getMusicBrowseResults(db, "songs", new URLSearchParams("phase=2&phase=3&q=Song+02"));
+      expect(both.songs.map(song => song.id)).toEqual(["02"]);
+      expect(both.ranks["02"]).toBe(3);
+      expect((await getMusicBrowseResults(db, "songs", new URLSearchParams("sort=title-asc"))).ranked).toBe(false);
     } finally { sqlite.close(); }
   });
 });

@@ -39,3 +39,4 @@ describe("displayEventStatus", () => {
     }, "2026-08-18")).toBe(status);
   });
 });
+

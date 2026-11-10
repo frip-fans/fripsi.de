@@ -50,6 +50,15 @@ async function drawQr(ctx: CanvasRenderingContext2D, url: string, x: number, y: 
   }
 }
 
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`could not load ${src}`));
+    image.src = src;
+  });
+}
+
 export async function renderShareCard(data: ShareCardData): Promise<Blob> {
   const accent = cssVar("--accent", "#ef8a45");
   const font = getComputedStyle(document.body).fontFamily || "sans-serif";
@@ -74,17 +83,26 @@ export async function renderShareCard(data: ShareCardData): Promise<Blob> {
 
   ctx.textBaseline = "alphabetic";
 
-  // Brand.
+  // Brand: the site mark, then the wordmark beside it.
+  const logoSize = 96;
+  const logo = await loadImage("/fan-site-logo.svg").catch(() => null);
+  if (logo) ctx.drawImage(logo, 88, 70, logoSize, logoSize);
+  const brandStart = logo ? 88 + logoSize + 28 : 88;
   ctx.textAlign = "left";
   ctx.font = `700 44px ${font}`;
   ctx.fillStyle = "#eff8ff";
-  ctx.fillText("fripSi", 88, 140);
-  let brandX = 88 + ctx.measureText("fripSi").width;
+  ctx.fillText("fripSi", brandStart, 128);
+  let brandX = brandStart + ctx.measureText("fripSi").width;
   ctx.fillStyle = accent;
-  ctx.fillText(".de", brandX, 140);
+  ctx.fillText(".de", brandX, 128);
   brandX += ctx.measureText(".de").width;
   ctx.fillStyle = "#eff8ff";
-  ctx.fillText(" Fan Site", brandX, 140);
+  ctx.fillText(" Fan Site", brandX, 128);
+  ctx.fillStyle = "rgba(220,232,246,.6)";
+  ctx.font = `600 24px ${font}`;
+  ctx.letterSpacing = "4px";
+  ctx.fillText("UNOFFICIAL", brandStart, 166);
+  ctx.letterSpacing = "0px";
 
   // Title and date.
   ctx.textAlign = "center";

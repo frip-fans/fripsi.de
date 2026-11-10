@@ -40,6 +40,11 @@ export interface QuizPayload {
 
 type Labels = Record<string, string>;
 
+/** Buttons carry an icon beside a `[data-label]` span; only the label text changes. */
+function setLabel(element: HTMLElement, text: string): void {
+  (element.querySelector<HTMLElement>("[data-label]") ?? element).textContent = text;
+}
+
 function fill(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), template);
 }
@@ -69,7 +74,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
   if (index === -1) index = payload.questions.length;
   let busy = false;
 
-  nextButton.textContent = labels.next ?? "";
+  setLabel(nextButton, labels.next ?? "");
 
   function results(): boolean[] {
     return payload.questions.map((question) => question.answer !== undefined && question.choice === question.answer);
@@ -146,15 +151,16 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     const url = `${location.origin}/quiz`;
     let cardFile: File | null = null;
 
-    shareButton.textContent = labels.share ?? "";
+    setLabel(shareButton, labels.share ?? "");
     shareButton.hidden = false;
     shareButton.disabled = false;
     panel.hidden = true;
     delete finish.dataset.sharing;
     panel.querySelector<HTMLElement>("[data-quiz-share-hint]")!.textContent = labels.cardHint ?? "";
-    sendButton.textContent = labels.sendImage ?? "";
-    saveLink.textContent = labels.saveImage ?? "";
-    copyButton.textContent = labels.copyText ?? "";
+    setLabel(sendButton, labels.sendImage ?? "");
+    setLabel(saveLink, labels.saveImage ?? "");
+    setLabel(copyButton, labels.copyText ?? "");
+    delete copyButton.dataset.done;
 
     // The card is drawn on demand, then offered three ways: the system share sheet with the
     // image where the browser can share files, a plain download, and the text grid.
@@ -185,7 +191,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
         finish.dataset.sharing = "true";
         (sendButton.hidden ? saveLink : sendButton).focus();
       } catch {
-        shareButton.textContent = labels.failed ?? "";
+        setLabel(shareButton, labels.failed ?? "");
         shareButton.disabled = false;
       }
     };
@@ -202,9 +208,10 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     copyButton.onclick = async () => {
       try {
         await navigator.clipboard.writeText(`${text}\n${url}`);
-        copyButton.textContent = labels.shared ?? "";
+        setLabel(copyButton, labels.shared ?? "");
+        copyButton.dataset.done = "true";
       } catch {
-        copyButton.textContent = labels.failed ?? "";
+        setLabel(copyButton, labels.failed ?? "");
       }
     };
     shareButton.focus();
@@ -235,7 +242,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
 
     if (question.eventHref) {
       showLink.href = question.eventHref;
-      showLink.textContent = labels.viewShow ?? "";
+      setLabel(showLink, labels.viewShow ?? "");
       showLink.hidden = false;
     }
     nextButton.hidden = false;

@@ -2,6 +2,7 @@ import { createRemoteJWKSet, jwtVerify, type JWTPayload } from "jose";
 import type { Actor } from "./types";
 import { ServiceError } from "./utils";
 import { authenticateAutomationToken } from "./automation-auth";
+import { authenticateChatToken, isChatToken } from "./chat-session";
 
 export interface AuthEnv {
   DB?: D1Database;
@@ -61,6 +62,8 @@ export async function authenticateAdmin(request: Request, env: AuthEnv): Promise
 export async function authenticateMcp(request: Request, env: AuthEnv): Promise<Actor> {
   const bearer = request.headers.get("Authorization");
   if (bearer?.startsWith("Bearer fsync.")) return authenticateAutomationToken(bearer.slice(7), env);
+  // The admin chat assistant presents a short-lived delegated credential for a signed-in maintainer.
+  if (bearer?.startsWith("Bearer ") && isChatToken(bearer.slice(7))) return authenticateChatToken(bearer.slice(7), env);
   const local = devActor(env, "mcp");
   if (local) return local;
   const authorization = request.headers.get("Authorization");

@@ -1,0 +1,48 @@
+/*
+ * The chat log's bubbles and proposal cards are created by lib/chat-client.ts at runtime,
+ * so Astro's scoped styles never reach them. Every rule stays under .chat instead.
+ */
+.chat { margin-top: 2rem; display: grid; gap: 1rem; }
+.chat [hidden] { display: none; }
+.chat .chat-head { display: flex; justify-content: space-between; align-items: start; gap: 1rem; border-bottom: 1px solid var(--line); padding-bottom: .8rem; }
+.chat .chat-head p { margin: 0; color: var(--muted); font-size: .85rem; max-width: 46ch; }
+.chat .chat-meta { display: flex; align-items: center; gap: .8rem; white-space: nowrap; }
+.chat .chat-meta span { color: var(--accent); font: .7rem/1.6 ui-monospace; }
+
+.chat .log { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; max-height: 60vh; overflow-y: auto; }
+.chat .log .note { color: var(--muted); font-size: .85rem; }
+.chat .bubble { padding: .7rem .9rem; border-radius: 12px; border: 1px solid var(--line); background: rgb(255 255 255 / 4%); white-space: pre-wrap; max-width: 90%; }
+.chat .bubble.you { justify-self: end; border-color: var(--accent); }
+.chat .bubble.error { border-color: #c0485f; color: #ffb9c5; }
+
+.chat .proposal { border: 1px solid var(--accent); border-radius: 12px; padding: .9rem; display: grid; gap: .7rem; }
+.chat .proposal.done { border-color: var(--line); opacity: .7; }
+.chat .proposal-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
+.chat .proposal-head .tag { color: var(--accent); font: .7rem/1.6 ui-monospace; }
+.chat .proposal-head small { color: var(--muted); }
+.chat .proposal-actions { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
+.chat .warnings { margin: 0; padding-left: 1.1rem; color: #ffd27f; font-size: .8rem; }
+
+.chat .diff { width: 100%; border-collapse: collapse; font-size: .85rem; table-layout: fixed; }
+.chat .diff th:first-child { width: 8rem; color: var(--muted); font-weight: 500; }
+.chat .diff td { overflow-wrap: anywhere; }
+.chat .diff th, .chat .diff td { text-align: left; padding: .3rem .5rem; border-top: 1px solid var(--line); vertical-align: top; }
+.chat .diff thead th { color: var(--muted); font: .7rem/1.6 ui-monospace; border: 0; }
+.chat .diff .was { color: var(--muted); text-decoration: line-through; }
+
+.chat .composer { display: flex; gap: .6rem; align-items: end; }
+.chat .composer textarea { flex: 1; resize: vertical; }
+.chat .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+@media (max-width: 780px) {
+  .chat .chat-head { flex-direction: column; }
+  .chat .composer { flex-direction: column; align-items: stretch; }
+  .chat .bubble { max-width: 100%; }
+  .chat .diff { font-size: .8rem; }
+}
+
+/* The base layout paints every <button> as the accent action; secondary chat
+   actions must not compete with 发布 for attention. */
+.chat button.link { background: none; border: 1px solid var(--line); color: var(--muted); font-weight: 600; }
+.chat button.link:hover { color: var(--accent); border-color: var(--accent); }
+.chat .proposal-actions a.link { color: var(--muted); font-size: .85rem; }

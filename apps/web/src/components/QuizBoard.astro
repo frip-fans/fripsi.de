@@ -34,6 +34,15 @@ const { locale } = Astro.props;
     <p class="quiz-marks" data-quiz-marks></p>
     <p class="quiz-comeback" data-quiz-comeback></p>
     <button class="quiz-share" type="button" data-quiz-share></button>
+    <div class="quiz-share-panel" data-quiz-share-panel hidden>
+      <img class="quiz-share-card" data-quiz-card alt="" width="1080" height="1440" />
+      <p class="quiz-share-hint" data-quiz-share-hint></p>
+      <div class="quiz-share-actions">
+        <button class="quiz-share-primary" type="button" data-quiz-send hidden></button>
+        <a class="quiz-share-primary" data-quiz-save href="#" download></a>
+        <button class="quiz-share-secondary" type="button" data-quiz-copy></button>
+      </div>
+    </div>
   </section>
   <slot />
 </section>

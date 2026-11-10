@@ -137,28 +137,74 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     finish.querySelector<HTMLElement>("[data-quiz-comeback]")!.textContent = labels.comeBack ?? "";
 
     const shareButton = finish.querySelector<HTMLButtonElement>("[data-quiz-share]")!;
+    const panel = finish.querySelector<HTMLElement>("[data-quiz-share-panel]")!;
+    const cardImage = panel.querySelector<HTMLImageElement>("[data-quiz-card]")!;
+    const sendButton = panel.querySelector<HTMLButtonElement>("[data-quiz-send]")!;
+    const saveLink = panel.querySelector<HTMLAnchorElement>("[data-quiz-save]")!;
+    const copyButton = panel.querySelector<HTMLButtonElement>("[data-quiz-copy]")!;
+    const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}\n${levelText()}`;
+    const url = `${location.origin}/quiz`;
+    let cardFile: File | null = null;
+
     shareButton.textContent = labels.share ?? "";
+    shareButton.hidden = false;
+    shareButton.disabled = false;
+    panel.hidden = true;
+    delete finish.dataset.sharing;
+    panel.querySelector<HTMLElement>("[data-quiz-share-hint]")!.textContent = labels.cardHint ?? "";
+    sendButton.textContent = labels.sendImage ?? "";
+    saveLink.textContent = labels.saveImage ?? "";
+    copyButton.textContent = labels.copyText ?? "";
+
+    // The card is drawn on demand, then offered three ways: the system share sheet with the
+    // image where the browser can share files, a plain download, and the text grid.
     shareButton.onclick = async () => {
-      const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}\n${levelText()}`;
-      const url = `${location.origin}/quiz`;
-
-      // The system share sheet is the real thing where it exists; elsewhere, the
-      // clipboard carries the same emoji grid people paste into a post.
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: labels.title, text, url });
-          return;
-        } catch (error) {
-          // Dismissing the sheet is a choice, not a failure.
-          if (error instanceof DOMException && error.name === "AbortError") return;
-        }
-      }
-
+      shareButton.disabled = true;
       try {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
-        shareButton.textContent = labels.shared ?? "";
+        const { renderShareCard } = await import("./quiz-share-card");
+        const blob = await renderShareCard({
+          title: labels.title ?? "",
+          date: payload.date,
+          score: score(),
+          total: payload.total,
+          level: levelText(),
+          results: results(),
+          scanLabel: labels.cardScan ?? "",
+          url,
+        });
+        cardFile = new File([blob], `fripside-quiz-${payload.date}.png`, { type: "image/png" });
+        if (cardImage.src.startsWith("blob:")) URL.revokeObjectURL(cardImage.src);
+        cardImage.src = URL.createObjectURL(blob);
+        cardImage.alt = text;
+        saveLink.href = cardImage.src;
+        saveLink.download = cardFile.name;
+        sendButton.hidden = !navigator.canShare?.({ files: [cardFile] });
+        shareButton.hidden = true;
+        panel.hidden = false;
+        // The card repeats the score, so the page copy steps aside while it is shown.
+        finish.dataset.sharing = "true";
+        (sendButton.hidden ? saveLink : sendButton).focus();
       } catch {
         shareButton.textContent = labels.failed ?? "";
+        shareButton.disabled = false;
+      }
+    };
+
+    sendButton.onclick = async () => {
+      if (!cardFile) return;
+      try {
+        await navigator.share({ files: [cardFile], title: labels.title, text: `${text}\n${url}` });
+      } catch {
+        /* Dismissing the sheet is a choice, not a failure; saving still works. */
+      }
+    };
+
+    copyButton.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+        copyButton.textContent = labels.shared ?? "";
+      } catch {
+        copyButton.textContent = labels.failed ?? "";
       }
     };
     shareButton.focus();

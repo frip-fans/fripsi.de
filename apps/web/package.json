@@ -12,12 +12,13 @@
   "dependencies": {
     "@astrojs/node": "11.1.11",
     "@frip-fan/core": "*",
+    "@frip-fan/mcp": "*",
+    "@frip-fan/node-runtime": "*",
     "astro": "^7.4.7",
     "bootstrap-icons": "^1.13.1",
     "leaflet": "^1.9.4",
     "maplibre-gl": "^6.16.0",
-    "@frip-fan/node-runtime": "*",
-    "@frip-fan/mcp": "*"
+    "qrcode-generator": "2.0.4"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",

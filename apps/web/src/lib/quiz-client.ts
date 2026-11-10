@@ -40,6 +40,11 @@ export interface QuizPayload {
 
 type Labels = Record<string, string>;
 
+/** Buttons carry an icon beside a `[data-label]` span; only the label text changes. */
+function setLabel(element: HTMLElement, text: string): void {
+  (element.querySelector<HTMLElement>("[data-label]") ?? element).textContent = text;
+}
+
 function fill(template: string, values: Record<string, string | number>): string {
   return Object.entries(values).reduce((text, [key, value]) => text.replaceAll(`{${key}}`, String(value)), template);
 }
@@ -54,6 +59,9 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
   const promptNode = root.querySelector<HTMLElement>("[data-quiz-prompt]")!;
   const optionsNode = root.querySelector<HTMLElement>("[data-quiz-options]")!;
   const feedbackNode = root.querySelector<HTMLElement>("[data-quiz-feedback]")!;
+  const verdictNode = root.querySelector<HTMLElement>("[data-quiz-verdict]")!;
+  const detailNode = root.querySelector<HTMLElement>("[data-quiz-detail]")!;
+  const stepsNode = root.querySelector<HTMLElement>("[data-quiz-steps]");
   const showLink = root.querySelector<HTMLAnchorElement>("[data-quiz-show-link]")!;
   const staleNext = root.querySelector<HTMLButtonElement>("[data-quiz-next]")!;
   const nextButton = staleNext.cloneNode(true) as HTMLButtonElement;
@@ -66,7 +74,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
   if (index === -1) index = payload.questions.length;
   let busy = false;
 
-  nextButton.textContent = labels.next ?? "";
+  setLabel(nextButton, labels.next ?? "");
 
   function results(): boolean[] {
     return payload.questions.map((question) => question.answer !== undefined && question.choice === question.answer);
@@ -84,6 +92,25 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
       mark.dataset.hit = String(hit);
       return mark;
     }));
+  }
+
+  /** One segment per question: answered ones show hit or miss, the current one is highlighted. */
+  function renderSteps(): void {
+    if (!stepsNode) return;
+    stepsNode.replaceChildren(...payload.questions.map((question, questionIndex) => {
+      const step = document.createElement("li");
+      if (question.answer !== undefined) step.dataset.state = question.choice === question.answer ? "hit" : "miss";
+      else if (questionIndex === index) step.dataset.state = "current";
+      return step;
+    }));
+  }
+
+  function showFeedback(correct: boolean, verdict: string, detail: string): void {
+    feedbackNode.hidden = false;
+    feedbackNode.dataset.correct = String(correct);
+    verdictNode.textContent = verdict;
+    detailNode.textContent = detail;
+    detailNode.hidden = !detail;
   }
 
   function score(): number {
@@ -104,6 +131,8 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
 
   function renderFinish(): void {
     card.hidden = true;
+    // The score card draws the same row of hits and misses, so the step bar steps aside.
+    if (stepsNode) stepsNode.hidden = true;
     progressNode.textContent = labels.done ?? "";
     finish.hidden = false;
     finish.querySelector<HTMLElement>("[data-quiz-finish-title]")!.textContent = labels.finishTitle ?? "";
@@ -113,28 +142,76 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     finish.querySelector<HTMLElement>("[data-quiz-comeback]")!.textContent = labels.comeBack ?? "";
 
     const shareButton = finish.querySelector<HTMLButtonElement>("[data-quiz-share]")!;
-    shareButton.textContent = labels.share ?? "";
+    const panel = finish.querySelector<HTMLElement>("[data-quiz-share-panel]")!;
+    const cardImage = panel.querySelector<HTMLImageElement>("[data-quiz-card]")!;
+    const sendButton = panel.querySelector<HTMLButtonElement>("[data-quiz-send]")!;
+    const saveLink = panel.querySelector<HTMLAnchorElement>("[data-quiz-save]")!;
+    const copyButton = panel.querySelector<HTMLButtonElement>("[data-quiz-copy]")!;
+    const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}\n${levelText()}`;
+    const url = `${location.origin}/quiz`;
+    let cardFile: File | null = null;
+
+    setLabel(shareButton, labels.share ?? "");
+    shareButton.hidden = false;
+    shareButton.disabled = false;
+    panel.hidden = true;
+    delete finish.dataset.sharing;
+    panel.querySelector<HTMLElement>("[data-quiz-share-hint]")!.textContent = labels.cardHint ?? "";
+    setLabel(sendButton, labels.sendImage ?? "");
+    setLabel(saveLink, labels.saveImage ?? "");
+    setLabel(copyButton, labels.copyText ?? "");
+    delete copyButton.dataset.done;
+
+    // The card is drawn on demand, then offered three ways: the system share sheet with the
+    // image where the browser can share files, a plain download, and the text grid.
     shareButton.onclick = async () => {
-      const text = `${labels.title} ${payload.date}\n${marks()} ${score()}/${payload.total}\n${levelText()}`;
-      const url = `${location.origin}/quiz`;
-
-      // The system share sheet is the real thing where it exists; elsewhere, the
-      // clipboard carries the same emoji grid people paste into a post.
-      if (navigator.share) {
-        try {
-          await navigator.share({ title: labels.title, text, url });
-          return;
-        } catch (error) {
-          // Dismissing the sheet is a choice, not a failure.
-          if (error instanceof DOMException && error.name === "AbortError") return;
-        }
+      shareButton.disabled = true;
+      try {
+        const { renderShareCard } = await import("./quiz-share-card");
+        const blob = await renderShareCard({
+          title: labels.title ?? "",
+          date: payload.date,
+          score: score(),
+          total: payload.total,
+          level: levelText(),
+          results: results(),
+          scanLabel: labels.cardScan ?? "",
+          url,
+        });
+        cardFile = new File([blob], `fripside-quiz-${payload.date}.jpg`, { type: "image/jpeg" });
+        if (cardImage.src.startsWith("blob:")) URL.revokeObjectURL(cardImage.src);
+        cardImage.src = URL.createObjectURL(blob);
+        cardImage.alt = text;
+        saveLink.href = cardImage.src;
+        saveLink.download = cardFile.name;
+        sendButton.hidden = !navigator.canShare?.({ files: [cardFile] });
+        shareButton.hidden = true;
+        panel.hidden = false;
+        // The card repeats the score, so the page copy steps aside while it is shown.
+        finish.dataset.sharing = "true";
+        (sendButton.hidden ? saveLink : sendButton).focus();
+      } catch {
+        setLabel(shareButton, labels.failed ?? "");
+        shareButton.disabled = false;
       }
+    };
 
+    sendButton.onclick = async () => {
+      if (!cardFile) return;
+      try {
+        await navigator.share({ files: [cardFile], title: labels.title, text: `${text}\n${url}` });
+      } catch {
+        /* Dismissing the sheet is a choice, not a failure; saving still works. */
+      }
+    };
+
+    copyButton.onclick = async () => {
       try {
         await navigator.clipboard.writeText(`${text}\n${url}`);
-        shareButton.textContent = labels.shared ?? "";
+        setLabel(copyButton, labels.shared ?? "");
+        copyButton.dataset.done = "true";
       } catch {
-        shareButton.textContent = labels.failed ?? "";
+        setLabel(copyButton, labels.failed ?? "");
       }
     };
     shareButton.focus();
@@ -142,7 +219,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
 
   function renderFeedback(question: QuizQuestionView): void {
     const correct = question.choice === question.answer;
-    const lines = [correct ? labels.correct : labels.wrong];
+    const lines: string[] = [];
 
     if (question.stats && question.stats.answered > 1) {
       const rate = Math.round((question.stats.correct / question.stats.answered) * 100);
@@ -160,13 +237,12 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
       }));
     }
 
-    feedbackNode.hidden = false;
-    feedbackNode.dataset.correct = String(correct);
-    feedbackNode.textContent = lines.filter(Boolean).join(" · ");
+    showFeedback(correct, (correct ? labels.correct : labels.wrong) ?? "", lines.filter(Boolean).join(" · "));
+    renderSteps();
 
     if (question.eventHref) {
       showLink.href = question.eventHref;
-      showLink.textContent = labels.viewShow ?? "";
+      setLabel(showLink, labels.viewShow ?? "");
       showLink.hidden = false;
     }
     nextButton.hidden = false;
@@ -194,9 +270,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
       renderOptionState(question);
       renderFeedback(question);
     } catch {
-      feedbackNode.hidden = false;
-      feedbackNode.dataset.correct = "false";
-      feedbackNode.textContent = labels.failed ?? "";
+      showFeedback(false, labels.failed ?? "", "");
       optionsNode.querySelectorAll("button").forEach((button) => { button.disabled = false; });
     } finally {
       busy = false;
@@ -220,10 +294,13 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     const question = payload.questions[index];
     card.hidden = false;
     finish.hidden = true;
+    if (stepsNode) stepsNode.hidden = false;
     progressNode.textContent = fill(labels.progress ?? "", { current: index + 1, total: payload.total });
     promptNode.textContent = question.prompt;
     feedbackNode.hidden = true;
-    feedbackNode.textContent = "";
+    verdictNode.textContent = "";
+    detailNode.textContent = "";
+    renderSteps();
     showLink.hidden = true;
     nextButton.hidden = true;
 

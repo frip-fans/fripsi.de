@@ -1,4 +1,5 @@
 ---
+import Icon from "./Icon.astro";
 import { quizLabels } from "../lib/quiz-payload";
 import type { Locale } from "../lib/i18n";
 
@@ -11,14 +12,20 @@ const { locale } = Astro.props;
 ---
 
 <section class="quiz-stage" data-quiz data-labels={JSON.stringify(quizLabels(locale))}>
-  <p class="quiz-progress" data-quiz-progress aria-live="polite"></p>
+  <div class="quiz-progress-row">
+    <ol class="quiz-steps" data-quiz-steps aria-hidden="true"></ol>
+    <p class="quiz-progress" data-quiz-progress aria-live="polite"></p>
+  </div>
   <div class="quiz-card">
     <h2 class="quiz-prompt" data-quiz-prompt></h2>
     <div class="quiz-options" data-quiz-options role="group"></div>
-    <div class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite" hidden></div>
+    <div class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite" hidden>
+      <strong class="quiz-verdict" data-quiz-verdict></strong>
+      <span class="quiz-detail" data-quiz-detail></span>
+    </div>
     <div class="quiz-actions">
-      <a class="quiz-show-link" data-quiz-show-link href="#" hidden></a>
-      <button class="quiz-next" type="button" data-quiz-next hidden></button>
+      <a class="quiz-show-link" data-quiz-show-link href="#" hidden><Icon name="music-note-list" /><span data-label></span></a>
+      <button class="quiz-next" type="button" data-quiz-next hidden><span data-label></span><Icon name="arrow-right" /></button>
     </div>
   </div>
   <section class="quiz-finish" data-quiz-finish hidden>
@@ -27,7 +34,16 @@ const { locale } = Astro.props;
     <p class="quiz-level" data-quiz-level></p>
     <p class="quiz-marks" data-quiz-marks></p>
     <p class="quiz-comeback" data-quiz-comeback></p>
-    <button class="quiz-share" type="button" data-quiz-share></button>
+    <button class="quiz-share" type="button" data-quiz-share><Icon name="box-arrow-up" /><span data-label></span></button>
+    <div class="quiz-share-panel" data-quiz-share-panel hidden>
+      <img class="quiz-share-card" data-quiz-card alt="" width="1080" height="1440" />
+      <p class="quiz-share-hint" data-quiz-share-hint></p>
+      <div class="quiz-share-actions">
+        <button class="quiz-share-primary" type="button" data-quiz-send hidden><Icon name="send" /><span data-label></span></button>
+        <a class="quiz-share-primary" data-quiz-save href="#" download><Icon name="download" /><span data-label></span></a>
+        <button class="quiz-share-secondary" type="button" data-quiz-copy><Icon name="copy" class="quiz-icon-idle" /><Icon name="check2" class="quiz-icon-done" /><span data-label></span></button>
+      </div>
+    </div>
   </section>
   <slot />
 </section>

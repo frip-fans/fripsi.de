@@ -44,11 +44,10 @@
 
 .quiz-actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
 .quiz-actions:empty { display: none; }
-.quiz-show-link { color: var(--muted); font-size: .8rem; }
+.quiz-show-link { display: inline-flex; align-items: center; gap: .4rem; color: var(--muted); font-size: .8rem; }
 .quiz-show-link:hover { color: var(--accent); }
 .quiz-show-link[hidden] { display: none !important; }
 .quiz-next { min-height: 2.75rem; padding: .55rem 1.4rem; margin-left: auto; color: #08111d; background: var(--accent); border: 0; border-radius: 10px; font-size: .88rem; font-weight: 700; }
-.quiz-next::after { content: "\2192"; }
 .quiz-next[hidden] { display: none !important; }
 
 .quiz-finish { padding: 2.2rem 1.4rem; text-align: center; border: 1px solid rgba(159,180,211,.17); border-radius: 18px; background: linear-gradient(145deg, rgba(15,30,48,.9), rgba(6,15,28,.78)); }
@@ -245,3 +244,10 @@
   .quiz-share-actions > * { width: 100%; }
 }
 .quiz-finish[data-sharing="true"] :is(.quiz-score, .quiz-level, .quiz-marks, .quiz-comeback) { display: none; }
+
+/* Icons sit beside button labels; the copy button swaps to a check once copied. */
+:is(.quiz-next, .quiz-share, .quiz-share-primary, .quiz-share-secondary) { gap: .5rem; }
+:is(.quiz-share, .quiz-share-primary, .quiz-share-secondary) .icon { width: 1.05em; height: 1.05em; }
+.quiz-share { display: inline-flex; align-items: center; justify-content: center; }
+.quiz-share-secondary .icon.quiz-icon-done, .quiz-share-secondary[data-done="true"] .icon.quiz-icon-idle { display: none; }
+.quiz-share-secondary[data-done="true"] .icon.quiz-icon-done { display: inline-block; color: var(--accent); }

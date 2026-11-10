@@ -15,6 +15,7 @@ fripsi.de 是一个非官方的 fripSide 粉丝站：活动日历、音乐库（
 - [音乐库](./music-library.md)：歌曲、版本、发行曲目、Live 歌单、交叉查询和 CSV 导入。
 - [专辑封面](./release-covers.md)：封面导入、存储与访问规则。
 - [官方活动自动同步](./official-sync.md)：通过 OpenAI Agents API 检查官网公告、验证来源并发布。
+- [后台聊天编辑助手](./admin-chat.md)：`/admin/chat` 的委派身份、提案与人工确认发布。
 
 ## 已确定的决策
 
@@ -61,7 +62,6 @@ flowchart LR
 
 - 通用文章 CMS、用户注册或社区论坛（讨论区使用 Giscus）。
 - 售票或支付。
-- 站内 AI 聊天框。
 - 多租户和复杂组织权限。
 - 图片生成和大型媒体库。
 
@@ -72,4 +72,4 @@ flowchart LR
 - 关注分类后的邮件/RSS 通知。
 - 定期数据质量报告。
 - MCP UI 预览组件，让 ChatGPT 内直接显示活动 diff。
-- 站内基于 Responses API 的编辑助手；仍复用 MCP/业务服务，不新开绕过权限的写路径。
+- 后台聊天助手扩展到歌曲、专辑和歌单，需要先扩展 change set 的 music 载荷。

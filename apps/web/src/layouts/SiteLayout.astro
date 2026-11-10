@@ -266,7 +266,11 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
       openGroup.querySelector("summary")?.focus();
     }, { signal });
     groups.forEach(group => group.addEventListener("focusout", event => {
-      if (!group.contains(event.relatedTarget as Node | null)) group.open = false;
+      const next = event.relatedTarget as Node | null;
+      // macOS Safari never focuses a clicked link, so pressing a submenu item blurs to
+      // nothing; closing then would hide the item before its click lands. Outside
+      // clicks are handled by the document listener above.
+      if (next ? !group.contains(next) : !group.matches(":hover")) group.open = false;
     }, { signal }));
     document.addEventListener("astro:before-swap", closeGroups, { signal });
     const desktopMenu = document.querySelector<HTMLElement>("[data-desktop-menu]");

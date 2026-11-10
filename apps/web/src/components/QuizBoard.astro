@@ -11,11 +11,17 @@ const { locale } = Astro.props;
 ---
 
 <section class="quiz-stage" data-quiz data-labels={JSON.stringify(quizLabels(locale))}>
-  <p class="quiz-progress" data-quiz-progress aria-live="polite"></p>
+  <div class="quiz-progress-row">
+    <ol class="quiz-steps" data-quiz-steps aria-hidden="true"></ol>
+    <p class="quiz-progress" data-quiz-progress aria-live="polite"></p>
+  </div>
   <div class="quiz-card">
     <h2 class="quiz-prompt" data-quiz-prompt></h2>
     <div class="quiz-options" data-quiz-options role="group"></div>
-    <div class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite" hidden></div>
+    <div class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite" hidden>
+      <strong class="quiz-verdict" data-quiz-verdict></strong>
+      <span class="quiz-detail" data-quiz-detail></span>
+    </div>
     <div class="quiz-actions">
       <a class="quiz-show-link" data-quiz-show-link href="#" hidden></a>
       <button class="quiz-next" type="button" data-quiz-next hidden></button>

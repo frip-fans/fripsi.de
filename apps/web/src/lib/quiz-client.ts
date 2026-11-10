@@ -54,6 +54,9 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
   const promptNode = root.querySelector<HTMLElement>("[data-quiz-prompt]")!;
   const optionsNode = root.querySelector<HTMLElement>("[data-quiz-options]")!;
   const feedbackNode = root.querySelector<HTMLElement>("[data-quiz-feedback]")!;
+  const verdictNode = root.querySelector<HTMLElement>("[data-quiz-verdict]")!;
+  const detailNode = root.querySelector<HTMLElement>("[data-quiz-detail]")!;
+  const stepsNode = root.querySelector<HTMLElement>("[data-quiz-steps]");
   const showLink = root.querySelector<HTMLAnchorElement>("[data-quiz-show-link]")!;
   const staleNext = root.querySelector<HTMLButtonElement>("[data-quiz-next]")!;
   const nextButton = staleNext.cloneNode(true) as HTMLButtonElement;
@@ -86,6 +89,25 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     }));
   }
 
+  /** One segment per question: answered ones show hit or miss, the current one is highlighted. */
+  function renderSteps(): void {
+    if (!stepsNode) return;
+    stepsNode.replaceChildren(...payload.questions.map((question, questionIndex) => {
+      const step = document.createElement("li");
+      if (question.answer !== undefined) step.dataset.state = question.choice === question.answer ? "hit" : "miss";
+      else if (questionIndex === index) step.dataset.state = "current";
+      return step;
+    }));
+  }
+
+  function showFeedback(correct: boolean, verdict: string, detail: string): void {
+    feedbackNode.hidden = false;
+    feedbackNode.dataset.correct = String(correct);
+    verdictNode.textContent = verdict;
+    detailNode.textContent = detail;
+    detailNode.hidden = !detail;
+  }
+
   function score(): number {
     return payload.questions.filter((question) => question.answer !== undefined && question.choice === question.answer).length;
   }
@@ -104,6 +126,8 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
 
   function renderFinish(): void {
     card.hidden = true;
+    // The score card draws the same row of hits and misses, so the step bar steps aside.
+    if (stepsNode) stepsNode.hidden = true;
     progressNode.textContent = labels.done ?? "";
     finish.hidden = false;
     finish.querySelector<HTMLElement>("[data-quiz-finish-title]")!.textContent = labels.finishTitle ?? "";
@@ -142,7 +166,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
 
   function renderFeedback(question: QuizQuestionView): void {
     const correct = question.choice === question.answer;
-    const lines = [correct ? labels.correct : labels.wrong];
+    const lines: string[] = [];
 
     if (question.stats && question.stats.answered > 1) {
       const rate = Math.round((question.stats.correct / question.stats.answered) * 100);
@@ -160,9 +184,8 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
       }));
     }
 
-    feedbackNode.hidden = false;
-    feedbackNode.dataset.correct = String(correct);
-    feedbackNode.textContent = lines.filter(Boolean).join(" · ");
+    showFeedback(correct, (correct ? labels.correct : labels.wrong) ?? "", lines.filter(Boolean).join(" · "));
+    renderSteps();
 
     if (question.eventHref) {
       showLink.href = question.eventHref;
@@ -194,9 +217,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
       renderOptionState(question);
       renderFeedback(question);
     } catch {
-      feedbackNode.hidden = false;
-      feedbackNode.dataset.correct = "false";
-      feedbackNode.textContent = labels.failed ?? "";
+      showFeedback(false, labels.failed ?? "", "");
       optionsNode.querySelectorAll("button").forEach((button) => { button.disabled = false; });
     } finally {
       busy = false;
@@ -220,10 +241,13 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
     const question = payload.questions[index];
     card.hidden = false;
     finish.hidden = true;
+    if (stepsNode) stepsNode.hidden = false;
     progressNode.textContent = fill(labels.progress ?? "", { current: index + 1, total: payload.total });
     promptNode.textContent = question.prompt;
     feedbackNode.hidden = true;
-    feedbackNode.textContent = "";
+    verdictNode.textContent = "";
+    detailNode.textContent = "";
+    renderSteps();
     showLink.hidden = true;
     nextButton.hidden = true;
 

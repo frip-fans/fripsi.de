@@ -15,8 +15,6 @@ const payload = await buildQuizPayload(getEnv().DB, locale, Astro.request.header
     <header class="quiz-intro">
       <p class="quiz-eyebrow">{t(locale, "quiz.todayLabel")} · {payload.date}</p>
       <h1>{t(locale, "quiz.title")}</h1>
-      <p>{t(locale, "quiz.description")}</p>
-      <p class="quiz-data-note">{t(locale, "quiz.dataNote")}</p>
     </header>
 
     {payload.total === 0 ? (

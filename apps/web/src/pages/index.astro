@@ -371,7 +371,8 @@ const nextCountdown = !next
     /* One column, in source order: headline, next show, then the ways in. */
     .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
     .hero-copy, .signal, .hero-actions { grid-column: auto; grid-row: auto; }
-    .hero::before { inset: -1rem -1.5rem auto; width: auto; height: 60%; background: radial-gradient(ellipse 90% 70% at 50% 40%, rgba(7,16,28,.92) 0%, rgba(7,16,28,.74) 48%, rgba(7,16,28,.24) 76%, transparent 100%); }
+    /* Sideways only as far as the 1rem page gutter: any wider and the phone page scrolls horizontally. */
+    .hero::before { inset: -1rem -1rem auto; width: auto; height: 60%; background: radial-gradient(ellipse 90% 70% at 50% 40%, rgba(7,16,28,.92) 0%, rgba(7,16,28,.74) 48%, rgba(7,16,28,.24) 76%, transparent 100%); }
     .hero-actions { margin-top: 0; }
     .today-pill { margin-bottom: .85rem; padding: .35rem .7rem; font-size: .72rem; }
     .today-pill-event { --pill-window: 9rem; }

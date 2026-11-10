@@ -186,7 +186,9 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
     .spotlight-head { gap: .85rem; }
     .spotlight-cover { width: 4rem; }
     .spotlight-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .spotlight-stat strong { font-size: 1.15rem; }
+    /* A full date (2017年1月14日) doesn't wrap, so on narrow phones it shrinks to the card instead of spilling out. */
+    .spotlight-stat { container-type: inline-size; }
+    .spotlight-stat strong { font-size: min(1.15rem, 12cqi); }
     .spotlight-chart, .spotlight-axis { grid-template-columns: repeat(var(--years), minmax(0, 2rem)); }
     .spotlight-chart { height: 3.75rem; }
   }

@@ -83,7 +83,7 @@ MCP Tools ──> EventService / ChangeService ───> SQLite
 
 ### 3.1 定位
 
-MCP 让 Codex、ChatGPT 或其他兼容客户端成为受控编辑助手。MCP 模式不需要站点调用 OpenAI API，也不需要前台聊天框。另有独立的[官方活动自动同步任务](./official-sync.md)，在维护者启用自动发布后，通过共享业务层验证并发布；不改变 MCP 对每次发布明确确认的要求。
+MCP 让 Codex、ChatGPT 或其他兼容客户端成为受控编辑助手。MCP 模式本身不需要站点调用 OpenAI API，也不提供面向公开访客的聊天框；后台维护者的聊天入口是另一条受控通道，见[后台聊天编辑助手](./admin-chat.md)。另有独立的[官方活动自动同步任务](./official-sync.md)，在维护者启用自动发布后，通过共享业务层验证并发布；不改变 MCP 对每次发布明确确认的要求。
 
 典型对话：
 

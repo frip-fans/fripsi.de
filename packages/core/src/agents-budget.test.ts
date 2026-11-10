@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { expect, it } from "vitest";
-import { createTestD1 } from "../../../packages/core/src/test-d1";
-import { Budget, estimateUsage } from "./budget";
+import { createTestD1 } from "./test-d1";
+import { Budget, estimateUsage } from "./agents-budget";
 
 it("accounts for cached tokens and search calls using an explicit estimate", () => {
   expect(estimateUsage("gpt-6-luna", { input_tokens: 922873, output_tokens: 14440, total_tokens: 937313, input_tokens_details: { cached_tokens: 840099 } }, 3)).toBeCloseTo(0.05389839, 8);

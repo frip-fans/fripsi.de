@@ -211,7 +211,8 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 - 浏览器端直接读取数据库或携带数据库凭据。
 - 每次内容修改后重新构建整个网站。
 - MCP 通用 `execute_sql`、`fetch_url`、`delete_event` 工具。
-- 在第一版实现站内聊天机器人；MCP 由已有 AI Client 调用即可。
+- 面向公开访客的站内聊天机器人。后台维护者的聊天编辑助手限定在 Access 之后，见[后台聊天编辑助手](./admin-chat.md)。
+- 在网站进程内自行实现 agent 工具循环；推理循环交给 OpenAI Agents API，网站只签发身份、启动会话并渲染结果。
 
 ## 10. 公开页面导航
 

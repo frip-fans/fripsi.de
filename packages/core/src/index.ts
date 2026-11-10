@@ -22,6 +22,9 @@ export * from "./official-sync-schema";
 export * from "./official-source";
 export * from "./official-publish";
 export * from "./automation-auth";
+export * from "./agents-client";
+export * from "./agents-budget";
+export * from "./chat-session";
 export * from "./automation-service";
 export * from "./sync-policy";
 

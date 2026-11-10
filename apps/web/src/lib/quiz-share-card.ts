@@ -1,5 +1,5 @@
 /**
- * Draws the finished-quiz score card as a PNG: score, level, the hit/miss row and a QR code
+ * Draws the finished-quiz score card as a JPEG: score, level, the hit/miss row and a QR code
  * back to the quiz. Rendered on a canvas in the browser so no image service is needed; the
  * QR encoder loads only when someone actually shares.
  */
@@ -93,7 +93,7 @@ export async function renderShareCard(data: ShareCardData): Promise<Blob> {
   ctx.fillText(data.date, WIDTH / 2, 300);
   ctx.fillStyle = "#eff8ff";
   ctx.font = `800 76px ${font}`;
-  ctx.fillText(data.title, WIDTH / 2, 400);
+  ctx.fillText(data.title, WIDTH / 2, 400, WIDTH - 88 * 2);
 
   // Score.
   ctx.font = `800 240px ${font}`;
@@ -140,7 +140,9 @@ export async function renderShareCard(data: ShareCardData): Promise<Blob> {
   ctx.fillText(data.url.replace(/^https?:\/\//, ""), 88, lineY + 14, textWidth);
 
   return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("canvas export failed"))), "image/png");
+    // JPEG: the gradient background makes a PNG well over a megabyte; at this quality the
+    // text and QR code stay crisp at a small fraction of the size.
+    canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("canvas export failed"))), "image/jpeg", 0.9);
   });
 }
 

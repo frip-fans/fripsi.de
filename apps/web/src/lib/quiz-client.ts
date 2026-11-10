@@ -172,7 +172,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, labels: Label
           scanLabel: labels.cardScan ?? "",
           url,
         });
-        cardFile = new File([blob], `fripside-quiz-${payload.date}.png`, { type: "image/png" });
+        cardFile = new File([blob], `fripside-quiz-${payload.date}.jpg`, { type: "image/jpeg" });
         if (cardImage.src.startsWith("blob:")) URL.revokeObjectURL(cardImage.src);
         cardImage.src = URL.createObjectURL(blob);
         cardImage.alt = text;

@@ -76,4 +76,27 @@ describe("iCalendar feed", () => {
       expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
     }
   });
+
+  it("folds mixed-width characters without splitting or losing any of them", () => {
+    const remark = "Café ☆ 南條愛乃 🎤🎶 ".repeat(12);
+    const calendar = generateICalendar([event({ remark })], { siteUrl: "https://fripsi.de" });
+    for (const line of calendar.split("\r\n")) {
+      expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
+    }
+    expect(calendar.replaceAll("\r\n ", "")).toContain(remark.trim());
+  });
+
+  it("converts each event in its own time zone within one feed", () => {
+    const calendar = generateICalendar([
+      event({ id: "tokyo", start_time: "18:00" }),
+      event({ id: "taipei", start_time: "18:00", timezone: "Asia/Taipei" }),
+      event({ id: "paris", start_date: "2026-03-29", start_time: "18:00", timezone: "Europe/Paris" }),
+      event({ id: "tokyo-again", start_date: "2026-03-29", start_time: "18:00" })
+    ], { siteUrl: "https://fripsi.de" });
+    expect(calendar).toContain("DTSTART:20260831T090000Z\r\n");
+    expect(calendar).toContain("DTSTART:20260831T100000Z\r\n");
+    // Paris switched to summer time earlier that day.
+    expect(calendar).toContain("DTSTART:20260329T160000Z\r\n");
+    expect(calendar).toContain("DTSTART:20260329T090000Z\r\n");
+  });
 });

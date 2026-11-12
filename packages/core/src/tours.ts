@@ -1,4 +1,5 @@
 import { eventDisplayTitleSql, eventStopAreaSql } from "./event-display";
+import { dateInTimeZone } from "./utils";
 import { computeTourMatrix, type TourMatrix, type TourMatrixEntryInput, type TourMatrixShowInput } from "./tour-matrix";
 
 export interface TourRecord {
@@ -106,7 +107,7 @@ export interface PublicTourPage extends TourRecord {
   matrix: TourMatrix;
 }
 
-export async function getPublicTourPage(db: D1Database, slug: string): Promise<PublicTourPage | null> {
+export async function getPublicTourPage(db: D1Database, slug: string, today = dateInTimeZone()): Promise<PublicTourPage | null> {
   const row = await db.prepare(`${tourSelect(true)} WHERE t.slug = ? AND t.published = 1 GROUP BY t.id`).bind(slug).first<TourRow>();
   if (!row) return null;
   const visible = "e.tour_id = ? AND e.published = 1 AND e.archived_at IS NULL";
@@ -124,7 +125,7 @@ export async function getPublicTourPage(db: D1Database, slug: string): Promise<P
       JOIN songs s ON s.id = se.song_id AND s.published = 1
       WHERE ${visible}`).bind(row.id).all<TourMatrixEntryInput>(),
   ]);
-  return { ...mapTour(row), matrix: computeTourMatrix(shows.results, entries.results) };
+  return { ...mapTour(row), matrix: computeTourMatrix(shows.results, entries.results, today) };
 }
 
 /** Where an event sits in its (published) tour, for "XX tour · stop 3/8" links and stop-to-stop navigation. */

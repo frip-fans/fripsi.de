@@ -4,15 +4,20 @@ import {
   ChangeService,
   ServiceError,
   activeChatSession,
+  appendChatMessage,
   assertScope,
   attachChatSession,
   closeChatSession,
+  getChatSessionForActor,
+  listChatMessages,
+  listChatSessions,
   dateInTimeZone,
   listChangeSets,
   openChatSession,
   signChatToken,
   type Actor,
   type ChangeSet,
+  type ChatMessage,
   type ChatSession,
   type SessionProgress,
 } from "@frip-fan/core";
@@ -22,6 +27,8 @@ import { getEnv } from "./env";
 const MODEL_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
 /** The provider's model list changes without a deploy, so it is fetched and cached briefly. */
 const MODEL_CACHE_MS = 600_000;
+/** The history list shows topics, so a session is titled by its opening message. */
+const TITLE_MAX = 60;
 let modelCache: { models: string[]; at: number } | null = null;
 
 /**
@@ -110,7 +117,9 @@ export async function startChat(actor: Actor, input: string, chosen: string, now
     // on the OpenAI project behind the API key, not here.
     budget_group: `chat:${actor.id}:${dateInTimeZone(now, "Asia/Tokyo")}`,
     created_at: created, expires_at: new Date(now.valueOf() + CHAT_SESSION_TTL_SECONDS * 1000).toISOString(),
+    title: input.length > TITLE_MAX ? `${input.slice(0, TITLE_MAX)}…` : input,
   });
+  await appendChatMessage(db, { session_id: id, role: "user", body: input }, now);
   const token = await signChatToken(config.secret, config.audience, id, actor.id, created);
   try {
     const client = new ChatAgentsClient(config.key);
@@ -161,6 +170,7 @@ export async function continueChat(actor: Actor, id: string, input: string, now 
   await client.call(`sessions/${encodeURIComponent(session.agent_session_id!)}/events`, {
     events: [{ type: "agent.session.input.message", input: [{ role: "user", content: [{ type: "input_text", text: input }] }] }],
   }, `${id}:${now.valueOf()}`);
+  await appendChatMessage(getEnv().DB, { session_id: id, role: "user", body: input }, now);
 }
 
 export interface ChatTurn {
@@ -177,10 +187,17 @@ export async function readChat(actor: Actor, id: string, now = new Date()): Prom
   const session = await requireChat(actor, id, now);
   const client = new ChatAgentsClient(config.key);
   const progress = await client.progress(session.agent_session_id!);
+  const reply = progress.state === "completed" && typeof progress.output === "string" ? progress.output : null;
+  // The transcript is written where the turn is observed; the unique index on
+  // (session, turn, role) makes a repeated poll a no-op rather than a duplicate.
+  if (reply && progress.turn_id) {
+    await appendChatMessage(getEnv().DB, { session_id: session.id, turn_id: progress.turn_id,
+      role: "assistant", body: reply, tool_calls: progress.tools?.mcp_calls }, now);
+  }
   return {
     state: progress.state,
     turn_id: progress.turn_id ?? null,
-    reply: progress.state === "completed" && typeof progress.output === "string" ? progress.output : null,
+    reply,
     tool_calls: progress.tools?.mcp_calls ?? [],
     expires_at: session.expires_at,
   };
@@ -205,8 +222,30 @@ export interface ChatProposal {
  */
 export async function chatProposals(actor: Actor, session: ChatSession): Promise<ChangeSet[]> {
   const pending = await listChangeSets(getEnv().DB, "proposed", 200);
-  return pending.filter((change) => change.created_by === actor.id && change.created_via === "mcp"
-    && Date.parse(change.created_at) >= Date.parse(session.created_at));
+  return pending.filter((change) => change.chat_session_id === session.id && change.created_by === actor.id);
+}
+
+export interface ChatTranscript {
+  session: ChatSession;
+  /** False once the session is closed or past its deadline: readable, not continuable. */
+  continuable: boolean;
+  messages: ChatMessage[];
+}
+
+export async function chatHistory(actor: Actor, limit = 20, before?: string): Promise<ChatSession[]> {
+  return listChatSessions(getEnv().DB, actor.id, limit, before);
+}
+
+/** Reads one transcript. No active-session guard and no provider call, so expired works. */
+export async function chatTranscript(actor: Actor, id: string, now = new Date()): Promise<ChatTranscript> {
+  const db = getEnv().DB;
+  const session = await getChatSessionForActor(db, id, actor.id);
+  if (!session) throw new ServiceError("not_found", "没有找到该会话", 404);
+  return {
+    session,
+    continuable: session.status === "active" && Date.parse(session.expires_at) > now.valueOf(),
+    messages: await listChatMessages(db, id),
+  };
 }
 
 export async function previewProposal(actor: Actor, changeId: string) {

@@ -48,7 +48,7 @@ function migration(name: string): string {
 describe("content admin structured locations", () => {
   it("creates an event, canonical venue, relation, and hydrated location label", async () => {
     const sqlite = new DatabaseSync(":memory:");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql"]) {
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql", "0018_admin_chat.sql", "0019_admin_chat_history.sql"]) {
       sqlite.exec(migration(name));
     }
     const db = new TestD1(sqlite) as unknown as D1Database;
@@ -86,7 +86,7 @@ describe("content admin structured locations", () => {
 
   it("publishes an MCP change set with a structured online channel", async () => {
     const sqlite = new DatabaseSync(":memory:");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql"]) {
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql", "0018_admin_chat.sql", "0019_admin_chat_history.sql"]) {
       sqlite.exec(migration(name));
     }
     const db = new TestD1(sqlite) as unknown as D1Database;
@@ -121,7 +121,7 @@ describe("content admin structured locations", () => {
   });
   it("publishes a stale proposal only against the version the reviewer previewed", async () => {
     const sqlite = new DatabaseSync(":memory:");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql"]) {
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql", "0018_admin_chat.sql", "0019_admin_chat_history.sql"]) {
       sqlite.exec(migration(name));
     }
     const db = new TestD1(sqlite) as unknown as D1Database;
@@ -166,7 +166,7 @@ describe("content admin structured locations", () => {
 describe("content admin tour stops", () => {
   async function setup() {
     const sqlite = new DatabaseSync(":memory:");
-    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql"]) {
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql", "0018_admin_chat.sql", "0019_admin_chat_history.sql"]) {
       sqlite.exec(migration(name));
     }
     const db = new TestD1(sqlite) as unknown as D1Database;

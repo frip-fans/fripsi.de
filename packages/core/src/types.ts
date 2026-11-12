@@ -128,6 +128,7 @@ export interface ChangeSet {
   reviewed_at: string | null;
   published_at: string | null;
   error_message: string | null;
+  chat_session_id?: string | null;
 }
 
 export interface AuditLog {
@@ -147,6 +148,8 @@ export interface AuditLog {
 
 export interface Actor {
   automation_run_id?: string;
+  /** Set for the admin chat assistant, so its proposals are attributable to one session. */
+  chat_session_id?: string;
   automation_role?: "primary" | "review";
   id: string;
   type: "human" | "ai" | "system";

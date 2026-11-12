@@ -91,6 +91,7 @@ export function setupAdminChatDock(): void {
   let countdown = 0;
   let modelsReady = false;
   let viewingArchive = false;
+  let source: EventSource | null = null;
 
   const rail = window.matchMedia(RAIL_QUERY);
   const scrollToEnd = () => log.scrollTo({ top: log.scrollHeight });
@@ -169,6 +170,103 @@ export function setupAdminChatDock(): void {
     log.appendChild(item);
     scrollToEnd();
     if (role !== "user") announce.textContent = `${role === "error" ? "出错" : "助手已回复"}：${text.slice(0, 120)}`;
+  }
+
+  /** The bubble the stream is currently writing into, plus its live tool chips. */
+  function liveTurn(): { prose: HTMLElement; tools: HTMLElement } {
+    let item = log.querySelector<HTMLElement>(".chat-turn-live");
+    if (!item) {
+      clearEmpty();
+      item = document.createElement("li");
+      item.className = "chat-turn chat-turn-assistant chat-turn-live";
+      const label = document.createElement("p");
+      label.className = "chat-turn-label";
+      label.textContent = `助手 · ${clock(new Date().toISOString())}`;
+      const tools = document.createElement("p");
+      tools.className = "chat-tools chat-tools-live";
+      tools.hidden = true;
+      const prose = document.createElement("div");
+      prose.className = "chat-prose";
+      item.appendChild(label);
+      item.appendChild(tools);
+      item.appendChild(prose);
+      log.appendChild(item);
+    }
+    return {
+      prose: item.querySelector<HTMLElement>(".chat-prose")!,
+      tools: item.querySelector<HTMLElement>(".chat-tools-live")!,
+    };
+  }
+
+  function settleLive(): void {
+    const item = log.querySelector<HTMLElement>(".chat-turn-live");
+    item?.classList.remove("chat-turn-live");
+    item?.querySelector(".chat-tools-live")?.classList.remove("chat-tools-live");
+  }
+
+  function closeStream(): void {
+    source?.close();
+    source = null;
+  }
+
+  /**
+   * Streams one turn. Falls back to the poll on any stream failure: the reply is
+   * persisted server-side either way, so the fallback cannot lose it.
+   */
+  function streamTurn(): void {
+    if (!sessionId) return;
+    closeStream();
+    const running = new Map<string, string>();
+    const stream = new EventSource(`/api/admin/chat/${encodeURIComponent(sessionId)}/stream`);
+    source = stream;
+    busy(true, "助手正在回复");
+    stream.addEventListener("message", (event) => {
+      let data: any;
+      try { data = JSON.parse((event as MessageEvent).data); } catch { return; }
+      if (data.type === "delta") {
+        liveTurn().prose.textContent += data.text;
+        scrollToEnd();
+      } else if (data.type === "tool") {
+        running.set(data.name, data.status);
+        const tools = liveTurn().tools;
+        tools.hidden = false;
+        tools.textContent = `⌁ ${[...running].map(([name, status]) => status === "completed" ? name : `${name}…`).join(" · ")}`;
+        busy(true, `正在调用 ${data.name}`);
+        scrollToEnd();
+      } else if (data.type === "done") {
+        closeStream();
+        const prose = liveTurn().prose;
+        if (data.text) prose.textContent = data.text;
+        lastTurn = data.turn_id ?? lastTurn;
+        settleLive();
+        announce.textContent = `助手已回复：${String(data.text ?? "").slice(0, 120)}`;
+        busy(false, "");
+        tickCountdown();
+        void refreshProposals();
+      } else if (data.type === "failed") {
+        closeStream();
+        settleLive();
+        bubble("error", data.message || "这一轮执行失败");
+        busy(false, "上一轮失败");
+      }
+    });
+    stream.addEventListener("error", () => {
+      // EventSource retries on its own; the poll is the dependable path, so stop here.
+      closeStream();
+      settleLive();
+      stopPolling();
+      timer = window.setTimeout(() => void poll(), 1200);
+    });
+  }
+
+  /** Proposal cards come from the server's view of change_sets, not from the stream. */
+  async function refreshProposals(): Promise<void> {
+    if (!sessionId) return;
+    try {
+      const turn = await api(`/api/admin/chat/${encodeURIComponent(sessionId)}`, undefined, "GET") as unknown as TurnPayload;
+      renderProposals(turn.proposals ?? []);
+      setLive(true, turn.expires_at);
+    } catch { /* the countdown and cards simply stay as they are */ }
   }
 
   function toolLine(calls: Array<{ name: string; status: string }>): void {
@@ -361,7 +459,7 @@ export function setupAdminChatDock(): void {
       }
       store(DRAFT_KEY, null);
       stopPolling();
-      timer = window.setTimeout(() => void poll(), 1500);
+      streamTurn();
     } catch (error) {
       const message = error instanceof Error ? error.message : "提交失败";
       bubble("error", message);
@@ -496,7 +594,7 @@ export function setupAdminChatDock(): void {
     if (event.key === "Escape" && !rail.matches && root.classList.contains("chat-dock-open")) setOpen(false);
   });
   rail.addEventListener("change", applyMode);
-  window.addEventListener("pagehide", () => { stopPolling(); setBackgroundInert(false); });
+  window.addEventListener("pagehide", () => { stopPolling(); closeStream(); setBackgroundInert(false); });
 
   const draft = read(DRAFT_KEY);
   if (draft) input.value = draft;
@@ -506,4 +604,7 @@ export function setupAdminChatDock(): void {
   void loadModels();
   // A turn may have completed while this page was loading, or while no tab was open.
   if (sessionId && live) timer = window.setTimeout(() => void poll(), 800);
+  for (const button of dock.querySelectorAll("[data-chat-new]")) {
+    button.addEventListener("click", () => closeStream());
+  }
 }

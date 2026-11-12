@@ -61,6 +61,24 @@ export class AgentsClient {
     return JSON.parse(await boundedText(response));
   }
 
+  /**
+   * Opens the session's server-sent event stream. The caller owns the abort signal and
+   * the body: unlike call(), this has no response timeout, because a turn can think for
+   * a while before it emits anything.
+   */
+  async events(sessionId: string, signal: AbortSignal): Promise<ReadableStream<Uint8Array>> {
+    const key = this.key.trim();
+    if (!key || /\s/.test(key)) throw new Error("openai_key_format_invalid");
+    const response = await this.request(
+      `https://api.openai.com/v1/agents/sessions/${encodeURIComponent(sessionId)}/events?stream=true`, {
+        headers: { authorization: `Bearer ${key}`, "OpenAI-Beta": "agents=v1", accept: "text/event-stream" },
+        signal, redirect: "manual",
+      });
+    console.log(JSON.stringify({ action: `${this.logPrefix}.stream_response`, status: response.status }));
+    if (!response.ok || !response.body) throw new Error(`openai_http_${response.status}`);
+    return response.body;
+  }
+
   /** Model ids this API key can reach, sorted. The provider is the only authority here. */
   async models(): Promise<string[]> {
     const listed = z.object({ data: z.array(z.object({ id: z.string() })) }).parse(await this.call("/models"));

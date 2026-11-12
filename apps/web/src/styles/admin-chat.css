@@ -163,3 +163,15 @@ html.chat-dock-open .chat-dock { display: grid; }
   .chat-dock { animation: chat-dock-in 180ms cubic-bezier(.2,.8,.2,1); }
   @keyframes chat-dock-in { from { transform: translateX(14px); opacity: 0; } }
 }
+
+/* A reply being streamed: a caret marks the live edge, and the tool line above it
+   shows what the model is doing while the text is still arriving. */
+.chat-dock .chat-turn-live .chat-prose::after {
+  content: ""; display: inline-block; width: .5ch; height: 1em; margin-left: .1em;
+  background: var(--accent); vertical-align: text-bottom;
+}
+.chat-dock .chat-tools-live { color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .chat-dock .chat-turn-live .chat-prose::after { animation: chat-caret 1s steps(1) infinite; }
+  @keyframes chat-caret { 50% { opacity: 0; } }
+}

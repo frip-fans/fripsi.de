@@ -3,7 +3,14 @@ import { SignJWT } from "jose";
 import { beforeEach, describe, expect, it } from "vitest";
 import { authenticateMcp } from "./auth";
 import {
+  CHAT_RETENTION_DAYS,
   CHAT_SESSION_TTL_SECONDS,
+  appendChatMessage,
+  deleteChatMessages,
+  getChatSessionForActor,
+  listChatMessages,
+  listChatSessions,
+  pruneChatTranscripts,
   activeChatSession,
   authenticateChatToken,
   attachChatSession,
@@ -25,7 +32,7 @@ const env = () => ({ DB: db, AUTOMATION_SIGNING_SECRET: secret, AUTOMATION_AUDIE
 
 async function open(id = "session-1", created = now): Promise<string> {
   await openChatSession(db, {
-    id, actor_id: actor, model: "gpt-6-luna", budget_group: `chat:${actor}:fixture`,
+    id, actor_id: actor, model: "gpt-6-luna", budget_group: `chat:${actor}:fixture`, title: "固定测试会话",
     created_at: created.toISOString(),
     expires_at: new Date(created.valueOf() + CHAT_SESSION_TTL_SECONDS * 1000).toISOString(),
   });
@@ -116,5 +123,54 @@ describe("chat sessions", () => {
     await attachChatSession(db, "session-1", "agent-session-xyz", now);
     const row = await db.prepare("SELECT agent_session_id FROM admin_chat_sessions WHERE id='session-1'").first<{ agent_session_id: string }>();
     expect(row?.agent_session_id).toBe("agent-session-abc");
+  });
+});
+
+describe("chat transcripts", () => {
+  it("appends messages and keeps a re-read turn from doubling the reply", async () => {
+    await open();
+    await appendChatMessage(db, { session_id: "session-1", role: "user", body: "下一场是什么时候" }, now);
+    const reply = { session_id: "session-1", turn_id: "turn-1", role: "assistant" as const,
+      body: "下一场是 8 月 31 日。", tool_calls: [{ name: "events.list_upcoming", status: "completed" }] };
+    await appendChatMessage(db, reply, now);
+    await appendChatMessage(db, reply, new Date(now.valueOf() + 2500));
+
+    const messages = await listChatMessages(db, "session-1");
+    expect(messages.map((message) => message.role)).toEqual(["user", "assistant"]);
+    expect(JSON.parse(messages[1]!.tool_calls_json!)).toEqual([{ name: "events.list_upcoming", status: "completed" }]);
+    const session = await getChatSessionForActor(db, "session-1", actor);
+    expect(session?.message_count).toBe(2);
+  });
+
+  it("keeps a transcript readable after the session expires", async () => {
+    await open();
+    await appendChatMessage(db, { session_id: "session-1", role: "user", body: "测试" }, now);
+    const later = new Date(now.valueOf() + (CHAT_SESSION_TTL_SECONDS + 60) * 1000);
+    expect(await activeChatSession(db, actor, later)).toBeNull();
+
+    const session = await getChatSessionForActor(db, "session-1", actor);
+    expect(session?.status).toBe("expired");
+    expect(await listChatMessages(db, "session-1")).toHaveLength(1);
+  });
+
+  it("never returns another maintainer's sessions or transcript", async () => {
+    await open();
+    expect(await getChatSessionForActor(db, "session-1", "intruder@example.com")).toBeNull();
+    expect(await listChatSessions(db, "intruder@example.com")).toEqual([]);
+    expect((await listChatSessions(db, actor)).map((session) => session.id)).toEqual(["session-1"]);
+  });
+
+  it("clears the record on request and after the retention window", async () => {
+    await open();
+    await appendChatMessage(db, { session_id: "session-1", role: "user", body: "测试" }, now);
+    await deleteChatMessages(db, "session-1", now);
+    expect(await listChatMessages(db, "session-1")).toEqual([]);
+    expect((await getChatSessionForActor(db, "session-1", actor))?.title).toBeNull();
+
+    const old = new Date(now.valueOf() - (CHAT_RETENTION_DAYS + 1) * 86_400_000);
+    await open("session-old", old);
+    await appendChatMessage(db, { session_id: "session-old", role: "user", body: "很久以前" }, old);
+    expect(await pruneChatTranscripts(db, now)).toBe(1);
+    expect(await listChatMessages(db, "session-old")).toEqual([]);
   });
 });

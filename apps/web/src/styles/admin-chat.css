@@ -1,7 +1,7 @@
 /*
  * The dock's transcript, proposal cards and history rows are created by
  * lib/chat-dock-client.ts at runtime, so Astro's scoped styles never reach them.
- * Every rule lives here and stays under .chat-dock or .chat-launcher.
+ * Every rule lives here and stays under .chat-dock or .chat-toggle.
  */
 :root { --chat-dock-width: 420px; }
 
@@ -16,17 +16,22 @@
   html.chat-dock-open .stats, html.chat-dock-open .columns { grid-template-columns: 1fr; }
 }
 
-.chat-launcher {
-  position: fixed; right: 1rem; bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 890;
-  width: 52px; height: 52px; min-height: 52px; padding: 0; border-radius: 50%;
-  box-shadow: 0 14px 34px rgba(0,0,0,.45);
+/* The entry sits in the admin header beside the other actions, not as a floating
+   circle over the content. */
+.chat-toggle {
+  display: inline-flex; align-items: center; gap: .4rem; position: relative;
+  min-height: 38px; padding: .4rem .7rem; border-radius: 10px;
+  color: var(--text); background: rgba(255,255,255,.06); border: 1px solid var(--line);
+  font-size: .82rem; font-weight: 600;
 }
-html.chat-dock-open .chat-launcher { display: none; }
-.chat-launcher-badge {
-  position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px; padding: 0 .3rem;
-  display: grid; place-items: center; border-radius: 10px;
-  background: var(--text); color: #07101c; font: 700 .68rem/1 ui-monospace;
+.chat-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.chat-toggle[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); background: rgba(var(--accent-rgb), .12); }
+.chat-toggle svg { width: 16px; height: 16px; }
+.chat-toggle-badge {
+  min-width: 18px; height: 18px; padding: 0 .28rem; display: grid; place-items: center;
+  border-radius: 9px; background: var(--accent); color: #07101c; font: 700 .66rem/1 ui-monospace;
 }
+@media (max-width: 860px) { .chat-toggle-label { display: none; } .chat-toggle { padding: .4rem .55rem; } }
 
 .chat-dock {
   position: fixed; inset: 0 0 0 auto; z-index: 900;
@@ -132,14 +137,16 @@ html.chat-dock-open .chat-dock { display: grid; }
 
 /* The layout paints every <button> as the accent action; secondary controls must not
    compete with 发布. */
-.chat-dock button.link, .chat-launcher ~ .chat-dock button.link {
+.chat-dock button.link {
   background: none; border: 1px solid var(--line); color: var(--muted);
   min-height: 30px; padding: .2rem .55rem; font-size: .78rem; font-weight: 600;
 }
 .chat-dock button.link:hover { color: var(--accent); border-color: var(--accent); }
-.chat-dock .chat-dock-close { border: 0; padding: .2rem .35rem; font-size: .9rem; }
+.chat-dock .chat-dock-close { border: 0; padding: .25rem .35rem; }
+.chat-dock .chat-dock-close svg { width: 15px; height: 15px; }
+.chat-dock .chat-send svg { width: 17px; height: 17px; }
 .chat-dock .chat-proposal-actions a.link { color: var(--muted); font-size: .8rem; }
-.chat-dock .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.chat-dock .sr-only, .chat-toggle .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
 
 @media (max-width: 1179px) {
   .chat-dock {

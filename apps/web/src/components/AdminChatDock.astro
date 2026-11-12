@@ -12,13 +12,6 @@ function clock(value: string): string {
   return value.slice(11, 16);
 }
 ---
-<button class="chat-launcher" type="button" data-chat-toggle aria-haspopup="dialog"
-  aria-controls="admin-chat-dock" aria-expanded="false" title="编辑助手">
-  <Icon name="plus" />
-  <span class="sr-only">编辑助手</span>
-  {proposals.length > 0 && <span class="chat-launcher-badge" aria-hidden="true">{proposals.length}</span>}
-</button>
-
 <aside id="admin-chat-dock" class="chat-dock" data-chat-dock data-mode="rail"
   data-can-publish={String(can_publish)} data-session={session?.id ?? ""}
   data-live={String(live)} data-expires={session?.expires_at ?? ""}
@@ -28,7 +21,7 @@ function clock(value: string): string {
     <div class="chat-dock-head-actions">
       <button type="button" class="link" data-chat-history aria-expanded="false">历史</button>
       <button type="button" class="link" data-chat-new>新会话</button>
-      <button type="button" class="link chat-dock-close" data-chat-close aria-label="收起助手">✕</button>
+      <button type="button" class="link chat-dock-close" data-chat-close aria-label="收起助手"><Icon name="x-lg" /></button>
     </div>
   </header>
 
@@ -76,7 +69,7 @@ function clock(value: string): string {
     <label class="sr-only" for="chat-input">给助手的消息</label>
     <textarea id="chat-input" rows="2" maxlength="4000" required data-role="input"
       placeholder="描述要查询或修改的内容，附上来源链接"></textarea>
-    <button type="submit" class="button chat-send" data-role="send" aria-label="发送"><Icon name="plus" /></button>
+    <button type="submit" class="button chat-send" data-role="send" aria-label="发送"><Icon name="send" /></button>
   </form>
   <p class="chat-hint">⌘/Ctrl + Enter 发送 · 助手只能创建提案，发布由你点击确认</p>
   <span class="sr-only" role="status" aria-live="polite" data-role="announce"></span>

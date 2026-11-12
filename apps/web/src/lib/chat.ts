@@ -248,6 +248,73 @@ export async function chatTranscript(actor: Actor, id: string, now = new Date())
   };
 }
 
+export interface ProposalCard {
+  id: string;
+  operation: string;
+  title: string | null;
+  date: string | null;
+  warnings: string[];
+  fields: Array<{ label: string; before: string; after: string }>;
+  review_path: string;
+  can_publish: boolean;
+}
+
+export interface ChatDockState {
+  can_publish: boolean;
+  /** The model of the maintainer's most recent session, so the picker follows them. */
+  last_model: string | null;
+  session: (ChatSession & { continuable: boolean }) | null;
+  messages: ChatMessage[];
+  proposals: ProposalCard[];
+}
+
+/**
+ * Everything the dock needs for a first paint. Admin pages have client routing disabled,
+ * so the dock is re-rendered per navigation from the database rather than kept alive;
+ * this must stay cheap and must never call the provider.
+ */
+export async function chatDockState(actor: Actor, now = new Date()): Promise<ChatDockState> {
+  const db = getEnv().DB;
+  const [session, recent] = await Promise.all([
+    activeChatSession(db, actor.id, now),
+    listChatSessions(db, actor.id, 1),
+  ]);
+  const can_publish = actor.scopes.includes("events:publish");
+  if (!session) {
+    return { can_publish, last_model: recent[0]?.model ?? null, session: null, messages: [], proposals: [] };
+  }
+  const [messages, proposals] = await Promise.all([
+    listChatMessages(db, session.id),
+    chatProposals(actor, session),
+  ]);
+  return {
+    can_publish,
+    last_model: session.model,
+    session: { ...session, continuable: Date.parse(session.expires_at) > now.valueOf() },
+    messages,
+    proposals: await proposalCards(actor, proposals.slice(0, 5), can_publish),
+  };
+}
+
+/** Cards come from the change sets as they stand now, never from the stored transcript. */
+export async function proposalCards(actor: Actor, changes: ChangeSet[], canPublish: boolean): Promise<ProposalCard[]> {
+  const cards = await Promise.all(changes.map(async (change): Promise<ProposalCard | null> => {
+    try {
+      const preview = await new ChangeService(getEnv().DB).preview(change.id, actor);
+      const { changeHeadline, changedFields, CHANGE_OPERATION_LABELS } = await import("./change-review");
+      const headline = changeHeadline(preview.change, preview.before);
+      return {
+        id: change.id,
+        operation: CHANGE_OPERATION_LABELS[change.operation] ?? change.operation,
+        title: headline.title, date: headline.date, warnings: preview.warnings,
+        fields: changedFields(preview.before, preview.after).map(({ label, before, after }) => ({ label, before, after })),
+        review_path: `/admin/changes/${change.id}`, can_publish: canPublish,
+      };
+    } catch { return null; }
+  }));
+  return cards.filter((card): card is ProposalCard => card !== null);
+}
+
 export async function previewProposal(actor: Actor, changeId: string) {
   return new ChangeService(getEnv().DB).preview(changeId, actor);
 }

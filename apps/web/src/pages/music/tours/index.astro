@@ -1,0 +1,51 @@
+---
+import { listTours } from "@frip-fan/core";
+import MusicListState from "../../../components/MusicListState.astro";
+import MusicNav from "../../../components/MusicNav.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+import { getLocale, t } from "../../../lib/i18n";
+import { formatMusicDate } from "../../../lib/music";
+import "../../../styles/music.css";
+
+const locale = getLocale(Astro.request);
+const tours = (await listTours(getEnv().DB, { publicOnly: true })).filter((tour) => tour.stop_count > 0);
+const range = (first: string | null, last: string | null) => !first ? t(locale, "common.datePending")
+  : first === last ? formatMusicDate(first, locale) : `${formatMusicDate(first, locale)} – ${formatMusicDate(last, locale)}`;
+---
+<SiteLayout title={t(locale, "music.nav.tours")}>
+  <div class="music-page">
+    <MusicListState storageKey="music:list:tours" detailPrefix="/music/tours/" />
+    <MusicNav />
+    <section class="music-section music-list-section" aria-labelledby="tours-heading">
+      <h1 id="tours-heading" class="visually-hidden">{t(locale, "music.nav.tours")}</h1>
+      {tours.length ? (
+        <div class="music-grid tour-grid" data-page-entry>
+          {tours.map((tour) => (
+            <a class="music-card tour-card" href={`/music/tours/${encodeURIComponent(tour.slug)}`}>
+              <p class="tour-card-date">{range(tour.first_date, tour.last_date)}</p>
+              <h2 translate="no">{tour.name}</h2>
+              <p class="music-card-meta">
+                <span>{t(locale, "music.tourStops", { count: tour.stop_count })}</span>
+                <span aria-hidden="true">·</span>
+                <span>{t(locale, "music.tourSetlistStops", { count: tour.setlist_stop_count })}</span>
+              </p>
+              <span class="tour-card-coverage" aria-hidden="true"><span style={`--coverage: ${Math.round(tour.setlist_stop_count / tour.stop_count * 100)}%`}></span></span>
+            </a>
+          ))}
+        </div>
+      ) : <div class="music-empty panel">{t(locale, "music.toursEmpty")}</div>}
+    </section>
+  </div>
+</SiteLayout>
+
+<style>
+  .tour-card { align-content: start; }
+  .tour-card-date { color: var(--accent); font-size: .8125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tour-card h2 { font-size: 1.05rem; }
+  .tour-card-coverage { display: block; height: 3px; margin-top: .15rem; overflow: hidden; border-radius: 999px; background: rgba(159, 180, 211, .16); }
+  .tour-card-coverage span { display: block; width: var(--coverage); height: 100%; border-radius: inherit; background: var(--accent); }
+  @media (max-width: 560px) {
+    .tour-grid { grid-template-columns: 1fr; }
+  }
+</style>

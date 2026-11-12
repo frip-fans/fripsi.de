@@ -12,9 +12,9 @@ const { href, storageKey, label } = Astro.props;
 const locale = getLocale(Astro.request);
 const sourceLabels = JSON.stringify({
   lives: t(locale, "music.return.lives"), songs: t(locale, "music.return.songs"),
-  releases: t(locale, "music.return.releases"), event: t(locale, "music.return.event"),
+  releases: t(locale, "music.return.releases"), tours: t(locale, "music.return.tours"), event: t(locale, "music.return.event"),
   livesList: t(locale, "music.backLives"), songsList: t(locale, "music.backSongs"),
-  releasesList: t(locale, "music.backReleases"), calendar: t(locale, "event.return.calendar"),
+  releasesList: t(locale, "music.backReleases"), toursList: t(locale, "music.backTours"), calendar: t(locale, "event.return.calendar"),
 });
 ---
 <BackLink href={href} label={label} musicStorageKey={storageKey} sourceLabels={sourceLabels} />

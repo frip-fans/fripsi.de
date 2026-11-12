@@ -1,4 +1,4 @@
-export const isMusicPath = (path: string) => /^\/music\/(lives|songs|releases)(?:\/[^/]+)?\/?$/.test(path);
+export const isMusicPath = (path: string) => /^\/music\/(lives|songs|releases|tours)(?:\/[^/]+)?\/?$/.test(path);
 export const publicSource = (url: URL) => url.origin === location.origin && (/^\/(?:events\/[^/]+|calendar)\/?$/.test(url.pathname) || isMusicPath(url.pathname));
 
 export function setupMusicBackLink(source?: string | null) {

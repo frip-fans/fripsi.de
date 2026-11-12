@@ -9,6 +9,7 @@ export * from "./song-spotlight";
 export * from "./event-updates";
 export * from "./event-display";
 export * from "./tours";
+export * from "./tour-matrix";
 export * from "./on-this-day";
 export * from "./music-admin-repository";
 export * from "./content-admin";

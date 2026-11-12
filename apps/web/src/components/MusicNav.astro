@@ -8,6 +8,7 @@ const links = [
   { href: "/music/lives", label: t(locale, "music.nav.lives"), icon: "mic", active: current.startsWith("/music/lives") },
   { href: "/music/releases", label: t(locale, "music.nav.releases"), icon: "vinyl", active: current.startsWith("/music/releases") },
   { href: "/music/songs", label: t(locale, "music.nav.songs"), icon: "music-note-beamed", active: current.startsWith("/music/songs") },
+  { href: "/music/tours", label: t(locale, "music.nav.tours"), icon: "map", active: current.startsWith("/music/tours") },
 ] as const;
 ---
 <div class="music-tabs" role="navigation" aria-label={t(locale, "music.nav.label")} data-music-tabs data-compact transition:persist="music-navigation">

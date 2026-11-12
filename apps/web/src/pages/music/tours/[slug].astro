@@ -1,0 +1,343 @@
+---
+import { getPublicTourPage, type TourCell, type TourMatrixColumn } from "@frip-fan/core";
+import Icon from "../../../components/Icon.astro";
+import MusicBackLink from "../../../components/MusicBackLink.astro";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+import { getLocale, t } from "../../../lib/i18n";
+import { formatMusicDate } from "../../../lib/music";
+import "../../../styles/music.css";
+
+const locale = getLocale(Astro.request);
+const tour = await getPublicTourPage(getEnv().DB, Astro.params.slug!);
+if (!tour || !tour.matrix.columns.length) return Astro.redirect("/404", 302);
+const { matrix } = tour;
+
+const range = !tour.first_date ? t(locale, "common.datePending")
+  : tour.first_date === tour.last_date ? formatMusicDate(tour.first_date, locale)
+    : `${formatMusicDate(tour.first_date, locale)} – ${formatMusicDate(tour.last_date, locale)}`;
+const shortDate = new Intl.DateTimeFormat(locale, { month: "numeric", day: "numeric", timeZone: "UTC" });
+const columnDate = (column: TourMatrixColumn) => shortDate.format(new Date(`${column.start_date}T00:00:00Z`));
+// "本公演" and festival slots ("fripSide出演枠") say nothing a column header needs; day / night labels do.
+const showLabel = (column: TourMatrixColumn) => column.performance_label && !/^本公演$|出演枠/.test(column.performance_label) ? column.performance_label : null;
+const columnHref = (column: TourMatrixColumn) => column.setlist_id ? `/music/lives/${encodeURIComponent(column.setlist_id)}` : `/events/${encodeURIComponent(column.event_slug)}`;
+const isEncore = (cell: TourCell) => cell.state === "sung" && (cell.section === "encore" || cell.section === "double_encore");
+// Heat colour by place in the set: warm near the opener, violet near the end (same ramp as the legend).
+const HEAT_STOPS = [[247, 178, 103], [234, 129, 66], [214, 102, 130], [139, 120, 242]];
+const heatColor = (position: number, length: number) => {
+  const x = Math.min(Math.max(length > 1 ? (position - 1) / (length - 1) : 0, 0), 1) * (HEAT_STOPS.length - 1);
+  const i = Math.min(Math.floor(x), HEAT_STOPS.length - 2);
+  return `rgb(${HEAT_STOPS[i].map((v, k) => Math.round(v + (HEAT_STOPS[i + 1][k] - v) * (x - i))).join(", ")})`;
+};
+const changesByColumn = new Map(matrix.changes.map((change) => [change.column_index, change]));
+---
+<SiteLayout title={t(locale, "music.tourPageTitle", { name: tour.name })} description={t(locale, "music.tourDescription", { name: tour.name, count: matrix.stop_count })}>
+  <div class="music-page tour-page">
+    <MusicBackLink href="/music/tours" storageKey="music:list:tours" label={t(locale, "music.backTours")} />
+    <header class="music-detail-head" data-page-entry>
+      <p class="music-detail-date">{range}</p>
+      <h1 translate="no">{tour.name}</h1>
+      <div class="music-detail-meta">
+        <span class="tag">{t(locale, "music.tourStops", { count: matrix.stop_count })}</span>
+        <span class="tag">{t(locale, "music.tourSetlistStops", { count: tour.setlist_stop_count })}</span>
+      </div>
+      {matrix.stats ? (
+        <div class="tour-stats">
+          <dl>
+            <div class="is-fixed"><dt>{t(locale, "music.tourStatFixed")}</dt><dd>{matrix.stats.fixed}</dd></div>
+            <div class="is-rotating"><dt>{t(locale, "music.tourStatRotating")}</dt><dd>{matrix.stats.rotating}</dd></div>
+            <div class="is-once"><dt>{t(locale, "music.tourStatOnce")}</dt><dd>{matrix.stats.once}</dd></div>
+          </dl>
+          <p>{t(locale, "music.tourStatsBasis", { count: matrix.complete_count })}</p>
+        </div>
+      ) : matrix.setlist_count > 0 && <p class="tour-stats-note">{t(locale, "music.tourStatsUnavailable")}</p>}
+    </header>
+
+    {matrix.rows.length > 0 ? (
+      <section class="music-section tour-views" data-tour-views data-view="matrix" aria-label={t(locale, "music.tourViewLabel")}>
+        <div class="tour-view-switch" role="group" aria-label={t(locale, "music.tourViewLabel")}>
+          <button type="button" data-tour-view-button="matrix"><Icon name="list-stars" />{t(locale, "music.tourViewMatrix")}</button>
+          <button type="button" data-tour-view-button="changes"><Icon name="arrow-down-up" />{t(locale, "music.tourViewChanges")}</button>
+        </div>
+
+        <div class="tour-panel tour-matrix-panel">
+          <ul class="tour-legend">
+            <li><span class="tour-key is-rotating" aria-hidden="true"></span>{t(locale, "music.tourRotatingBadge")}</li>
+            <li class="tour-ramp"><span>{t(locale, "music.tourLegendOpener")}</span><i aria-hidden="true"></i><span>{t(locale, "music.tourLegendCloser")}</span></li>
+            <li><span class="tour-key is-encore">E</span>{t(locale, "music.tourLegendEncore")}</li>
+            <li><span class="tour-key is-absent">·</span>{t(locale, "music.tourLegendAbsent")}</li>
+            <li><span class="tour-key is-unknown">?</span>{t(locale, "music.tourLegendUnknown")}</li>
+            <li><span class="tour-key is-missing"></span>{t(locale, "music.tourMissingSetlist")}</li>
+          </ul>
+          <div class="tour-matrix-scroll" tabindex="0" role="region" aria-label={t(locale, "music.tourViewMatrix")}>
+            <table class="tour-matrix">
+              <thead>
+                <tr>
+                  <th scope="col" class="tour-song-col">{t(locale, "music.tourSong")}</th>
+                  {matrix.columns.map((column) => (
+                    <th scope="col" class:list={["tour-show-col", { "is-missing": !column.setlist_id, "is-partial": column.setlist_id && column.completeness !== "complete" }]}>
+                      <a href={columnHref(column)}>
+                        <span class="tour-show-number">{column.stop_number}</span>
+                        <span class="tour-show-stop">{column.stop_label.replace(/公演$/, "")}</span>
+                        <time datetime={column.start_date}>{columnDate(column)}</time>
+                        {showLabel(column) && <span class="tour-show-label">{showLabel(column)}</span>}
+                        {!column.setlist_id ? <span class="tour-show-flag">{t(locale, "music.tourMissingSetlist")}</span>
+                          : column.completeness !== "complete" && <span class="tour-show-flag">{t(locale, "music.tourPartialSetlist")}</span>}
+                      </a>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.rows.map((row) => (
+                  <tr class:list={[row.kind && `is-${row.kind}`]}>
+                    <th scope="row" class="tour-song-col">
+                      <span class="tour-song-cell">
+                        <a href={`/music/songs/${encodeURIComponent(row.song_slug)}`} translate="no" title={row.song_title}>{row.song_title}</a>
+                        <span class="tour-song-meta">
+                          {(row.kind === "rotating" || row.kind === "once") && <span class:list={["tour-badge", `is-${row.kind}`]}>{t(locale, row.kind === "once" ? "music.tourOnceBadge" : "music.tourRotatingBadge")}</span>}
+                          <small class="tour-freq">{row.sung_count}/{matrix.setlist_count}</small>
+                        </span>
+                      </span>
+                    </th>
+                    {row.cells.map((cell, index) => cell.state === "sung" ? (
+                      <td class:list={["is-sung", { "is-encore": isEncore(cell) }]} style={`--heat: ${heatColor(cell.position, matrix.columns[index].entry_count)}`}>{isEncore(cell) && <span class="tour-encore">E</span>}{cell.position}</td>
+                    ) : cell.state === "absent" ? (
+                      <td class="is-absent"><span aria-hidden="true">·</span><span class="visually-hidden">{t(locale, "music.tourLegendAbsent")}</span></td>
+                    ) : cell.state === "unknown" ? (
+                      <td class="is-unknown"><span aria-hidden="true">?</span><span class="visually-hidden">{t(locale, "music.tourLegendUnknown")}</span></td>
+                    ) : (
+                      <td class="is-missing"><span class="visually-hidden">{t(locale, "music.tourMissingSetlist")}</span></td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tour-panel tour-changes-panel">
+          <section class="tour-baseline" aria-labelledby="tour-baseline-heading">
+            <h2 id="tour-baseline-heading">{t(locale, "music.tourBaseline")}</h2>
+            {matrix.baseline.length ? (
+              <>
+                <p>{t(locale, "music.tourBaselineHint")}</p>
+                <ol>
+                  {matrix.baseline.map((song) => <li><a href={`/music/songs/${encodeURIComponent(song.song_slug)}`} translate="no">{song.song_title}</a></li>)}
+                </ol>
+              </>
+            ) : <p>{t(locale, "music.tourBaselineEmpty")}</p>}
+          </section>
+          <ol class="tour-stop-list">
+            {matrix.columns.map((column, index) => {
+              const change = changesByColumn.get(index);
+              const partial = column.setlist_id && column.completeness !== "complete";
+              return (
+                <li class:list={["tour-stop", { "is-missing": !column.setlist_id }]}>
+                  <a class="tour-stop-head" href={columnHref(column)}>
+                    <span class="tour-show-number">{column.stop_number}</span>
+                    <span class="tour-stop-title">
+                      <strong>{column.stop_label}{showLabel(column) && <span> · {showLabel(column)}</span>}</strong>
+                      <time datetime={column.start_date}>{formatMusicDate(column.start_date, locale)}</time>
+                    </span>
+                    <Icon name="chevron-right" />
+                  </a>
+                  {!column.setlist_id ? <p class="tour-stop-note">{t(locale, "music.tourMissingSetlist")}</p>
+                    : change && (change.added.length || change.dropped.length) ? (
+                      <div class="tour-stop-changes">
+                        {change.added.length > 0 && (
+                          <div class="is-added">
+                            <h3><span aria-hidden="true">+</span> {t(locale, "music.tourAdded")}</h3>
+                            <ul>{change.added.map((song) => <li><a href={`/music/songs/${encodeURIComponent(song.song_slug)}`} translate="no">{song.song_title}</a><small>#{song.position}</small></li>)}</ul>
+                          </div>
+                        )}
+                        {change.dropped.length > 0 && (
+                          <div class="is-dropped">
+                            <h3><span aria-hidden="true">−</span> {t(locale, "music.tourDropped")}</h3>
+                            <ul>{change.dropped.map((song) => <li><a href={`/music/songs/${encodeURIComponent(song.song_slug)}`} translate="no">{song.song_title}</a></li>)}</ul>
+                          </div>
+                        )}
+                        {partial && <p class="tour-stop-note">{t(locale, "music.tourPartialNote")}</p>}
+                      </div>
+                    ) : <p class="tour-stop-note">{partial ? t(locale, "music.tourPartialNote") : t(locale, "music.tourNoChanges")}</p>}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </section>
+    ) : (
+      <section class="music-section">
+        <ol class="tour-stop-list">
+          {matrix.columns.map((column) => (
+            <li class="tour-stop is-missing">
+              <a class="tour-stop-head" href={columnHref(column)}>
+                <span class="tour-show-number">{column.stop_number}</span>
+                <span class="tour-stop-title"><strong>{column.stop_label}</strong><time datetime={column.start_date}>{formatMusicDate(column.start_date, locale)}</time></span>
+                <Icon name="chevron-right" />
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+  </div>
+</SiteLayout>
+
+<script>
+  const VIEW_KEY = "frip_fan_tour_view";
+
+  function setupTourViews() {
+    for (const root of document.querySelectorAll<HTMLElement>("[data-tour-views]")) {
+      if (root.dataset.ready) continue;
+      root.dataset.ready = "true";
+      const buttons = [...root.querySelectorAll<HTMLButtonElement>("[data-tour-view-button]")];
+      try {
+        const saved = localStorage.getItem(VIEW_KEY);
+        if (saved === "matrix" || saved === "changes") root.dataset.view = saved;
+      } catch { /* Storage is optional; the layout picks a view by width. */ }
+      const sync = () => {
+        const view = root.dataset.view;
+        for (const button of buttons) button.setAttribute("aria-pressed", String(button.dataset.tourViewButton === view));
+      };
+      for (const button of buttons) {
+        button.addEventListener("click", () => {
+          root.dataset.view = button.dataset.tourViewButton!;
+          try { localStorage.setItem(VIEW_KEY, root.dataset.view); } catch { /* Storage is optional. */ }
+          sync();
+        });
+      }
+      sync();
+    }
+  }
+
+  setupTourViews();
+  document.addEventListener("astro:page-load", setupTourViews);
+</script>
+
+<style>
+  .tour-stats { display: flex; flex-wrap: wrap; align-items: end; gap: .5rem 1.25rem; margin-top: 1.25rem; }
+  .tour-stats dl { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0; }
+  .tour-stats dl div { display: grid; gap: .15rem; min-width: 6.5rem; padding: .6rem .85rem; border: 1px solid var(--line); border-radius: 12px; background: var(--music-panel); }
+  .tour-stats dt { color: var(--muted); font-size: .75rem; font-weight: 650; }
+  .tour-stats dd { margin: 0; font-size: 1.35rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .tour-stats .is-fixed dd { color: var(--accent); }
+  .tour-stats .is-once dd { color: #e8c88a; }
+  .tour-stats p, .tour-stats-note { margin: 0; color: var(--muted); font-size: .8125rem; }
+  .tour-stats-note { margin-top: 1rem; }
+
+  .tour-views { margin-top: 2rem; }
+  .tour-view-switch { display: inline-flex; gap: .25rem; margin-bottom: 1rem; padding: .3rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(5, 13, 23, .58); }
+  .tour-view-switch button { display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: .45rem .8rem; color: var(--muted); border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: .84rem; font-weight: 650; cursor: pointer; }
+  .tour-view-switch button:hover { color: var(--text); }
+  .tour-view-switch button[aria-pressed="true"] { color: #08111d; background: var(--accent); }
+  .tour-view-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  [data-view="matrix"] .tour-changes-panel, [data-view="changes"] .tour-matrix-panel { display: none; }
+
+  .tour-legend { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin: 0 0 .8rem; padding: 0; list-style: none; color: var(--muted); font-size: .78rem; }
+  .tour-legend li { display: inline-flex; align-items: center; gap: .4rem; }
+  .tour-key { display: inline-grid; place-items: center; width: 1.6rem; height: 1.35rem; border-radius: 6px; font-size: .72rem; font-weight: 750; }
+
+  /* Positioned so the visually hidden cell labels are clipped by the scroller instead of widening the page. */
+  .tour-matrix-scroll { position: relative; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); }
+  .tour-matrix-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tour-matrix { border-collapse: separate; border-spacing: 0 4px; min-width: 100%; padding: 0 4px; font-size: .84rem; }
+  .tour-matrix th, .tour-matrix td { text-transform: none; letter-spacing: normal; }
+  /* Rotating (日替) and one-off songs: the whole row sits in a dashed frame. Other rows keep a
+     transparent frame of the same width so every row lines up. */
+  .tour-matrix tbody tr > * { border-block: 1.5px dashed transparent; background-clip: padding-box; }
+  .tour-matrix tbody tr > :first-child { border-left: 1.5px dashed transparent; border-radius: 9px 0 0 9px; }
+  .tour-matrix tbody tr > :last-child { border-right: 1.5px dashed transparent; border-radius: 0 9px 9px 0; }
+  .tour-matrix tbody tr:is(.is-rotating, .is-once) > * { border-color: rgba(var(--accent-rgb), .85); }
+  .tour-song-meta { display: inline-flex; flex: none; align-items: center; gap: .4rem; }
+  .tour-badge { padding: 0 .4rem; border: 1px solid rgba(var(--accent-rgb), .6); border-radius: 999px; color: var(--accent); font-size: .66rem; font-weight: 700; line-height: 1.5; white-space: nowrap; }
+  .tour-badge.is-once { color: #e8c88a; border-color: rgba(232, 200, 138, .6); }
+  .tour-key.is-rotating { border: 1.5px dashed rgba(var(--accent-rgb), .85); }
+  .tour-song-col { position: sticky; left: 0; z-index: 1; width: 17rem; min-width: 11rem; max-width: 17rem; padding: .45rem .75rem; text-align: left; background: #0b1729; }
+  thead .tour-song-col { color: var(--muted); font-size: .75rem; font-weight: 650; vertical-align: bottom; }
+  .tour-song-cell { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; font-weight: 600; }
+  tbody .tour-song-col a { min-width: 0; overflow: hidden; color: var(--text); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+  tbody .tour-song-col a:hover { color: var(--accent); }
+  tbody .tour-song-col { color: var(--text); font-size: .84rem; }
+  .tour-freq { display: inline-flex; flex: none; align-items: center; gap: .4rem; color: var(--muted); font-size: .7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  tbody tr:hover > * { background-color: rgba(var(--accent-rgb), .06); }
+  tbody tr:hover .tour-song-col { background-color: #0f2036; }
+
+  .tour-show-col { min-width: 4.6rem; padding: 0; vertical-align: bottom; font-weight: 400; }
+  .tour-show-col a { display: grid; justify-items: center; gap: .1rem; padding: .6rem .4rem .5rem; color: var(--muted); text-align: center; text-decoration: none; }
+  .tour-show-col a:hover { color: var(--text); background: rgba(var(--accent-rgb), .06); }
+  .tour-show-col a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .tour-show-number { display: inline-grid; place-items: center; min-width: 1.45rem; height: 1.45rem; padding: 0 .3rem; color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .4); border-radius: 999px; font-size: .72rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+  .tour-show-stop { max-width: 6rem; color: var(--text); font-size: .75rem; font-weight: 650; line-height: 1.3; overflow-wrap: anywhere; }
+  .tour-show-col time { font-size: .7rem; font-variant-numeric: tabular-nums; }
+  .tour-show-label { font-size: .68rem; }
+  .tour-show-flag { padding: .05rem .35rem; border: 1px solid rgba(159, 180, 211, .25); border-radius: 999px; font-size: .64rem; }
+  .tour-show-col.is-partial .tour-show-flag { color: #e8c88a; border-color: rgba(232, 200, 138, .4); }
+
+  .tour-matrix td { height: 2.1rem; padding: 0 .3rem; text-align: center; vertical-align: middle; font-variant-numeric: tabular-nums; }
+  .tour-matrix td.is-sung { color: rgba(8, 17, 29, .9); font-weight: 750; background-color: var(--heat); box-shadow: inset 2px 0 0 #0b1729, inset -2px 0 0 #0b1729; }
+  .tour-ramp i { width: 7rem; height: .6rem; border-radius: 999px; background: linear-gradient(90deg, rgb(247, 178, 103), rgb(234, 129, 66), rgb(214, 102, 130), rgb(139, 120, 242)); }
+  .tour-matrix td.is-encore { box-shadow: inset 2px 0 0 #0b1729, inset -2px 0 0 #0b1729, inset 0 0 0 4px var(--text); }
+  .tour-key.is-encore { color: var(--text); box-shadow: inset 0 0 0 2px var(--text); }
+  .tour-encore { margin-right: .05rem; font-size: .66rem; }
+  .tour-matrix td.is-absent, .tour-key.is-absent { color: rgba(159, 180, 211, .45); }
+  .tour-matrix td.is-unknown, .tour-key.is-unknown { color: #e8c88a; }
+  .tour-matrix td.is-missing, .tour-key.is-missing { background-image: repeating-linear-gradient(135deg, rgba(159, 180, 211, .1) 0 2px, transparent 2px 7px); }
+  .tour-key.is-absent, .tour-key.is-unknown, .tour-key.is-missing { border: 1px solid rgba(159, 180, 211, .18); }
+
+  .tour-changes-panel { display: grid; gap: 1rem; }
+  .tour-baseline { padding: 1rem 1.1rem; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); }
+  .tour-baseline h2 { margin: 0; font-size: 1rem; }
+  .tour-baseline p { margin: .3rem 0 .7rem; color: var(--muted); font-size: .8rem; }
+  .tour-baseline ol { display: grid; gap: .3rem; margin: 0; padding-left: 1.6rem; font-size: .9rem; }
+  .tour-baseline li::marker { color: var(--muted); font-size: .78rem; font-variant-numeric: tabular-nums; }
+  .tour-baseline a, .tour-stop-changes a { color: var(--text); text-decoration: none; overflow-wrap: anywhere; }
+  .tour-baseline a:hover, .tour-stop-changes a:hover { color: var(--accent); }
+
+  .tour-stop-list { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
+  .tour-stop { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); }
+  .tour-stop-head { display: flex; align-items: center; gap: .75rem; min-height: 48px; padding: .75rem 1rem; color: inherit; text-decoration: none; }
+  .tour-stop-head:hover { background: rgba(var(--accent-rgb), .06); }
+  .tour-stop-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .tour-stop-head > :global(.icon) { flex: none; margin-left: auto; color: var(--muted); }
+  .tour-stop-title { display: grid; gap: .1rem; min-width: 0; }
+  .tour-stop-title strong { font-size: .95rem; line-height: 1.4; overflow-wrap: anywhere; }
+  .tour-stop-title strong span { color: var(--muted); font-weight: 600; }
+  .tour-stop-title time { color: var(--muted); font-size: .78rem; font-variant-numeric: tabular-nums; }
+  .tour-stop-changes { display: grid; gap: .6rem; padding: 0 1rem .9rem 3.2rem; }
+  .tour-stop-changes h3 { margin: 0 0 .25rem; font-size: .75rem; font-weight: 700; }
+  .tour-stop-changes .is-added h3 { color: var(--accent); }
+  .tour-stop-changes .is-dropped h3 { color: #e8a3a3; }
+  .tour-stop-changes ul { display: grid; gap: .2rem; margin: 0; padding: 0; list-style: none; font-size: .88rem; }
+  .tour-stop-changes li { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+  .tour-stop-changes small { flex: none; color: var(--muted); font-size: .72rem; font-variant-numeric: tabular-nums; }
+  .tour-stop-changes .is-dropped a { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(232, 163, 163, .5); }
+  .tour-stop-note { margin: 0; padding: 0 1rem .85rem 3.2rem; color: var(--muted); font-size: .8rem; }
+  .tour-stop-changes .tour-stop-note { padding: 0; }
+  .tour-stop.is-missing { background-image: repeating-linear-gradient(135deg, rgba(159, 180, 211, .05) 0 2px, transparent 2px 9px); }
+
+  @media (max-width: 560px) {
+    .tour-view-switch { display: flex; }
+    .tour-view-switch button { flex: 1 1 0; justify-content: center; }
+    .tour-stats dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+    .tour-stats dl div { min-width: 0; padding: .55rem .65rem; }
+    .tour-song-col { width: 9.5rem; min-width: 9.5rem; max-width: 9.5rem; padding: .4rem .55rem; }
+    .tour-song-cell { flex-direction: column; align-items: stretch; gap: .05rem; }
+    tbody .tour-song-col { font-size: .78rem; line-height: 1.3; }
+    tbody .tour-song-col a { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; overflow-wrap: anywhere; }
+    /* Compact heatmap: narrow show columns with just the stop number and name. */
+    .tour-song-col { width: 8rem; min-width: 8rem; max-width: 8rem; }
+    .tour-show-col { min-width: 2.4rem; }
+    .tour-show-col a { padding: .5rem .15rem .4rem; }
+    .tour-show-col time, .tour-show-label { display: none; }
+    .tour-show-stop { max-width: 2.3rem; font-size: .62rem; }
+    .tour-show-flag { padding: 0 .2rem; font-size: .56rem; }
+    .tour-matrix td { height: 2.2rem; padding: 0 .1rem; font-size: .74rem; }
+    .tour-song-meta { gap: .3rem; }
+    .tour-freq { font-size: .64rem; }
+    .tour-badge { font-size: .58rem; padding: 0 .3rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .tour-view-switch button { transition: color .15s, background-color .15s; }
+  }
+</style>

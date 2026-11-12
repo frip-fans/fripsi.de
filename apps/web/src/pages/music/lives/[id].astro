@@ -1,5 +1,5 @@
 ---
-import { getAdjacentSetlists, getSetlistById, getSetlistHighlights } from "@frip-fan/core";
+import { getAdjacentSetlists, getEventTourContext, getSetlistById, getSetlistHighlights } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
@@ -22,7 +22,7 @@ const locale = getLocale(Astro.request);
 const db = getEnv().DB;
 const [setlist, archiveHighlights] = await Promise.all([getSetlistById(db, Astro.params.id!), getSetlistHighlights(db)]);
 if (!setlist) return Astro.redirect("/404", 302);
-const adjacent = await getAdjacentSetlists(db, setlist);
+const [adjacent, tour] = await Promise.all([getAdjacentSetlists(db, setlist), getEventTourContext(db, setlist.event_id)]);
 const place = [setlist.venue, setlist.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending");
 const highlight = archiveHighlights.get(setlist.id);
 const debutSongs = new Set(highlight?.debuts.map(item => item.song_id));
@@ -72,6 +72,7 @@ let previousSection = "";
       <p class="setlist-where">
         <span>{place}</span>
         <a href={`/events/${encodeURIComponent(setlist.event_slug)}`}>{t(locale, "music.eventDetails")} <Icon name="arrow-up-right" /></a>
+        {tour && <a href={`/music/tours/${encodeURIComponent(tour.slug)}`}><Icon name="map" /><span translate="no">{tour.name}</span> · {t(locale, "music.tourStopOf", { number: tour.stop_number, count: tour.stop_count })}</a>}
       </p>
       <div class="music-detail-meta">
         <span class="tag">{setlistCompletenessLabel(setlist.completeness, locale)}</span>

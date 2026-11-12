@@ -287,7 +287,8 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   .tour-scroll-rail.is-right { right: .35rem; }
   .tour-scroll-rail button { position: sticky; top: calc(50vh - 1.375rem); display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; color: var(--text); border: 1px solid rgba(239, 248, 255, .35); border-radius: 50%; background: rgba(7, 16, 28, .82); box-shadow: 0 8px 24px rgba(0, 0, 0, .45); backdrop-filter: blur(10px); font-size: 1.1rem; cursor: pointer; pointer-events: auto; transition: opacity .15s, border-color .15s, color .15s; }
   .tour-scroll-rail button:hover:not(:disabled) { color: var(--accent); border-color: rgba(var(--accent-rgb), .7); }
-  .tour-scroll-rail button:disabled { opacity: .3; cursor: default; }
+  /* At either end the button for that side goes away entirely instead of sitting greyed out over the cells. */
+  .tour-scroll-rail button:disabled { opacity: 0; visibility: hidden; transition: opacity .15s, visibility 0s .15s; }
   /* Desktop only: phones and tablets swipe the matrix directly. */
   @media (hover: hover) and (pointer: fine) and (min-width: 761px) {
     .tour-matrix-frame[data-overflowing] .tour-scroll-rail { display: block; }

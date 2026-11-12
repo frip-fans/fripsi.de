@@ -1,4 +1,4 @@
-import { eventDisplayTitleSql } from "./event-display";
+import { eventDisplayTitleSql, eventStopAreaSql } from "./event-display";
 
 export interface TourRecord {
   id: string;
@@ -68,4 +68,31 @@ export async function getPublicTourBySlug(db: D1Database, slug: string): Promise
   const row = await db.prepare(`${tourSelect(true)} WHERE t.slug = ? AND t.published = 1 GROUP BY t.id`).bind(slug).first<TourRow>();
   if (!row) return null;
   return { ...mapTour(row), stops: await tourStops(db, row.id, true) };
+}
+
+/** An event the admin can add to a tour: every live (non-archived) event outside it, newest first. */
+export interface TourCandidateEvent {
+  id: string;
+  title: string;
+  display_title: string;
+  start_date: string;
+  category: string;
+  published: boolean;
+  venue_name: string | null;
+  area_name: string | null;
+  tour_id: string | null;
+  tour_name: string | null;
+}
+
+export async function listTourCandidateEvents(db: D1Database, tourId: string): Promise<TourCandidateEvent[]> {
+  const result = await db.prepare(`SELECT e.id, e.title, ${eventDisplayTitleSql("e")} AS display_title, e.start_date, e.category, e.published,
+      (SELECT v.canonical_name FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
+        WHERE ev.event_id = e.id ORDER BY ev.position LIMIT 1) AS venue_name,
+      ${eventStopAreaSql("e")} AS area_name,
+      e.tour_id, t.name AS tour_name
+    FROM events e
+    LEFT JOIN tours t ON t.id = e.tour_id
+    WHERE e.archived_at IS NULL AND (e.tour_id IS NULL OR e.tour_id <> ?)
+    ORDER BY e.start_date DESC, COALESCE(e.start_time, '') DESC, e.id`).bind(tourId).all<Omit<TourCandidateEvent, "published"> & { published: number }>();
+  return result.results.map((row) => ({ ...row, published: row.published === 1 }));
 }

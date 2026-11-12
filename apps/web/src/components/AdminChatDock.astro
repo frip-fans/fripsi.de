@@ -1,0 +1,83 @@
+---
+import Icon from "./Icon.astro";
+import type { ChatDockState } from "../lib/chat";
+import "../styles/admin-chat.css";
+
+interface Props { state: ChatDockState }
+const { state } = Astro.props;
+const { session, messages, proposals, can_publish } = state;
+const live = Boolean(session?.continuable);
+
+function clock(value: string): string {
+  return value.slice(11, 16);
+}
+---
+<button class="chat-launcher" type="button" data-chat-toggle aria-haspopup="dialog"
+  aria-controls="admin-chat-dock" aria-expanded="false" title="编辑助手">
+  <Icon name="plus" />
+  <span class="sr-only">编辑助手</span>
+  {proposals.length > 0 && <span class="chat-launcher-badge" aria-hidden="true">{proposals.length}</span>}
+</button>
+
+<aside id="admin-chat-dock" class="chat-dock" data-chat-dock data-mode="rail"
+  data-can-publish={String(can_publish)} data-session={session?.id ?? ""}
+  data-live={String(live)} data-expires={session?.expires_at ?? ""}
+  aria-label="编辑助手">
+  <header class="chat-dock-head">
+    <strong>编辑助手</strong>
+    <div class="chat-dock-head-actions">
+      <button type="button" class="link" data-chat-history aria-expanded="false">历史</button>
+      <button type="button" class="link" data-chat-new>新会话</button>
+      <button type="button" class="link chat-dock-close" data-chat-close aria-label="收起助手">✕</button>
+    </div>
+  </header>
+
+  <div class="chat-dock-status">
+    <span data-role="status">{live ? `会话有效至 ${clock(session!.expires_at)}` : "准备就绪"}</span>
+    <span class="chat-model">
+      <label class="sr-only" for="chat-model">模型</label>
+      <select id="chat-model" data-role="model" disabled><option value="">加载中…</option></select>
+    </span>
+  </div>
+
+  <div class="chat-history-drawer" data-chat-history-panel hidden>
+    <p class="chat-history-empty" data-role="history-empty">没有更早的会话。</p>
+    <ol class="chat-history-list" data-role="history-list"></ol>
+  </div>
+
+  <ol class="chat-log" data-role="log" aria-busy="false">
+    {messages.length === 0 && (
+      <li class="chat-empty" data-role="empty">
+        <p>问我活动日历的任何事，或者描述要改什么。</p>
+        <div class="chat-samples">
+          <button type="button" class="chat-sample" data-chat-sample>今年还有哪些未公开的活动</button>
+          <button type="button" class="chat-sample" data-chat-sample>检查 9 月有没有重复录入</button>
+          <button type="button" class="chat-sample" data-chat-sample>把 8 月 31 日那场的开始时间改成 17:00，来源是官网公告</button>
+        </div>
+      </li>
+    )}
+    {messages.map((message) => (
+      message.role === "user" ? (
+        <li class="chat-turn chat-turn-user"><div class="chat-bubble">{message.body}</div></li>
+      ) : (
+        <li class:list={["chat-turn", message.role === "error" ? "chat-turn-error" : "chat-turn-assistant"]} data-turn={message.turn_id ?? undefined}>
+          <p class="chat-turn-label">{message.role === "error" ? "出错" : "助手"} · {clock(message.created_at)}</p>
+          <div class={message.role === "error" ? "chat-error" : "chat-prose"}>{message.body}</div>
+        </li>
+      )
+    ))}
+  </ol>
+
+  <p class="chat-expired" data-role="expired" hidden={live || !session}>
+    这个会话已结束（30 分钟上限）。<button type="button" class="link" data-chat-new>开新会话</button>
+  </p>
+
+  <form class="chat-composer" data-role="composer" hidden={Boolean(session) && !live}>
+    <label class="sr-only" for="chat-input">给助手的消息</label>
+    <textarea id="chat-input" rows="2" maxlength="4000" required data-role="input"
+      placeholder="描述要查询或修改的内容，附上来源链接"></textarea>
+    <button type="submit" class="button chat-send" data-role="send" aria-label="发送"><Icon name="plus" /></button>
+  </form>
+  <p class="chat-hint">⌘/Ctrl + Enter 发送 · 助手只能创建提案，发布由你点击确认</p>
+  <span class="sr-only" role="status" aria-live="polite" data-role="announce"></span>
+</aside>

@@ -14,6 +14,8 @@ import Icon from "../components/Icon.astro";
 import NavigationLoading from "../components/NavigationLoading.astro";
 import NavigationDiagnostics from "../components/NavigationDiagnostics.astro";
 import routerBootstrap from "../scripts/router-bootstrap.js?url";
+import AdminChatDock from "../components/AdminChatDock.astro";
+import { chatDockState, chatEnabled } from "../lib/chat";
 import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import OfficialSiteGate from "../components/OfficialSiteGate.astro";
 import QuizBoard from "../components/QuizBoard.astro";
@@ -55,7 +57,6 @@ const navigationLinks: NavigationItem[] = admin ? [
   { href: "/admin/events", label: "活动", active: current.startsWith("/admin/events") },
   { href: "/admin/tours", label: "巡演", active: current.startsWith("/admin/tours") },
   { href: "/admin/music/setlists", label: "音乐库", active: current.startsWith("/admin/music") },
-  { href: "/admin/chat", label: "助手", active: current.startsWith("/admin/chat") },
   { href: "/admin/changes", label: "提案", active: current.startsWith("/admin/changes") },
   { href: "/admin/audit", label: "审计", active: current.startsWith("/admin/audit") },
   { href: "/admin/data", label: "数据", active: current.startsWith("/admin/data") },
@@ -74,9 +75,15 @@ const tapPrefetch = admin ? undefined : "tap";
 const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 const canonicalUrl = new URL(Astro.url.pathname, canonicalBase).href;
 const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
+
+// The dock is re-rendered on every admin page because admin keeps client routing off.
+// The cookie lets the server emit the open class in the first byte, so the rail's
+// reflow never flashes.
+const chatDock = admin && chatEnabled() ? await chatDockState(Astro.locals.actor!) : null;
+const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.value === "1";
 ---
 <!doctype html>
-<html lang={locale}>
+<html lang={locale} class:list={{ "chat-dock-open": chatDockOpen }}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -219,11 +226,14 @@ const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
         </div>
       )}
     </footer>
+    {chatDock && <AdminChatDock state={chatDock} />}
   </body>
 </html>
 
 <script>
+  import { setupAdminChatDock } from "../lib/chat-dock-client";
   import { setupQuizLauncher } from "../lib/quiz-launcher";
+  setupAdminChatDock();
   setupQuizLauncher();
   document.addEventListener("astro:page-load", () => setupQuizLauncher());
   import "../lib/public-navigation";

@@ -1,13 +1,24 @@
 # 后台聊天编辑助手
 
-`/admin/chat` 让维护者用自然语言查询和修改活动日历。推理循环运行在 OpenAI Agents API 一侧，模型通过本站 Remote MCP（`https://fripsi.de/mcp`）读取数据并提交提案；网站只负责签发短期身份、启动会话、读取进度和渲染结果。发布由人在聊天流里点击确认，不由模型调用。
+助手以侧栏形式停靠在所有 `/admin` 页面：宽屏（≥1180px）是 420px 右栏并把正文挤窄，窄屏是全屏 sheet，右下角有启动按钮。维护者用自然语言查询和修改活动日历。推理循环运行在 OpenAI Agents API 一侧，模型通过本站 Remote MCP（`https://fripsi.de/mcp`）读取数据并提交提案；网站只负责签发短期身份、启动会话、读取进度和渲染结果。发布由人在聊天流里点击确认，不由模型调用。
 
 与[官方活动自动同步](official-sync.md)共用 Agents API 客户端、预算记账和 MCP 工具层；区别是同步由 timer 无人驱动并可自动发布，聊天由登录维护者驱动且不能自动发布。
+
+## 界面与状态恢复
+
+后台页面不启用 client routing（`SiteLayout` 的 `clientRouting = !admin`），因此侧栏不尝试跨导航保活，而是**每次文档加载从数据库重新渲染**：`chatDockState` 两次索引查询取回当前会话与对话正文，由 `AdminChatDock.astro` 直出，不在页面渲染时调用 OpenAI。开合状态写入 `chat_dock_open` cookie（path `/admin`），服务端据此在首字节就带上 `chat-dock-open` 类，避免挤压布局闪烁；草稿和滚动位置存 sessionStorage，属于每人每浏览器的便利项。
+
+选择挤窄正文而不是浮层：浮层会正好盖住 `/admin/changes/<id>` 右下角的发布按钮，而那正是这个页面的用途。1180–1379px 之间，控制台的多列面板在侧栏打开时折叠为单列。
+
+窄屏下侧栏是 `role="dialog" aria-modal="true"`，并把 `.site-header / main / footer` 设为 `inert`，Escape 关闭；宽屏是 `role="complementary"`，不夺取 Escape，也不锁背景。对话区不整体 `aria-live`（否则每张 diff 表都会被朗读），改为单独的 `role="status"` 只播摘要。
+
+历史在侧栏内的抽屉里按会话列出，点开即只读回放：输入框隐藏，状态行显示该会话使用的模型。提案卡片始终按 `change_sets` 当前状态重新生成。
 
 ## 运行流程
 
 ```text
-浏览器 /admin/chat（Cloudflare Access 保护）
+浏览器 任意 /admin 页（Cloudflare Access 保护）
+  └─ GET  /api/admin/chat/current    侧栏首屏状态（与服务端直出同一份载荷）
   └─ GET  /api/admin/chat/models     列出该 API key 可用的模型
   └─ GET  /api/admin/chat/sessions   历史会话列表（按维护者过滤）
   └─ GET  /api/admin/chat/sessions/:id   读取某次会话的正文，过期会话同样可读

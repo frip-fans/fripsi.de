@@ -116,6 +116,24 @@ export const tourSaveSchema = z.object({
   if (input.id && !input.expected_updated_at) context.addIssue({ code: "custom", path: ["expected_updated_at"], message: "编辑巡演时缺少并发校验值" });
 });
 
+const tourStopIdsSchema = z.array(z.string().trim().min(1).max(160)).max(200).default([]);
+
+/** Bulk membership edit from the tour page: add events to the tour and/or remove its current stops. */
+export const tourStopsUpdateSchema = z.object({
+  tour_id: z.string().trim().min(1).max(160),
+  idempotency_key: idempotencyKeySchema,
+  add_event_ids: tourStopIdsSchema,
+  remove_event_ids: tourStopIdsSchema,
+}).superRefine((input, context) => {
+  if (!input.add_event_ids.length && !input.remove_event_ids.length) {
+    context.addIssue({ code: "custom", path: ["add_event_ids"], message: "请至少选择一场活动" });
+  }
+  const removing = new Set(input.remove_event_ids);
+  if (input.add_event_ids.some((id) => removing.has(id))) {
+    context.addIssue({ code: "custom", path: ["remove_event_ids"], message: "同一场活动不能同时加入和移出" });
+  }
+});
+
 export const eventArchiveSchema = z.object({
   id: z.string().trim().min(1).max(160),
   expected_version: z.number().int().positive(),
@@ -207,6 +225,8 @@ export const setlistSaveSchema = z.object({
 
 export type DirectEventSaveInput = z.infer<typeof directEventSaveSchema>;
 export type TourSaveInput = z.infer<typeof tourSaveSchema>;
+export type TourStopsUpdateInput = z.input<typeof tourStopsUpdateSchema>;
+export interface TourStopsUpdateResult { tour: TourDetail; added: number; removed: number }
 export type SongSaveInput = z.infer<typeof songSaveSchema>;
 export type ReleaseSaveInput = z.infer<typeof releaseSaveSchema>;
 export type SetlistSaveInput = z.infer<typeof setlistSaveSchema>;
@@ -421,6 +441,70 @@ export class ContentAdminService {
     ]);
     if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "巡演在保存前已发生变化，请刷新页面", 409);
     return (await getTourById(this.db, id))!;
+  }
+
+  /**
+   * Adds events to a tour and removes current stops in one batch. Each changed event gets a version bump and an
+   * audit row, exactly like saving it from the event editor. Moving an event out of a tour (to another one or to
+   * none) clears its tour-specific stop label; adding an unassigned event keeps whatever label it already has.
+   */
+  async updateTourStops(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<TourStopsUpdateResult> {
+    assertScope(actor, "events:publish");
+    const input = tourStopsUpdateSchema.parse(raw);
+    const receiptId = await receiptTarget(this.db, input.idempotency_key, "admin.tour.stops");
+    if (receiptId) return { tour: (await getTourById(this.db, receiptId))!, added: 0, removed: 0 };
+    const tour = await getTourById(this.db, input.tour_id);
+    if (!tour) throw new ServiceError("not_found", "巡演不存在", 404);
+
+    const addIds = [...new Set(input.add_event_ids)];
+    const removeIds = [...new Set(input.remove_event_ids)];
+    const ids = [...addIds, ...removeIds];
+    const rows = (await this.db.prepare(`SELECT id, title, tour_id, tour_stop, version, updated_at, archived_at
+      FROM events WHERE id IN (${ids.map(() => "?").join(", ")})`).bind(...ids)
+      .all<{ id: string; title: string; tour_id: string | null; tour_stop: string | null; version: number; updated_at: string; archived_at: string | null }>()).results;
+    const byId = new Map(rows.map((row) => [row.id, row]));
+
+    const changes: Array<{ row: (typeof rows)[number]; tour_id: string | null; tour_stop: string | null }> = [];
+    for (const id of addIds) {
+      const row = byId.get(id);
+      if (!row || row.archived_at) throw new ServiceError("validation_error", "所选活动不存在或已归档，请刷新页面", 400);
+      if (row.tour_id === tour.id) continue;
+      changes.push({ row, tour_id: tour.id, tour_stop: row.tour_id ? null : row.tour_stop });
+    }
+    for (const id of removeIds) {
+      const row = byId.get(id);
+      if (!row) throw new ServiceError("validation_error", "要移出的活动不存在，请刷新页面", 400);
+      if (row.tour_id !== tour.id) continue;
+      changes.push({ row, tour_id: null, tour_stop: null });
+    }
+    if (!changes.length) return { tour, added: 0, removed: 0 };
+
+    const statements: D1PreparedStatement[] = [];
+    let receiptCondition: { sql: string; bindings: unknown[]; now: string } | null = null;
+    for (const change of changes) {
+      const { row } = change;
+      const now = nextUpdatedAt(row.updated_at);
+      const conditionSql = "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)";
+      const conditionBindings = [row.id, now];
+      receiptCondition ??= { sql: conditionSql, bindings: conditionBindings, now };
+      statements.push(
+        this.db.prepare(`UPDATE events SET tour_id = ?, tour_stop = ?, version = version + 1, updated_at = ?
+          WHERE id = ? AND version = ? AND updated_at = ? AND archived_at IS NULL`)
+          .bind(change.tour_id, change.tour_stop, now, row.id, row.version, row.updated_at),
+        auditStatement(this.db, actor, requestId, "content.event.tour", "event", row.id,
+          { id: row.id, title: row.title, tour_id: row.tour_id, tour_stop: row.tour_stop },
+          { id: row.id, title: row.title, tour_id: change.tour_id, tour_stop: change.tour_stop },
+          now, conditionSql, conditionBindings),
+      );
+    }
+    statements.push(receiptStatement(this.db, input.idempotency_key, "admin.tour.stops", tour.id, receiptCondition!.now, receiptCondition!.sql, receiptCondition!.bindings));
+    const results = await this.db.batch(statements);
+    const failed = changes.filter((_, index) => (results[index * 2].meta.changes ?? 0) !== 1);
+    if (failed.length) {
+      throw new ServiceError("version_conflict", `以下活动在保存前已发生变化，请刷新页面后重试：${failed.map((change) => change.row.title).join("、")}`, 409);
+    }
+    const added = changes.filter((change) => change.tour_id === tour.id).length;
+    return { tour: (await getTourById(this.db, tour.id))!, added, removed: changes.length - added };
   }
 
   async setEventArchived(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<EventRecord> {

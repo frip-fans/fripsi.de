@@ -57,6 +57,18 @@ describe("tour matrix", () => {
     expect(matrix.stop_count).toBe(2);
   });
 
+  it("treats shows from today on without a setlist as upcoming, not missing", () => {
+    const matrix = computeTourMatrix(
+      [show("past", "2026-11-01", null), show("done", "2026-11-05", "s1"), show("tonight", "2026-11-13", null), show("later", "2026-12-01", null)],
+      entries("s1", ["a"]),
+      "2026-11-13",
+    );
+    expect(matrix.columns.map(column => column.upcoming)).toEqual([false, false, true, true]);
+    expect(matrix.rows[0].cells.map(cell => cell.state)).toEqual(["missing", "sung", "upcoming", "upcoming"]);
+    // Without a date, nothing is assumed to be in the future.
+    expect(computeTourMatrix([show("later", "2099-01-01", null)], []).columns[0].upcoming).toBe(false);
+  });
+
   it("withholds the fixed / rotating split with fewer than two complete setlists", () => {
     const matrix = computeTourMatrix([show("t1", "2026-01-01", "s1"), show("t2", "2026-01-02", "s2", "partial")], [...entries("s1", ["a"]), ...entries("s2", ["a"])]);
     expect(matrix.stats).toBeNull();

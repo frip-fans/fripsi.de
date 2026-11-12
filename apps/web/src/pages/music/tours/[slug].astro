@@ -75,13 +75,14 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
                 <tr>
                   <th scope="col" class="tour-song-col">{t(locale, "music.tourSong")}</th>
                   {matrix.columns.map((column) => (
-                    <th scope="col" class:list={["tour-show-col", { "is-missing": !column.setlist_id, "is-partial": column.setlist_id && column.completeness !== "complete" }]}>
+                    <th scope="col" class:list={["tour-show-col", { "is-missing": !column.setlist_id && !column.upcoming, "is-upcoming": column.upcoming, "is-partial": column.setlist_id && column.completeness !== "complete" }]}>
                       <a href={columnHref(column)}>
                         <span class="tour-show-number">{column.stop_number}</span>
                         <span class="tour-show-stop">{column.stop_label.replace(/公演$/, "")}</span>
                         <time datetime={column.start_date}>{columnDate(column)}</time>
                         {showLabel(column) && <span class="tour-show-label">{showLabel(column)}</span>}
-                        {!column.setlist_id ? <span class="tour-show-flag">{t(locale, "music.tourMissingSetlist")}</span>
+                        {column.upcoming ? <span class="tour-show-flag">{t(locale, "music.tourUpcoming")}</span>
+                          : !column.setlist_id ? <span class="tour-show-flag">{t(locale, "music.tourMissingSetlist")}</span>
                           : column.completeness !== "complete" && <span class="tour-show-flag">{t(locale, "music.tourPartialSetlist")}</span>}
                       </a>
                     </th>
@@ -106,6 +107,8 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
                       <td class="is-absent"><span aria-hidden="true">·</span><span class="visually-hidden">{t(locale, "music.tourLegendAbsent")}</span></td>
                     ) : cell.state === "unknown" ? (
                       <td class="is-unknown"><span aria-hidden="true">?</span><span class="visually-hidden">{t(locale, "music.tourLegendUnknown")}</span></td>
+                    ) : cell.state === "upcoming" ? (
+                      <td class="is-upcoming"><span class="visually-hidden">{t(locale, "music.tourUpcoming")}</span></td>
                     ) : (
                       <td class="is-missing"><span class="visually-hidden">{t(locale, "music.tourMissingSetlist")}</span></td>
                     ))}
@@ -133,7 +136,7 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
               const change = changesByColumn.get(index);
               const partial = column.setlist_id && column.completeness !== "complete";
               return (
-                <li class:list={["tour-stop", { "is-missing": !column.setlist_id }]}>
+                <li class:list={["tour-stop", { "is-missing": !column.setlist_id && !column.upcoming, "is-upcoming": column.upcoming }]}>
                   <a class="tour-stop-head" href={columnHref(column)}>
                     <span class="tour-show-number">{column.stop_number}</span>
                     <span class="tour-stop-title">
@@ -142,7 +145,8 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
                     </span>
                     <Icon name="chevron-right" />
                   </a>
-                  {!column.setlist_id ? <p class="tour-stop-note">{t(locale, "music.tourMissingSetlist")}</p>
+                  {column.upcoming ? <p class="tour-stop-note">{t(locale, "music.tourUpcoming")}</p>
+                    : !column.setlist_id ? <p class="tour-stop-note">{t(locale, "music.tourMissingSetlist")}</p>
                     : change && (change.added.length || change.dropped.length) ? (
                       <div class="tour-stop-changes">
                         {change.added.length > 0 && (
@@ -170,12 +174,13 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
       <section class="music-section">
         <ol class="tour-stop-list">
           {matrix.columns.map((column) => (
-            <li class="tour-stop is-missing">
+            <li class:list={["tour-stop", column.upcoming ? "is-upcoming" : "is-missing"]}>
               <a class="tour-stop-head" href={columnHref(column)}>
                 <span class="tour-show-number">{column.stop_number}</span>
                 <span class="tour-stop-title"><strong>{column.stop_label}</strong><time datetime={column.start_date}>{formatMusicDate(column.start_date, locale)}</time></span>
                 <Icon name="chevron-right" />
               </a>
+              <p class="tour-stop-note">{t(locale, column.upcoming ? "music.tourUpcoming" : "music.tourMissingSetlist")}</p>
             </li>
           ))}
         </ol>
@@ -260,8 +265,10 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   tbody .tour-song-col a:hover { color: var(--accent); }
   tbody .tour-song-col { color: var(--text); font-size: .84rem; }
   .tour-freq { display: inline-flex; flex: none; align-items: center; gap: .4rem; color: var(--muted); font-size: .7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-  tbody tr:hover > * { background-color: rgba(var(--accent-rgb), .06); }
-  tbody tr:hover .tour-song-col { background-color: #0f2036; }
+  /* Row hover tints the song name and empty cells only; heat cells keep their colour and brighten. */
+  tbody tr:hover > td:not(.is-sung) { background-color: rgba(var(--accent-rgb), .08); }
+  tbody tr:hover .tour-song-col { background-color: #142a45; }
+  tbody tr:hover > td.is-sung { filter: brightness(1.12); }
 
   .tour-show-col { min-width: 4.6rem; padding: 0; vertical-align: bottom; font-weight: 400; }
   .tour-show-col a { display: grid; justify-items: center; gap: .1rem; padding: .6rem .4rem .5rem; color: var(--muted); text-align: center; text-decoration: none; }
@@ -272,6 +279,8 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   .tour-show-col time { font-size: .7rem; font-variant-numeric: tabular-nums; }
   .tour-show-label { font-size: .68rem; }
   .tour-show-flag { padding: .05rem .35rem; border: 1px solid rgba(159, 180, 211, .25); border-radius: 999px; font-size: .64rem; }
+  .tour-show-col.is-upcoming .tour-show-flag { color: var(--accent); border-color: rgba(var(--accent-rgb), .4); }
+  .tour-show-col.is-upcoming a { opacity: .75; }
   .tour-show-col.is-partial .tour-show-flag { color: #e8c88a; border-color: rgba(232, 200, 138, .4); }
 
   .tour-matrix td { height: 2.1rem; padding: 0 .3rem; text-align: center; vertical-align: middle; font-variant-numeric: tabular-nums; }
@@ -283,6 +292,8 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   .tour-matrix td.is-absent, .tour-key.is-absent { color: rgba(159, 180, 211, .45); }
   .tour-matrix td.is-unknown, .tour-key.is-unknown { color: #e8c88a; }
   .tour-matrix td.is-missing, .tour-key.is-missing { background-image: repeating-linear-gradient(135deg, rgba(159, 180, 211, .1) 0 2px, transparent 2px 7px); }
+  /* Not played yet: left empty, without the hatching that marks missing data. */
+  .tour-matrix td.is-upcoming { background-color: rgba(159, 180, 211, .03); }
   .tour-key.is-absent, .tour-key.is-unknown, .tour-key.is-missing { border: 1px solid rgba(159, 180, 211, .18); }
 
   .tour-changes-panel { display: grid; gap: 1rem; }

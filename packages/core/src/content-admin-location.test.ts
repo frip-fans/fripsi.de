@@ -162,3 +162,71 @@ describe("content admin structured locations", () => {
     sqlite.close();
   });
 });
+
+describe("content admin tour stops", () => {
+  async function setup() {
+    const sqlite = new DatabaseSync(":memory:");
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql"]) {
+      sqlite.exec(migration(name));
+    }
+    const db = new TestD1(sqlite) as unknown as D1Database;
+    const actor: Actor = { id: "tester", type: "human", channel: "admin", scopes: ["events:publish"] };
+    const service = new ContentAdminService(db);
+    const tour = await service.saveTour({ name: "Tour A", published: true, idempotency_key: "tour-a-create" }, actor);
+    const other = await service.saveTour({ name: "Tour B", published: true, idempotency_key: "tour-b-create" }, actor);
+    const makeEvent = (title: string, date: string, display?: { tour_id: string; tour_stop: string }) => service.saveEvent({
+      published: true,
+      idempotency_key: `event-${title}`,
+      event: {
+        title, start_date: date, timezone: "Asia/Tokyo", category: "LIVE", status: "scheduled",
+        location_mode: "none", location_note: null, venues: [], channels: [],
+        sources: [{ url: `https://fripside.net/${encodeURIComponent(title)}` }],
+      },
+      display,
+    }, actor);
+    return { sqlite, db, actor, service, tour, other, makeEvent };
+  }
+
+  it("adds, moves and removes stops with version bumps and audit rows", async () => {
+    const { sqlite, db, actor, service, tour, other, makeEvent } = await setup();
+    const free = await makeEvent("Free show", "2026-10-01");
+    const moved = await makeEvent("Moved show", "2026-10-02", { tour_id: other.id, tour_stop: "大阪" });
+
+    const result = await service.updateTourStops({
+      tour_id: tour.id, idempotency_key: "tour-stops-add", add_event_ids: [free.id, moved.id],
+    }, actor);
+    expect(result).toMatchObject({ added: 2, removed: 0 });
+    expect(result.tour.stops.map((stop) => stop.event_id)).toEqual([free.id, moved.id]);
+    const movedRow = sqlite.prepare("SELECT tour_id, tour_stop, version FROM events WHERE id = ?").get(moved.id);
+    expect(movedRow).toMatchObject({ tour_id: tour.id, tour_stop: null, version: moved.version + 1 });
+    expect(sqlite.prepare("SELECT COUNT(*) AS count FROM audit_logs WHERE action = 'content.event.tour'").get()).toMatchObject({ count: 2 });
+
+    const replay = await service.updateTourStops({
+      tour_id: tour.id, idempotency_key: "tour-stops-add", add_event_ids: [free.id, moved.id],
+    }, actor);
+    expect(replay).toMatchObject({ added: 0, removed: 0 });
+
+    const removed = await service.updateTourStops({
+      tour_id: tour.id, idempotency_key: "tour-stops-remove", remove_event_ids: [free.id],
+    }, actor);
+    expect(removed).toMatchObject({ added: 0, removed: 1 });
+    expect(removed.tour.stops.map((stop) => stop.event_id)).toEqual([moved.id]);
+    expect((await db.prepare("SELECT tour_id FROM events WHERE id = ?").bind(free.id).first())).toMatchObject({ tour_id: null });
+    sqlite.close();
+  });
+
+  it("rejects archived or unknown events and ignores no-op removals", async () => {
+    const { sqlite, actor, service, tour, other, makeEvent } = await setup();
+    const elsewhere = await makeEvent("Elsewhere", "2026-11-01", { tour_id: other.id, tour_stop: "東京" });
+    await expect(service.updateTourStops({
+      tour_id: tour.id, idempotency_key: "tour-stops-missing", add_event_ids: ["evt_missing"],
+    }, actor)).rejects.toThrow("不存在或已归档");
+
+    const noop = await service.updateTourStops({
+      tour_id: tour.id, idempotency_key: "tour-stops-noop", remove_event_ids: [elsewhere.id],
+    }, actor);
+    expect(noop).toMatchObject({ added: 0, removed: 0 });
+    expect(sqlite.prepare("SELECT tour_id, tour_stop FROM events WHERE id = ?").get(elsewhere.id)).toMatchObject({ tour_id: other.id, tour_stop: "東京" });
+    sqlite.close();
+  });
+});

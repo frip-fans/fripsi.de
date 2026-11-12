@@ -1,44 +1,246 @@
 ---
-import { getTourById } from "@frip-fan/core";
+import { getTourById, listTourCandidateEvents } from "@frip-fan/core";
+import { buildSearchText } from "@frip-fan/core/search-text";
 import Icon from "../../../components/Icon.astro";
 import TourAdminForm from "../../../components/TourAdminForm.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
+import { categoryLabels } from "../../../lib/format";
 
-const tour = await getTourById(getEnv().DB, Astro.params.id!);
+const db = getEnv().DB;
+const tour = await getTourById(db, Astro.params.id!);
 if (!tour) return Astro.redirect("/admin/tours", 302);
+const candidates = await listTourCandidateEvents(db, tour.id);
 const canWrite = Astro.locals.actor!.scopes.includes("events:publish");
 const saved = Astro.url.searchParams.get("saved") === "1";
+const count = (key: string) => {
+  const value = Number(Astro.url.searchParams.get(key));
+  return Number.isInteger(value) && value > 0 ? value : 0;
+};
+const added = count("added");
+const removed = count("removed");
+const membershipNotice = [added && `已加入 ${added} 场`, removed && `已移出 ${removed} 场`].filter(Boolean).join("，");
+const unchanged = Astro.url.searchParams.has("added") && !added && !removed;
 // Auto-derived stop names collide when a tour plays the same city twice; flag them for a manual stop label.
 const counts = new Map<string, number>();
 for (const stop of tour.stops) counts.set(stop.display_title, (counts.get(stop.display_title) ?? 0) + 1);
+const idempotencyKey = () => `admin-tour-stops-${tour.id}-${crypto.randomUUID()}`;
 ---
 <SiteLayout title={tour.name} admin>
   <a class="muted back-link" href="/admin/tours"><Icon name="arrow-left" />巡演列表</a>
   <header class="edit-head"><div><p class="eyebrow">Tour · {tour.stop_count} 站</p><h1>{tour.name}</h1></div></header>
-  {saved && <p class="notice success">巡演已经保存并写入审计日志。</p>}
-  <TourAdminForm tour={tour} canWrite={canWrite} />
-  <section class="panel stops">
-    <h2>各站</h2>
-    <p class="muted">在活动编辑页选择「所属巡演」即可加入或移出。显示名重复时请在活动里填写「场次」。</p>
+  {saved && <p class="notice success" role="status">巡演已经保存并写入审计日志。</p>}
+  {membershipNotice && <p class="notice success" role="status">{membershipNotice}，已写入审计日志。</p>}
+  {unchanged && <p class="notice" role="status">所选活动已经是当前状态，没有变化。</p>}
+
+  <section class="panel stops" aria-labelledby="stops-title">
+    <div class="stops-head">
+      <h2 id="stops-title">各站 <span class="muted">{tour.stops.length}</span></h2>
+      <p class="muted">显示名重复时，请在活动里填写「场次」。</p>
+    </div>
+    <form id="tour-remove-form" method="post" action="/api/admin/tours/stops">
+      <input type="hidden" name="tour_id" value={tour.id} />
+      <input type="hidden" name="idempotency_key" value={idempotencyKey()} />
+    </form>
     {tour.stops.length ? (
-      <table>
-        <thead><tr><th>日期</th><th>显示名</th><th>官方名称</th><th>歌单</th></tr></thead>
-        <tbody>
-          {tour.stops.map((stop) => <tr>
-            <td>{stop.start_date}</td>
-            <td><a href={`/admin/events/${stop.event_id}`}>{stop.display_title}</a>{(counts.get(stop.display_title) ?? 0) > 1 && <span class="tag warning">显示名重复</span>}{!stop.published && <span class="tag">未公开</span>}</td>
-            <td class="muted">{stop.event_title}</td>
-            <td>{stop.setlist_id ? <a href={`/music/lives/${stop.setlist_id}`} target="_blank">有</a> : <span class="muted">待补</span>}</td>
-          </tr>)}
-        </tbody>
-      </table>
-    ) : <p class="empty">还没有活动归入这个巡演。</p>}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>日期</th><th>显示名</th><th class="col-official">官方名称</th><th>歌单</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+          <tbody>
+            {tour.stops.map((stop) => <tr>
+              <td class="nowrap">{stop.start_date}</td>
+              <td><a href={`/admin/events/${stop.event_id}`}>{stop.display_title}</a>{(counts.get(stop.display_title) ?? 0) > 1 && <span class="tag warning">显示名重复</span>}{!stop.published && <span class="tag">未公开</span>}</td>
+              <td class="muted col-official">{stop.event_title}</td>
+              <td class="nowrap">{stop.setlist_id ? <a href={`/music/lives/${stop.setlist_id}`} target="_blank">有</a> : <span class="muted">待补</span>}</td>
+              <td class="row-action">
+                <button type="submit" form="tour-remove-form" class="secondary compact" name="remove_event_id" value={stop.event_id} disabled={!canWrite} aria-label={`从巡演移出 ${stop.display_title}`}><Icon name="x-lg" />移出</button>
+              </td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+    ) : <p class="empty">还没有活动归入这个巡演，在下方搜索并添加。</p>}
   </section>
+
+  <section class="panel picker" aria-labelledby="picker-title">
+    <form method="post" action="/api/admin/tours/stops" data-tour-picker>
+      <input type="hidden" name="tour_id" value={tour.id} />
+      <input type="hidden" name="idempotency_key" value={idempotencyKey()} />
+      <div class="picker-head">
+        <h2 id="picker-title">添加公演</h2>
+        <p class="muted">勾选后一次加入；已属其他巡演的活动会移到本巡演。</p>
+      </div>
+      <div class="picker-filters">
+        <label class="picker-search">
+          <span class="visually-hidden">搜索活动</span>
+          <Icon name="search" />
+          <input type="search" placeholder="搜索日期、活动名、场地或地区" autocomplete="off" data-picker-search />
+        </label>
+        <label class="check"><input type="checkbox" checked data-picker-live-only />只看 LIVE</label>
+        <label class="check"><input type="checkbox" data-picker-free-only />只看未归入巡演</label>
+      </div>
+      <p class="picker-meta muted" aria-live="polite"><span data-picker-count>{candidates.length}</span> 场可选</p>
+      <ul class="picker-list" data-picker-list>
+        {candidates.map((event) => {
+          const place = [event.venue_name, event.area_name].filter(Boolean).join(" · ");
+          const detail = [event.display_title !== event.title ? event.title : "", place].filter(Boolean).join(" ｜ ");
+          return <li
+            data-picker-item
+            data-category={event.category}
+            data-free={event.tour_id ? undefined : ""}
+            data-search={buildSearchText([event.start_date, event.title, event.display_title, event.venue_name ?? "", event.area_name ?? "", event.tour_name ?? ""])}
+          >
+            <label>
+              <input type="checkbox" name="add_event_id" value={event.id} disabled={!canWrite} />
+              <span class="item-date">{event.start_date}</span>
+              <span class="item-main">
+                <span class="item-title">{event.display_title}</span>
+                {detail && <small>{detail}</small>}
+              </span>
+              <span class="item-tags">
+                {event.category !== "LIVE" && <span class="tag">{categoryLabels[event.category as keyof typeof categoryLabels] ?? event.category}</span>}
+                {event.tour_name && <span class="tag warning" title="加入后将从该巡演移出">{event.tour_name}</span>}
+                {!event.published && <span class="tag">未公开</span>}
+              </span>
+            </label>
+          </li>;
+        })}
+      </ul>
+      <p class="empty picker-empty" data-picker-empty hidden>没有匹配的活动。</p>
+      <div class="picker-actions">
+        <span class="muted" aria-live="polite">已选 <strong data-picker-selected>0</strong> 场</span>
+        <button type="button" class="secondary" data-picker-clear disabled>清除选择</button>
+        <button type="submit" data-picker-submit disabled={!canWrite}><Icon name="plus" /><span data-picker-submit-label>加入巡演</span></button>
+      </div>
+    </form>
+  </section>
+
+  <h2 class="section-title">巡演信息</h2>
+  <TourAdminForm tour={tour} canWrite={canWrite} />
 </SiteLayout>
+
+<script>
+  import { searchMatcher } from "@frip-fan/core/search-text";
+
+  for (const form of document.querySelectorAll<HTMLFormElement>("[data-tour-picker]")) {
+    const search = form.querySelector<HTMLInputElement>("[data-picker-search]")!;
+    const liveOnly = form.querySelector<HTMLInputElement>("[data-picker-live-only]")!;
+    const freeOnly = form.querySelector<HTMLInputElement>("[data-picker-free-only]")!;
+    const items = [...form.querySelectorAll<HTMLElement>("[data-picker-item]")];
+    const countLabel = form.querySelector<HTMLElement>("[data-picker-count]")!;
+    const selectedLabel = form.querySelector<HTMLElement>("[data-picker-selected]")!;
+    const empty = form.querySelector<HTMLElement>("[data-picker-empty]")!;
+    const submit = form.querySelector<HTMLButtonElement>("[data-picker-submit]")!;
+    const submitLabel = form.querySelector<HTMLElement>("[data-picker-submit-label]")!;
+    const clear = form.querySelector<HTMLButtonElement>("[data-picker-clear]")!;
+    const checkbox = (item: HTMLElement) => item.querySelector<HTMLInputElement>("input[name=add_event_id]")!;
+    const writable = !submit.disabled;
+
+    const refresh = () => {
+      const matches = searchMatcher(search.value);
+      let visible = 0;
+      let selected = 0;
+      for (const item of items) {
+        const checked = checkbox(item).checked;
+        if (checked) selected += 1;
+        item.classList.toggle("selected", checked);
+        // Selected events stay visible so a narrower search never hides what will be submitted.
+        const show = checked || (
+          matches(item.dataset.search ?? "")
+          && (!liveOnly.checked || item.dataset.category === "LIVE")
+          && (!freeOnly.checked || item.dataset.free !== undefined)
+        );
+        item.hidden = !show;
+        if (show) visible += 1;
+      }
+      countLabel.textContent = String(visible);
+      selectedLabel.textContent = String(selected);
+      empty.hidden = visible > 0;
+      submit.disabled = !writable || selected === 0;
+      clear.disabled = selected === 0;
+      submitLabel.textContent = selected ? `加入巡演（${selected}）` : "加入巡演";
+    };
+
+    search.addEventListener("input", refresh);
+    liveOnly.addEventListener("change", refresh);
+    freeOnly.addEventListener("change", refresh);
+    form.addEventListener("change", (event) => {
+      if ((event.target as Element).matches("input[name=add_event_id]")) refresh();
+    });
+    // Enter in the search box ticks the only remaining match instead of submitting a half-made selection.
+    search.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter") return;
+      event.preventDefault();
+      const visible = items.filter((item) => !item.hidden && !checkbox(item).checked);
+      if (visible.length === 1 && writable) {
+        checkbox(visible[0]).checked = true;
+        search.value = "";
+        refresh();
+      }
+    });
+    clear.addEventListener("click", () => {
+      for (const item of items) checkbox(item).checked = false;
+      refresh();
+      search.focus();
+    });
+    form.addEventListener("submit", () => { submit.disabled = true; });
+    refresh();
+  }
+
+  document.querySelector<HTMLFormElement>("#tour-remove-form")?.addEventListener("submit", () => {
+    // Defer so the clicked button's name/value is still part of the submission.
+    setTimeout(() => {
+      for (const button of document.querySelectorAll<HTMLButtonElement>("button[form=tour-remove-form]")) button.disabled = true;
+    });
+  });
+</script>
+
 <style>
-  .stops { margin-top: 2rem; display: grid; gap: .8rem; overflow-x: auto; }
-  .stops h2 { margin: 0; }
+  .success { border-left-color: #79d9a6; color: #c9f8dc; background: rgba(78,190,127,.08); }
+  .notice { margin: 0 0 1rem; }
+  .stops, .picker { margin-top: 2rem; display: grid; gap: .8rem; }
+  .stops h2, .picker h2 { margin: 0; }
+  .stops-head, .picker-head { display: flex; align-items: baseline; justify-content: space-between; gap: .4rem 1rem; flex-wrap: wrap; }
+  .stops-head p, .picker-head p { margin: 0; font-size: .85rem; }
   .stops td .tag { margin-left: .4rem; }
+  .stops .empty { padding: 1.5rem 1rem; margin: 0; }
+  .nowrap { white-space: nowrap; }
+  .row-action { text-align: right; width: 1%; }
+  button.compact { min-height: 34px; padding: .35rem .7rem; font-size: .8rem; white-space: nowrap; }
   .tag.warning { color: var(--warning); border-color: currentColor; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .picker form { display: grid; gap: .8rem; }
+  .picker-filters { display: flex; align-items: center; gap: .6rem 1.2rem; flex-wrap: wrap; }
+  .picker-search { position: relative; display: flex; align-items: center; flex: 1 1 18rem; }
+  .picker-search :global(.icon) { position: absolute; left: .8rem; color: var(--muted); pointer-events: none; }
+  .picker-search input { padding-left: 2.35rem; }
+  .check { display: flex; align-items: center; gap: .45rem; white-space: nowrap; font-size: .85rem; cursor: pointer; }
+  .check input { width: auto; }
+  .picker-meta { margin: 0; font-size: .8rem; }
+  .picker-list { list-style: none; margin: 0; padding: .25rem; display: grid; gap: .15rem; max-height: 26rem; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 12px; background: rgba(4,11,20,.4); scrollbar-width: thin; }
+  .picker-list li label { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; gap: .3rem .8rem; padding: .6rem .7rem; color: var(--text); font-size: .9rem; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+  .picker-list li label:hover { background: rgba(255,255,255,.05); }
+  .picker-list li label:focus-within { border-color: rgba(var(--accent-rgb), .45); }
+  .picker-list li.selected label { background: rgba(var(--accent-rgb), .1); border-color: rgba(var(--accent-rgb), .3); }
+  .picker-list input[type=checkbox] { width: 1.05rem; height: 1.05rem; margin: 0; padding: 0; accent-color: var(--accent); }
+  .item-date { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .item-main { display: grid; gap: .15rem; min-width: 0; }
+  .item-title { overflow-wrap: anywhere; }
+  .item-main small { color: var(--muted); font-size: .76rem; overflow-wrap: anywhere; }
+  .item-tags { display: flex; gap: .3rem; flex-wrap: wrap; justify-content: flex-end; }
+  .picker-empty { padding: 2rem 1rem; margin: 0; }
+  .picker-actions { display: flex; align-items: center; justify-content: flex-end; gap: .7rem; flex-wrap: wrap; }
+  .picker-actions > span { margin-right: auto; font-size: .85rem; }
+  .section-title { margin: 2.5rem 0 1rem; }
+  [hidden] { display: none !important; }
+  @media (max-width: 680px) {
+    .stops .col-official { display: none; }
+    .stops th, .stops td { padding: .7rem .4rem; }
+    .stops th { white-space: nowrap; }
+    .picker-list li label { grid-template-columns: auto minmax(0, 1fr); }
+    .picker-list li label > input { grid-row: 1 / span 3; align-self: start; margin-top: .2rem; }
+    .item-date, .item-main, .item-tags { grid-column: 2; }
+    .item-date { font-size: .78rem; }
+    .item-tags { justify-content: flex-start; }
+  }
 </style>

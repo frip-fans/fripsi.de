@@ -22,6 +22,13 @@ const columnDate = (column: TourMatrixColumn) => shortDate.format(new Date(`${co
 const showLabel = (column: TourMatrixColumn) => column.performance_label && !/^本公演$|出演枠/.test(column.performance_label) ? column.performance_label : null;
 const columnHref = (column: TourMatrixColumn) => column.setlist_id ? `/music/lives/${encodeURIComponent(column.setlist_id)}` : `/events/${encodeURIComponent(column.event_slug)}`;
 const isEncore = (cell: TourCell) => cell.state === "sung" && (cell.section === "encore" || cell.section === "double_encore");
+// Heat colour by place in the set: warm near the opener, violet near the end (same ramp as the legend).
+const HEAT_STOPS = [[247, 178, 103], [234, 129, 66], [214, 102, 130], [139, 120, 242]];
+const heatColor = (position: number, length: number) => {
+  const x = Math.min(Math.max(length > 1 ? (position - 1) / (length - 1) : 0, 0), 1) * (HEAT_STOPS.length - 1);
+  const i = Math.min(Math.floor(x), HEAT_STOPS.length - 2);
+  return `rgb(${HEAT_STOPS[i].map((v, k) => Math.round(v + (HEAT_STOPS[i + 1][k] - v) * (x - i))).join(", ")})`;
+};
 const changesByColumn = new Map(matrix.changes.map((change) => [change.column_index, change]));
 ---
 <SiteLayout title={t(locale, "music.tourPageTitle", { name: tour.name })} description={t(locale, "music.tourDescription", { name: tour.name, count: matrix.stop_count })}>
@@ -47,7 +54,7 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
     </header>
 
     {matrix.rows.length > 0 ? (
-      <section class="music-section tour-views" data-tour-views data-view="auto" aria-label={t(locale, "music.tourViewLabel")}>
+      <section class="music-section tour-views" data-tour-views data-view="matrix" aria-label={t(locale, "music.tourViewLabel")}>
         <div class="tour-view-switch" role="group" aria-label={t(locale, "music.tourViewLabel")}>
           <button type="button" data-tour-view-button="matrix"><Icon name="list-stars" />{t(locale, "music.tourViewMatrix")}</button>
           <button type="button" data-tour-view-button="changes"><Icon name="arrow-down-up" />{t(locale, "music.tourViewChanges")}</button>
@@ -55,8 +62,9 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
 
         <div class="tour-panel tour-matrix-panel">
           <ul class="tour-legend">
-            <li><span class="tour-key is-sung">3</span>{t(locale, "music.tourCellSung", { position: "N" })}</li>
-            <li><span class="tour-key is-sung is-encore">E</span>{t(locale, "music.tourLegendEncore")}</li>
+            <li><span class="tour-key is-rotating" aria-hidden="true"></span>{t(locale, "music.tourRotatingBadge")}</li>
+            <li class="tour-ramp"><span>{t(locale, "music.tourLegendOpener")}</span><i aria-hidden="true"></i><span>{t(locale, "music.tourLegendCloser")}</span></li>
+            <li><span class="tour-key is-encore">E</span>{t(locale, "music.tourLegendEncore")}</li>
             <li><span class="tour-key is-absent">·</span>{t(locale, "music.tourLegendAbsent")}</li>
             <li><span class="tour-key is-unknown">?</span>{t(locale, "music.tourLegendUnknown")}</li>
             <li><span class="tour-key is-missing"></span>{t(locale, "music.tourMissingSetlist")}</li>
@@ -70,7 +78,7 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
                     <th scope="col" class:list={["tour-show-col", { "is-missing": !column.setlist_id, "is-partial": column.setlist_id && column.completeness !== "complete" }]}>
                       <a href={columnHref(column)}>
                         <span class="tour-show-number">{column.stop_number}</span>
-                        <span class="tour-show-stop">{column.stop_label}</span>
+                        <span class="tour-show-stop">{column.stop_label.replace(/公演$/, "")}</span>
                         <time datetime={column.start_date}>{columnDate(column)}</time>
                         {showLabel(column) && <span class="tour-show-label">{showLabel(column)}</span>}
                         {!column.setlist_id ? <span class="tour-show-flag">{t(locale, "music.tourMissingSetlist")}</span>
@@ -86,11 +94,14 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
                     <th scope="row" class="tour-song-col">
                       <span class="tour-song-cell">
                         <a href={`/music/songs/${encodeURIComponent(row.song_slug)}`} translate="no" title={row.song_title}>{row.song_title}</a>
-                        <small>{row.sung_count}/{matrix.setlist_count}</small>
+                        <span class="tour-song-meta">
+                          {(row.kind === "rotating" || row.kind === "once") && <span class:list={["tour-badge", `is-${row.kind}`]}>{t(locale, row.kind === "once" ? "music.tourOnceBadge" : "music.tourRotatingBadge")}</span>}
+                          <small class="tour-freq">{row.sung_count}/{matrix.setlist_count}</small>
+                        </span>
                       </span>
                     </th>
-                    {row.cells.map((cell) => cell.state === "sung" ? (
-                      <td class:list={["is-sung", { "is-encore": isEncore(cell) }]}>{isEncore(cell) && <span class="tour-encore">E</span>}{cell.position}</td>
+                    {row.cells.map((cell, index) => cell.state === "sung" ? (
+                      <td class:list={["is-sung", { "is-encore": isEncore(cell) }]} style={`--heat: ${heatColor(cell.position, matrix.columns[index].entry_count)}`}>{isEncore(cell) && <span class="tour-encore">E</span>}{cell.position}</td>
                     ) : cell.state === "absent" ? (
                       <td class="is-absent"><span aria-hidden="true">·</span><span class="visually-hidden">{t(locale, "music.tourLegendAbsent")}</span></td>
                     ) : cell.state === "unknown" ? (
@@ -175,7 +186,6 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
 
 <script>
   const VIEW_KEY = "frip_fan_tour_view";
-  const narrow = matchMedia("(max-width: 760px)");
 
   function setupTourViews() {
     for (const root of document.querySelectorAll<HTMLElement>("[data-tour-views]")) {
@@ -187,7 +197,7 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
         if (saved === "matrix" || saved === "changes") root.dataset.view = saved;
       } catch { /* Storage is optional; the layout picks a view by width. */ }
       const sync = () => {
-        const view = root.dataset.view === "auto" ? (narrow.matches ? "changes" : "matrix") : root.dataset.view;
+        const view = root.dataset.view;
         for (const button of buttons) button.setAttribute("aria-pressed", String(button.dataset.tourViewButton === view));
       };
       for (const button of buttons) {
@@ -197,7 +207,6 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
           sync();
         });
       }
-      narrow.addEventListener("change", sync);
       sync();
     }
   }
@@ -224,27 +233,33 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   .tour-view-switch button[aria-pressed="true"] { color: #08111d; background: var(--accent); }
   .tour-view-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   [data-view="matrix"] .tour-changes-panel, [data-view="changes"] .tour-matrix-panel { display: none; }
-  @media (min-width: 761px) { [data-view="auto"] .tour-changes-panel { display: none; } }
-  @media (max-width: 760px) { [data-view="auto"] .tour-matrix-panel { display: none; } }
 
   .tour-legend { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin: 0 0 .8rem; padding: 0; list-style: none; color: var(--muted); font-size: .78rem; }
   .tour-legend li { display: inline-flex; align-items: center; gap: .4rem; }
   .tour-key { display: inline-grid; place-items: center; width: 1.6rem; height: 1.35rem; border-radius: 6px; font-size: .72rem; font-weight: 750; }
 
-  .tour-matrix-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); }
+  /* Positioned so the visually hidden cell labels are clipped by the scroller instead of widening the page. */
+  .tour-matrix-scroll { position: relative; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); }
   .tour-matrix-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .tour-matrix { border-collapse: separate; border-spacing: 0; min-width: 100%; font-size: .84rem; }
-  .tour-matrix th, .tour-matrix td { border-bottom: 1px solid rgba(159, 180, 211, .1); text-transform: none; letter-spacing: normal; }
-  .tour-matrix tbody tr:last-child > * { border-bottom: 0; }
-  .tour-song-col { position: sticky; left: 0; z-index: 1; width: 15rem; min-width: 11rem; max-width: 15rem; padding: .45rem .75rem; text-align: left; background: #0b1729; border-right: 1px solid var(--line); }
+  .tour-matrix { border-collapse: separate; border-spacing: 0 4px; min-width: 100%; padding: 0 4px; font-size: .84rem; }
+  .tour-matrix th, .tour-matrix td { text-transform: none; letter-spacing: normal; }
+  /* Rotating (日替) and one-off songs: the whole row sits in a dashed frame. Other rows keep a
+     transparent frame of the same width so every row lines up. */
+  .tour-matrix tbody tr > * { border-block: 1.5px dashed transparent; background-clip: padding-box; }
+  .tour-matrix tbody tr > :first-child { border-left: 1.5px dashed transparent; border-radius: 9px 0 0 9px; }
+  .tour-matrix tbody tr > :last-child { border-right: 1.5px dashed transparent; border-radius: 0 9px 9px 0; }
+  .tour-matrix tbody tr:is(.is-rotating, .is-once) > * { border-color: rgba(var(--accent-rgb), .85); }
+  .tour-song-meta { display: inline-flex; flex: none; align-items: center; gap: .4rem; }
+  .tour-badge { padding: 0 .4rem; border: 1px solid rgba(var(--accent-rgb), .6); border-radius: 999px; color: var(--accent); font-size: .66rem; font-weight: 700; line-height: 1.5; white-space: nowrap; }
+  .tour-badge.is-once { color: #e8c88a; border-color: rgba(232, 200, 138, .6); }
+  .tour-key.is-rotating { border: 1.5px dashed rgba(var(--accent-rgb), .85); }
+  .tour-song-col { position: sticky; left: 0; z-index: 1; width: 17rem; min-width: 11rem; max-width: 17rem; padding: .45rem .75rem; text-align: left; background: #0b1729; }
   thead .tour-song-col { color: var(--muted); font-size: .75rem; font-weight: 650; vertical-align: bottom; }
   .tour-song-cell { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; font-weight: 600; }
   tbody .tour-song-col a { min-width: 0; overflow: hidden; color: var(--text); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
   tbody .tour-song-col a:hover { color: var(--accent); }
   tbody .tour-song-col { color: var(--text); font-size: .84rem; }
-  tbody .tour-song-col small { flex: none; color: var(--muted); font-size: .72rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-  tr.is-fixed .tour-song-col small { color: var(--accent); }
-  tr.is-once .tour-song-col small { color: #e8c88a; }
+  .tour-freq { display: inline-flex; flex: none; align-items: center; gap: .4rem; color: var(--muted); font-size: .7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
   tbody tr:hover > * { background-color: rgba(var(--accent-rgb), .06); }
   tbody tr:hover .tour-song-col { background-color: #0f2036; }
 
@@ -260,14 +275,10 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   .tour-show-col.is-partial .tour-show-flag { color: #e8c88a; border-color: rgba(232, 200, 138, .4); }
 
   .tour-matrix td { height: 2.1rem; padding: 0 .3rem; text-align: center; vertical-align: middle; font-variant-numeric: tabular-nums; }
-  .tour-matrix td.is-sung, .tour-key.is-sung { color: var(--text); font-weight: 700; }
-  .tour-matrix td.is-sung { background-color: rgba(var(--accent-rgb), .2); box-shadow: inset 0 0 0 2px #0b1729; }
-  .tour-key.is-sung { background: rgba(var(--accent-rgb), .2); }
-  /* Every-show songs recede so the rotating slots read at a glance. */
-  tr.is-fixed td.is-sung { background-color: transparent; color: rgba(239, 248, 255, .62); font-weight: 600; }
-  tr.is-once td.is-sung { background-color: rgba(232, 200, 138, .22); }
-  .tour-matrix td.is-encore, .tour-key.is-encore { color: var(--accent); background-color: transparent; box-shadow: inset 0 0 0 2px #0b1729, inset 0 0 0 3px rgba(var(--accent-rgb), .55); }
-  .tour-key.is-encore { box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .6); }
+  .tour-matrix td.is-sung { color: rgba(8, 17, 29, .9); font-weight: 750; background-color: var(--heat); box-shadow: inset 2px 0 0 #0b1729, inset -2px 0 0 #0b1729; }
+  .tour-ramp i { width: 7rem; height: .6rem; border-radius: 999px; background: linear-gradient(90deg, rgb(247, 178, 103), rgb(234, 129, 66), rgb(214, 102, 130), rgb(139, 120, 242)); }
+  .tour-matrix td.is-encore { box-shadow: inset 2px 0 0 #0b1729, inset -2px 0 0 #0b1729, inset 0 0 0 4px var(--text); }
+  .tour-key.is-encore { color: var(--text); box-shadow: inset 0 0 0 2px var(--text); }
   .tour-encore { margin-right: .05rem; font-size: .66rem; }
   .tour-matrix td.is-absent, .tour-key.is-absent { color: rgba(159, 180, 211, .45); }
   .tour-matrix td.is-unknown, .tour-key.is-unknown { color: #e8c88a; }
@@ -314,7 +325,17 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
     .tour-song-cell { flex-direction: column; align-items: stretch; gap: .05rem; }
     tbody .tour-song-col { font-size: .78rem; line-height: 1.3; }
     tbody .tour-song-col a { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; overflow-wrap: anywhere; }
-    tbody .tour-song-col small { font-size: .66rem; }
+    /* Compact heatmap: narrow show columns with just the stop number and name. */
+    .tour-song-col { width: 8rem; min-width: 8rem; max-width: 8rem; }
+    .tour-show-col { min-width: 2.4rem; }
+    .tour-show-col a { padding: .5rem .15rem .4rem; }
+    .tour-show-col time, .tour-show-label { display: none; }
+    .tour-show-stop { max-width: 2.3rem; font-size: .62rem; }
+    .tour-show-flag { padding: 0 .2rem; font-size: .56rem; }
+    .tour-matrix td { height: 2.2rem; padding: 0 .1rem; font-size: .74rem; }
+    .tour-song-meta { gap: .3rem; }
+    .tour-freq { font-size: .64rem; }
+    .tour-badge { font-size: .58rem; padding: 0 .3rem; }
   }
   @media (prefers-reduced-motion: no-preference) {
     .tour-view-switch button { transition: color .15s, background-color .15s; }

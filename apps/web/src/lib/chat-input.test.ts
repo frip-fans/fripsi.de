@@ -16,8 +16,8 @@ it("accepts a trimmed message and rejects empty, oversized or malformed input", 
 });
 
 it("returns known service errors and hides everything else", async () => {
-  const known = await jsonError(new ServiceError("chat_budget", "本日聊天预算已用尽，请稍后再试", 429)).json() as any;
-  expect(known.error).toEqual({ code: "chat_budget", message: "本日聊天预算已用尽，请稍后再试" });
+  const known = await jsonError(new ServiceError("chat_session_expired", "聊天会话已结束，请开始新会话", 409)).json() as any;
+  expect(known.error).toEqual({ code: "chat_session_expired", message: "聊天会话已结束，请开始新会话" });
 
   const response = jsonError(new Error("openai_http_401: sk-live-secret leaked in provider message"));
   expect(response.status).toBe(500);

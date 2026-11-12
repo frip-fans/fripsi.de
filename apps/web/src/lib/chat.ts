@@ -1,6 +1,5 @@
 import {
   AgentsClient,
-  Budget,
   CHAT_SESSION_TTL_SECONDS,
   ChangeService,
   ServiceError,
@@ -19,9 +18,11 @@ import {
 } from "@frip-fan/core";
 import { getEnv } from "./env";
 
-const DEFAULT_MODEL = "gpt-6-luna";
-/** Reserved before the model runs; real usage replaces it as turns complete. */
-const TURN_RESERVATION_USD = 0.05;
+/** Model ids are opaque to us; only the shape is checked before one reaches OpenAI. */
+const MODEL_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
+/** The provider's model list changes without a deploy, so it is fetched and cached briefly. */
+const MODEL_CACHE_MS = 600_000;
+let modelCache: { models: string[]; at: number } | null = null;
 
 /**
  * Tools the chat credential may call. Publishing is deliberately absent: the maintainer
@@ -52,11 +53,9 @@ class ChatAgentsClient extends AgentsClient {
 
 interface ChatEnv {
   key: string;
-  model: string;
   mcpUrl: string;
   secret: string;
   audience: string;
-  limit: number;
 }
 
 export function chatEnabled(): boolean {
@@ -72,38 +71,52 @@ function configuration(): ChatEnv {
   const endpoint = new URL(env.MCP_ENDPOINT_URL);
   if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search
     || endpoint.hash || endpoint.pathname !== "/mcp") throw new ServiceError("chat_config", "MCP 地址配置无效", 503);
-  const limit = Number(env.CHAT_BUDGET_USD || 1);
-  return { key: env.OPENAI_API_KEY, model: env.CHAT_MODEL || DEFAULT_MODEL, mcpUrl: env.MCP_ENDPOINT_URL,
-    secret, audience: env.AUTOMATION_AUDIENCE, limit };
+  return { key: env.OPENAI_API_KEY, mcpUrl: env.MCP_ENDPOINT_URL,
+    secret, audience: env.AUTOMATION_AUDIENCE };
 }
 
-function budgetOf(session: ChatSession, config: ChatEnv): Budget {
-  return new Budget(getEnv().DB, session.budget_group, config.limit);
+/**
+ * Whatever this API key can reach is what the picker offers: no server-side allowlist,
+ * so a newly released model needs no configuration change.
+ */
+export async function listChatModels(now = Date.now()): Promise<string[]> {
+  if (modelCache && now - modelCache.at < MODEL_CACHE_MS) return modelCache.models;
+  const key = configuration().key;
+  let models: string[];
+  try {
+    models = await new ChatAgentsClient(key).models();
+  } catch {
+    // Never surface the provider's message; say what the operator can act on.
+    throw new ServiceError("chat_upstream", "无法获取模型列表，请检查 OPENAI_API_KEY 是否有效", 502);
+  }
+  if (!models.length) throw new ServiceError("chat_upstream", "该 API key 没有可用模型", 502);
+  modelCache = { models, at: now };
+  return models;
 }
 
 /** Opens a session, hands OpenAI a short-lived MCP credential and submits the first input. */
-export async function startChat(actor: Actor, input: string, now = new Date()): Promise<ChatSession> {
+export async function startChat(actor: Actor, input: string, chosen: string, now = new Date()): Promise<ChatSession> {
   assertScope(actor, "events:draft");
   const config = configuration();
+  // The provider decides which ids are real; this only rejects shapes that have no
+  // business being interpolated into a request.
+  if (!MODEL_PATTERN.test(chosen)) throw new ServiceError("invalid_model", "模型名称无效", 400);
   const db = getEnv().DB;
   const id = crypto.randomUUID();
   const created = now.toISOString();
   const session = await openChatSession(db, {
-    id, actor_id: actor.id, model: config.model,
+    id, actor_id: actor.id, model: chosen,
+    // A per-maintainer, per-day label for tracing sessions; spend itself is capped
+    // on the OpenAI project behind the API key, not here.
     budget_group: `chat:${actor.id}:${dateInTimeZone(now, "Asia/Tokyo")}`,
     created_at: created, expires_at: new Date(now.valueOf() + CHAT_SESSION_TTL_SECONDS * 1000).toISOString(),
   });
-  const budget = budgetOf(session, config);
-  if (!await budget.reserve(`${id}:open`, config.model, TURN_RESERVATION_USD)) {
-    await closeChatSession(db, id, "closed", now);
-    throw new ServiceError("chat_budget", "本日聊天预算已用尽，请稍后再试", 429);
-  }
   const token = await signChatToken(config.secret, config.audience, id, actor.id, created);
   try {
     const client = new ChatAgentsClient(config.key);
     const remote = (await client.call("sessions", {
       agent: {
-        model: config.model,
+        model: chosen,
         instructions,
         reasoning: { effort: "medium" },
         service_tier: "default",
@@ -119,13 +132,9 @@ export async function startChat(actor: Actor, input: string, now = new Date()): 
       input,
     }, `${id}:open`)) as { id?: unknown };
     if (typeof remote.id !== "string" || !/^[a-zA-Z0-9_-]+$/.test(remote.id)) throw new Error("agent_session_invalid");
-    await budget.attach(`${id}:open`, remote.id);
     await attachChatSession(db, id, remote.id, now);
     return { ...session, agent_session_id: remote.id };
   } catch (error) {
-    // Release the reservation as well: a session that never started must not keep
-    // holding its share of the day's budget.
-    await budget.close(`${id}:open`);
     await closeChatSession(db, id, "closed", now);
     throw error instanceof ServiceError ? error : new ServiceError("chat_upstream", "创建聊天会话失败", 502);
   }
@@ -148,8 +157,6 @@ export async function continueChat(actor: Actor, id: string, input: string, now 
   assertScope(actor, "events:draft");
   const config = configuration();
   const session = await requireChat(actor, id, now);
-  const budget = budgetOf(session, config);
-  if (await budget.exceeded()) throw new ServiceError("chat_budget", "本日聊天预算已用尽，请稍后再试", 429);
   const client = new ChatAgentsClient(config.key);
   await client.call(`sessions/${encodeURIComponent(session.agent_session_id!)}/events`, {
     events: [{ type: "agent.session.input.message", input: [{ role: "user", content: [{ type: "input_text", text: input }] }] }],
@@ -170,7 +177,6 @@ export async function readChat(actor: Actor, id: string, now = new Date()): Prom
   const session = await requireChat(actor, id, now);
   const client = new ChatAgentsClient(config.key);
   const progress = await client.progress(session.agent_session_id!);
-  await budgetOf(session, config).record(session.agent_session_id!, session.model, progress);
   return {
     state: progress.state,
     turn_id: progress.turn_id ?? null,

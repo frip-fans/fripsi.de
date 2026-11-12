@@ -17,8 +17,6 @@ declare global {
     MCP_ENDPOINT_URL?: string;
     OPENAI_API_KEY?: string;
     CHAT_ENABLED?: string;
-    CHAT_MODEL?: string;
-    CHAT_BUDGET_USD?: string;
     SITE_URL?: string;
     APP_ENV?: string;
     MAP_TILE_URL?: string;

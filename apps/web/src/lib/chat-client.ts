@@ -19,6 +19,18 @@ interface TurnPayload {
 
 const POLL_MS = 2500;
 
+/**
+ * The worker type definitions in this app shadow the DOM's Element, so
+ * HTMLSelectElement is not usable here; only these members are needed.
+ */
+interface ModelPicker {
+  value: string;
+  disabled: boolean;
+  innerHTML: string;
+  options: ArrayLike<{ value: string }>;
+  addEventListener(type: "change", listener: () => void): void;
+}
+
 function escapeHtml(value: unknown): string {
   return String(value ?? "").replace(/[&<>"']/g, (char) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
@@ -35,6 +47,7 @@ export function setupAdminChat(): void {
   const sendButton = root.querySelector<HTMLButtonElement>('[data-role="send"]')!;
   const status = root.querySelector<HTMLElement>('[data-role="status"]')!;
   const reset = root.querySelector<HTMLButtonElement>('[data-role="reset"]')!;
+  const model = root.querySelector<HTMLElement>('[data-role="model"]') as unknown as ModelPicker | null;
   const canPublish = root.dataset.canPublish === "true";
 
   let sessionId: string | null = null;
@@ -42,6 +55,39 @@ export function setupAdminChat(): void {
   let timer = 0;
 
   const scroll = () => log.lastElementChild?.scrollIntoView({ block: "nearest" });
+
+  // The Agents API fixes the agent configuration when a session is created, so the
+  // model can only be chosen for the next session, never swapped mid-conversation.
+  const MODEL_KEY = "frip.admin-chat.model";
+  let modelsReady = false;
+
+  function lockModel(locked: boolean): void {
+    if (model) model.disabled = locked || !modelsReady;
+  }
+
+  /** The list comes from the API key, so a new provider model needs no configuration. */
+  async function loadModels(): Promise<void> {
+    if (!model) return;
+    try {
+      const listed = await api("/api/admin/chat/models", undefined, "GET") as { models?: string[] };
+      const models = listed.models ?? [];
+      if (!models.length) throw new Error("该 API key 没有可用模型");
+      model.innerHTML = models.map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join("");
+      let saved: string | null = null;
+      try { saved = localStorage.getItem(MODEL_KEY); } catch { /* blocked site data is not an error */ }
+      if (saved && models.includes(saved)) model.value = saved;
+      modelsReady = true;
+      lockModel(false);
+    } catch (error) {
+      model.innerHTML = '<option value="">模型列表加载失败</option>';
+      bubble("error", error instanceof Error ? error.message : "模型列表加载失败");
+    }
+  }
+
+  model?.addEventListener("change", () => {
+    try { localStorage.setItem(MODEL_KEY, model.value); } catch { /* ignore */ }
+  });
+  void loadModels();
 
   function bubble(role: "you" | "assistant" | "error", text: string): void {
     const item = document.createElement("li");
@@ -66,6 +112,7 @@ export function setupAdminChat(): void {
   function endSession(message: string): void {
     stop();
     sessionId = null;
+    lockModel(false);
     busy(false, message);
     reset.hidden = false;
   }
@@ -179,9 +226,10 @@ export function setupAdminChat(): void {
     busy(true, "正在提交");
     try {
       if (!sessionId) {
-        const created = await api("/api/admin/chat", { input: text });
+        const created = await api("/api/admin/chat", { input: text, model: model?.value ?? "" });
         sessionId = String(created.session_id);
         lastTurn = null;
+        lockModel(true);
       } else {
         await api(`/api/admin/chat/${encodeURIComponent(sessionId)}`, { input: text });
       }
@@ -211,6 +259,7 @@ export function setupAdminChat(): void {
   reset.addEventListener("click", () => {
     reset.hidden = true;
     lastTurn = null;
+    lockModel(false);
     busy(false, "准备就绪");
     bubble("assistant", "已开始新会话，之前的对话上下文不再保留。");
   });

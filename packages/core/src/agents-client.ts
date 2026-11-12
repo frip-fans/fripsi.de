@@ -28,7 +28,9 @@ export class AgentsClient {
     if (!key || /\s/.test(key)) throw new Error("openai_key_format_invalid");
     const encodedBody = body === undefined ? undefined : JSON.stringify(body);
     console.log(JSON.stringify({ action: `${this.logPrefix}.request_ready`, operation: path === "sessions" ? "create_session" : "read_or_continue_session" }));
-    const response = await this.request(`https://api.openai.com/v1/agents/${path}`, {
+    // A leading slash addresses /v1 directly; everything else is an Agents API path.
+    const url = path.startsWith("/") ? `https://api.openai.com/v1${path}` : `https://api.openai.com/v1/agents/${path}`;
+    const response = await this.request(url, {
       method: body === undefined ? "GET" : "POST",
       headers: {
         authorization: `Bearer ${key}`,
@@ -57,6 +59,12 @@ export class AgentsClient {
       throw new Error(`openai_http_${response.status}`);
     }
     return JSON.parse(await boundedText(response));
+  }
+
+  /** Model ids this API key can reach, sorted. The provider is the only authority here. */
+  async models(): Promise<string[]> {
+    const listed = z.object({ data: z.array(z.object({ id: z.string() })) }).parse(await this.call("/models"));
+    return [...new Set(listed.data.map((model) => model.id))].sort();
   }
 
   async progress(sessionId: string): Promise<SessionProgress> {

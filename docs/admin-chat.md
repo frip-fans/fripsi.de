@@ -8,6 +8,7 @@
 
 ```text
 浏览器 /admin/chat（Cloudflare Access 保护）
+  └─ GET  /api/admin/chat/models     列出该 API key 可用的模型
   └─ POST /api/admin/chat            authenticateAdmin() → Actor
        ├─ 签发 fchat. 短期委派 token（scopes 不含 events:publish）
        ├─ 预算预留，再创建 Agents API session，挂载 MCP 工具
@@ -40,6 +41,14 @@
 
 不采用让模型持有 `changes.publish` 并以 `confirm=true` 自称已获确认的做法：那样「人类是否确认」只有模型的说法，来源页里的一句指令就足以绕过。确认这一步的信任根是 Access 会话加维护者的点击。
 
+## 模型选择
+
+站内不维护模型白名单。`GET /api/admin/chat/models` 用本环境的 API key 调 `GET /v1/models`，把该 key 能访问的模型原样返回，页面下拉框据此渲染，服务端缓存 10 分钟。OpenAI 上线新模型后无需改配置也无需发版，等缓存过期即可选到。
+
+服务端只校验模型名的字符形状，不判断它是否存在——这由 OpenAI 决定。因此列表里也包含嵌入、语音等非对话模型，误选会在创建会话时收到 OpenAI 的错误而不是静默失败。
+
+Agents API 在创建 session 时固定 agent 配置，因此模型只能为**下一次会话**选择：会话开始后下拉框禁用，换模型要先结束当前会话。所选模型记录在 `admin_chat_sessions.model`，不同会话可以不同。浏览器只用 localStorage 记住上次的选择，作为每人每浏览器的便利项，不作为状态来源。
+
 ## 会话与过期
 
 Agents API 的工具配置在 session 创建时固定，后续 turn 不能更换 MCP 凭据（`agent.session.input.message` 只提交输入）。凭据过期后该会话的全部 MCP 调用都会失败。因此：
@@ -48,9 +57,13 @@ Agents API 的工具配置在 session 创建时固定，后续 turn 不能更换
 - 每个维护者同时只保留一个 `active` 会话，新建会话先关闭旧会话。
 - 会话记录只保存 session ID、身份、预算组和时间，不保存对话正文；完整历史在 OpenAI 一侧。
 
-## 预算
+## 费用控制
 
-复用自动同步的预算表与 `Budget`，预算组为 `chat:<邮箱>:<日本日期>`，软上限由 `CHAT_BUDGET_USD` 配置，默认 1 美元。创建会话前预留，按 session/turn 幂等记录用量；超限拒绝新会话和新轮次，不中断已在进行的调用。与自动同步分组独立，互不挤占。预算是软控制，最终费用以 OpenAI 账单为准。
+聊天不做站内预算记账，开销由 API key 所属 OpenAI 项目的限额控制。站内的软预算需要为每个型号维护核对过的单价，换型号就会卡住整条路径，收益不抵维护成本；项目限额是硬上限，也不依赖本地估算。
+
+建议给聊天单独一个 key 或单独一个 OpenAI 项目：它和每日同步共用 key 时，任一方触顶都会同时停掉另一方，而同步是无人值守的。`apps/sync` 保留自己的预算组和软上限，不受本节影响。
+
+`admin_chat_sessions.budget_group` 保留为 `chat:<邮箱>:<日本日期>` 形式的分组标签，仅用于按人按天追溯会话，不再参与任何额度判断。
 
 ## 工具清单
 
@@ -72,8 +85,6 @@ changes.preview / changes.discard
 | 名称 | 内容 |
 |---|---|
 | `OPENAI_API_KEY` | OpenAI 项目 API key，需具备 `api.agents.read`、`api.agents.write` |
-| `CHAT_MODEL` | 聊天模型，默认 `gpt-6-luna` |
-| `CHAT_BUDGET_USD` | 预算组软上限，默认 1 |
 | `CHAT_ENABLED` | `true` 才开放 `/admin/chat` 与相关 API，默认 `false` |
 
 已有的 `AUTOMATION_SIGNING_SECRET`、`AUTOMATION_AUDIENCE` 与 `MCP_ENDPOINT_URL` 继续使用，聊天不引入第二套密钥。key 只存在主机 0600 环境文件，不进 GitHub CI、仓库和浏览器。修改后需重启 `fripside-web.service`。
@@ -91,7 +102,6 @@ changes.preview / changes.discard
 - `fchat.` token 的签名、audience、subject、过期和会话失效校验。
 - token 中声明 `events:publish` 时仍被白名单夹成只读加草稿。
 - `CHAT_ENABLED=false` 时 `/admin/chat` 与 API 返回 404/503，不签发凭据。
-- 预算超限拒绝创建会话，且不调用 OpenAI。
 - 会话过期后继续输入的错误路径。
 - 非 publisher 角色看不到发布按钮，且直接请求 publish 接口返回 403。
 - 聊天输入和 MCP 返回不包含凭据、Access JWT 或异常堆栈。
@@ -100,7 +110,7 @@ changes.preview / changes.discard
 
 ## 尚未验证
 
-- 长会话的 token 用量增长曲线与 `CHAT_BUDGET_USD` 默认值是否合适，验收后调整。
+- 长会话的 token 用量增长曲线，以及 OpenAI 项目限额该设多少，按实际用量调整。
 - 轮询间隔与首字延迟的实际体验。本期用轮询读取 turn 状态，不接 SSE 流式输出。
 
 参考：[Agents API MCP](https://developers.openai.com/api/docs/guides/agents-api/tools/mcp)、[Agents API quickstart](https://developers.openai.com/api/docs/guides/agents-api/quickstart)。

@@ -1,6 +1,6 @@
 # OCI SQLite 数据库备份与恢复
 
-本方案只备份 SQLite；图片、主机配置、应用密钥和 age 恢复私钥需要另外备份。数据库和密钥不得提交 Git，不得上传 GitHub Actions artifact。生产备份由主机 systemd 执行，独立于部署 runner 和 GitHub Actions。
+本方案只备份 SQLite；图片、主机配置、应用密钥和 age 恢复私钥需要另外备份。数据库内含[后台聊天助手](admin-chat.md)的对话正文，快照因此包含维护者与模型的往来内容及其中粘贴的资料；对话正文保留 90 天，恢复旧快照会一并恢复当时未过期的记录。数据库和密钥不得提交 Git，不得上传 GitHub Actions artifact。生产备份由主机 systemd 执行，独立于部署 runner 和 GitHub Actions。
 
 ## 组件与调度
 

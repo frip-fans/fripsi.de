@@ -1,61 +1,20 @@
 ---
-import Icon from "../../components/Icon.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { chatEnabled } from "../../lib/chat";
-import "../../styles/admin-chat.css";
 
-const actor = Astro.locals.actor!;
-const enabled = chatEnabled();
-const canPublish = actor.scopes.includes("events:publish");
+// The assistant now lives in the dock on every admin page; this route stays so the
+// nav bookmark and the disabled-state explanation keep working.
+if (chatEnabled()) return Astro.redirect("/admin", 302);
 ---
 <SiteLayout title="编辑助手" admin>
   <header class="admin-head">
     <div>
       <p class="eyebrow">Protected workspace</p>
       <h1>编辑助手</h1>
-      <p class="lede">登录身份：{actor.id} · {canPublish ? "publisher" : "editor"}</p>
     </div>
-    <a class="button ghost" href="/admin/changes"><Icon name="list" />提案队列</a>
   </header>
-
-  {enabled ? (
-    <section class="chat panel" data-chat data-can-publish={String(canPublish)}>
-      <div class="chat-head">
-        <p>助手通过 MCP 实时查询活动数据，只能创建提案。发布由你在卡片上点击确认。</p>
-        <div class="chat-meta">
-          <label class="sr-only" for="chat-model">模型</label>
-          <select id="chat-model" data-role="model" title="会话开始后不能更换模型" disabled>
-            <option value="">模型加载中…</option>
-          </select>
-          <span data-role="status">准备就绪</span>
-          <button type="button" class="link" data-role="reset" hidden>开新会话</button>
-        </div>
-      </div>
-      <ol class="log" data-role="log" aria-live="polite" aria-busy="false">
-        <li class="note">例如：把 8 月 31 日横滨那场的开始时间改成 17:00，来源是官网公告。</li>
-      </ol>
-      <form class="composer" data-role="composer">
-        <label class="sr-only" for="chat-input">给助手的消息</label>
-        <textarea id="chat-input" name="input" rows="2" maxlength="4000" required
-          placeholder="描述要查询或修改的内容，附上来源链接" data-role="input"></textarea>
-        <button type="submit" class="button" data-role="send"><Icon name="plus" />发送</button>
-      </form>
-    </section>
-  ) : (
-    <section class="panel empty">
-      <p>后台聊天助手尚未启用。</p>
-      <p><small>在本环境的 <code>web.env</code> 配置 <code>CHAT_ENABLED=true</code>、<code>OPENAI_API_KEY</code> 与 <code>MCP_ENDPOINT_URL</code> 后重启 <code>fripside-web.service</code>。</small></p>
-    </section>
-  )}
+  <section class="panel empty">
+    <p>后台聊天助手尚未启用。</p>
+    <p><small>在本环境的 <code>web.env</code> 配置 <code>CHAT_ENABLED=true</code>、<code>OPENAI_API_KEY</code> 与 <code>MCP_ENDPOINT_URL</code> 后重启 <code>fripside-web.service</code>。</small></p>
+  </section>
 </SiteLayout>
-
-<script>
-  import { setupAdminChat } from "../../lib/chat-client";
-  setupAdminChat();
-</script>
-
-<style>
-  .admin-head { display: flex; justify-content: space-between; align-items: end; gap: 2rem; }
-  .admin-head h1 { font-size: var(--heading-1-size); margin-bottom: .6rem; }
-  @media (max-width: 780px) { .admin-head { align-items: flex-start; flex-direction: column; } }
-</style>

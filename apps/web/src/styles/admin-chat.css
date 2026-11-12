@@ -1,50 +1,158 @@
 /*
- * The chat log's bubbles and proposal cards are created by lib/chat-client.ts at runtime,
- * so Astro's scoped styles never reach them. Every rule stays under .chat instead.
+ * The dock's transcript, proposal cards and history rows are created by
+ * lib/chat-dock-client.ts at runtime, so Astro's scoped styles never reach them.
+ * Every rule lives here and stays under .chat-dock or .chat-launcher.
  */
-.chat { margin-top: 2rem; display: grid; gap: 1rem; }
-.chat [hidden] { display: none; }
-.chat .chat-head { display: flex; justify-content: space-between; align-items: start; gap: 1rem; border-bottom: 1px solid var(--line); padding-bottom: .8rem; }
-.chat .chat-head p { margin: 0; color: var(--muted); font-size: .85rem; max-width: 46ch; }
-.chat .chat-meta { display: flex; align-items: center; gap: .8rem; white-space: nowrap; }
-.chat .chat-meta span { color: var(--accent); font: .7rem/1.6 ui-monospace; }
+:root { --chat-dock-width: 420px; }
 
-.chat .log { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem; max-height: 60vh; overflow-y: auto; }
-.chat .log .note { color: var(--muted); font-size: .85rem; }
-.chat .bubble { padding: .7rem .9rem; border-radius: 12px; border: 1px solid var(--line); background: rgb(255 255 255 / 4%); white-space: pre-wrap; max-width: 90%; }
-.chat .bubble.you { justify-self: end; border-color: var(--accent); }
-.chat .bubble.error { border-color: #c0485f; color: #ffb9c5; }
-
-.chat .proposal { border: 1px solid var(--accent); border-radius: 12px; padding: .9rem; display: grid; gap: .7rem; }
-.chat .proposal.done { border-color: var(--line); opacity: .7; }
-.chat .proposal-head { display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap; }
-.chat .proposal-head .tag { color: var(--accent); font: .7rem/1.6 ui-monospace; }
-.chat .proposal-head small { color: var(--muted); }
-.chat .proposal-actions { display: flex; align-items: center; gap: .9rem; flex-wrap: wrap; }
-.chat .warnings { margin: 0; padding-left: 1.1rem; color: #ffd27f; font-size: .8rem; }
-
-.chat .diff { width: 100%; border-collapse: collapse; font-size: .85rem; table-layout: fixed; }
-.chat .diff th:first-child { width: 8rem; color: var(--muted); font-weight: 500; }
-.chat .diff td { overflow-wrap: anywhere; }
-.chat .diff th, .chat .diff td { text-align: left; padding: .3rem .5rem; border-top: 1px solid var(--line); vertical-align: top; }
-.chat .diff thead th { color: var(--muted); font: .7rem/1.6 ui-monospace; border: 0; }
-.chat .diff .was { color: var(--muted); text-decoration: line-through; }
-
-.chat .composer { display: flex; gap: .6rem; align-items: end; }
-.chat .composer textarea { flex: 1; resize: vertical; }
-.chat .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-
-@media (max-width: 780px) {
-  .chat .chat-head { flex-direction: column; }
-  .chat .composer { flex-direction: column; align-items: stretch; }
-  .chat .bubble { max-width: 100%; }
-  .chat .diff { font-size: .8rem; }
+/* The rail reflows the page instead of covering it: an overlay would sit exactly on
+   top of the publish button on /admin/changes/<id>. */
+@media (min-width: 1180px) {
+  html.chat-dock-open body { padding-right: var(--chat-dock-width); }
+}
+/* Only where the remaining width actually gets tight: above this the console's
+   three-column stats still read fine beside the rail. */
+@media (min-width: 1180px) and (max-width: 1379px) {
+  html.chat-dock-open .stats, html.chat-dock-open .columns { grid-template-columns: 1fr; }
 }
 
-/* The base layout paints every <button> as the accent action; secondary chat
-   actions must not compete with 发布 for attention. */
-.chat button.link { background: none; border: 1px solid var(--line); color: var(--muted); font-weight: 600; }
-.chat button.link:hover { color: var(--accent); border-color: var(--accent); }
-.chat .proposal-actions a.link { color: var(--muted); font-size: .85rem; }
-.chat .chat-meta select { min-height: 32px; padding: .2rem .5rem; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: inherit; font-size: .8rem; }
-.chat .chat-meta select:disabled { opacity: .55; cursor: not-allowed; }
+.chat-launcher {
+  position: fixed; right: 1rem; bottom: max(1rem, env(safe-area-inset-bottom)); z-index: 890;
+  width: 52px; height: 52px; min-height: 52px; padding: 0; border-radius: 50%;
+  box-shadow: 0 14px 34px rgba(0,0,0,.45);
+}
+html.chat-dock-open .chat-launcher { display: none; }
+.chat-launcher-badge {
+  position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px; padding: 0 .3rem;
+  display: grid; place-items: center; border-radius: 10px;
+  background: var(--text); color: #07101c; font: 700 .68rem/1 ui-monospace;
+}
+
+.chat-dock {
+  position: fixed; inset: 0 0 0 auto; z-index: 900;
+  width: var(--chat-dock-width); max-width: 100%;
+  display: none; grid-template-rows: auto auto auto 1fr auto auto auto;
+  border-left: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(13,27,45,.97), rgba(7,16,28,.97));
+  backdrop-filter: blur(18px);
+  color: var(--text);
+}
+html.chat-dock-open .chat-dock { display: grid; }
+.chat-dock [hidden] { display: none; }
+
+.chat-dock-head {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  min-height: 52px; padding: 0 .75rem; border-bottom: 1px solid var(--line);
+}
+.chat-dock-head strong { font-size: .95rem; }
+.chat-dock-head-actions { display: flex; align-items: center; gap: .5rem; }
+
+.chat-dock-status {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap;
+  padding: .5rem .75rem; border-bottom: 1px solid var(--line);
+  color: var(--accent); font: .7rem/1.6 ui-monospace;
+}
+.chat-dock.chat-dock-expiring .chat-dock-status { color: var(--warning, #ffd27f); }
+.chat-dock-status select {
+  min-height: 32px; max-width: 11rem; padding: .25rem .5rem; border-radius: 8px;
+  border: 1px solid var(--line); background: rgba(4,11,20,.72); color: inherit;
+  font: .72rem/1.4 ui-monospace;
+}
+.chat-dock-status select:disabled { opacity: .55; cursor: not-allowed; }
+
+.chat-history-drawer { max-height: 40vh; overflow-y: auto; padding: .5rem .75rem; border-bottom: 1px solid var(--line); }
+.chat-history-empty { margin: 0; color: var(--muted); font-size: .8rem; }
+.chat-history-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
+.chat-history-row {
+  width: 100%; display: grid; gap: .15rem; padding: .5rem; text-align: left;
+  background: none; border: 1px solid transparent; border-radius: 10px; color: inherit; font-weight: 400;
+}
+.chat-history-row:hover { border-color: var(--line); background: rgba(255,255,255,.04); }
+.chat-history-title { font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-history-meta { color: var(--muted); font-size: .7rem; display: flex; gap: .4rem; }
+.chat-history-meta code { font-size: .66rem; }
+
+.chat-log {
+  list-style: none; margin: 0; padding: 1rem .9rem 1.25rem; display: grid; gap: 1rem;
+  align-content: start; overflow-y: auto; overscroll-behavior: contain;
+}
+.chat-dock.chat-dock-archive .chat-log { opacity: .85; }
+.chat-empty { display: grid; gap: .6rem; color: var(--muted); font-size: .85rem; }
+.chat-empty p { margin: 0; }
+.chat-samples { display: grid; gap: .35rem; }
+.chat-sample {
+  justify-self: start; text-align: left; padding: .4rem .6rem; font-size: .8rem; font-weight: 400;
+  color: var(--text); background: none; border: 1px solid var(--line); border-radius: 999px; min-height: 0;
+}
+.chat-sample:hover { border-color: var(--accent); color: var(--accent); }
+
+.chat-turn { display: grid; gap: .35rem; }
+.chat-turn-user { justify-items: end; }
+.chat-bubble {
+  max-width: 88%; padding: .6rem .8rem; white-space: pre-wrap; overflow-wrap: anywhere;
+  background: rgba(var(--accent-rgb), .13); border: 1px solid rgba(var(--accent-rgb), .26);
+  border-radius: 14px 14px 4px 14px;
+}
+.chat-turn-label { margin: 0; color: var(--muted); font: .68rem/1.4 ui-monospace; letter-spacing: .06em; }
+/* No bubble for the assistant: in a 420px rail two bubbles are mostly border and padding. */
+.chat-prose { font-size: .9375rem; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-error {
+  padding: .5rem .7rem; border-left: 3px solid var(--danger, #c0485f); border-radius: 0 10px 10px 0;
+  background: rgba(255,132,152,.08); color: #ffd9df; font-size: .875rem;
+}
+.chat-tools { color: var(--muted); font: .7rem/1.6 ui-monospace; overflow-wrap: anywhere; }
+
+.chat-proposal {
+  display: grid; gap: .7rem; padding: .9rem; border-radius: 16px;
+  border: 1px solid rgba(var(--accent-rgb), .28);
+  background: linear-gradient(145deg, rgba(15,30,49,.98), rgba(7,16,28,.98));
+  box-shadow: 0 24px 70px rgba(0,0,0,.5);
+}
+.chat-proposal.done { border-color: var(--line); opacity: .7; box-shadow: none; }
+.chat-proposal-head { display: flex; align-items: baseline; gap: .5rem; flex-wrap: wrap; }
+.chat-proposal-head .tag { color: var(--accent); font: .7rem/1.6 ui-monospace; }
+.chat-proposal-head strong { font-size: .875rem; line-height: 1.45; }
+.chat-proposal-head small { color: var(--muted); }
+.chat-proposal-actions { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.chat-more, .chat-warnings { margin: 0; font-size: .78rem; }
+.chat-more { color: var(--muted); }
+.chat-warnings { padding-left: 1.1rem; color: var(--warning, #ffd27f); }
+
+.chat-diff { width: 100%; border-collapse: collapse; font-size: .8rem; table-layout: fixed; }
+.chat-diff th, .chat-diff td { text-align: left; padding: .25rem .4rem; border-top: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.chat-diff th[scope="row"] { width: 6rem; color: var(--muted); font-weight: 500; }
+.chat-diff thead th { color: var(--muted); font: .68rem/1.5 ui-monospace; border: 0; }
+.chat-diff .was { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255,140,140,.55); }
+
+.chat-expired { margin: 0; padding: .6rem .9rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
+.chat-composer { display: flex; gap: .5rem; align-items: end; padding: .6rem .9rem 0; }
+.chat-composer textarea { flex: 1; resize: vertical; min-height: 44px; }
+.chat-send { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; }
+.chat-hint { margin: 0; padding: .4rem .9rem max(.7rem, env(safe-area-inset-bottom)); color: var(--muted); font-size: .7rem; }
+
+/* The layout paints every <button> as the accent action; secondary controls must not
+   compete with 发布. */
+.chat-dock button.link, .chat-launcher ~ .chat-dock button.link {
+  background: none; border: 1px solid var(--line); color: var(--muted);
+  min-height: 30px; padding: .2rem .55rem; font-size: .78rem; font-weight: 600;
+}
+.chat-dock button.link:hover { color: var(--accent); border-color: var(--accent); }
+.chat-dock .chat-dock-close { border: 0; padding: .2rem .35rem; font-size: .9rem; }
+.chat-dock .chat-proposal-actions a.link { color: var(--muted); font-size: .8rem; }
+.chat-dock .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+@media (max-width: 1179px) {
+  .chat-dock {
+    inset: 0; width: 100%; height: 100dvh; z-index: 1150; border-left: 0;
+    padding-top: env(safe-area-inset-top);
+  }
+  .chat-bubble { max-width: 100%; }
+  .chat-dock-status { gap: .4rem; }
+  .chat-dock-status select { max-width: none; flex: 1; min-height: 44px; }
+  .chat-composer textarea { font-size: 1rem; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chat-dock { animation: chat-dock-in 180ms cubic-bezier(.2,.8,.2,1); }
+  @keyframes chat-dock-in { from { transform: translateX(14px); opacity: 0; } }
+}

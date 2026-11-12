@@ -7,7 +7,32 @@ export interface CalendarOptions {
   description?: string;
 }
 
-const encoder = new TextEncoder();
+// Building an Intl formatter costs far more than using one; the feed reuses one per zone.
+const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function zoneFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = zoneFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23"
+    });
+    zoneFormatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
+function utf8Length(codePoint: number): number {
+  if (codePoint < 0x80) return 1;
+  if (codePoint < 0x800) return 2;
+  return codePoint < 0x10000 ? 3 : 4;
+}
 
 function compactDate(value: string): string {
   return value.replaceAll("-", "");
@@ -35,16 +60,7 @@ function localDateTimeAsUtc(date: string, time: string, timeZone: string): strin
   let guess = target;
 
   try {
-    const formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23"
-    });
+    const formatter = zoneFormatter(timeZone);
 
     for (let iteration = 0; iteration < 3; iteration += 1) {
       const parts = Object.fromEntries(formatter.formatToParts(new Date(guess)).map((part) => [part.type, part.value]));
@@ -83,7 +99,7 @@ function foldLine(line: string): string {
   let length = 0;
 
   for (const character of line) {
-    const bytes = encoder.encode(character).length;
+    const bytes = utf8Length(character.codePointAt(0)!);
     if (length + bytes > 75 && current) {
       folded.push(current);
       current = ` ${character}`;

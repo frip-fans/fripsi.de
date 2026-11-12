@@ -20,13 +20,15 @@ export function createEventSlug(date: string, title: string, id: string): string
   return `${date}-${titlePart || `event-${id.slice(-8)}`}`;
 }
 
+const dateFormatters = new Map<string, Intl.DateTimeFormat>();
+
 export function dateInTimeZone(date = new Date(), timeZone = "Asia/Tokyo"): string {
-  const parts = new Intl.DateTimeFormat("en", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).formatToParts(date);
+  let formatter = dateFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" });
+    dateFormatters.set(timeZone, formatter);
+  }
+  const parts = formatter.formatToParts(date);
   const read = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
   return `${read("year")}-${read("month")}-${read("day")}`;
 }

@@ -103,9 +103,9 @@ export class ChangeService {
     await this.db.batch([
       this.db.prepare(`INSERT INTO change_sets (
         id, operation, target_event_id, base_version, payload_json, source_url, reason,
-        status, idempotency_key, created_by, created_via, created_at
-      ) VALUES (?, 'create', NULL, NULL, ?, ?, ?, 'proposed', ?, ?, ?, ?)`)
-        .bind(id, JSON.stringify(payload), input.source_url ?? input.event.sources[0]?.url ?? null, input.reason, input.idempotency_key, actor.id, actor.channel, createdAt),
+        status, idempotency_key, created_by, created_via, created_at, chat_session_id
+      ) VALUES (?, 'create', NULL, NULL, ?, ?, ?, 'proposed', ?, ?, ?, ?, ?)`)
+        .bind(id, JSON.stringify(payload), input.source_url ?? input.event.sources[0]?.url ?? null, input.reason, input.idempotency_key, actor.id, actor.channel, createdAt, actor.chat_session_id ?? null),
       this.auditStatement(actor, requestId, "change.propose_create", "change_set", id, null, payload, { idempotency_key: input.idempotency_key }, createdAt)
     ]);
     return (await getChangeSet(this.db, id))!;
@@ -150,9 +150,9 @@ export class ChangeService {
     await this.db.batch([
       this.db.prepare(`INSERT INTO change_sets (
         id, operation, target_event_id, base_version, payload_json, source_url, reason,
-        status, idempotency_key, created_by, created_via, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?, ?, ?)`)
-        .bind(id, operation, targetId, baseVersion, JSON.stringify(payload), sourceUrl, reason, idempotencyKey, actor.id, actor.channel, createdAt),
+        status, idempotency_key, created_by, created_via, created_at, chat_session_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'proposed', ?, ?, ?, ?, ?)`)
+        .bind(id, operation, targetId, baseVersion, JSON.stringify(payload), sourceUrl, reason, idempotencyKey, actor.id, actor.channel, createdAt, actor.chat_session_id ?? null),
       this.auditStatement(actor, requestId, `change.propose_${operation}`, "change_set", id, null, payload, { target_event_id: targetId }, createdAt)
     ]);
     return (await getChangeSet(this.db, id))!;

@@ -5,7 +5,7 @@
  * Missing data is never read as "not sung":
  * - complete setlist without the song → "absent" (known not sung)
  * - partial / unknown setlist without it → "unknown"
- * - no setlist at all → "missing"
+ * - no setlist at all → "missing", or "upcoming" when the show hasn't happened yet (today included)
  * Fixed / rotating counts and the baseline only use complete setlists.
  */
 
@@ -34,13 +34,15 @@ export interface TourMatrixEntryInput {
 
 export type TourCell =
   | { state: "sung"; position: number; section: TourSetlistSection }
-  | { state: "absent" | "unknown" | "missing" };
+  | { state: "absent" | "unknown" | "missing" | "upcoming" };
 
 export type TourSongKind = "fixed" | "rotating" | "once";
 
 export interface TourMatrixColumn extends TourMatrixShowInput {
   /** 1-based stop number within the tour (shows of the same event share it). */
   stop_number: number;
+  /** On or after today with no setlist yet: not played, so not missing data. */
+  upcoming: boolean;
   entry_count: number;
 }
 
@@ -86,7 +88,8 @@ function showRank(label: string | null): number {
   return 1;
 }
 
-export function computeTourMatrix(shows: TourMatrixShowInput[], entries: TourMatrixEntryInput[]): TourMatrix {
+/** `today` is a YYYY-MM-DD date in the tour's time zone; shows from then on without a setlist count as upcoming. */
+export function computeTourMatrix(shows: TourMatrixShowInput[], entries: TourMatrixEntryInput[], today?: string): TourMatrix {
   const ordered = [...shows].sort((a, b) =>
     a.start_date.localeCompare(b.start_date)
     || (a.start_time ?? "").localeCompare(b.start_time ?? "")
@@ -105,7 +108,8 @@ export function computeTourMatrix(shows: TourMatrixShowInput[], entries: TourMat
   const stopNumbers = new Map<string, number>();
   const columns: TourMatrixColumn[] = ordered.map((show) => {
     if (!stopNumbers.has(show.event_id)) stopNumbers.set(show.event_id, stopNumbers.size + 1);
-    return { ...show, stop_number: stopNumbers.get(show.event_id)!, entry_count: show.setlist_id ? bySetlist.get(show.setlist_id)?.length ?? 0 : 0 };
+    const upcoming = !show.setlist_id && today !== undefined && show.start_date >= today;
+    return { ...show, stop_number: stopNumbers.get(show.event_id)!, upcoming, entry_count: show.setlist_id ? bySetlist.get(show.setlist_id)?.length ?? 0 : 0 };
   });
 
   const complete = columns.map((column) => column.setlist_id !== null && column.completeness === "complete");
@@ -138,7 +142,7 @@ export function computeTourMatrix(shows: TourMatrixShowInput[], entries: TourMat
     .sort((a, b) => a.sortSection - b.sortSection || a.sortPosition - b.sortPosition || a.acc.first - b.acc.first)
     .map(({ acc }) => {
       const cells: TourCell[] = columns.map((column, index) => acc.cells.get(index)
-        ?? { state: !column.setlist_id ? "missing" : complete[index] ? "absent" : "unknown" });
+        ?? { state: column.upcoming ? "upcoming" : !column.setlist_id ? "missing" : complete[index] ? "absent" : "unknown" });
       const sungComplete = complete.filter((isComplete, index) => isComplete && acc.cells.has(index)).length;
       const kind: TourSongKind | null = completeCount < 2 ? null
         : acc.cells.size === 1 ? "once"

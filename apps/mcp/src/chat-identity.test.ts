@@ -10,7 +10,8 @@ const databases: DatabaseSync[] = [];
 afterEach(() => { vi.unstubAllGlobals(); for (const db of databases.splice(0)) db.close(); });
 
 /** The admin chat credential resolves to exactly these scopes. */
-const chatActor: Actor = { id: "maintainer@example.com", type: "ai", channel: "mcp", scopes: [...CHAT_SCOPES] };
+const chatActor: Actor = { id: "maintainer@example.com", type: "ai", channel: "mcp",
+  chat_session_id: "chat-session-1", scopes: [...CHAT_SCOPES] };
 
 async function connect(actor: Actor) {
   const { db, sqlite } = createTestD1(); databases.push(sqlite);
@@ -55,6 +56,27 @@ it("lets the chat identity propose and preview but never publish", async () => {
     } });
     expect(published.isError).toBe(true);
     expect(JSON.stringify(published.structuredContent)).toContain("events:publish");
+  } finally { await client.close(); }
+});
+
+it("stamps the originating chat session on the proposal", async () => {
+  const { client, db } = await connect(chatActor);
+  try {
+    const proposed = await client.callTool({ name: "changes.propose_create", arguments: {
+      event: {
+        title: "テスト 2", start_date: "2026-12-06", timezone: "Asia/Tokyo",
+        category: "LIVE", status: "scheduled", location_mode: "online", venues: [],
+        channels: [{ channel_type: "streaming", name: "YouTube", url: "https://www.youtube.com/" }],
+        sources: [{ url: "https://fripside.net/chat-test-2" }],
+      },
+      reason: "归属测试", idempotency_key: "chat-propose-create-2",
+    } });
+    const change = (proposed.structuredContent as { result?: { change?: { id?: string } } }).result?.change;
+    const row = await db.prepare("SELECT chat_session_id FROM change_sets WHERE id=?")
+      .bind(change!.id).first<{ chat_session_id: string | null }>();
+    // Without this the dock would attribute proposals by creation time and misfile
+    // every one of them as soon as two sessions overlap.
+    expect(row?.chat_session_id).toBe("chat-session-1");
   } finally { await client.close(); }
 });
 

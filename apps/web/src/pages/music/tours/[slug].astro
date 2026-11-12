@@ -69,7 +69,8 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
             <li><span class="tour-key is-unknown">?</span>{t(locale, "music.tourLegendUnknown")}</li>
             <li><span class="tour-key is-missing"></span>{t(locale, "music.tourMissingSetlist")}</li>
           </ul>
-          <div class="tour-matrix-scroll" tabindex="0" role="region" aria-label={t(locale, "music.tourViewMatrix")}>
+          <div class="tour-matrix-frame" data-matrix-frame>
+          <div class="tour-matrix-scroll" tabindex="0" role="region" aria-label={t(locale, "music.tourViewMatrix")} data-matrix-scroll>
             <table class="tour-matrix">
               <thead>
                 <tr>
@@ -116,6 +117,10 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* Desktop arrows for wide tours; each rail spans the table so its button can stick to mid-screen while the page scrolls. */}
+          <div class="tour-scroll-rail is-left" aria-hidden="true"><button type="button" tabindex="-1" data-matrix-step="-1" title={t(locale, "music.tourScrollLeft")}><Icon name="chevron-left" /></button></div>
+          <div class="tour-scroll-rail is-right" aria-hidden="true"><button type="button" tabindex="-1" data-matrix-step="1" title={t(locale, "music.tourScrollRight")}><Icon name="chevron-right" /></button></div>
           </div>
         </div>
 
@@ -216,8 +221,38 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
     }
   }
 
+  /** Left / right buttons for a matrix wider than its box: hidden when it fits, disabled at either end. */
+  function setupMatrixScroll() {
+    for (const frame of document.querySelectorAll<HTMLElement>("[data-matrix-frame]")) {
+      if (frame.dataset.ready) continue;
+      frame.dataset.ready = "true";
+      const scroller = frame.querySelector<HTMLElement>("[data-matrix-scroll]")!;
+      const buttons = [...frame.querySelectorAll<HTMLButtonElement>("[data-matrix-step]")];
+      const sync = () => {
+        const max = scroller.scrollWidth - scroller.clientWidth;
+        frame.toggleAttribute("data-overflowing", max > 1);
+        for (const button of buttons) {
+          const step = Number(button.dataset.matrixStep);
+          button.disabled = step < 0 ? scroller.scrollLeft <= 1 : scroller.scrollLeft >= max - 1;
+        }
+      };
+      for (const button of buttons) {
+        button.addEventListener("click", () => {
+          // Page by the visible show columns (the sticky song column stays put).
+          const songColumn = scroller.querySelector<HTMLElement>(".tour-song-col")?.offsetWidth ?? 0;
+          const distance = Math.max(120, (scroller.clientWidth - songColumn) * .8);
+          scroller.scrollBy({ left: Number(button.dataset.matrixStep) * distance, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        });
+      }
+      scroller.addEventListener("scroll", sync, { passive: true });
+      new ResizeObserver(sync).observe(scroller);
+      sync();
+    }
+  }
+
   setupTourViews();
-  document.addEventListener("astro:page-load", setupTourViews);
+  setupMatrixScroll();
+  document.addEventListener("astro:page-load", () => { setupTourViews(); setupMatrixScroll(); });
 </script>
 
 <style>
@@ -246,6 +281,17 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   /* Positioned so the visually hidden cell labels are clipped by the scroller instead of widening the page. */
   .tour-matrix-scroll { position: relative; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); }
   .tour-matrix-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tour-matrix-frame { position: relative; }
+  .tour-scroll-rail { display: none; position: absolute; z-index: 4; top: 6.5rem; bottom: .75rem; width: 2.75rem; pointer-events: none; }
+  .tour-scroll-rail.is-left { left: calc(min(17rem, 40%) + .35rem); }
+  .tour-scroll-rail.is-right { right: .35rem; }
+  .tour-scroll-rail button { position: sticky; top: calc(50vh - 1.375rem); display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0; color: var(--text); border: 1px solid rgba(239, 248, 255, .35); border-radius: 50%; background: rgba(7, 16, 28, .82); box-shadow: 0 8px 24px rgba(0, 0, 0, .45); backdrop-filter: blur(10px); font-size: 1.1rem; cursor: pointer; pointer-events: auto; transition: opacity .15s, border-color .15s, color .15s; }
+  .tour-scroll-rail button:hover:not(:disabled) { color: var(--accent); border-color: rgba(var(--accent-rgb), .7); }
+  .tour-scroll-rail button:disabled { opacity: .3; cursor: default; }
+  /* Desktop only: phones and tablets swipe the matrix directly. */
+  @media (hover: hover) and (pointer: fine) and (min-width: 761px) {
+    .tour-matrix-frame[data-overflowing] .tour-scroll-rail { display: block; }
+  }
   .tour-matrix { border-collapse: separate; border-spacing: 0 4px; min-width: 100%; padding: 0 4px; font-size: .84rem; }
   .tour-matrix th, .tour-matrix td { text-transform: none; letter-spacing: normal; }
   /* Rotating (日替) and one-off songs: the whole row sits in a dashed frame. Other rows keep a

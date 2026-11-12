@@ -22,7 +22,10 @@ export async function readInput(request: Request): Promise<string> {
 
 export const POST: APIRoute = async ({ request, locals }) => {
   try {
-    const session = await startChat(locals.actor!, await readInput(request));
-    return Response.json({ session_id: session.id, expires_at: session.expires_at });
+    const body = await request.clone().json().catch(() => null) as { model?: unknown } | null;
+    const model = typeof body?.model === "string" ? body.model.trim() : "";
+    if (!model) throw new ServiceError("invalid_model", "请选择模型", 400);
+    const session = await startChat(locals.actor!, await readInput(request), model);
+    return Response.json({ session_id: session.id, model: session.model, expires_at: session.expires_at });
   } catch (error) { return jsonError(error); }
 };

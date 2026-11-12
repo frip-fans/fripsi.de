@@ -22,7 +22,14 @@ const canPublish = actor.scopes.includes("events:publish");
     <section class="chat panel" data-chat data-can-publish={String(canPublish)}>
       <div class="chat-head">
         <p>助手通过 MCP 实时查询活动数据，只能创建提案。发布由你在卡片上点击确认。</p>
-        <div class="chat-meta"><span data-role="status">准备就绪</span><button type="button" class="link" data-role="reset" hidden>开新会话</button></div>
+        <div class="chat-meta">
+          <label class="sr-only" for="chat-model">模型</label>
+          <select id="chat-model" data-role="model" title="会话开始后不能更换模型" disabled>
+            <option value="">模型加载中…</option>
+          </select>
+          <span data-role="status">准备就绪</span>
+          <button type="button" class="link" data-role="reset" hidden>开新会话</button>
+        </div>
       </div>
       <ol class="log" data-role="log" aria-live="polite" aria-busy="false">
         <li class="note">例如：把 8 月 31 日横滨那场的开始时间改成 17:00，来源是官网公告。</li>

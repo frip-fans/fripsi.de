@@ -1,5 +1,5 @@
 ---
-import { getPublicEventBySlug, listPublicSetlistsForEvent } from "@frip-fan/core";
+import { getEventTourContext, getPublicEventBySlug, listPublicSetlistsForEvent } from "@frip-fan/core";
 import BackLink from "../../components/BackLink.astro";
 import { eventReturnLink } from "../../lib/event-navigation";
 import Icon from "../../components/Icon.astro";
@@ -13,7 +13,7 @@ import "../../styles/music.css";
 const locale = getLocale(Astro.request);
 const event = await getPublicEventBySlug(getEnv().DB, Astro.params.slug!);
 if (!event) return Astro.redirect("/404", 302);
-const setlists = await listPublicSetlistsForEvent(getEnv().DB, event.id);
+const [setlists, tour] = await Promise.all([listPublicSetlistsForEvent(getEnv().DB, event.id), getEventTourContext(getEnv().DB, event.id)]);
 const displayStatus = displayEventStatus(event);
 const returnLink = eventReturnLink(Astro.url, event.start_date.slice(0, 7), locale);
 
@@ -75,6 +75,17 @@ const structuredData = {
       <h1>{title}</h1>
       {officialTitle && <p class="official-title">{officialTitle}</p>}
       <p class="date"><time datetime={event.start_date}>{formatDate(event.start_date, event.end_date, locale)}</time></p>
+      {tour && (
+        <nav class="tour-strip" aria-label={tour.name}>
+          <a class="tour-strip-main" href={`/music/tours/${encodeURIComponent(tour.slug)}`}>
+            <Icon name="map" />
+            <span><strong translate="no">{tour.name}</strong> · {t(locale, "music.tourStopOf", { number: tour.stop_number, count: tour.stop_count })}</span>
+            <Icon name="chevron-right" />
+          </a>
+          {tour.previous && <a class="tour-strip-step" href={`/events/${encodeURIComponent(tour.previous.slug)}`} rel="prev" title={tour.previous.title}><Icon name="chevron-left" />{t(locale, "music.previousStop")}</a>}
+          {tour.next && <a class="tour-strip-step" href={`/events/${encodeURIComponent(tour.next.slug)}`} rel="next" title={tour.next.title}>{t(locale, "music.nextStop")}<Icon name="chevron-right" /></a>}
+        </nav>
+      )}
     </header>
     <div class="detail-grid">
       {(event.start_time || showLocation || channels.length > 0) && (
@@ -135,6 +146,13 @@ const structuredData = {
   h1 { margin: 1rem 0 .8rem; max-width: 22em; font-size: clamp(1.75rem, 4.2vw, 2.9rem); line-height: 1.18; overflow-wrap: anywhere; text-wrap: balance; text-spacing-trim: trim-start; }
   .official-title { margin: -.2rem 0 .8rem; max-width: 46em; color: var(--muted); font-size: .9rem; line-height: 1.55; overflow-wrap: anywhere; }
   .date { color: var(--accent); font-size: 1.05rem; }
+  .tour-strip { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-top: 1rem; }
+  .tour-strip a { display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: .45rem .8rem; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; background: rgba(12, 25, 43, .62); font-size: .85rem; text-decoration: none; }
+  .tour-strip a:hover { color: var(--text); border-color: rgba(var(--accent-rgb), .38); }
+  .tour-strip-main { min-width: 0; }
+  .tour-strip-main > span { min-width: 0; overflow-wrap: anywhere; }
+  .tour-strip-main strong { color: var(--text); font-weight: 650; }
+  .tour-strip-main > :global(.icon:first-child) { flex: none; color: var(--accent); }
   .detail-grid { display: grid; grid-template-columns: .72fr 1.28fr; align-items: start; gap: clamp(2rem, 7vw, 6rem); margin-top: 2.75rem; }
   .facts { display: grid; gap: 1.1rem; margin: 0; }
   .facts div { display: grid; gap: .3rem; padding-bottom: 1rem; border-bottom: 1px solid var(--line); }

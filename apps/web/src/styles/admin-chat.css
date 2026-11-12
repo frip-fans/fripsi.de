@@ -46,3 +46,5 @@
 .chat button.link { background: none; border: 1px solid var(--line); color: var(--muted); font-weight: 600; }
 .chat button.link:hover { color: var(--accent); border-color: var(--accent); }
 .chat .proposal-actions a.link { color: var(--muted); font-size: .85rem; }
+.chat .chat-meta select { min-height: 32px; padding: .2rem .5rem; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: inherit; font-size: .8rem; }
+.chat .chat-meta select:disabled { opacity: .55; cursor: not-allowed; }

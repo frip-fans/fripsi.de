@@ -1,6 +1,7 @@
 import { parseAppleMusicRef, parseYouTubeId, ServiceError } from "@frip-fan/core";
 import type {
   TourSaveInput,
+  TourStopsUpdateInput,
   DirectEventSaveInput,
   EventDraft,
   EventChannelInput,
@@ -275,5 +276,15 @@ export function readTourSave(form: FormData): TourSaveInput {
     name: String(form.get("name") ?? ""),
     notes: optional(form, "notes"),
     published: form.has("published"),
+  };
+}
+
+export function readTourStopsUpdate(form: FormData): TourStopsUpdateInput {
+  const ids = (key: string) => form.getAll(key).map((value) => String(value).trim()).filter(Boolean);
+  return {
+    tour_id: String(form.get("tour_id") ?? ""),
+    idempotency_key: String(form.get("idempotency_key") ?? ""),
+    add_event_ids: ids("add_event_id"),
+    remove_event_ids: ids("remove_event_id"),
   };
 }

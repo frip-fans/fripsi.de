@@ -109,7 +109,7 @@ changes.propose_unpublish / propose_archive / propose_restore
 changes.preview / changes.discard
 ```
 
-不挂载 `changes.publish`、`changes.publish_automatic` 和 `sync.*`。本期不包含歌曲、专辑和歌单：`ContentAdminService` 已有 `saveSong` / `saveRelease` / `saveSetlist`，但 MCP 尚无对应工具，需要另一期先扩展 change set 的 music 载荷。聊天不挂载 `web_search`；需要核对官方公告时由维护者粘贴链接和正文。
+不挂载 `changes.publish`、`changes.publish_automatic` 和 `sync.*`。本期不包含歌曲、专辑和歌单：`ContentAdminService` 已有 `saveSong` / `saveRelease` / `saveSetlist`，但 MCP 尚无对应工具，需要另一期先扩展 change set 的 music 载荷。聊天挂载 `web_search`（`mode: live`，不限域名），便于核对官方公告原文。网页正文按资料处理，不作为指令；搜索结果最多变成一条待审提案，助手没有发布工具。
 
 ## 配置
 
@@ -147,6 +147,19 @@ changes.preview / changes.discard
 ## 尚未验证
 
 - 长会话的 token 用量增长曲线，以及 OpenAI 项目限额该设多少，按实际用量调整。
-- 轮询间隔与首字延迟的实际体验。本期用轮询读取 turn 状态，不接 SSE 流式输出。
+
+## 流式输出
+
+助手回复通过 `GET /v1/agents/sessions/{id}/events?stream=true` 读取，服务端把需要渲染的少数事件转成 SSE 交给侧栏：文字增量、工具调用状态、回合完成与失败。
+
+2026-11-13 在 staging 主机上用真实 key 实测过事件结构：
+
+- 一个回合会产生**多个 message item**。先是一条 `phase: null` 的前导（"我查一下…"），然后 `web_search_call` / `mcp_call`，最后才是 `phase: "final_answer"` 的正式回答。
+- `agent.session.turn.output_text.delta` 带 `item_id`、`content_index` 与 `delta`；`.output_text.done` 带同样的定位字段和完整 `text`。
+- 工具调用出现在 `agent.session.turn.item.added` / `.item.done` 的 `item` 里，`status` 为 `in_progress` / `completed`。
+
+因此文本按 `item_id:content_index` 分段累积，`done` 的 `text` 覆盖该段的增量（流接晚了错过增量也不丢），**只有 `final_answer` 的分段写入 transcript**——与轮询回退写入的内容一致。前导句只在流式过程中显示，回合结束时气泡被替换为正式回答。
+
+轮询保留为兜底：回复由服务端在回合完成时写入 transcript，流中断只丢逐字显示效果，不丢内容。流出错即关闭 EventSource 退回轮询，不自动重连——官方明确说明流不重放错过的事件。提案卡片始终按 `change_sets` 当前状态重新拉取，不从流里取。
 
 参考：[Agents API MCP](https://developers.openai.com/api/docs/guides/agents-api/tools/mcp)、[Agents API quickstart](https://developers.openai.com/api/docs/guides/agents-api/quickstart)。

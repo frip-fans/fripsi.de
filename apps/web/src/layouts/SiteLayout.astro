@@ -170,6 +170,13 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
           <button class="quiz-header-bubble" type="button" data-quiz-header-launcher data-quiz-header-bubble hidden>{t(locale, "quiz.invite")}<span aria-hidden="true">→</span></button>
         </span>
       )}
+      {chatDock && (
+        <button class="chat-toggle" type="button" data-chat-toggle aria-haspopup="dialog"
+          aria-controls="admin-chat-dock" aria-expanded="false">
+          <Icon name="chat-dots" /><span class="chat-toggle-label">助手</span>
+          {chatDock.proposals.length > 0 && <span class="chat-toggle-badge">{chatDock.proposals.length}</span>}
+        </button>
+      )}
       <button class="mobile-menu-trigger" type="button" data-menu-open aria-label={t(locale, "nav.openMenu")} aria-haspopup="dialog" aria-controls="mobile-menu" aria-expanded="false">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
         <span>{t(locale, "nav.menu")}</span>

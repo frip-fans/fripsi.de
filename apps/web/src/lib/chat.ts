@@ -343,6 +343,53 @@ function* frames(buffer: { value: string }): Generator<Record<string, unknown>> 
   }
 }
 
+/** Identifies one text part of one output item, so deltas and their done text line up. */
+function partKey(event: Record<string, unknown>): string {
+  return `${String(event.item_id ?? event.output_index ?? "")}:${String(event.content_index ?? 0)}`;
+}
+
+/**
+ * One turn emits several message items: a short preamble, then tool calls, then the answer
+ * carrying phase "final_answer". Text is tracked per part so a part's authoritative `done`
+ * text replaces the deltas that built it, and so a part whose deltas were missed still lands.
+ */
+export interface TurnText {
+  parts: Map<string, { item: string; text: string }>;
+  answers: Set<string>;
+}
+
+export function newTurnText(): TurnText {
+  return { parts: new Map(), answers: new Set() };
+}
+
+/** Folds one text event into the turn and returns what the dock should append, in order. */
+export function foldTurnText(state: TurnText, event: Record<string, unknown>): string[] {
+  const type = String(event.type ?? "");
+  if (type === "agent.session.turn.output_text.delta" && typeof event.delta === "string") {
+    const existing = state.parts.get(partKey(event));
+    if (existing) {
+      existing.text += event.delta;
+      return [event.delta];
+    }
+    // Keep the live bubble readable: separate a new message item from the previous one.
+    const separator = state.parts.size > 0 ? ["\n\n"] : [];
+    state.parts.set(partKey(event), { item: String(event.item_id ?? ""), text: event.delta });
+    return [...separator, event.delta];
+  }
+  if (type === "agent.session.turn.output_text.done" && typeof event.text === "string") {
+    state.parts.set(partKey(event), { item: String(event.item_id ?? ""), text: event.text });
+  }
+  return [];
+}
+
+/** The reply worth keeping: the final-answer parts only, matching what the poll stores. */
+export function turnAnswer(state: TurnText): string {
+  const collected = [...state.parts.values()].filter((part) => part.text);
+  const answer = collected.filter((part) => state.answers.has(part.item));
+  // No phase on any item means an unfamiliar shape; the answer is then the last part.
+  return (answer.length ? answer : collected.slice(-1)).map((part) => part.text).join("\n\n");
+}
+
 /**
  * Translates the provider's event stream into the few things the dock renders, and
  * writes the finished reply to the transcript. The poll remains the safety net: if this
@@ -357,7 +404,7 @@ export async function* streamChat(actor: Actor, id: string, signal: AbortSignal,
   const reader = body.getReader();
   const decoder = new TextDecoder();
   const buffer = { value: "" };
-  let text = "";
+  const state = newTurnText();
   let turnId: string | null = null;
   try {
     while (!signal.aborted) {
@@ -367,16 +414,16 @@ export async function* streamChat(actor: Actor, id: string, signal: AbortSignal,
       for (const event of frames(buffer)) {
         const type = String(event.type ?? "");
         if (typeof event.turn_id === "string") turnId = event.turn_id;
-        if (type === "agent.session.turn.output_text.delta" && typeof event.delta === "string") {
-          text += event.delta;
-          yield { type: "delta", text: event.delta };
-        } else if (type === "agent.session.turn.output_text.done" && typeof event.text === "string") {
-          text = event.text;
+        if (type.startsWith("agent.session.turn.output_text.")) {
+          for (const text of foldTurnText(state, event)) yield { type: "delta", text };
         } else if (type === "agent.session.turn.item.added" || type === "agent.session.turn.item.done") {
-          const item = event.item as { type?: string; name?: string; status?: string } | undefined;
-          if (item?.type === "mcp_call" && item.name) yield { type: "tool", name: item.name, status: item.status ?? "in_progress" };
+          const item = event.item as { type?: string; name?: string; status?: string; id?: string; phase?: string } | undefined;
+          if (item?.type === "message") {
+            if (item.phase === "final_answer" && item.id) state.answers.add(item.id);
+          } else if (item?.type === "mcp_call" && item.name) yield { type: "tool", name: item.name, status: item.status ?? "in_progress" };
           else if (item?.type === "web_search_call") yield { type: "tool", name: "web_search", status: item.status ?? "in_progress" };
         } else if (type === "agent.session.turn.completed") {
+          const text = turnAnswer(state);
           if (text) {
             await appendChatMessage(getEnv().DB, { session_id: session.id, turn_id: turnId, role: "assistant", body: text }, new Date());
           }

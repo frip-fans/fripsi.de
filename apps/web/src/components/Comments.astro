@@ -1,0 +1,156 @@
+---
+import { COMMENT_BODY_MAX, COMMENT_NAME_MAX } from "@frip-fan/core";
+import type { Locale, TranslationKey } from "../lib/i18n";
+import { t } from "../lib/i18n";
+import { turnstileSiteKey } from "../lib/comment-request";
+import { getEnv } from "../lib/env";
+import Icon from "./Icon.astro";
+
+interface Props {
+  locale: Locale;
+  /** "site" for the site-wide board, or "event:<id>" for one event. */
+  thread: string;
+  title: string;
+  copy: string;
+}
+
+const { locale, thread, title, copy } = Astro.props;
+const clientLabels = ["replyingTo", "submitting", "posted", "errorName", "errorBody", "errorRateLimited", "errorDuplicate",
+  "errorRejected", "errorBusy", "errorVerification", "errorParent", "errorGeneric"] as const;
+const labels = Object.fromEntries(clientLabels.map((key) => [key, t(locale, `comments.${key}` as TranslationKey)]));
+const headingId = `comments-title-${thread.replace(/[^A-Za-z0-9_-]/g, "-")}`;
+---
+<section class="comments" aria-labelledby={headingId} data-comments data-thread={thread} data-locale={locale}
+  data-turnstile-key={turnstileSiteKey(getEnv()) ?? undefined} data-labels={JSON.stringify(labels)}>
+  <div class="section-heading">
+    <div class="comments-title"><h2 id={headingId}>{title}</h2><span class="comments-count" data-comments-count hidden></span></div>
+    <p>{copy}</p>
+  </div>
+
+  {/* One box: the text area is the composer, and the nickname and button share its bottom bar. */}
+  <form class="comment-form" data-comment-form novalidate hidden>
+    <p class="comment-reply-target" data-reply-target hidden>
+      <Icon name="reply" /><span data-reply-label></span>
+      <button type="button" data-reply-cancel aria-label={t(locale, "comments.cancelReply")} title={t(locale, "comments.cancelReply")}><Icon name="x-lg" /></button>
+    </p>
+    <textarea name="body" rows="2" maxlength={COMMENT_BODY_MAX} required aria-label={t(locale, "comments.body")} placeholder={t(locale, "comments.bodyPlaceholder")}></textarea>
+    <div class="comment-extra" aria-hidden="true"><label>Website<input name="website" type="text" tabindex="-1" autocomplete="off" /></label></div>
+    <div class="comment-challenge" data-turnstile></div>
+    <div class="comment-form-foot">
+      <input class="comment-name-field" name="name" type="text" maxlength={COMMENT_NAME_MAX} required autocomplete="nickname" aria-label={t(locale, "comments.name")} placeholder={t(locale, "comments.name")} />
+      <p class="comment-status" data-comment-status role="status" aria-live="polite"></p>
+      <span class="comment-remaining" data-comment-remaining aria-hidden="true" hidden></span>
+      <button type="submit" data-comment-submit><Icon name="send" />{t(locale, "comments.submit")}</button>
+    </div>
+  </form>
+  <noscript><p class="comments-note panel">{t(locale, "comments.noscript")}</p></noscript>
+
+  <ol class="comment-list" data-comment-list></ol>
+  <p class="comments-note" data-comments-loading role="status" hidden>{t(locale, "comments.loading")}</p>
+  <p class="comments-note" data-comments-empty hidden>{t(locale, "comments.empty")}</p>
+  <p class="comments-note" data-comments-error role="alert" hidden>
+    {t(locale, "comments.loadError")}
+    <button type="button" class="secondary" data-comments-retry>{t(locale, "comments.retry")}</button>
+  </p>
+  <button type="button" class="secondary comments-more" data-comments-more hidden>{t(locale, "comments.loadMore")}</button>
+
+  <template data-comment-template>
+    <li class="comment">
+      <article>
+        <span class="comment-avatar" aria-hidden="true"></span>
+        <header><strong class="comment-name" translate="no"></strong><time></time></header>
+        <p class="comment-body"></p>
+        <button type="button" class="comment-reply" data-reply><Icon name="reply" />{t(locale, "comments.reply")}</button>
+      </article>
+      <ol class="comment-replies"></ol>
+    </li>
+  </template>
+
+  <aside class="guidelines" aria-labelledby={`${headingId}-guidelines`}>
+    <span class="guidelines-icon"><Icon name="shield-check" /></span>
+    <div>
+      <h3 id={`${headingId}-guidelines`}>{t(locale, "community.guidelinesTitle")}</h3>
+      <p>{t(locale, "community.guidelines")}</p>
+    </div>
+  </aside>
+</section>
+
+<script>
+  import { setupComments } from "../lib/comments-client";
+  setupComments();
+  document.addEventListener("astro:page-load", setupComments);
+</script>
+
+<style is:global>
+  .comments { margin-top: 4.5rem; }
+  .comments .section-heading { align-items: end; }
+  .comments .section-heading > div { flex: 0 0 auto; }
+  .comments .section-heading > p { max-width: 34rem; margin: 0; color: var(--muted); font-size: .86rem; line-height: 1.65; text-align: right; }
+  .comments-title { display: flex; align-items: center; gap: .6rem; }
+  .comments-count[hidden] { display: none; }
+  .comments-count { padding: .12rem .5rem; color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 999px; font-size: .75rem; font-variant-numeric: tabular-nums; }
+
+  .comment-form { background: rgba(6, 14, 25, .76); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(18px); transition: border-color .15s; }
+  /* The rounded box carries the focus ring for the fields inside it, so they draw none of their own. */
+  .comment-form:has(textarea:focus, .comment-name-field:focus) { border-color: rgba(var(--accent-rgb), .6); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12); }
+  .comment-form textarea:focus, .comment-form .comment-name-field:focus { outline: none; box-shadow: none; }
+  /* 16px keeps iOS from zooming the page when a field takes focus. */
+  .comment-form textarea, .comment-form .comment-name-field { font-size: 1rem; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+  .comment-form textarea { display: block; min-height: 4.6rem; padding: .85rem 1rem .4rem; line-height: 1.6; resize: vertical; }
+  .comment-extra { position: absolute; left: -200vw; width: 1px; height: 1px; overflow: hidden; }
+  .comment-challenge { padding: 0 1rem; }
+  .comment-challenge:empty { display: none; }
+  .comment-reply-target { display: flex; align-items: center; gap: .45rem; margin: 0; padding: .55rem .6rem 0 1rem; color: var(--accent); font-size: .82rem; }
+  .comment-reply-target span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .comment-reply-target button { min-height: 28px; padding: .3rem; color: var(--muted); background: transparent; }
+  .comment-form-foot { display: flex; align-items: center; gap: .6rem; padding: .45rem .5rem .5rem 1rem; }
+  .comment-form .comment-name-field { flex: 0 1 11rem; min-width: 0; width: auto; padding: .35rem 0; border-bottom: 1px solid var(--line); }
+  .comment-form .comment-name-field:focus { border-bottom-color: rgba(var(--accent-rgb), .6); }
+  .comment-status { flex: 1; min-width: 0; margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+  .comment-status.is-error { color: var(--danger); }
+  .comment-remaining { color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+  .comment-remaining[hidden] { display: none; }
+  .comment-form-foot button { min-height: 36px; padding: .4rem .9rem; }
+  .comment-form button[disabled] { opacity: .55; cursor: progress; }
+
+  .comment-list, .comment-replies { margin: 0; padding: 0; list-style: none; }
+  .comment-list { margin-top: .5rem; }
+  .comment-list:empty { display: none; }
+  .comment-list > .comment { padding: .9rem .25rem; border-bottom: 1px solid var(--line); }
+  .comment-list > .comment:last-child { border-bottom: 0; }
+  .comment.is-new > article .comment-name { color: var(--accent); }
+  .comment article { display: grid; grid-template-columns: 2rem minmax(0, 1fr); column-gap: .7rem; row-gap: .15rem; }
+  .comment-avatar { grid-row: span 3; display: grid; place-items: center; width: 2rem; height: 2rem; color: #07101c; background: hsl(var(--comment-hue, 200) 62% 68%); border-radius: 50%; font-size: .88rem; font-weight: 750; }
+  .comment header { display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .6rem; min-width: 0; }
+  .comment-name { min-width: 0; overflow-wrap: anywhere; font-size: .9rem; }
+  .comment time { color: var(--muted); font-size: .76rem; white-space: nowrap; }
+  .comment-body { margin: 0; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .comment-reply { justify-self: start; min-height: 28px; margin-left: -.4rem; padding: .15rem .4rem; color: var(--muted); background: transparent; border-radius: 8px; font-size: .76rem; font-weight: 600; }
+  .comment-reply:hover, .comment-reply:focus-visible { color: var(--accent); }
+  .comment-replies { display: grid; gap: .7rem; margin: .6rem 0 0 .95rem; padding-left: .9rem; border-left: 1px solid var(--line); }
+  .comment-replies:empty { display: none; }
+  .comment-replies .comment-avatar { width: 1.7rem; height: 1.7rem; font-size: .78rem; }
+  .comment-replies .comment article { grid-template-columns: 1.7rem minmax(0, 1fr); column-gap: .6rem; }
+
+  .comments-note { margin: 1.25rem 0 0; color: var(--muted); font-size: .88rem; text-align: center; }
+  .comments-note button { min-height: 34px; margin-left: .6rem; padding: .35rem .8rem; font-size: .8rem; }
+  .comments-more { display: flex; margin: 1rem auto 0; }
+  .comments-more[hidden], .comment-form[hidden], .comment-reply-target[hidden] { display: none; }
+
+  /* A footnote, not another panel: the comments themselves are the content here. */
+  .comments .guidelines { display: flex; gap: .55rem; margin-top: 1.25rem; padding-top: .9rem; color: var(--muted); border-top: 1px solid var(--line); font-size: .8rem; line-height: 1.65; }
+  .comments .guidelines-icon { flex: none; margin-top: .1rem; color: var(--accent); }
+  .comments .guidelines h3 { display: inline; margin: 0 .4rem 0 0; color: var(--text); font-size: inherit; }
+  .comments .guidelines p { display: inline; margin: 0; }
+
+  @media (max-width: 680px) {
+    .comments { margin-top: 3.5rem; }
+    .comments .section-heading { display: grid; align-items: start; }
+    .comments .section-heading > p { text-align: left; }
+    .comment-replies { margin-left: .3rem; padding-left: .7rem; }
+    .comment-form-foot { flex-wrap: wrap; }
+    .comment-form .comment-name-field { flex: 1 1 8rem; }
+    .comment-status { order: -1; flex-basis: 100%; }
+    .comment-status:empty { display: none; }
+  }
+</style>

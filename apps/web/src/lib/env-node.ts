@@ -33,6 +33,9 @@ export function getRuntimeEnv(): Env {
     DEV_AUTH_BYPASS: development ? process.env.DEV_AUTH_BYPASS : "false",
     DEV_ACTOR: process.env.DEV_ACTOR,
     MAP_TILE_URL: process.env.MAP_TILE_URL,
+    COMMENT_SOURCE_SECRET: process.env.COMMENT_SOURCE_SECRET,
+    TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,
+    TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
   } as Env;
   return cached;
 }

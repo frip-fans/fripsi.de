@@ -1,7 +1,6 @@
 ---
 import { dateInTimeZone } from "@frip-fan/core";
 import { getLocale, t } from "../lib/i18n";
-import { formatMusicDate } from "../lib/music";
 import Icon from "./Icon.astro";
 
 /**
@@ -27,8 +26,7 @@ const active = Boolean(until && until >= dateInTimeZone());
           <Icon name="eye-slash" size="1.4rem" />
           <div class="spoiler-notice-text">
             <h2>{t(locale, "spoiler.title")}</h2>
-            <p>{t(locale, "spoiler.body", { date: formatMusicDate(until, locale) })}</p>
-            <p class="spoiler-remember">{t(locale, "spoiler.remember")}</p>
+            <p>{t(locale, "spoiler.body")}</p>
           </div>
           <button type="button" data-spoiler-reveal><Icon name="eye" />{t(locale, "spoiler.reveal")}</button>
         </div>
@@ -109,7 +107,6 @@ const active = Boolean(until && until >= dateInTimeZone());
   .spoiler-notice-text { display: grid; gap: .25rem; min-width: 0; }
   .spoiler-notice h2 { margin: 0; font-size: 1rem; }
   .spoiler-notice p { margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.6; }
-  .spoiler-notice .spoiler-remember { font-size: .75rem; }
   .spoiler-notice button { white-space: nowrap; }
   .spoiler-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 1rem; margin: 0 0 1rem; padding: .35rem .4rem .35rem .85rem; color: var(--muted); border: 1px dashed rgba(var(--accent-rgb), .4); border-radius: 12px; font-size: .8125rem; }
   .spoiler-bar span { display: inline-flex; align-items: center; gap: .45rem; }

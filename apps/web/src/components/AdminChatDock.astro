@@ -1,6 +1,6 @@
 ---
 import Icon from "./Icon.astro";
-import { CHAT_MODELS_MAX } from "@frip-fan/core";
+import { CHAT_MODELS_MAX, CHAT_SESSION_IDLE_SECONDS, CHAT_SESSION_MAX_SECONDS } from "@frip-fan/core";
 import type { ChatDockState } from "../lib/chat";
 import "../styles/admin-chat.css";
 
@@ -66,7 +66,7 @@ function clock(value: string): string {
   </ol>
 
   <p class="chat-expired" data-role="expired" hidden={live || !session}>
-    这个会话已结束（30 分钟上限）。<button type="button" class="link" data-chat-new>开新会话</button>
+    这个会话已结束（{CHAT_SESSION_IDLE_SECONDS / 60} 分钟没有新消息，或已满 {CHAT_SESSION_MAX_SECONDS / 3600} 小时）。<button type="button" class="link" data-chat-new>开新会话</button>
   </p>
 
   <form class="chat-composer" data-role="composer" hidden={Boolean(session) && !live}>

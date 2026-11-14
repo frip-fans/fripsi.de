@@ -36,8 +36,8 @@ export const GET: APIRoute = async ({ locals, params }) => {
 
 export const POST: APIRoute = async ({ request, locals, params }) => {
   try {
-    await continueChat(locals.actor!, params.id!, await readInput(request));
-    return Response.json({ accepted: true });
+    const expiresAt = await continueChat(locals.actor!, params.id!, await readInput(request));
+    return Response.json({ accepted: true, expires_at: expiresAt });
   } catch (error) { return jsonError(error); }
 };
 

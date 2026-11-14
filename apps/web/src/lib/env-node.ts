@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import process from "node:process";
-import { openDatabase, localMedia } from "@frip-fan/node-runtime";
+import { openDatabase, localMedia, localChatMedia } from "@frip-fan/node-runtime";
 
 let cached: Env | undefined;
 export function getRuntimeEnv(): Env {
@@ -23,6 +23,8 @@ export function getRuntimeEnv(): Env {
     // Written by the host backup job next to the database; absent where backups are not scheduled.
     BACKUP_STATUS_FILE: resolve(process.env.BACKUP_STATUS_FILE || `${data}/backup-status.json`),
     MEDIA: localMedia(resolve(process.env.FRIP_MEDIA_DIR || `${data}/media`)),
+    // Outside FRIP_MEDIA_DIR on purpose: that directory is served publicly.
+    CHAT_MEDIA: localChatMedia(resolve(process.env.FRIP_CHAT_MEDIA_DIR || `${data}/chat-media`)),
     SITE_URL: process.env.SITE_URL || "http://localhost:4326",
     APP_ENV: appEnv,
     ACCESS_TEAM_DOMAIN: process.env.ACCESS_TEAM_DOMAIN,

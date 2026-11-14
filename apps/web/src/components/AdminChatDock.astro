@@ -1,6 +1,6 @@
 ---
 import Icon from "./Icon.astro";
-import { CHAT_MODELS_MAX, CHAT_SESSION_IDLE_SECONDS, CHAT_SESSION_MAX_SECONDS } from "@frip-fan/core";
+import { CHAT_IMAGE_MAX, CHAT_IMAGE_MAX_BYTES, CHAT_MODELS_MAX, CHAT_SESSION_IDLE_SECONDS, CHAT_SESSION_MAX_SECONDS } from "@frip-fan/core";
 import type { ChatDockState } from "../lib/chat";
 import { renderChatMarkdown } from "../lib/chat-markdown";
 import "../styles/admin-chat.css";
@@ -56,7 +56,16 @@ function clock(value: string): string {
     )}
     {messages.map((message) => (
       message.role === "user" ? (
-        <li class="chat-turn chat-turn-user"><div class="chat-bubble">{message.body}</div></li>
+        <li class="chat-turn chat-turn-user">
+          {message.images.length > 0 && (
+            <div class="chat-images">
+              {message.images.map((url) => (
+                <a href={url} target="_blank" rel="noopener"><img src={url} alt="附图" loading="lazy" decoding="async" /></a>
+              ))}
+            </div>
+          )}
+          {message.body && <div class="chat-bubble">{message.body}</div>}
+        </li>
       ) : (
         <li class:list={["chat-turn", message.role === "error" ? "chat-turn-error" : "chat-turn-assistant"]} data-turn={message.turn_id ?? undefined}>
           <p class="chat-turn-label">{message.role === "error" ? "出错" : "助手"} · {clock(message.created_at)}</p>
@@ -72,9 +81,13 @@ function clock(value: string): string {
     这个会话已结束（{CHAT_SESSION_IDLE_SECONDS / 60} 分钟没有新消息，或已满 {CHAT_SESSION_MAX_SECONDS / 3600} 小时）。<button type="button" class="link" data-chat-new>开新会话</button>
   </p>
 
-  <form class="chat-composer" data-role="composer" hidden={Boolean(session) && !live}>
+  <form class="chat-composer" data-role="composer" hidden={Boolean(session) && !live}
+    data-image-max={CHAT_IMAGE_MAX} data-image-bytes={CHAT_IMAGE_MAX_BYTES}>
+    <ul class="chat-attachments" data-role="attachments" aria-label="待发送的图片" hidden></ul>
+    <input type="file" class="sr-only" data-role="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" />
+    <button type="button" class="chat-attach" data-role="attach" aria-label="添加图片" title="添加图片（也可以粘贴或拖入）"><Icon name="image" /></button>
     <label class="sr-only" for="chat-input">给助手的消息</label>
-    <textarea id="chat-input" rows="1" maxlength="4000" required data-role="input"
+    <textarea id="chat-input" rows="1" maxlength="4000" data-role="input"
       placeholder="描述要查询或修改的内容，附上来源链接"></textarea>
     <button type="submit" class="button chat-send" data-role="send" aria-label="发送"><Icon name="send" /></button>
   </form>
@@ -82,6 +95,7 @@ function clock(value: string): string {
     <kbd data-role="hint-mod">Ctrl</kbd><kbd data-role="hint-enter">Enter</kbd><span>发送</span>
   </p>
   <span class="sr-only" role="status" aria-live="polite" data-role="announce"></span>
+  <div class="chat-drop" data-role="drop" hidden><Icon name="image" /><span>松开以添加图片</span></div>
 </aside>
 
 <dialog class="chat-settings chat-history-dialog" data-chat-history-panel tabindex="-1" aria-labelledby="chat-history-title">

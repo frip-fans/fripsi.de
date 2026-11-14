@@ -152,6 +152,15 @@ body[data-chat-locked="true"] {
   /* A neutral fill without a frame: the accent stays for actions and proposals. */
   background: rgba(255,255,255,.08); border-radius: 16px 16px 4px 16px;
 }
+/* Images a maintainer sent sit above the bubble, right-aligned with it. */
+.chat-images { display: flex; flex-wrap: wrap; justify-content: end; gap: .35rem; max-width: 85%; }
+.chat-images img {
+  display: block; max-width: 100%; max-height: 180px; border-radius: 12px;
+  border: 1px solid var(--line); object-fit: cover; background: rgba(255,255,255,.04);
+}
+/* Several images share a row as equal tiles; a single one keeps its own shape. */
+.chat-images > :not(:only-child), .chat-images > :not(:only-child) img { width: 96px; height: 96px; }
+.chat-images a { display: block; border-radius: 12px; }
 .chat-turn-label { margin: 0; color: var(--muted); font: .68rem/1.4 ui-monospace; letter-spacing: .06em; }
 /* No bubble for the assistant: in a 420px rail two bubbles are mostly border and padding. */
 .chat-prose { font-size: .9rem; line-height: 1.7; overflow-wrap: anywhere; }
@@ -209,6 +218,37 @@ body[data-chat-locked="true"] {
   border: 1px solid var(--line); border-radius: 20px; background: rgba(4,11,20,.6);
   transition: border-color .15s;
 }
+/* Pending images take the composer's first row; the controls wrap below them. */
+.chat-composer { flex-wrap: wrap; }
+.chat-attachments {
+  flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; margin: 0; padding: .3rem .3rem .1rem;
+}
+.chat-attachments li { position: relative; }
+.chat-attachments img {
+  display: block; width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line);
+}
+.chat-dock .chat-attachment-remove {
+  position: absolute; top: -6px; right: -6px; display: grid; place-items: center;
+  width: 20px; min-width: 20px; height: 20px; min-height: 20px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--line); background: #0b1220; color: var(--text); font: 600 .8rem/1 system-ui;
+}
+/* The visible disc stays small beside a thumbnail; this widens what a finger can hit. */
+.chat-dock .chat-attachment-remove::after { content: ""; position: absolute; inset: -8px; }
+.chat-dock .chat-attachment-remove:hover { border-color: var(--accent); color: var(--accent); }
+.chat-dock .chat-composer .chat-attach {
+  display: inline-grid; place-items: center; width: 36px; min-width: 36px; height: 36px; min-height: 36px;
+  padding: 0; border: 0; border-radius: 50%; background: none; color: var(--muted);
+}
+.chat-dock .chat-composer .chat-attach:hover:not(:disabled) { color: var(--accent); background: rgba(var(--accent-rgb), .12); }
+.chat-dock .chat-composer .chat-attach:disabled { opacity: .45; cursor: not-allowed; }
+.chat-dock .chat-attach svg { width: 16px; height: 16px; }
+/* Covers the dock while a file is dragged over it; pointer-events off so the dock keeps the drag. */
+.chat-drop {
+  position: absolute; inset: 6px; z-index: 5; display: grid; place-content: center; justify-items: center; gap: .5rem;
+  border: 2px dashed var(--accent); border-radius: 16px; background: rgba(6,12,24,.86);
+  color: var(--accent); font-size: .85rem; pointer-events: none;
+}
+.chat-drop svg { width: 26px; height: 26px; }
 .chat-composer:focus-within { border-color: rgba(var(--accent-rgb), .6); }
 /* The composer grows with its content (see fitInput), so no drag handle. */
 .chat-dock .chat-composer textarea {
@@ -272,6 +312,7 @@ body[data-chat-locked="true"] {
   .chat-bubble, .chat-prose { font-size: .9375rem; }
   .chat-dock .chat-composer textarea { min-height: 40px; padding: .55rem .65rem; font-size: .9375rem; }
   .chat-dock .chat-composer .chat-send { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
+  .chat-dock .chat-composer .chat-attach { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
   .chat-dock .chat-dock-status select { min-height: 36px; font-size: .75rem; }
 }
 

@@ -3,6 +3,7 @@
  * never tries to keep state alive across navigations: the transcript arrives server
  * rendered in the markup and only ephemeral bits (open, draft, scroll) are restored.
  */
+import { prepareImage, type PreparedImage } from "./chat-images-client";
 import { renderChatMarkdown } from "./chat-markdown";
 import { setupChatModelSettings } from "./chat-model-settings-client";
 
@@ -74,6 +75,12 @@ export function setupAdminChatDock(): void {
   const form = dock.querySelector<HTMLFormElement>('[data-role="composer"]')!;
   const input = dock.querySelector<HTMLTextAreaElement>('[data-role="input"]')!;
   const sendButton = dock.querySelector<HTMLButtonElement>('[data-role="send"]')!;
+  const attachments = dock.querySelector<HTMLElement>('[data-role="attachments"]')!;
+  const fileInput = dock.querySelector<HTMLInputElement>('[data-role="file"]')!;
+  const attachButton = dock.querySelector<HTMLButtonElement>('[data-role="attach"]')!;
+  const dropZone = dock.querySelector<HTMLElement>('[data-role="drop"]')!;
+  const imageMax = Number(form.dataset.imageMax) || 4;
+  const imageBytes = Number(form.dataset.imageBytes) || 1_500_000;
   const status = dock.querySelector<HTMLElement>('[data-role="status"]')!;
   const announce = dock.querySelector<HTMLElement>('[data-role="announce"]')!;
   const expired = dock.querySelector<HTMLElement>('[data-role="expired"]')!;
@@ -99,6 +106,10 @@ export function setupAdminChatDock(): void {
   let awaiting = 0;
   let viewingArchive = false;
   let source: EventSource | null = null;
+  /** Images waiting in the composer. They live in memory only and do not survive a navigation. */
+  let pending: PreparedImage[] = [];
+  /** Images still being read or shrunk; sending waits for them. */
+  let preparing = 0;
 
   const rail = window.matchMedia(RAIL_QUERY);
   const scrollToEnd = () => log.scrollTo({ top: log.scrollHeight });
@@ -185,15 +196,35 @@ export function setupAdminChatDock(): void {
     dock.querySelector('[data-role="empty"]')?.remove();
   }
 
-  function bubble(role: "user" | "assistant" | "error", text: string, at = new Date().toISOString()): void {
+  function bubble(role: "user" | "assistant" | "error", text: string, at = new Date().toISOString(), images: string[] = []): void {
     clearEmpty();
     const item = document.createElement("li");
     item.className = `chat-turn chat-turn-${role}`;
     if (role === "user") {
-      const body = document.createElement("div");
-      body.className = "chat-bubble";
-      body.textContent = text;
-      item.appendChild(body);
+      if (images.length) {
+        const strip = document.createElement("div");
+        strip.className = "chat-images";
+        for (const url of images) {
+          const picture = document.createElement("img");
+          picture.src = url;
+          picture.alt = "附图";
+          picture.decoding = "async";
+          // A stored image opens at full size; one just sent is still only in memory.
+          if (url.startsWith("/")) {
+            const link = document.createElement("a");
+            link.href = url; link.target = "_blank"; link.rel = "noopener";
+            link.appendChild(picture);
+            strip.appendChild(link);
+          } else strip.appendChild(picture);
+        }
+        item.appendChild(strip);
+      }
+      if (text) {
+        const body = document.createElement("div");
+        body.className = "chat-bubble";
+        body.textContent = text;
+        item.appendChild(body);
+      }
     } else {
       const label = document.createElement("p");
       label.className = "chat-turn-label";
@@ -426,6 +457,7 @@ export function setupAdminChatDock(): void {
 
   function busy(on: boolean, label: string): void {
     sendButton.disabled = on;
+    attachButton.disabled = on;
     input.readOnly = on;
     log.setAttribute("aria-busy", String(on));
     // Drives the indeterminate bar under the status row: a turn can run for many
@@ -504,21 +536,22 @@ export function setupAdminChatDock(): void {
     }
   }
 
-  async function submit(text: string, echo = true): Promise<void> {
+  async function submit(text: string, echo = true, images: PreparedImage[] = []): Promise<void> {
     if (viewingArchive) await backToCurrent();
-    if (echo) bubble("user", text);
+    if (echo) bubble("user", text, undefined, images.map((image) => image.url));
     busy(true, "正在提交");
+    const sent = images.length ? { images: images.map((image) => image.base64) } : {};
     try {
       if (!sessionId || !live) {
-        const created = await api("/api/admin/chat", { input: text, model: model?.value ?? "" });
+        const created = await api("/api/admin/chat", { input: text, model: model?.value ?? "", ...sent });
         sessionId = String(created.session_id);
         dock.dataset.session = sessionId;
         lastTurn = null;
         setLive(true, String(created.expires_at));
       } else {
-        const sent = await api(`/api/admin/chat/${encodeURIComponent(sessionId)}`, { input: text });
+        const accepted = await api(`/api/admin/chat/${encodeURIComponent(sessionId)}`, { input: text, ...sent });
         // Sending is activity: the idle deadline moved, so the countdown must follow it.
-        if (typeof sent.expires_at === "string") setLive(true, sent.expires_at);
+        if (typeof accepted.expires_at === "string") setLive(true, accepted.expires_at);
       }
       store(DRAFT_KEY, null);
       stopPolling();
@@ -528,8 +561,55 @@ export function setupAdminChatDock(): void {
       bubble("error", message);
       if (sessionGone(error)) setLive(false, null);
       busy(false, "未提交");
+      // Typing a message again is quick; finding and attaching the same images is not.
+      if (images.length && !pending.length) { pending = images; renderAttachments(); }
     }
   }
+
+  // ---- images -------------------------------------------------------------
+
+  function renderAttachments(): void {
+    attachments.replaceChildren(...pending.map((image, index) => {
+      const item = document.createElement("li");
+      const picture = document.createElement("img");
+      picture.src = image.url;
+      picture.alt = `图片 ${index + 1}`;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "chat-attachment-remove";
+      remove.setAttribute("aria-label", `移除图片 ${index + 1}`);
+      remove.textContent = "×";
+      remove.addEventListener("click", () => {
+        pending = pending.filter((entry) => entry !== image);
+        renderAttachments();
+        input.focus();
+      });
+      item.appendChild(picture);
+      item.appendChild(remove);
+      return item;
+    }));
+    attachments.hidden = pending.length === 0;
+  }
+
+  async function addImages(files: File[]): Promise<void> {
+    const room = imageMax - pending.length - preparing;
+    const accepted = files.slice(0, Math.max(0, room));
+    let note = files.length > accepted.length ? `一条消息最多附 ${imageMax} 张图片` : "";
+    preparing += accepted.length;
+    // Sequential, so the previews appear in the order the images were given.
+    for (const file of accepted) {
+      try { pending.push(await prepareImage(file, imageBytes)); }
+      catch { note = "有图片无法读取，已跳过"; }
+      preparing -= 1;
+      renderAttachments();
+    }
+    if (note) { status.textContent = note; announce.textContent = note; }
+    else if (accepted.length) announce.textContent = `已添加 ${accepted.length} 张图片`;
+  }
+
+  const imageFiles = (list: FileList | null | undefined): File[] =>
+    [...(list ?? [])].filter((file) => file.type.startsWith("image/"));
+  const canAttach = () => !form.hidden && !attachButton.disabled;
 
   async function endSession(): Promise<void> {
     stopPolling();
@@ -586,14 +666,14 @@ export function setupAdminChatDock(): void {
     try {
       const data = await api(`/api/admin/chat/sessions/${encodeURIComponent(id)}`, undefined, "GET") as {
         session: { continuable: boolean; model: string; created_at: string };
-        messages: Array<{ role: string; body: string; created_at: string; tool_calls?: Array<{ name: string; status: string }> }>;
+        messages: Array<{ role: string; body: string; created_at: string; images?: string[]; tool_calls?: Array<{ name: string; status: string }> }>;
         proposals?: ProposalCard[];
       };
       viewingArchive = true;
       historyPanel.close();
       log.replaceChildren();
       for (const message of data.messages) {
-        bubble(message.role === "user" ? "user" : message.role === "error" ? "error" : "assistant", message.body, message.created_at);
+        bubble(message.role === "user" ? "user" : message.role === "error" ? "error" : "assistant", message.body, message.created_at, message.images);
         toolLine(message.tool_calls ?? []);
       }
       renderProposals(data.proposals ?? []);
@@ -614,12 +694,12 @@ export function setupAdminChatDock(): void {
     try {
       const state = await api("/api/admin/chat/current", undefined, "GET") as {
         session: { id: string; expires_at: string; continuable: boolean } | null;
-        messages: Array<{ role: string; body: string; created_at: string }>;
+        messages: Array<{ role: string; body: string; created_at: string; images?: string[] }>;
         proposals?: ProposalCard[];
       };
       log.replaceChildren();
       for (const message of state.messages) {
-        bubble(message.role === "user" ? "user" : message.role === "error" ? "error" : "assistant", message.body, message.created_at);
+        bubble(message.role === "user" ? "user" : message.role === "error" ? "error" : "assistant", message.body, message.created_at, message.images);
       }
       renderProposals(state.proposals ?? []);
       sessionId = state.session?.id ?? null;
@@ -649,10 +729,53 @@ export function setupAdminChatDock(): void {
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     const text = input.value.trim();
-    if (!text || sendButton.disabled) return;
+    if ((!text && !pending.length) || sendButton.disabled) return;
+    if (preparing) { status.textContent = "图片还在处理，请稍候"; return; }
+    const images = pending;
+    pending = [];
+    renderAttachments();
     input.value = "";
     fitInput();
-    void submit(text);
+    void submit(text, true, images);
+  });
+  attachButton.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => {
+    const files = imageFiles(fileInput.files);
+    fileInput.value = "";
+    if (files.length) void addImages(files);
+  });
+  // On the whole dock, so a paste lands wherever the focus is inside it.
+  dock.addEventListener("paste", (event) => {
+    const files = imageFiles((event as ClipboardEvent).clipboardData?.files);
+    if (!files.length || !canAttach()) return;
+    // A copied image often carries a text flavour too (its file name or URL); the image wins.
+    event.preventDefault();
+    void addImages(files);
+  });
+  // dragenter and dragleave fire for every child crossed, so the overlay follows a depth count.
+  let dragDepth = 0;
+  const carriesFiles = (event: Event) => [...((event as DragEvent).dataTransfer?.types ?? [])].includes("Files");
+  const endDrag = () => { dragDepth = 0; dropZone.hidden = true; };
+  dock.addEventListener("dragenter", (event) => {
+    if (!carriesFiles(event) || !canAttach()) return;
+    event.preventDefault();
+    dragDepth += 1;
+    dropZone.hidden = false;
+  });
+  dock.addEventListener("dragover", (event) => {
+    // Without this the browser navigates to the dropped file.
+    if (carriesFiles(event)) event.preventDefault();
+  });
+  dock.addEventListener("dragleave", () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) dropZone.hidden = true;
+  });
+  dock.addEventListener("drop", (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    endDrag();
+    const files = imageFiles((event as DragEvent).dataTransfer?.files);
+    if (files.length && canAttach()) { void addImages(files); input.focus(); }
   });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); form.requestSubmit(); }

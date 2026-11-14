@@ -1,13 +1,14 @@
 /// <reference types="astro/client" />
 /// <reference types="@cloudflare/workers-types" />
 
-import type { Actor } from "@frip-fan/core";
+import type { Actor, ChatMediaStore } from "@frip-fan/core";
 
 declare global {
   // DB and MEDIA keep the D1/R2 interface shapes; packages/node-runtime implements them with SQLite and a local directory.
   interface Env {
     DB: D1Database;
     MEDIA: R2Bucket;
+    CHAT_MEDIA: ChatMediaStore;
     FRIP_RELEASE_SHA?: string;
     MCP_RESOURCE_URL?: string;
     MCP_AUTHORIZATION_SERVER?: string;

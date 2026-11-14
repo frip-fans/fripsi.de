@@ -5,6 +5,10 @@ import {
   ServiceError,
   activeChatSession,
   appendChatMessage,
+  deleteChatMessages,
+  isChatAttachmentPath,
+  chatAttachmentFile,
+  chatAttachments,
   assertScope,
   attachChatSession,
   closeChatSession,
@@ -24,6 +28,7 @@ import {
   signChatToken,
   type Actor,
   type ChangeSet,
+  type ChatImage,
   type ChatMessage,
   type ChatSession,
   type SessionProgress,
@@ -154,8 +159,25 @@ export async function saveChatModelSettings(actor: Actor, enabled: string[], def
   await writeSetting(getEnv().DB, CHAT_MODELS_SETTING, checked, actor.id, now);
 }
 
+/** The provider's content parts for one maintainer message: its text, then its images inline. */
+function userContent(input: string, images: ChatImage[]): unknown[] {
+  return [
+    ...(input ? [{ type: "input_text", text: input }] : []),
+    ...images.map((image) => ({ type: "input_image", image_url: `data:${image.type};base64,${image.base64}` })),
+  ];
+}
+
+/** Files first, row second: a row never points at an image that was not written. */
+async function recordUserMessage(sessionId: string, input: string, images: ChatImage[], now: Date): Promise<void> {
+  const env = getEnv();
+  for (const image of images) await env.CHAT_MEDIA.put(sessionId, chatAttachmentFile(image), image.data);
+  await appendChatMessage(env.DB, { session_id: sessionId, role: "user", body: input, attachments: images }, now);
+}
+
+const IMAGE_TITLE = "图片";
+
 /** Opens a session, hands OpenAI a short-lived MCP credential and submits the first input. */
-export async function startChat(actor: Actor, input: string, chosen: string, now = new Date()): Promise<ChatSession> {
+export async function startChat(actor: Actor, input: string, chosen: string, now = new Date(), images: ChatImage[] = []): Promise<ChatSession> {
   assertScope(actor, "events:draft");
   const config = configuration();
   // The shape check keeps a nonsense id out of the request; the ticked list is then
@@ -175,9 +197,9 @@ export async function startChat(actor: Actor, input: string, chosen: string, now
     // on the OpenAI project behind the API key, not here.
     budget_group: `chat:${actor.id}:${dateInTimeZone(now, "Asia/Tokyo")}`,
     created_at: created, expires_at: chatSessionDeadline(created, now),
-    title: input.length > TITLE_MAX ? `${input.slice(0, TITLE_MAX)}…` : input,
+    title: input.length > TITLE_MAX ? `${input.slice(0, TITLE_MAX)}…` : input || IMAGE_TITLE,
   });
-  await appendChatMessage(db, { session_id: id, role: "user", body: input }, now);
+  await recordUserMessage(id, input, images, now);
   const token = await signChatToken(config.secret, config.audience, id, actor.id, created);
   try {
     const client = new ChatAgentsClient(config.key);
@@ -198,7 +220,9 @@ export async function startChat(actor: Actor, input: string, chosen: string, now
         text: { format: { type: "text" } },
       },
       environment: { type: "none" },
-      input,
+      // The plain string is the shape this request has always had; the structured
+      // form is only needed to carry images.
+      input: images.length ? [{ role: "user", content: userContent(input, images) }] : input,
     }, `${id}:open`)) as { id?: unknown };
     if (typeof remote.id !== "string" || !/^[a-zA-Z0-9_-]+$/.test(remote.id)) throw new Error("agent_session_invalid");
     await attachChatSession(db, id, remote.id, now);
@@ -229,15 +253,15 @@ async function requireChat(actor: Actor, id: string, now: Date): Promise<ChatSes
 }
 
 /** Submits the next maintainer message into the same remote session; returns its new deadline. */
-export async function continueChat(actor: Actor, id: string, input: string, now = new Date()): Promise<string> {
+export async function continueChat(actor: Actor, id: string, input: string, now = new Date(), images: ChatImage[] = []): Promise<string> {
   assertScope(actor, "events:draft");
   const config = configuration();
   const session = await requireChat(actor, id, now);
   const client = new ChatAgentsClient(config.key);
   await client.call(`sessions/${encodeURIComponent(session.agent_session_id!)}/events`, {
-    events: [{ type: "agent.session.input.message", input: [{ role: "user", content: [{ type: "input_text", text: input }] }] }],
+    events: [{ type: "agent.session.input.message", input: [{ role: "user", content: userContent(input, images) }] }],
   }, `${id}:${now.valueOf()}`);
-  await appendChatMessage(getEnv().DB, { session_id: id, role: "user", body: input }, now);
+  await recordUserMessage(id, input, images, now);
   return (await getChatSession(getEnv().DB, id))?.expires_at ?? session.expires_at;
 }
 
@@ -298,7 +322,34 @@ export interface ChatTranscript {
   session: ChatSession;
   /** False once the session is closed or past its deadline: readable, not continuable. */
   continuable: boolean;
-  messages: ChatMessage[];
+  messages: ChatViewMessage[];
+}
+
+/** A transcript row as the dock renders it: its images are URLs behind the admin gate. */
+export type ChatViewMessage = ChatMessage & { images: string[] };
+
+function viewMessage(message: ChatMessage): ChatViewMessage {
+  return { ...message, images: chatAttachments(message).map((attachment) =>
+    `/api/admin/chat/attachments/${message.session_id}/${chatAttachmentFile(attachment)}`) };
+}
+
+/** One stored chat image, only for the maintainer whose session it belongs to. */
+export async function chatAttachment(actor: Actor, sessionId: string, file: string): Promise<Uint8Array> {
+  const env = getEnv();
+  const session = isChatAttachmentPath(sessionId, file) ? await getChatSessionForActor(env.DB, sessionId, actor.id) : null;
+  const data = session ? await env.CHAT_MEDIA.get(sessionId, file) : null;
+  if (!data) throw new ServiceError("not_found", "没有找到该图片", 404);
+  return data;
+}
+
+/** Deletes a transcript together with the images it referenced. */
+export async function deleteChatTranscript(actor: Actor, id: string): Promise<void> {
+  const env = getEnv();
+  // Scoped by actor, so this cannot delete someone else's record.
+  const session = await getChatSessionForActor(env.DB, id, actor.id);
+  if (!session) throw new ServiceError("not_found", "没有找到该会话", 404);
+  await deleteChatMessages(env.DB, session.id);
+  await env.CHAT_MEDIA.removeSession(session.id);
 }
 
 export async function chatHistory(actor: Actor, limit = 20, before?: string): Promise<ChatSession[]> {
@@ -313,7 +364,7 @@ export async function chatTranscript(actor: Actor, id: string, now = new Date())
   return {
     session,
     continuable: session.status === "active" && Date.parse(session.expires_at) > now.valueOf(),
-    messages: await listChatMessages(db, id),
+    messages: (await listChatMessages(db, id)).map(viewMessage),
   };
 }
 
@@ -333,7 +384,7 @@ export interface ChatDockState {
   /** The model of the maintainer's most recent session, so the picker follows them. */
   last_model: string | null;
   session: (ChatSession & { continuable: boolean }) | null;
-  messages: ChatMessage[];
+  messages: ChatViewMessage[];
   proposals: ProposalCard[];
 }
 
@@ -360,7 +411,7 @@ export async function chatDockState(actor: Actor, now = new Date()): Promise<Cha
     can_publish,
     last_model: session.model,
     session: { ...session, continuable: Date.parse(session.expires_at) > now.valueOf() },
-    messages,
+    messages: messages.map(viewMessage),
     proposals: await proposalCards(actor, proposals.slice(0, 5), can_publish),
   };
 }

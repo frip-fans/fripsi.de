@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../components/AdminPageHeader.astro";
 import { getTourById, listTourCandidateEvents } from "@frip-fan/core";
 import { buildSearchText } from "@frip-fan/core/search-text";
 import Icon from "../../../components/Icon.astro";
@@ -27,8 +28,9 @@ for (const stop of tour.stops) counts.set(stop.display_title, (counts.get(stop.d
 const idempotencyKey = () => `admin-tour-stops-${tour.id}-${crypto.randomUUID()}`;
 ---
 <SiteLayout title={tour.name} admin>
-  <a class="muted back-link" href="/admin/tours"><Icon name="arrow-left" />巡演列表</a>
-  <header class="edit-head"><div><p class="eyebrow">Tour · {tour.stop_count} 站</p><h1>{tour.name}</h1></div></header>
+  <AdminPageHeader title={tour.name} back={{ href: "/admin/tours", label: "巡演列表" }}>
+    <p class="muted" slot="meta">{tour.stop_count} 站{tour.first_date && <> · {tour.first_date} – {tour.last_date}</>} · {tour.published ? "公开" : "未公开"}</p>
+  </AdminPageHeader>
   {saved && <p class="notice success" role="status">巡演已经保存并写入审计日志。</p>}
   {membershipNotice && <p class="notice success" role="status">{membershipNotice}，已写入审计日志。</p>}
   {unchanged && <p class="notice" role="status">所选活动已经是当前状态，没有变化。</p>}

@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../components/AdminPageHeader.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { chatEnabled } from "../../lib/chat";
 
@@ -7,12 +8,7 @@ import { chatEnabled } from "../../lib/chat";
 if (chatEnabled()) return Astro.redirect("/admin", 302);
 ---
 <SiteLayout title="编辑助手" admin>
-  <header class="admin-head">
-    <div>
-      <p class="eyebrow">Protected workspace</p>
-      <h1>编辑助手</h1>
-    </div>
-  </header>
+  <AdminPageHeader title="编辑助手" />
   <section class="panel empty">
     <p>后台聊天助手尚未启用。</p>
     <p><small>在本环境的 <code>web.env</code> 配置 <code>CHAT_ENABLED=true</code>、<code>OPENAI_API_KEY</code> 与 <code>MCP_ENDPOINT_URL</code> 后重启 <code>fripside-web.service</code>。</small></p>

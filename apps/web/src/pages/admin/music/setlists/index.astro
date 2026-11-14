@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../../components/AdminPageHeader.astro";
 import { listAdminSetlists } from "@frip-fan/core";
 import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
 import Icon from "../../../../components/Icon.astro";
@@ -31,10 +32,9 @@ const hrefFor = (value: string) => {
 ---
 <SiteLayout title="Setlist 管理" admin>
   <AdminMusicNav />
-  <header class="list-head">
-    <div><p class="eyebrow">Live catalog</p><h1>Setlist 管理</h1><p class="lede">维护关联活动、歌曲顺序、演唱版本、Medley 与来源。</p></div>
+  <AdminPageHeader title="Setlist 管理" description="维护关联活动、歌曲顺序、演唱版本、Medley 与来源。">
     <a class:list={["button", { disabled: !canWrite }]} href={canWrite ? "/admin/music/setlists/new" : undefined} aria-disabled={!canWrite}><Icon name="plus" />新 Setlist</a>
-  </header>
+  </AdminPageHeader>
   <form class="filters panel" method="get">
     <label>搜索<input type="search" name="q" value={query} placeholder="活动、场地或 Setlist 标题" /></label>
     {active.value && <input type="hidden" name="show" value={active.value} />}
@@ -48,18 +48,18 @@ const hrefFor = (value: string) => {
   </nav>
   <div class="panel table-wrap">
     <table>
-      <thead><tr><th>日期</th><th>Setlist</th><th class="hide-sm">类型</th><th>歌曲</th><th class="hide-sm">资料状态</th><th>公开</th><th><span class="visually-hidden">操作</span></th></tr></thead>
+      <thead><tr><th>日期</th><th>Setlist</th><th class="hide-sm">类型</th><th class="num">歌曲</th><th class="hide-sm">资料状态</th><th>公开</th><th class="row-links"><span class="visually-hidden">操作</span></th></tr></thead>
       <tbody>
         {setlists.map((setlist) => <tr>
           <td class="date">{setlist.start_date}</td>
           <td><a href={`/admin/music/setlists/${setlist.id}`}>{setlist.title || setlist.event_title}</a><small>{setlist.performance_label} · {setlist.venue || "场地待补"}</small></td>
-          <td class="hide-sm">{setlist.event_classification || "—"}</td>
-          <td class:list={{ zero: setlist.entry_count === 0 }}>{setlist.entry_count}</td>
-          <td class="hide-sm">
+          <td class="hide-sm nowrap">{setlist.event_classification || "—"}</td>
+          <td class:list={["num", { zero: setlist.entry_count === 0 }]}>{setlist.entry_count}</td>
+          <td class="hide-sm status">
             <span class:list={["tag", { warn: setlist.completeness !== "complete" }]}>{completenessLabels[setlist.completeness] ?? setlist.completeness}</span>
             <span class:list={["tag", { warn: setlist.confidence === "unverified" }]}>{confidenceLabels[setlist.confidence] ?? setlist.confidence}</span>
           </td>
-          <td><span class:list={["tag", { live: setlist.published }]}>{setlist.published ? "公开" : "未公开"}</span></td>
+          <td><span class:list={["tag", setlist.published ? "live" : "off"]}>{setlist.published ? "公开" : "未公开"}</span></td>
           <td class="row-links">
             <a href={`/admin/music/setlists/${setlist.id}`} aria-label="编辑"><Icon name="pencil-square" /></a>
             {setlist.published && <a href={`/music/lives/${setlist.id}`} target="_blank" aria-label="查看公开页面"><Icon name="box-arrow-up-right" /></a>}
@@ -71,20 +71,14 @@ const hrefFor = (value: string) => {
   </div>
 </SiteLayout>
 <style>
-  .list-head { display:flex;justify-content:space-between;align-items:end;gap:2rem;margin-bottom:2rem }.list-head h1{font-size:var(--heading-1-size);margin-bottom:.5rem}.filters{display:grid;grid-template-columns:1fr auto;align-items:end;gap:.8rem;margin-bottom:.8rem}td small{display:block;color:var(--muted);margin-top:.2rem}.button.disabled{opacity:.45;pointer-events:none}
+  .filters { display:grid;grid-template-columns:1fr auto;align-items:end;gap:.8rem;margin-bottom:.8rem }
   .chips { display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem }
   .chips a { display:inline-flex;align-items:center;gap:.45rem;padding:.45rem .75rem;border:1px solid var(--line);border-radius:999px;color:var(--muted);text-decoration:none;font-size:.8rem }
   .chips a span { min-width:1.3rem;padding:.05rem .35rem;border-radius:999px;background:rgba(255,255,255,.07);font:700 .68rem/1.4 ui-monospace,monospace;text-align:center }
   .chips a.active { color:var(--accent);border-color:rgba(var(--accent-rgb),.4) }
   .chips a.active span { color:#07101c;background:var(--accent) }
-  .date { white-space:nowrap }
   .zero { color:#ffd39a }
-  .tag { white-space:nowrap }
+  .status { white-space:nowrap }
   .tag + .tag { margin-left:.25rem }
-  .tag.warn { color:#ffd39a;border-color:rgba(255,190,110,.45) }
-  .row-links { white-space:nowrap }
-  .row-links a { display:inline-flex;padding:.3rem;color:var(--muted) }
-  .row-links a:hover { color:var(--accent) }
-  .visually-hidden { position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap }
-  @media(max-width:720px){.list-head{align-items:flex-start;flex-direction:column}.filters{grid-template-columns:1fr}.hide-sm{display:none}}
+  @media(max-width:720px){.filters{grid-template-columns:1fr}}
 </style>

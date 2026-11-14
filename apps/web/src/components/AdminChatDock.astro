@@ -1,5 +1,6 @@
 ---
 import Icon from "./Icon.astro";
+import { CHAT_MODELS_MAX } from "@frip-fan/core";
 import type { ChatDockState } from "../lib/chat";
 import "../styles/admin-chat.css";
 
@@ -12,16 +13,20 @@ function clock(value: string): string {
   return value.slice(11, 16);
 }
 ---
-<aside id="admin-chat-dock" class="chat-dock" data-chat-dock data-mode="rail"
+<aside id="admin-chat-dock" class="chat-dock" data-chat-dock data-mode="rail" tabindex="-1"
   data-can-publish={String(can_publish)} data-session={session?.id ?? ""}
   data-live={String(live)} data-expires={session?.expires_at ?? ""}
+  data-last-model={state.last_model ?? ""}
   aria-label="编辑助手">
   <header class="chat-dock-head">
     <strong>编辑助手</strong>
     <div class="chat-dock-head-actions">
-      <button type="button" class="link" data-chat-history aria-expanded="false">历史</button>
-      <button type="button" class="link" data-chat-new>新会话</button>
-      <button type="button" class="link chat-dock-close" data-chat-close aria-label="收起助手"><Icon name="x-lg" /></button>
+      <button type="button" class="chat-head-action" data-chat-history aria-haspopup="dialog"
+        aria-label="历史会话" title="历史会话"><Icon name="clock-history" /></button>
+      <button type="button" class="chat-head-action" data-chat-new
+        aria-label="开新会话" title="开新会话"><Icon name="plus" /></button>
+      <button type="button" class="chat-head-action" data-chat-close
+        aria-label="收起助手" title="收起助手"><Icon name="x-lg" /></button>
     </div>
   </header>
 
@@ -30,12 +35,11 @@ function clock(value: string): string {
     <span class="chat-model">
       <label class="sr-only" for="chat-model">模型</label>
       <select id="chat-model" data-role="model" disabled><option value="">加载中…</option></select>
+      {can_publish && (
+        <button type="button" class="chat-model-settings" data-chat-settings-open
+          aria-label="模型设置" title="模型设置"><Icon name="gear" /></button>
+      )}
     </span>
-  </div>
-
-  <div class="chat-history-drawer" data-chat-history-panel hidden>
-    <p class="chat-history-empty" data-role="history-empty">没有更早的会话。</p>
-    <ol class="chat-history-list" data-role="history-list"></ol>
   </div>
 
   <ol class="chat-log" data-role="log" aria-busy="false">
@@ -67,10 +71,45 @@ function clock(value: string): string {
 
   <form class="chat-composer" data-role="composer" hidden={Boolean(session) && !live}>
     <label class="sr-only" for="chat-input">给助手的消息</label>
-    <textarea id="chat-input" rows="2" maxlength="4000" required data-role="input"
+    <textarea id="chat-input" rows="1" maxlength="4000" required data-role="input"
       placeholder="描述要查询或修改的内容，附上来源链接"></textarea>
     <button type="submit" class="button chat-send" data-role="send" aria-label="发送"><Icon name="send" /></button>
   </form>
-  <p class="chat-hint">⌘/Ctrl + Enter 发送 · 助手只能创建提案，发布由你点击确认</p>
+  <p class="chat-hint" data-role="hint">
+    <kbd data-role="hint-mod">Ctrl</kbd><kbd data-role="hint-enter">Enter</kbd><span>发送</span>
+  </p>
   <span class="sr-only" role="status" aria-live="polite" data-role="announce"></span>
 </aside>
+
+<dialog class="chat-settings chat-history-dialog" data-chat-history-panel tabindex="-1" aria-labelledby="chat-history-title">
+  <header class="chat-settings-head">
+    <h2 id="chat-history-title">历史会话</h2>
+    <button type="button" class="link chat-settings-close" data-chat-history-close
+      aria-label="关闭"><Icon name="x-lg" /></button>
+  </header>
+  <p class="chat-history-empty" data-role="history-empty">加载中…</p>
+  <ol class="chat-history-list" data-role="history-list"></ol>
+</dialog>
+
+{can_publish && (
+  <dialog class="chat-settings" data-chat-settings data-max={CHAT_MODELS_MAX} aria-labelledby="chat-settings-title">
+    <header class="chat-settings-head">
+      <h2 id="chat-settings-title">聊天模型</h2>
+      <button type="button" class="link chat-settings-close" data-chat-settings-close
+        aria-label="关闭"><Icon name="x-lg" /></button>
+    </header>
+    <p class="chat-settings-intro">
+      勾选要出现在侧栏下拉里的模型，并指定其中一个为默认。最多 {CHAT_MODELS_MAX} 个；
+      列表是这个 API key 能访问的全部模型，新模型无需改配置就会出现。
+    </p>
+    <label class="sr-only" for="chat-settings-filter">筛选模型</label>
+    <input id="chat-settings-filter" type="search" class="chat-settings-filter"
+      data-role="settings-filter" placeholder="筛选，例如 gpt-6" autocomplete="off" />
+    <p class="chat-settings-status" data-role="settings-status" role="status" aria-live="polite">加载中…</p>
+    <ol class="chat-settings-list" data-role="settings-list"></ol>
+    <div class="chat-settings-foot">
+      <span class="chat-settings-count" data-role="settings-count"></span>
+      <button type="button" class="button" data-chat-settings-save>保存</button>
+    </div>
+  </dialog>
+)}

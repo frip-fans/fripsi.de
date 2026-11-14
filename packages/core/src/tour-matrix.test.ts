@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { createTestD1 } from "./test-d1";
 import { computeTourMatrix, type TourMatrixEntryInput, type TourMatrixShowInput } from "./tour-matrix";
-import { getEventTourContext, getPublicTourPage, listTours } from "./tours";
+import { getActiveTour, getEventTourContext, getPublicTourPage, listTours, pickActiveTour, type ActiveTourRow } from "./tours";
 
 const show = (id: string, date: string, setlist: string | null, completeness: TourMatrixShowInput["completeness"] = "complete", label = "本公演"): TourMatrixShowInput => ({
   event_id: id, event_slug: id, start_date: date, start_time: null, stop_label: `${id}公演`,
@@ -126,5 +126,33 @@ describe("public tour queries", () => {
       expect(await getEventTourContext(db, "e4")).toBeNull();
       expect(await getEventTourContext(db, "e5")).toBeNull();
     } finally { sqlite.close(); }
+  });
+
+  it("reports a tour as active from its first stop's day to its last, with today's or the next stop", async () => {
+    const { db, sqlite } = createTestD1();
+    try {
+      seed(sqlite);
+      expect(await getActiveTour(db, "2025-12-31")).toBeNull();
+      const onStopDay = await getActiveTour(db, "2026-01-03");
+      expect(onStopDay).toMatchObject({ slug: "tour-one", done_count: 1, next: { event_slug: "slug-e2", state: "today", stop_label: "Stop e2" } });
+      expect(onStopDay?.stops.map(stop => stop.state)).toEqual(["done", "today", "upcoming"]);
+      expect(await getActiveTour(db, "2026-01-04")).toMatchObject({ done_count: 2, next: { event_slug: "slug-e3", state: "upcoming" } });
+      expect((await getActiveTour(db, "2026-01-05"))?.next?.state).toBe("today");
+      // e4 is unpublished, so the public tour ends with e3; the hidden tour never shows.
+      expect(await getActiveTour(db, "2026-01-06")).toBeNull();
+      sqlite.exec("UPDATE events SET status = 'cancelled' WHERE id = 'e3'");
+      expect(await getActiveTour(db, "2026-01-04")).toBeNull();
+      expect((await getActiveTour(db, "2026-01-02"))?.stops.map(stop => stop.event_slug)).toEqual(["slug-e1", "slug-e2"]);
+    } finally { sqlite.close(); }
+  });
+
+  it("prefers the tour whose next stop is soonest and counts a multi-day stop until its last day", () => {
+    const row = (tour: string, slug: string, start_date: string, end_date: string | null = null): ActiveTourRow =>
+      ({ tour_id: tour, slug: tour, name: tour, event_slug: slug, start_date, end_date, stop_label: null, venue_name: null });
+    const rows = [row("a", "a1", "2026-01-01"), row("b", "b1", "2026-01-02", "2026-01-03"), row("b", "b2", "2026-01-10"), row("a", "a2", "2026-01-20")];
+    expect(pickActiveTour(rows, "2026-01-05")).toMatchObject({ slug: "b", done_count: 1, next: { event_slug: "b2" } });
+    expect(pickActiveTour(rows, "2026-01-03")).toMatchObject({ slug: "b", done_count: 0, next: { event_slug: "b1", state: "today" } });
+    expect(pickActiveTour(rows, "2026-01-12")?.slug).toBe("a");
+    expect(pickActiveTour([], "2026-01-12")).toBeNull();
   });
 });

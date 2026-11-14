@@ -1,0 +1,102 @@
+---
+import type { ActiveTour, ActiveTourStop } from "@frip-fan/core";
+import { getLocale, t } from "../lib/i18n";
+import { formatMusicDate } from "../lib/music";
+import Icon from "./Icon.astro";
+
+interface Props { tour: ActiveTour; today: string }
+const { tour, today } = Astro.props;
+const locale = getLocale(Astro.request);
+const { next, stops } = tour;
+
+const shortDate = new Intl.DateTimeFormat(locale, { month: "numeric", day: "numeric", timeZone: "UTC" });
+const stopDate = (stop: ActiveTourStop) => shortDate.format(new Date(`${stop.start_date}T00:00:00Z`));
+// "東京公演" reads as "東京" under a dot; the tour page trims its column headers the same way.
+const stopName = (stop: ActiveTourStop) => stop.stop_label?.replace(/公演$/, "") || null;
+const daysUntilNext = next ? Math.round((Date.parse(next.start_date) - Date.parse(today)) / 86_400_000) : 0;
+const countdown = !next ? ""
+  : next.state === "today" ? t(locale, "home.tourToday")
+    : daysUntilNext === 1 ? t(locale, "home.countdownTomorrow")
+      : t(locale, "home.countdownDays", { count: daysUntilNext });
+// A stop named after its venue would otherwise print the venue twice.
+const nextPlace = next ? [stopName(next), next.venue_name].filter((part, index, parts) => part && parts.indexOf(part) === index).join(" · ") : "";
+const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: stops.length });
+---
+<section class="tour-live panel" aria-labelledby="tour-live-title">
+  <div class="tour-live-main">
+    <p class="tour-live-label"><i aria-hidden="true"></i>{t(locale, "home.tourLive")}<span>{progress}</span></p>
+    <h2 id="tour-live-title"><a href={`/music/tours/${encodeURIComponent(tour.slug)}`} translate="no">{tour.name}</a></h2>
+    {next && (
+      <p class="tour-live-next">
+        <span class="tour-live-next-label">{t(locale, "home.tourNextStop")}</span>
+        <time datetime={next.start_date}>{formatMusicDate(next.start_date, locale)}</time>
+        {nextPlace && <span translate="no">{nextPlace}</span>}
+        <b>{countdown}</b>
+      </p>
+    )}
+  </div>
+  <ol class:list={["tour-live-stops", { "is-crowded": stops.length > 4, "is-dense": stops.length > 8 }]} aria-label={progress}>
+    {stops.map((stop) => (
+      <li class:list={[`is-${stop.state}`, { "is-next": stop === next }]} aria-current={stop === next ? "step" : undefined}>
+        <span class="tour-live-dot" aria-hidden="true"></span>
+        {stopName(stop) && <span class="tour-live-stop" translate="no">{stopName(stop)}</span>}
+        <time datetime={stop.start_date}>{stopDate(stop)}</time>
+      </li>
+    ))}
+  </ol>
+  <span class="tour-live-cta">{t(locale, "home.tourCta")} <Icon name="chevron-right" size=".75rem" /></span>
+</section>
+
+<style>
+  .tour-live { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: 1rem clamp(1.5rem, 4vw, 3rem); margin-top: 2rem; padding: 1.35rem 1.5rem; transition: border-color .18s, transform .18s; }
+  .tour-live:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }
+  .tour-live:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tour-live-main { display: grid; gap: .5rem; min-width: 0; }
+  .tour-live-label { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .55rem; margin: 0; color: var(--accent); font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
+  .tour-live-label span { color: var(--muted); font-weight: 500; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+  .tour-live-label i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(var(--accent-rgb), .5); }
+  .tour-live h2 { margin: 0; font-size: 1.125rem; line-height: 1.45; overflow-wrap: anywhere; }
+  .tour-live h2 a { color: inherit; text-decoration: none; }
+  .tour-live h2 a:focus-visible { outline: none; }
+  /* The whole card is the link to the tour page. */
+  .tour-live h2 a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+  .tour-live-next { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .6rem; margin: 0; color: #c8d9e7; font-size: .8125rem; line-height: 1.55; }
+  .tour-live-next-label { color: var(--muted); }
+  .tour-live-next time { font-variant-numeric: tabular-nums; }
+  .tour-live-next b { color: var(--accent); font-weight: 650; white-space: nowrap; }
+
+  .tour-live-stops { display: flex; min-width: 0; margin: 0; padding: 0; list-style: none; }
+  .tour-live-stops li { position: relative; display: grid; flex: 1 1 0; justify-items: center; align-content: start; gap: .15rem; min-width: 0; padding: 0 .2rem; color: var(--muted); text-align: center; }
+  /* Each stop draws the leg that leads to it; a leg is lit once the stop it reaches has started. */
+  .tour-live-stops li + li::before { content: ""; position: absolute; top: calc(.45rem - 1px); right: calc(50% + .45rem); width: calc(100% - .9rem); height: 2px; border-radius: 1px; background: rgba(159, 180, 211, .2); }
+  .tour-live-stops li:is(.is-done, .is-today)::before { background: rgba(var(--accent-rgb), .7); }
+  .tour-live-dot { width: .9rem; height: .9rem; margin-bottom: .3rem; border: 2px solid rgba(159, 180, 211, .35); border-radius: 50%; box-sizing: border-box; }
+  .is-done .tour-live-dot { border-color: var(--accent); background: var(--accent); }
+  .is-next .tour-live-dot { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .16); }
+  .is-today .tour-live-dot { background: var(--accent); }
+  .tour-live-stop { max-width: 100%; overflow: hidden; color: #c8d9e7; font-size: .8125rem; font-weight: 650; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+  .tour-live-stops time { font-size: .72rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .is-next :is(.tour-live-stop, time) { color: var(--accent); }
+  .is-done :is(.tour-live-stop, time) { color: var(--muted); }
+  /* Too many stops to caption: only the next one keeps its name and date, still read out for the rest. */
+  .is-dense li:not(.is-next) :is(.tour-live-stop, time) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .is-dense li.is-next :is(.tour-live-stop, time) { max-width: none; overflow: visible; }
+
+  .tour-live-cta { grid-column: 1 / -1; display: inline-flex; align-items: center; justify-self: end; gap: .3rem; color: var(--accent); font-size: .8125rem; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .tour-live-label i { animation: tour-live-pulse 2.4s ease-out infinite; }
+    @keyframes tour-live-pulse { 70%, 100% { box-shadow: 0 0 0 7px rgba(var(--accent-rgb), 0); } }
+  }
+  @media (max-width: 800px) {
+    .tour-live { grid-template-columns: minmax(0, 1fr); gap: 1.1rem; margin-top: 1rem; padding: 1rem 1.1rem 1.1rem; }
+    .tour-live:hover { transform: none; }
+    .tour-live h2 { color: #d3dce8; font-size: 1.0625rem; font-weight: 600; }
+    .tour-live-cta { justify-self: start; }
+  }
+  @media (max-width: 560px) {
+    .tour-live-stop { font-size: .75rem; }
+    .is-crowded li:not(.is-next) :is(.tour-live-stop, time) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .is-crowded li.is-next :is(.tour-live-stop, time) { max-width: none; overflow: visible; }
+  }
+</style>

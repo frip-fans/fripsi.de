@@ -1,0 +1,98 @@
+/*
+ * Shell for the protected admin. The public site is a showcase: a photo backdrop,
+ * display-size headings and generous air. The admin is a work surface, so the same
+ * tokens are tightened here instead of forking the layout. Everything stays under
+ * body.admin so no rule can reach a public page.
+ */
+body.admin {
+  --heading-1-size: 1.55rem;
+  --radius: 14px;
+  --admin-width: 1320px;
+  --admin-gutter: max(1rem, calc((100% - var(--admin-width)) / 2));
+}
+
+/* Dense tables and forms read badly over a photograph. */
+body.admin .background-rotator, body.admin .ambient { display: none; }
+
+body.admin .site-header {
+  position: sticky; top: var(--safe-area-top); z-index: 50;
+  width: 100%; min-height: 60px; padding: 0 var(--admin-gutter);
+  background: rgba(7, 16, 28, .92); backdrop-filter: blur(14px);
+}
+body.admin .brand-logo { width: 2.1rem; height: 2.1rem; }
+body.admin .brand b { font-size: .98rem; }
+body.admin .brand small { margin-top: .1rem; font-size: .68rem; letter-spacing: .08em; text-transform: none; }
+body.admin .header-actions nav { flex-wrap: nowrap; }
+body.admin .header-actions nav a { padding: .45rem .65rem; font-size: .88rem; white-space: nowrap; }
+body.admin .header-actions nav .nav-external { margin-left: .4rem; padding-left: .9rem; border-left: 1px solid var(--line); border-radius: 0 9px 9px 0; }
+body.admin main { width: auto; margin: 0 var(--admin-gutter); padding: 1.5rem 0 4rem; min-height: calc(100vh - 150px); }
+body.admin footer { width: auto; margin: 0 var(--admin-gutter); padding: 1rem 0 1.5rem; font-size: .72rem; }
+body.admin [id] { scroll-margin-top: 76px; }
+
+/* Page head: one pattern for every list, editor and review page. */
+body.admin .page-head { margin-bottom: 1.25rem; }
+body.admin .page-back { display: inline-flex; align-items: center; gap: .35rem; margin-bottom: .6rem; color: var(--muted); font-size: .82rem; text-decoration: none; }
+body.admin .page-back:hover { color: var(--text); }
+body.admin .page-head-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem 2rem; }
+body.admin .page-head-text { min-width: 0; }
+body.admin main h1 { margin: 0; font-size: var(--heading-1-size); line-height: 1.25; letter-spacing: -.02em; }
+body.admin .lede { font-size: .92rem; line-height: 1.6; }
+body.admin .page-desc { max-width: 62rem; margin: .4rem 0 0; color: var(--muted); font-size: .88rem; line-height: 1.6; }
+body.admin .page-head-text > .muted { margin: .3rem 0 0; font-size: .85rem; }
+body.admin .page-head-actions { display: flex; flex: 0 0 auto; align-items: center; gap: .5rem; flex-wrap: wrap; }
+body.admin main h2 { font-size: 1.05rem; letter-spacing: -.01em; }
+body.admin .eyebrow { margin-bottom: .3rem; font-size: .68rem; letter-spacing: .12em; }
+
+/* Controls */
+body.admin .button, body.admin button { min-height: 38px; padding: .5rem .85rem; border-radius: 9px; font-size: .88rem; font-weight: 700; white-space: nowrap; }
+body.admin .button.disabled, body.admin .button[aria-disabled="true"] { opacity: .45; pointer-events: none; }
+body.admin button:disabled { opacity: .45; cursor: not-allowed; }
+body.admin input, body.admin select, body.admin textarea { padding: .55rem .7rem; border-radius: 9px; font-size: .9rem; }
+body.admin input[type="checkbox"], body.admin input[type="radio"] { padding: 0; accent-color: var(--accent); }
+body.admin .panel { padding: 1rem 1.15rem; background: var(--panel-solid); backdrop-filter: none; }
+body.admin .notice { margin: 0 0 1rem; font-size: .88rem; }
+body.admin .notice.success { border-left-color: #79d9a6; color: #c9f8dc; background: rgba(78,190,127,.08); }
+
+/* Filter bars above a table */
+body.admin form.filters { padding: .75rem .9rem; }
+
+/* Tables: a row is one record, so nothing in it may fold into a column of characters. */
+body.admin .table-wrap { padding: 0; }
+body.admin table { font-size: .875rem; }
+body.admin th { padding: .6rem .9rem; white-space: nowrap; font-size: .7rem; letter-spacing: .04em; text-transform: none; }
+body.admin thead th { background: rgba(255,255,255,.025); }
+body.admin td { padding: .6rem .9rem; vertical-align: middle; }
+body.admin tbody tr:hover > td { background: rgba(255,255,255,.03); }
+/* The record name is the row's main text, not a call to action: keep the accent for hover. */
+body.admin td a { color: var(--text); text-decoration: none; font-weight: 600; }
+body.admin td a:hover { color: var(--accent); text-decoration: underline; }
+body.admin td small { display: block; margin-top: .15rem; color: var(--muted); font-size: .76rem; }
+body.admin .tag { white-space: nowrap; font-size: .7rem; }
+body.admin .tag.warn { color: #ffd39a; border-color: rgba(255,190,110,.45); }
+body.admin .tag.off { opacity: .7; }
+body.admin .nowrap, body.admin td.date { white-space: nowrap; font-variant-numeric: tabular-nums; }
+body.admin td.num, body.admin th.num { text-align: right; font-variant-numeric: tabular-nums; }
+body.admin .empty { padding: 2.5rem 1rem; font-size: .9rem; }
+
+@media (max-width: 760px) {
+  body.admin .site-header { min-height: 56px; padding-top: .35rem; padding-bottom: .35rem; flex-wrap: nowrap; }
+  body.admin main { padding-top: 1rem; }
+  /* iOS zooms the page when a focused field is smaller than 16px. */
+  body.admin input, body.admin select, body.admin textarea { font-size: 1rem; }
+  body.admin .page-head-row { flex-direction: column; }
+  /* Phone rows keep the record name wide: secondary columns and the icon actions
+     (the name already links to the editor) drop out instead of squeezing it. */
+  body.admin th, body.admin td { padding: .55rem .5rem; }
+  body.admin th:first-child, body.admin td:first-child { padding-left: .75rem; }
+  body.admin th:last-child, body.admin td:last-child { padding-right: .75rem; }
+  body.admin td.date { font-size: .78rem; }
+  body.admin .hide-sm, body.admin .row-links { display: none; }
+}
+
+/* Row actions and screen-reader-only labels shared by the list pages. */
+body.admin .row-links { white-space: nowrap; text-align: right; }
+body.admin .row-links a { display: inline-flex; padding: .3rem; color: var(--muted); }
+body.admin .row-links a:hover { color: var(--accent); text-decoration: none; }
+body.admin .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+/* The Setlist editor ends in a sticky save bar that bleeds to the panel edge. */
+body.admin form[data-setlist-editor].panel { padding-bottom: 0; }

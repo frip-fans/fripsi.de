@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../components/AdminPageHeader.astro";
 import { countChangeSetsByStatus, getEventHeads, listChangeSets } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
@@ -41,7 +42,7 @@ const done = Astro.url.searchParams.get("done");
 const staleCount = rows.filter((row) => row.stale).length;
 ---
 <SiteLayout title="变更提案" admin>
-  <p class="eyebrow">Change sets</p><h1 class="page-title">变更提案</h1>
+  <AdminPageHeader title="变更提案" description="同步代理和助手提交的修改在这里逐条核对，发布后才会写入公开数据。" />
   {discarded > 0 && <p class="notice success" role="status">已丢弃 {discarded} 条提案。</p>}
   {done === "published" && <p class="notice success" role="status">提案已发布。待处理提案已全部处理完。</p>}
   {done === "discarded" && <p class="notice success" role="status">提案已丢弃。待处理提案已全部处理完。</p>}
@@ -122,7 +123,6 @@ const staleCount = rows.filter((row) => row.stale).length;
 </script>
 
 <style>
-  .page-title { font-size: var(--heading-1-size); margin-bottom: 1.5rem; }
   .filters { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
   .filters a { display: inline-flex; align-items: center; gap: .45rem; padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 999px; text-decoration: none; color: var(--muted); font-size: .82rem; }
   .filters a span { min-width: 1.4rem; padding: .05rem .4rem; border-radius: 999px; background: rgba(255,255,255,.07); font: 700 .7rem/1.4 ui-monospace, monospace; text-align: center; }
@@ -133,7 +133,6 @@ const staleCount = rows.filter((row) => row.stale).length;
   .batch-bar button.small { min-height: 2.25rem; padding: .4rem .8rem; font-size: .8rem; }
   input[type="checkbox"] { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); }
   .select-col { width: 2.5rem; }
-  td small { display: block; color: var(--muted); margin-top: .15rem; }
   .headline a { display: block; font-weight: 600; }
   .headline .op { display: block; margin: 0 0 .15rem; color: var(--accent); font: 700 .68rem/1.3 ui-monospace, monospace; letter-spacing: .04em; }
   td.reason { max-width: 32rem; color: var(--muted); font-size: .86rem; }
@@ -141,14 +140,10 @@ const staleCount = rows.filter((row) => row.stale).length;
   .flags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .35rem; }
   .flag { padding: .1rem .45rem; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: .68rem; }
   .flag.warn { color: #ffd39a; border-color: rgba(255, 190, 110, .45); background: rgba(255, 170, 70, .08); }
-  .tag { white-space: nowrap; }
   .tag.status-proposed { color: var(--accent); border-color: rgba(var(--accent-rgb), .45); }
   .tag.status-published { color: #9ee6bd; border-color: rgba(120, 220, 160, .4); }
   .tag.status-failed { color: #ffb0b0; border-color: rgba(255, 120, 120, .45); }
   tr.selected td { background: rgba(var(--accent-rgb), .06); }
-  .success { border-left-color: #79d9a6; color: #c9f8dc; background: rgba(78,190,127,.08); }
-  .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
   .mobile-meta { display: none !important; }
   @media (max-width: 760px) {
     .reason, .meta, .status-col { display: none; }

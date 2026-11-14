@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../../components/AdminPageHeader.astro";
 import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
 import SongAdminForm from "../../../../components/SongAdminForm.astro";
 import SiteLayout from "../../../../layouts/SiteLayout.astro";
@@ -7,8 +8,6 @@ const canWrite = Astro.locals.actor!.scopes.includes("music:write");
 ---
 <SiteLayout title="新增歌曲" admin>
   <AdminMusicNav />
-  <p class="eyebrow">New song</p><h1 class="page-title">新增歌曲</h1>
-  <p class="lede">创建歌曲及至少一个歌曲版本；保存后即可在专辑和 Setlist 编辑器中选择。</p>
+  <AdminPageHeader title="新增歌曲" description="创建歌曲及至少一个歌曲版本；保存后即可在专辑和 Setlist 编辑器中选择。" back={{ href: "/admin/music/songs", label: "歌曲列表" }} />
   <SongAdminForm canWrite={canWrite} />
 </SiteLayout>
-<style>.page-title{font-size:var(--heading-1-size);margin-bottom:.8rem}.song-form{margin-top:2rem}</style>

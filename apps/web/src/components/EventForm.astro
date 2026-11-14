@@ -1,4 +1,6 @@
 ---
+import { EVENT_STATUS_LABELS, LOCATION_MODE_LABELS } from "../lib/change-review";
+import { categoryLabels } from "../lib/format";
 import type { AdministrativeArea, EventRecord, TourRecord, VenueRecord } from "@frip-fan/core";
 
 interface Props { event?: EventRecord; areas: AdministrativeArea[]; venueOptions: VenueRecord[]; tours?: TourRecord[]; submitLabel?: string; canWrite?: boolean }
@@ -25,12 +27,12 @@ const channelRows = event?.channels.length ? event.channels : [null];
   <label>结束时间<input type="time" name="end_time" value={event?.end_time ?? ""} /></label>
   <label>分类 *
     <select name="category" required>
-      {(["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"] as const).map((value) => <option value={value} selected={(event?.category ?? "LIVE") === value}>{value}</option>)}
+      {(["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHER"] as const).map((value) => <option value={value} selected={(event?.category ?? "LIVE") === value}>{categoryLabels[value]}</option>)}
     </select>
   </label>
   <label>状态
     <select name="status">
-      {(["scheduled", "completed", "cancelled", "postponed"] as const).map((value) => <option value={value} selected={(event?.status ?? "scheduled") === value}>{value}</option>)}
+      {(["scheduled", "completed", "cancelled", "postponed"] as const).map((value) => <option value={value} selected={(event?.status ?? "scheduled") === value}>{EVENT_STATUS_LABELS[value]}</option>)}
     </select>
   </label>
   <label>细分类<input name="classification" maxlength="120" value={event?.classification ?? ""} placeholder="Tour / Anniversary / Single…" /></label>
@@ -38,7 +40,7 @@ const channelRows = event?.channels.length ? event.channels : [null];
   <label>地点形态 *
     <select name="location_mode" required>
       {(["none", "physical", "online", "broadcast", "hybrid", "multiple", "undisclosed", "unknown"] as const).map((value) =>
-        <option value={value} selected={(event?.location_mode ?? "none") === value}>{value}</option>)}
+        <option value={value} selected={(event?.location_mode ?? "none") === value}>{LOCATION_MODE_LABELS[value]}</option>)}
     </select>
   </label>
   <label class="wide">地点说明<input name="location_note" maxlength="1000" value={event?.location_note ?? ""} placeholder="只用于未公开、待确认或无法完全结构化的补充说明" /></label>

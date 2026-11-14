@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../components/AdminPageHeader.astro";
 import { getEventById, listAdministrativeAreas, listTours, listVenues } from "@frip-fan/core";
 import EventForm from "../../../components/EventForm.astro";
 import Icon from "../../../components/Icon.astro";
@@ -13,8 +14,10 @@ const canWrite = actor.scopes.includes("events:publish");
 const saved = Astro.url.searchParams.get("saved") === "1";
 ---
 <SiteLayout title={event.title} admin>
-  <a class="muted back-link" href="/admin/events"><Icon name="arrow-left" />活动列表</a>
-  <header class="edit-head"><div><p class="eyebrow">Event · v{event.version}</p><h1>{event.display_title ?? event.title}</h1>{event.display_title && event.display_title !== event.title && <p class="muted">{event.title}</p>}</div>{event.published && !event.archived_at && <a class="button secondary" href={`/events/${event.slug}`} target="_blank">公开页面 <Icon name="box-arrow-up-right" /></a>}</header>
+  <AdminPageHeader title={event.display_title ?? event.title} back={{ href: "/admin/events", label: "活动列表" }}>
+    <p class="muted" slot="meta">{event.display_title && event.display_title !== event.title && <>{event.title} · </>}{event.start_date} · 版本 v{event.version}</p>
+    {event.published && !event.archived_at && <a class="button secondary" href={`/events/${event.slug}`} target="_blank">公开页面 <Icon name="box-arrow-up-right" /></a>}
+  </AdminPageHeader>
   {event.archived_at && <p class="notice">此活动已归档：{event.archived_at}</p>}
   {saved && <p class="notice success">活动已经保存并写入审计日志。</p>}
   <form class="panel event-form" method="post" action="/api/admin/events/save">
@@ -38,13 +41,8 @@ const saved = Astro.url.searchParams.get("saved") === "1";
   </section>
 </SiteLayout>
 <style>
-  .edit-head { display: flex; justify-content: space-between; align-items: end; gap: 2rem; margin: 1.5rem 0 2rem; }
-  .back-link { display: inline-flex; align-items: center; gap: .35rem; text-decoration: none; }
-  .edit-head h1 { font-size: clamp(2rem, 5vw, 3.5rem); margin: 0; }
   .event-form { max-width: 900px; }
   .lifecycle { max-width: 900px; margin-top: 1rem; display: grid; gap: 1rem; }
   .lifecycle h2 { font-size: 1.1rem; margin-bottom: .35rem; }
   form { margin: 0; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  .success { border-left-color: #79d9a6; color: #c9f8dc; background: rgba(78,190,127,.08); }
 </style>

@@ -2,12 +2,12 @@
 import { songPhasesFromMask } from "@frip-fan/core";
 import ReleaseCover from "./ReleaseCover.astro";
 import { getEnv } from "../lib/env";
-import { eventSearchRevision } from "../lib/event-search";
 import { getMusicBrowseResults, type MusicBrowseKind } from "../lib/music-browse";
 import { formatGapYears, formatMusicDate, musicDateParts, setlistCompletenessLabel, setlistDisplayTitle, setlistEventTypeLabel, releaseTypeLabel } from "../lib/music";
 import { getLocale, t } from "../lib/i18n";
-interface Props { kind: MusicBrowseKind; append?: boolean; }
-const { kind, append = false } = Astro.props;
+// `append` returns only the requested batch; `fragment` marks output parsed by the client.
+interface Props { kind: MusicBrowseKind; append?: boolean; fragment?: boolean; }
+const { kind, append = false, fragment = append } = Astro.props;
 // API fragments are parsed by DOMParser, where noscript images can trigger requests.
 const locale = getLocale(Astro.request);
 const db = getEnv().DB;
@@ -30,7 +30,7 @@ for (const rank of Object.values(results.ranks)) rankTies.set(rank, (rankTies.ge
 // The main-line artist label repeats on most rows and the phase chips already cover it, so only other credits show.
 const showArtist = (artist: string) => !/^fripSide(?: \(Phase \d\))?$/.test(artist);
 ---
-<div data-music-results data-total={results.total} data-shown={results.shown} data-page={results.page} data-batch={results.batch} data-has-more={results.hasMore} data-revision={eventSearchRevision(db)}>
+<div data-music-results data-total={results.total} data-shown={results.shown} data-page={results.page} data-batch={results.batch} data-has-more={results.hasMore} data-anchor={results.anchor}>
   <div class:list={[kind === "lives" ? "live-timeline" : kind === "songs" ? "song-ranking" : "music-grid", { "music-release-grid": kind === "releases", "is-ranked": results.ranked }]} data-music-items>
     {liveGroups.map(group => (
       <>
@@ -82,7 +82,7 @@ const showArtist = (artist: string) => !/^fripSide(?: \(Phase \d\))?$/.test(arti
       return (
         <a class:list={["song-row", { "is-podium": rank !== undefined && rank <= 3 }]} data-music-id={song.id} href={`/music/songs/${encodeURIComponent(song.slug)}`} data-astro-prefetch="tap">
           {results.ranked && <span class="song-row-rank">{rank !== undefined && <><span aria-hidden="true">{rank}</span><span class="visually-hidden">{t(locale, tied ? "music.rankTied" : "music.rank", { rank })}</span></>}</span>}
-          <span class="song-row-cover"><ReleaseCover noScriptFallback={!append} url={song.cover_url} alt="" /></span>
+          <span class="song-row-cover"><ReleaseCover noScriptFallback={!fragment} url={song.cover_url} alt="" /></span>
           <span class="song-row-main">
             <h2 translate="no">{song.title}</h2>
             {meta.length > 0 && <span class="song-row-meta">{meta.join(" · ")}</span>}
@@ -94,7 +94,7 @@ const showArtist = (artist: string) => !/^fripSide(?: \(Phase \d\))?$/.test(arti
     })}
     {results.releases.map(release => (
       <a class="music-card" data-music-id={release.id} href={`/music/releases/${encodeURIComponent(release.slug)}`} data-astro-prefetch="tap">
-        <ReleaseCover noScriptFallback={!append} url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
+        <ReleaseCover noScriptFallback={!fragment} url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} />
         <span class="music-release-meta">{releaseTypeLabel(release.release_type, locale)} · {formatMusicDate(release.release_date, locale)}</span>
         <h2 translate="no">{release.title}</h2>
         {/* Catalog numbers and edition notes live on the detail page; search still matches them. */}

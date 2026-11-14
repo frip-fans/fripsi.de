@@ -45,6 +45,8 @@ def read_config(path):
     if '..' in prefix or prefix.startswith('/'):
         raise ValueError('Invalid object prefix')
     c['prefix'] = prefix
+    if c.get('status_file') and not Path(c['status_file']).is_absolute():
+        raise ValueError('Status file must be an absolute path')
     return c
 
 
@@ -104,13 +106,53 @@ def lock(path):
         yield
 
 
-def atomic_json(path, data):
+def atomic_json(path, data, mode=None):
     temp = path.with_suffix('.new')
     with open(temp, 'w') as f:
+        if mode is not None:
+            os.fchmod(f.fileno(), mode)
         json.dump(data, f, indent=2)
         f.flush()
         os.fsync(f.fileno())
     os.replace(temp, path)
+
+
+def write_status(c, manifest=None, error=None):
+    """Publish the outcome of a backup attempt for the admin site to display.
+
+    The state directory stays root-only, so this is a separate, world-readable
+    summary: timestamps, sizes and row counts, never credentials or SDK messages.
+    A failed attempt keeps the previous success so the page can show its age.
+    """
+    if not c.get('status_file'):
+        return
+    try:
+        path = Path(c['status_file'])
+        try:
+            previous = json.loads(path.read_text())
+        except (OSError, ValueError):
+            previous = {}
+        if not isinstance(previous, dict):
+            previous = {}
+        now = dt.datetime.now(UTC).isoformat()
+        if manifest is not None:
+            migrations = manifest['migrations']
+            success = {'created_at': manifest['created_at'], 'completed_at': now,
+                       'app_commit_sha': manifest['app_commit_sha'], 'object_key': manifest['object_key'],
+                       'sqlite_bytes': manifest['sqlite_bytes'], 'gzip_bytes': manifest['gzip_bytes'],
+                       'encrypted_bytes': manifest['encrypted_bytes'], 'table_counts': manifest['table_counts'],
+                       'migration_count': len(migrations), 'latest_migration': migrations[-1]['name']}
+            failures = 0
+        else:
+            success = previous.get('last_success')
+            failures = previous.get('failures_since_success')
+            failures = (failures if isinstance(failures, int) else 0) + 1
+        atomic_json(path, {'format': 1, 'last_attempt_at': now, 'last_attempt_ok': manifest is not None,
+                           'last_error': error, 'failures_since_success': failures,
+                           'last_success': success}, mode=0o644)
+    except Exception:
+        # The backup result itself must not depend on this convenience file.
+        print('Backup status file update failed', file=sys.stderr)
 
 
 def backup(c, client):
@@ -255,7 +297,7 @@ def main():
         c = read_config(args.config)
         client = s3_client(c)
         if args.command == 'backup':
-            backup(c, client)
+            write_status(c, manifest=backup(c, client))
         elif args.command == 'monitor':
             monitor(c, client)
         else:
@@ -265,6 +307,8 @@ def main():
         # Never print SDK exceptions, config values, webhook URLs, or subprocess stderr.
         message = f'{args.command} failed ({type(error).__name__}); inspect host configuration and service status'
         print(message, file=sys.stderr)
+        if c is not None and args.command == 'backup':
+            write_status(c, error=type(error).__name__)
         if c is not None and args.command != 'restore':
             try:
                 notify(c, message)

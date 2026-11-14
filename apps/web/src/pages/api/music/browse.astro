@@ -5,4 +5,5 @@ const kind = Astro.url.searchParams.get("kind");
 if (!["lives", "songs", "releases"].includes(kind ?? "")) return new Response(null, { status: 400 });
 Astro.response.headers.set("Cache-Control", "no-store");
 ---
-<MusicBrowseResults kind={kind as MusicBrowseKind} append />
+{/* `full=1` reloads every batch up to `page` after the list changed under loaded items. */}
+<MusicBrowseResults kind={kind as MusicBrowseKind} append={Astro.url.searchParams.get("full") !== "1"} fragment />

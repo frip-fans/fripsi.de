@@ -20,6 +20,8 @@ export function getRuntimeEnv(): Env {
     MCP_ENDPOINT_URL: process.env.MCP_ENDPOINT_URL,
     OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     CHAT_ENABLED: process.env.CHAT_ENABLED,
+    // Written by the host backup job next to the database; absent where backups are not scheduled.
+    BACKUP_STATUS_FILE: resolve(process.env.BACKUP_STATUS_FILE || `${data}/backup-status.json`),
     MEDIA: localMedia(resolve(process.env.FRIP_MEDIA_DIR || `${data}/media`)),
     SITE_URL: process.env.SITE_URL || "http://localhost:4326",
     APP_ENV: appEnv,

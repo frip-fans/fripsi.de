@@ -197,5 +197,88 @@ class BackupTest(unittest.TestCase):
         self.assertFalse(isolated.exists())
 
 
+
+class StatusFileTest(unittest.TestCase):
+    MANIFEST = {'created_at': '2026-11-14T20:00:03+00:00', 'app_commit_sha': 'a' * 40,
+                'object_key': 'sqlite/production/run.sqlite.gz.age', 'sqlite_bytes': 300, 'gzip_bytes': 200,
+                'encrypted_bytes': 250, 'sha256': 'f' * 64, 'sqlite_sha256': 'e' * 64,
+                'table_counts': {'events': 2},
+                'migrations': [{'id': 1, 'name': '0001_initial.sql', 'applied_at': '2026-11-08'},
+                               {'id': 2, 'name': '0002_more.sql', 'applied_at': '2026-11-09'}]}
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.path = Path(self.temp.name) / 'backup-status.json'
+        self.c = {'status_file': str(self.path), 'notify_url': 'https://notify.invalid/secret'}
+
+    def read(self):
+        return json.loads(self.path.read_text())
+
+    def test_success_is_readable_by_the_web_user_and_omits_hashes(self):
+        os.umask(0o077)
+        b.write_status(self.c, manifest=self.MANIFEST)
+        status = self.read()
+        self.assertEqual(self.path.stat().st_mode & 0o777, 0o644)
+        self.assertTrue(status['last_attempt_ok'])
+        self.assertIsNone(status['last_error'])
+        self.assertEqual(status['failures_since_success'], 0)
+        self.assertEqual(status['last_success']['object_key'], self.MANIFEST['object_key'])
+        self.assertEqual(status['last_success']['latest_migration'], '0002_more.sql')
+        self.assertEqual(status['last_success']['migration_count'], 2)
+        self.assertNotIn('f' * 64, self.path.read_text())
+
+    def test_failures_keep_the_previous_success_and_count_up(self):
+        b.write_status(self.c, manifest=self.MANIFEST)
+        b.write_status(self.c, error='ClientError')
+        b.write_status(self.c, error='TimeoutError')
+        status = self.read()
+        self.assertFalse(status['last_attempt_ok'])
+        self.assertEqual(status['last_error'], 'TimeoutError')
+        self.assertEqual(status['failures_since_success'], 2)
+        self.assertEqual(status['last_success']['created_at'], self.MANIFEST['created_at'])
+        b.write_status(self.c, manifest=self.MANIFEST)
+        self.assertEqual(self.read()['failures_since_success'], 0)
+
+    def test_failure_before_any_success_and_after_a_corrupt_file(self):
+        self.path.write_text('not json')
+        b.write_status(self.c, error='ValueError')
+        status = self.read()
+        self.assertIsNone(status['last_success'])
+        self.assertEqual(status['failures_since_success'], 1)
+
+    def test_unset_or_unwritable_status_file_never_raises(self):
+        b.write_status({}, manifest=self.MANIFEST)
+        self.assertFalse(self.path.exists())
+        with contextlib.redirect_stderr(io.StringIO()) as logs:
+            b.write_status({'status_file': str(self.path / 'missing-dir' / 'status.json')}, manifest=self.MANIFEST)
+        self.assertIn('status file update failed', logs.getvalue())
+
+    def test_cli_records_success_and_sanitised_failure(self):
+        config = Path(self.temp.name) / 'config.json'
+        config.write_text('{}')
+        argv = ['sqlite_backup.py', '--config', str(config), 'backup']
+        with patch.object(b, 'read_config', return_value=self.c), patch.object(b, 's3_client'), \
+             patch.object(b, 'backup', return_value=self.MANIFEST), patch.object(b.sys, 'argv', argv):
+            self.assertEqual(b.main(), 0)
+        self.assertTrue(self.read()['last_attempt_ok'])
+        with patch.object(b, 'read_config', return_value=self.c), patch.object(b, 's3_client'), \
+             patch.object(b, 'backup', side_effect=RuntimeError('secret-token-value')), patch.object(b, 'notify'), \
+             patch.object(b.sys, 'argv', argv), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(b.main(), 1)
+        self.assertEqual(self.read()['last_error'], 'RuntimeError')
+        self.assertNotIn('secret-token-value', self.path.read_text())
+
+    def test_monitor_failure_does_not_touch_backup_status(self):
+        config = Path(self.temp.name) / 'config.json'
+        config.write_text('{}')
+        with patch.object(b, 'read_config', return_value=self.c), patch.object(b, 's3_client'), \
+             patch.object(b, 'monitor', side_effect=ValueError('stale')), patch.object(b, 'notify'), \
+             patch.object(b.sys, 'argv', ['sqlite_backup.py', '--config', str(config), 'monitor']), \
+             contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(b.main(), 1)
+        self.assertFalse(self.path.exists())
+
+
 if __name__ == '__main__':
     unittest.main()

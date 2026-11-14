@@ -55,6 +55,11 @@ describe("shared music browsing", () => {
         expect(first).toMatchObject({ total: FIXTURE_SIZE, shown: MUSIC_BATCH_SIZE, hasMore: true });
         expect(next[kind]).toHaveLength(FIXTURE_SIZE - MUSIC_BATCH_SIZE);
         expect(next).toMatchObject({ shown: FIXTURE_SIZE, hasMore: false });
+        // The appended batch names the item before it so the client can detect a shifted list.
+        expect(first.anchor).toBe("");
+        expect(restored.anchor).toBe("");
+        expect(next.anchor).toBe(first[kind].at(-1)!.id);
+        expect(next[kind][0].id).not.toBe(next.anchor);
         expect(restored[kind].map(item => item.id)).toEqual([...first[kind], ...next[kind]].map(item => item.id));
         expect(new Set(restored[kind].map(item => item.id)).size).toBe(FIXTURE_SIZE);
         if (kind === "releases") {

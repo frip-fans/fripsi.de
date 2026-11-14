@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countEvents, getLastOfficialSyncAt, searchEvents } from "./repository";
+import { countAuditLogs, countEvents, getLastOfficialSyncAt, listAuditLogs, searchEvents } from "./repository";
 import { createTestD1 } from "./test-d1";
 
 interface QueryCall {
@@ -90,5 +90,48 @@ describe("last official sync", () => {
       run("r4", "completed", "2026-11-07T06:00:00Z");
       expect(await getLastOfficialSyncAt(db)).toBe("2026-11-07T06:00:00Z");
     } finally { sqlite.close(); }
+  });
+});
+
+describe("audit log paging", () => {
+  function seed() {
+    const { db, sqlite } = createTestD1();
+    const insert = sqlite.prepare("INSERT INTO audit_logs (id,actor_id,actor_type,channel,action,target_type,target_id,request_id,created_at) VALUES (?,?,?,?,?,?,?,?,?)");
+    const rows: Array<[string, string, string, string, string, string, string]> = [
+      ["a1", "editor@example.com", "admin", "event.update", "event", "evt_1", "2026-10-01T00:00:00Z"],
+      // Two writes of one request share a timestamp.
+      ["a2", "sync-agent", "mcp", "change.propose_update", "change_set", "chg_1", "2026-10-02T00:00:00Z"],
+      ["a3", "sync-agent", "mcp", "change.publish_update", "event", "evt_1", "2026-10-02T00:00:00Z"],
+      ["a4", "syncXagent", "mcp", "event.create", "event", "evt_2", "2026-10-03T00:00:00Z"],
+    ];
+    for (const [id, actor, channel, action, targetType, targetId, createdAt] of rows) {
+      insert.run(id, actor, channel === "admin" ? "human" : "ai", channel, action, targetType, targetId, `req_${id}`, createdAt);
+    }
+    return db;
+  }
+
+  it("pages newest first without repeating or skipping same-timestamp rows", async () => {
+    const db = seed();
+    const first = await listAuditLogs(db, 2);
+    const second = await listAuditLogs(db, 2, { offset: 2 });
+    expect([...first, ...second].map((log) => log.id)).toEqual(["a4", "a3", "a2", "a1"]);
+    expect(await countAuditLogs(db)).toBe(4);
+  });
+
+  it("filters the list and the count the same way", async () => {
+    const db = seed();
+    const filters = { target_type: "event", channel: "mcp" };
+    expect((await listAuditLogs(db, 50, filters)).map((log) => log.id)).toEqual(["a4", "a3"]);
+    expect(await countAuditLogs(db, filters)).toBe(2);
+    expect((await listAuditLogs(db, 50, { query: "evt_1" })).map((log) => log.id)).toEqual(["a3", "a1"]);
+    expect((await listAuditLogs(db, 50, { query: "req_a2" })).map((log) => log.id)).toEqual(["a2"]);
+  });
+
+  it("matches wildcard characters in the query literally", async () => {
+    const db = seed();
+    // "_" must not match the "X" in syncXagent, and "%" must not match everything.
+    expect(await countAuditLogs(db, { query: "sync_agent" })).toBe(0);
+    expect(await countAuditLogs(db, { query: "sync-agent" })).toBe(2);
+    expect(await countAuditLogs(db, { query: "%" })).toBe(0);
   });
 });

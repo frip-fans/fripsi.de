@@ -6,8 +6,20 @@ const issuer = "fripsi:admin-chat";
 const prefix = "fchat.";
 /** A chat credential never carries publish, archive or music write capability. */
 export const CHAT_SCOPES = ["events:read", "events:draft"] as const;
-/** MCP credentials are fixed in the session's tool configuration and cannot be rotated mid-session. */
-export const CHAT_SESSION_TTL_SECONDS = 1800;
+/** A session ends this long after the last message in either direction. */
+export const CHAT_SESSION_IDLE_SECONDS = 45 * 60;
+/**
+ * Hard cap, and the lifetime of the MCP credential: it is fixed in the session's tool
+ * configuration and cannot be rotated, so it has to outlive every turn the session may
+ * run. The credential alone opens nothing; each use also checks the session row below.
+ */
+export const CHAT_SESSION_MAX_SECONDS = 8 * 3600;
+
+/** When a session with activity at `now` stops accepting input: idle window, capped by its age. */
+export function chatSessionDeadline(createdAt: string, now: Date): string {
+  return new Date(Math.min(now.valueOf() + CHAT_SESSION_IDLE_SECONDS * 1000,
+    Date.parse(createdAt) + CHAT_SESSION_MAX_SECONDS * 1000)).toISOString();
+}
 
 export interface ChatSession {
   id: string;
@@ -39,7 +51,7 @@ export async function signChatToken(secret: string, audience: string, sessionId:
   const issuedAt = Math.floor(Date.parse(createdAt) / 1000);
   return `${prefix}${await new SignJWT({ chat_session_id: sessionId }).setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuer(issuer).setAudience(audience).setSubject(subject)
-    .setIssuedAt(issuedAt).setExpirationTime(issuedAt + CHAT_SESSION_TTL_SECONDS)
+    .setIssuedAt(issuedAt).setExpirationTime(issuedAt + CHAT_SESSION_MAX_SECONDS)
     .sign(new TextEncoder().encode(secret))}`;
 }
 
@@ -55,7 +67,7 @@ export async function authenticateChatToken(token: string, env: ChatAuthEnv, now
   try {
     const { payload } = await jwtVerify(token.slice(prefix.length), new TextEncoder().encode(env.AUTOMATION_SIGNING_SECRET), {
       algorithms: ["HS256"], issuer, audience: env.AUTOMATION_AUDIENCE,
-      maxTokenAge: `${CHAT_SESSION_TTL_SECONDS}s`, requiredClaims: ["exp", "iat", "sub", "chat_session_id"],
+      maxTokenAge: `${CHAT_SESSION_MAX_SECONDS}s`, requiredClaims: ["exp", "iat", "sub", "chat_session_id"],
     });
     if (typeof payload.chat_session_id !== "string" || typeof payload.sub !== "string") throw new Error("invalid_session");
     const session = await getChatSession(env.DB, payload.chat_session_id);
@@ -125,17 +137,28 @@ export interface ChatMessageInput {
 /**
  * Appends one transcript row. Reading a finished turn is at-least-once, so an assistant
  * row carrying a turn id relies on the partial unique index to stay single.
+ *
+ * A row that is actually new is the session's activity and pushes its idle deadline
+ * out. A repeated read inserts nothing and must not: every admin page load re-reads
+ * the last turn, and would otherwise keep an abandoned session alive.
  */
 export async function appendChatMessage(db: D1Database, message: ChatMessageInput, now = new Date()): Promise<void> {
-  await db.batch([
-    db.prepare(`INSERT OR IGNORE INTO admin_chat_messages (id,session_id,turn_id,role,body,tool_calls_json,created_at)
-      VALUES (?,?,?,?,?,?,?)`)
-      .bind(crypto.randomUUID(), message.session_id, message.turn_id ?? null, message.role, message.body,
-        message.tool_calls?.length ? JSON.stringify(message.tool_calls) : null, now.toISOString()),
-    db.prepare(`UPDATE admin_chat_sessions SET message_count=(
-      SELECT COUNT(*) FROM admin_chat_messages WHERE session_id=?),updated_at=? WHERE id=?`)
-      .bind(message.session_id, now.toISOString(), message.session_id),
-  ]);
+  const at = now.toISOString();
+  const inserted = await db.prepare(`INSERT OR IGNORE INTO admin_chat_messages (id,session_id,turn_id,role,body,tool_calls_json,created_at)
+    VALUES (?,?,?,?,?,?,?)`)
+    .bind(crypto.randomUUID(), message.session_id, message.turn_id ?? null, message.role, message.body,
+      message.tool_calls?.length ? JSON.stringify(message.tool_calls) : null, at).run();
+  if (!inserted.meta.changes) return;
+  // Only a session that is still open is extended; one already past its deadline stays
+  // ended even if a late reply is recorded for it. strftime's %f matches toISOString.
+  await db.prepare(`UPDATE admin_chat_sessions SET
+      message_count=(SELECT COUNT(*) FROM admin_chat_messages WHERE session_id=?),
+      updated_at=?,
+      expires_at=CASE WHEN status='active' AND expires_at>?
+        THEN MIN(?, strftime('%Y-%m-%dT%H:%M:%fZ', created_at, '+${CHAT_SESSION_MAX_SECONDS} seconds'))
+        ELSE expires_at END
+    WHERE id=?`)
+    .bind(message.session_id, at, at, new Date(now.valueOf() + CHAT_SESSION_IDLE_SECONDS * 1000).toISOString(), message.session_id).run();
 }
 
 export async function listChatMessages(db: D1Database, sessionId: string, limit = 200): Promise<ChatMessage[]> {

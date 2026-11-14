@@ -1,5 +1,5 @@
 ---
-import { countChangeSetsByStatus, countEvents, dateInTimeZone, getEventHeads, listAdminSetlists, listAuditLogs, listChangeSets, searchEvents } from "@frip-fan/core";
+import { countChangeSetsByStatus, countEvents, dateInTimeZone, countAdminSetlists, getEventHeads, listAuditLogs, listChangeSets, searchEvents } from "@frip-fan/core";
 import AdminPageHeader from "../../components/AdminPageHeader.astro";
 import Icon from "../../components/Icon.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
@@ -9,19 +9,19 @@ import { getEnv } from "../../lib/env";
 
 const db = getEnv().DB;
 const today = dateInTimeZone();
-const [proposed, changeCounts, upcoming, upcomingCount, eventCount, setlists, audit] = await Promise.all([
+const [proposed, changeCounts, upcoming, upcomingCount, eventCount, setlistCounts, audit] = await Promise.all([
   listChangeSets(db, "proposed", 6),
   countChangeSetsByStatus(db),
   searchEvents(db, { date_from: today, limit: 5 }, false),
   countEvents(db, { date_from: today }),
   countEvents(db, { include_archived: true }),
-  listAdminSetlists(db),
+  countAdminSetlists(db),
   listAuditLogs(db, 8),
 ]);
 const targets = await getEventHeads(db, proposed.map((change) => change.target_event_id ?? ""));
 const pendingCount = changeCounts.proposed ?? 0;
-// The same follow-up buckets as the quick filters on the Setlist list.
-const setlistFollowUps = setlists.filter((setlist) => !setlist.published || setlist.completeness !== "complete" || setlist.confidence === "unverified" || setlist.entry_count === 0).length;
+// The union of the quick-filter buckets on the Setlist list.
+const setlistFollowUps = setlistCounts.follow_up;
 const actor = Astro.locals.actor!;
 const canPublish = actor.scopes.includes("events:publish");
 const canWriteMusic = actor.scopes.includes("music:write");
@@ -36,7 +36,7 @@ const canWriteMusic = actor.scopes.includes("music:write");
     <a class:list={["panel", { attention: pendingCount > 0 }]} href="/admin/changes"><span>待处理提案</span><strong>{pendingCount}</strong><small>{pendingCount > 0 ? "等待核对后发布或丢弃" : "全部处理完了"}</small></a>
     <a class="panel" href="/admin/events"><span>即将举行</span><strong>{upcomingCount}</strong><small>今天及以后的活动</small></a>
     <a class:list={["panel", { attention: setlistFollowUps > 0 }]} href="/admin/music/setlists"><span>待完善 Setlist</span><strong>{setlistFollowUps}</strong><small>未公开、不完整、待核验或没有歌曲</small></a>
-    <a class="panel" href="/admin/events?archived=1"><span>活动总数</span><strong>{eventCount}</strong><small>含已归档 · Setlist {setlists.length} 份</small></a>
+    <a class="panel" href="/admin/events?archived=1"><span>活动总数</span><strong>{eventCount}</strong><small>含已归档 · Setlist {setlistCounts.all} 份</small></a>
   </section>
 
   <div class="columns">

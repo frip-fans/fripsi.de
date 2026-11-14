@@ -85,15 +85,15 @@ function clock(value: string): string {
     data-image-max={CHAT_IMAGE_MAX} data-image-bytes={CHAT_IMAGE_MAX_BYTES}>
     <ul class="chat-attachments" data-role="attachments" aria-label="待发送的图片" hidden></ul>
     <input type="file" class="sr-only" data-role="file" accept="image/*" multiple tabindex="-1" aria-hidden="true" />
-    <button type="button" class="chat-attach" data-role="attach" aria-label="添加图片" title="添加图片（也可以粘贴或拖入）"><Icon name="image" /></button>
     <label class="sr-only" for="chat-input">给助手的消息</label>
     <textarea id="chat-input" rows="1" maxlength="4000" data-role="input"
       placeholder="描述要查询或修改的内容，附上来源链接"></textarea>
     <button type="submit" class="button chat-send" data-role="send" aria-label="发送"><Icon name="send" /></button>
   </form>
-  <p class="chat-hint" data-role="hint">
-    <kbd data-role="hint-mod">Ctrl</kbd><kbd data-role="hint-enter">Enter</kbd><span>发送</span>
-  </p>
+  <div class="chat-hint" data-role="hint">
+    <button type="button" class="chat-attach" data-role="attach" aria-label="添加图片" title="添加图片（也可以粘贴或拖入）"><Icon name="plus" /></button>
+    <span class="chat-keys"><kbd data-role="hint-mod">Ctrl</kbd><kbd data-role="hint-enter">Enter</kbd><span>发送</span></span>
+  </div>
   <span class="sr-only" role="status" aria-live="polite" data-role="announce"></span>
   <div class="chat-drop" data-role="drop" hidden><Icon name="image" /><span>松开以添加图片</span></div>
 </aside>

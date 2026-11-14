@@ -12,6 +12,8 @@
 
 窄屏下侧栏是 `role="dialog" aria-modal="true"`，并把 `.site-header / main / footer` 设为 `inert`，Escape 关闭；宽屏是 `role="complementary"`，不夺取 Escape，也不锁背景。对话区不整体 `aria-live`（否则每张 diff 表都会被朗读），改为单独的 `role="status"` 只播摘要。
 
+输入栏是一个包住文本框和发送按钮的圆角框；手机上正文与输入文字为 15px。iOS 在聚焦小于 16px 的输入框时会放大页面，后台布局因此只在 iOS 上给 viewport 加 `maximum-scale=1`（iOS 仍允许双指缩放，其他浏览器不加，以免失去缩放）。
+
 历史在独立弹窗里按会话列出，点开即在侧栏只读回放：输入框隐藏，状态行显示该会话使用的模型。提案卡片始终按 `change_sets` 当前状态重新生成。
 
 ## 运行流程

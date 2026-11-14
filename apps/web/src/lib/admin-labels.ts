@@ -52,6 +52,10 @@ const TARGET_LABELS: Record<string, string> = {
   import_job: "导入任务",
 };
 
+export const AUDIT_TARGET_TYPES = Object.keys(TARGET_LABELS);
+
+export const AUDIT_CHANNEL_LABELS: Record<string, string> = { admin: "后台", mcp: "MCP", import: "导入", system: "系统" };
+
 export function auditTargetLabel(targetType: string): string {
   return TARGET_LABELS[targetType] ?? targetType;
 }

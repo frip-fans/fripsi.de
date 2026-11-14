@@ -108,6 +108,16 @@ describe("Agents API and scheduled recovery", () => {
     expect(request).toHaveBeenCalledTimes(1);
     expect(request.mock.calls[0][1]?.redirect).toBe("manual");
   });
+  it("treats an accepted request without a body as success", async () => {
+    const accepted = (body: string | null, status: number) => new AgentsClient("test-key",
+      vi.fn<typeof fetch>().mockResolvedValue(new Response(body, { status }))).call("sessions/sess_1/events", { events: [] });
+    await expect(accepted(null, 202)).resolves.toBeNull();
+    await expect(accepted("", 200)).resolves.toBeNull();
+    await expect(accepted("Accepted", 202)).resolves.toBeNull();
+    await expect(accepted('{"ok":true}', 202)).resolves.toEqual({ ok: true });
+    // A 200 that should carry JSON and does not is still an error.
+    await expect(accepted("<html>", 200)).rejects.toThrow(SyntaxError);
+  });
   it("does not invoke the Workers native fetch with the client as its receiver", async () => {
     vi.stubGlobal("fetch", function (this: unknown) {
       if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");

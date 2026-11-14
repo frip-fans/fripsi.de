@@ -53,6 +53,38 @@ export async function listTours(db: D1Database, options: { publicOnly?: boolean 
   return result.results.map(mapTour);
 }
 
+/** One stop on the tour list's track: where it is, and whether it has been played and documented. */
+export interface TourListStop {
+  start_date: string;
+  /** tour_stop, or the first venue's area; null when neither is known. */
+  stop_label: string | null;
+  has_setlist: boolean;
+  state: "done" | "today" | "upcoming";
+}
+
+/** Public stops of every published tour, in order, keyed by tour id. Counts match `listTours({ publicOnly: true })`. */
+export async function listPublicTourStops(db: D1Database, today = dateInTimeZone()): Promise<Map<string, TourListStop[]>> {
+  const result = await db.prepare(`SELECT e.tour_id, e.start_date, e.end_date,
+      COALESCE(NULLIF(TRIM(e.tour_stop), ''), ${eventStopAreaSql("e")}) AS stop_label,
+      EXISTS (SELECT 1 FROM setlists sl WHERE sl.event_id = e.id AND sl.published = 1) AS has_setlist
+    FROM events e
+    JOIN tours t ON t.id = e.tour_id AND t.published = 1
+    WHERE e.published = 1 AND e.archived_at IS NULL
+    ORDER BY e.start_date, COALESCE(e.start_time, ''), e.id`)
+    .all<{ tour_id: string; start_date: string; end_date: string | null; stop_label: string | null; has_setlist: number }>();
+  const byTour = new Map<string, TourListStop[]>();
+  for (const row of result.results) {
+    const stop: TourListStop = {
+      start_date: row.start_date, stop_label: row.stop_label, has_setlist: row.has_setlist === 1,
+      state: (row.end_date ?? row.start_date) < today ? "done" : row.start_date <= today ? "today" : "upcoming",
+    };
+    const list = byTour.get(row.tour_id);
+    if (list) list.push(stop);
+    else byTour.set(row.tour_id, [stop]);
+  }
+  return byTour;
+}
+
 async function tourStops(db: D1Database, tourId: string, publicOnly: boolean): Promise<TourStop[]> {
   const result = await db.prepare(`SELECT e.id AS event_id, e.slug AS event_slug, e.title AS event_title,
       ${eventDisplayTitleSql("e")} AS display_title, e.start_date, e.tour_stop, e.published,

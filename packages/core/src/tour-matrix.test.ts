@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { createTestD1 } from "./test-d1";
 import { computeTourMatrix, type TourMatrixEntryInput, type TourMatrixShowInput } from "./tour-matrix";
-import { getActiveTour, getEventTourContext, getPublicTourPage, listTours, pickActiveTour, type ActiveTourRow } from "./tours";
+import { getActiveTour, getEventTourContext, listPublicTourStops, getPublicTourPage, listTours, pickActiveTour, type ActiveTourRow } from "./tours";
 
 const show = (id: string, date: string, setlist: string | null, completeness: TourMatrixShowInput["completeness"] = "complete", label = "本公演"): TourMatrixShowInput => ({
   event_id: id, event_slug: id, start_date: date, start_time: null, stop_label: `${id}公演`,
@@ -143,6 +143,20 @@ describe("public tour queries", () => {
       sqlite.exec("UPDATE events SET status = 'cancelled' WHERE id = 'e3'");
       expect(await getActiveTour(db, "2026-01-04")).toBeNull();
       expect((await getActiveTour(db, "2026-01-02"))?.stops.map(stop => stop.event_slug)).toEqual(["slug-e1", "slug-e2"]);
+    } finally { sqlite.close(); }
+  });
+
+  it("lists each published tour's public stops with their setlist and played state", async () => {
+    const { db, sqlite } = createTestD1();
+    try {
+      seed(sqlite);
+      const stops = await listPublicTourStops(db, "2026-01-03");
+      expect([...stops.keys()]).toEqual(["t1"]);
+      expect(stops.get("t1")).toEqual([
+        { start_date: "2026-01-01", stop_label: "Stop e1", has_setlist: true, state: "done" },
+        { start_date: "2026-01-03", stop_label: "Stop e2", has_setlist: true, state: "today" },
+        { start_date: "2026-01-05", stop_label: "Stop e3", has_setlist: false, state: "upcoming" },
+      ]);
     } finally { sqlite.close(); }
   });
 

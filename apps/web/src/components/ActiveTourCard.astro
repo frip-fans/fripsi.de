@@ -1,57 +1,40 @@
 ---
-import type { ActiveTour, ActiveTourStop } from "@frip-fan/core";
+import type { ActiveTour } from "@frip-fan/core";
 import { getLocale, t } from "../lib/i18n";
 import Icon from "./Icon.astro";
+import TourRouteLines from "./TourRouteLines.astro";
+import TourStopTrack, { type TrackStop } from "./TourStopTrack.astro";
 
 interface Props { tour: ActiveTour; today: string }
 const { tour, today } = Astro.props;
 const locale = getLocale(Astro.request);
 const { next, stops } = tour;
 
-const shortDate = new Intl.DateTimeFormat(locale, { month: "numeric", day: "numeric", timeZone: "UTC" });
-const stopDate = (stop: ActiveTourStop) => shortDate.format(new Date(`${stop.start_date}T00:00:00Z`));
-// "東京公演" reads as "東京" under a dot; the tour page trims its column headers the same way.
-const stopName = (stop: ActiveTourStop) => stop.stop_label?.replace(/公演$/, "") || null;
 const daysUntilNext = next ? Math.round((Date.parse(next.start_date) - Date.parse(today)) / 86_400_000) : 0;
-// One short line: the stop track below already carries the next stop's name and date.
+// One short line: the stop track already carries the next stop's name and date.
 const nextLine = !next ? ""
   : next.state === "today" ? t(locale, "home.tourToday")
     : daysUntilNext === 1 ? t(locale, "home.tourNextTomorrow")
       : t(locale, "home.tourNextDays", { count: daysUntilNext });
+const trackStops: TrackStop[] = stops.map((stop) => ({
+  label: stop.stop_label, date: stop.start_date, tone: stop.state === "upcoming" ? "open" : "lit", next: stop === next,
+}));
 const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: stops.length });
 ---
 <section class="tour-live panel" aria-labelledby="tour-live-title">
-  {/* Route lines hopping from stop to stop, drifting slowly: the tour's answer to the rings on the next-show panel. */}
-  <svg class="tour-live-routes" viewBox="0 0 1200 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-    <path class="is-still" d="M-20 78 Q 140 4 300 58 T 620 52 T 940 60 T 1220 22" />
-    <path d="M-20 44 Q 170 108 360 46 T 720 40 T 1060 54 T 1220 80" />
-    <path class="is-slow" d="M-20 96 Q 220 30 430 84 T 800 76 T 1220 58" />
-  </svg>
+  <TourRouteLines animated />
   <div class="tour-live-main">
     <p class="tour-live-label"><i aria-hidden="true"></i>{t(locale, "home.tourLive")}<span title={progress}>{tour.done_count}/{stops.length}</span></p>
     <h2 id="tour-live-title"><a href={`/music/tours/${encodeURIComponent(tour.slug)}`} translate="no">{tour.name}</a></h2>
     {next && <p class="tour-live-next">{nextLine}</p>}
   </div>
-  <ol class:list={["tour-live-stops", { "is-crowded": stops.length > 4, "is-dense": stops.length > 8 }]} aria-label={progress}>
-    {stops.map((stop) => (
-      <li class:list={[`is-${stop.state}`, { "is-next": stop === next }]} aria-current={stop === next ? "step" : undefined}>
-        <span class="tour-live-dot" aria-hidden="true"></span>
-        {stopName(stop) && <span class="tour-live-stop" translate="no">{stopName(stop)}</span>}
-        <time datetime={stop.start_date}>{stopDate(stop)}</time>
-      </li>
-    ))}
-  </ol>
+  <TourStopTrack stops={trackStops} label={progress} />
   <span class="tour-live-arrow" aria-hidden="true"><Icon name="chevron-right" size=".85rem" /></span>
 </section>
 
 <style>
-  .tour-live { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto; align-items: center; gap: .75rem clamp(1.25rem, 3vw, 2.5rem); margin-top: 2rem; padding: .85rem 1.25rem; transition: border-color .18s, transform .18s; }
-  /* Isolated so the lines can sit behind the text (z-index -1) yet stay above the panel's own background. */
-  .tour-live { overflow: hidden; isolation: isolate; }
-  .tour-live-routes { position: absolute; z-index: -1; inset: 0; width: 100%; height: 100%; pointer-events: none; -webkit-mask-image: linear-gradient(to right, transparent 8%, #000 60%); mask-image: linear-gradient(to right, transparent 8%, #000 60%); }
-  .tour-live-routes path { fill: none; stroke: rgba(var(--accent-rgb), .2); stroke-width: 1; stroke-dasharray: 5 9; vector-effect: non-scaling-stroke; }
-  .tour-live-routes .is-still { stroke: rgba(var(--accent-rgb), .11); stroke-dasharray: none; }
-  .tour-live-routes .is-slow { stroke: rgba(var(--accent-rgb), .14); stroke-dasharray: 2 8; }
+  /* Isolated and clipped for the route lines behind the text (see TourRouteLines). */
+  .tour-live { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto; align-items: center; gap: .75rem clamp(1.25rem, 3vw, 2.5rem); margin-top: 2rem; padding: .85rem 1.25rem; transition: border-color .18s, transform .18s; }
   .tour-live:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }
   .tour-live:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
   .tour-live-main { display: grid; gap: .2rem; min-width: 0; }
@@ -64,50 +47,19 @@ const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: 
   /* The whole card is the link to the tour page. */
   .tour-live h2 a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
   .tour-live-next { margin: 0; color: var(--accent); font-size: .8125rem; font-weight: 650; line-height: 1.55; }
-
-  .tour-live-stops { display: flex; min-width: 0; margin: 0; padding: 0; list-style: none; }
-  .tour-live-stops li { position: relative; display: grid; flex: 1 1 0; justify-items: center; align-content: start; gap: .15rem; min-width: 0; padding: 0 .2rem; color: var(--muted); text-align: center; }
-  /* Each stop draws the leg that leads to it; a leg is lit once the stop it reaches has started. */
-  .tour-live-stops li + li::before { content: ""; position: absolute; top: calc(.45rem - 1px); right: calc(50% + .45rem); width: calc(100% - .9rem); height: 2px; border-radius: 1px; background: rgba(159, 180, 211, .2); }
-  .tour-live-stops li:is(.is-done, .is-today)::before { background: rgba(var(--accent-rgb), .7); }
-  .tour-live-dot { width: .9rem; height: .9rem; margin-bottom: .15rem; border: 2px solid rgba(159, 180, 211, .35); border-radius: 50%; box-sizing: border-box; }
-  .is-done .tour-live-dot { border-color: var(--accent); background: var(--accent); }
-  .is-next .tour-live-dot { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .16); }
-  .is-today .tour-live-dot { background: var(--accent); }
-  .tour-live-stop { max-width: 100%; overflow: hidden; color: #c8d9e7; font-size: .8125rem; font-weight: 650; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-  .tour-live-stops time { font-size: .72rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .is-next :is(.tour-live-stop, time) { color: var(--accent); }
-  .is-done :is(.tour-live-stop, time) { color: var(--muted); }
-  /* Too many stops to caption: only the next one keeps its name and date, still read out for the rest. */
-  .is-dense li:not(.is-next) :is(.tour-live-stop, time) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .is-dense li.is-next :is(.tour-live-stop, time) { max-width: none; overflow: visible; }
-
   .tour-live-arrow { display: inline-flex; color: var(--muted); opacity: .55; }
   .tour-live:hover .tour-live-arrow, .tour-live:focus-within .tour-live-arrow { color: var(--accent); opacity: 1; }
 
   @media (prefers-reduced-motion: no-preference) {
     .tour-live-label i { animation: tour-live-pulse 2.4s ease-out infinite; }
-    /* One dash period per cycle, so the loop has no seam. */
-    .tour-live-routes path:not(.is-still) { animation: tour-live-route 2.8s linear infinite; }
-    .tour-live-routes .is-slow { animation-duration: 4.5s; --route-period: -10; }
-    @keyframes tour-live-route { to { stroke-dashoffset: var(--route-period, -14); } }
-    /* The homepage "pause motion" switch stops the routes too. */
-    :global(html[data-home-motion-paused="true"]) .tour-live-routes path { animation-play-state: paused; }
     @keyframes tour-live-pulse { 70%, 100% { box-shadow: 0 0 0 7px rgba(var(--accent-rgb), 0); } }
   }
   @media (max-width: 800px) {
     .tour-live { grid-template-columns: minmax(0, 1fr); gap: .7rem; margin-top: 1rem; padding: .85rem 1.1rem .9rem; }
+    .tour-live:hover { transform: none; }
     /* The arrow rides the label row instead of taking a row of its own. */
     .tour-live-arrow { position: absolute; top: .85rem; right: 1.1rem; }
     .tour-live-label { padding-right: 1.5rem; }
-    .tour-live:hover { transform: none; }
-    /* Stacked, the text sits on top of the lines: fade them toward the stop track instead. */
-    .tour-live-routes { -webkit-mask-image: linear-gradient(to bottom, transparent 25%, #000 90%); mask-image: linear-gradient(to bottom, transparent 25%, #000 90%); opacity: .8; }
     .tour-live h2 { color: #d3dce8; font-size: 1rem; font-weight: 600; }
-  }
-  @media (max-width: 560px) {
-    .tour-live-stop { font-size: .75rem; }
-    .is-crowded li:not(.is-next) :is(.tour-live-stop, time) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-    .is-crowded li.is-next :is(.tour-live-stop, time) { max-width: none; overflow: visible; }
   }
 </style>

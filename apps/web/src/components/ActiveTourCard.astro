@@ -44,18 +44,18 @@ const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: 
       </li>
     ))}
   </ol>
-  <span class="tour-live-cta">{t(locale, "home.tourCta")} <Icon name="chevron-right" size=".75rem" /></span>
+  <span class="tour-live-arrow" aria-hidden="true"><Icon name="chevron-right" size=".85rem" /></span>
 </section>
 
 <style>
-  .tour-live { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); align-items: center; gap: 1rem clamp(1.5rem, 4vw, 3rem); margin-top: 2rem; padding: 1.35rem 1.5rem; transition: border-color .18s, transform .18s; }
+  .tour-live { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto; align-items: center; gap: .75rem clamp(1.25rem, 3vw, 2.5rem); margin-top: 2rem; padding: .85rem 1.25rem; transition: border-color .18s, transform .18s; }
   .tour-live:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }
   .tour-live:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .tour-live-main { display: grid; gap: .5rem; min-width: 0; }
+  .tour-live-main { display: grid; gap: .2rem; min-width: 0; }
   .tour-live-label { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .55rem; margin: 0; color: var(--accent); font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
   .tour-live-label span { color: var(--muted); font-weight: 500; letter-spacing: 0; font-variant-numeric: tabular-nums; }
   .tour-live-label i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(var(--accent-rgb), .5); }
-  .tour-live h2 { margin: 0; font-size: 1.125rem; line-height: 1.45; overflow-wrap: anywhere; }
+  .tour-live h2 { margin: 0; font-size: 1.0625rem; line-height: 1.4; overflow-wrap: anywhere; }
   .tour-live h2 a { color: inherit; text-decoration: none; }
   .tour-live h2 a:focus-visible { outline: none; }
   /* The whole card is the link to the tour page. */
@@ -70,7 +70,7 @@ const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: 
   /* Each stop draws the leg that leads to it; a leg is lit once the stop it reaches has started. */
   .tour-live-stops li + li::before { content: ""; position: absolute; top: calc(.45rem - 1px); right: calc(50% + .45rem); width: calc(100% - .9rem); height: 2px; border-radius: 1px; background: rgba(159, 180, 211, .2); }
   .tour-live-stops li:is(.is-done, .is-today)::before { background: rgba(var(--accent-rgb), .7); }
-  .tour-live-dot { width: .9rem; height: .9rem; margin-bottom: .3rem; border: 2px solid rgba(159, 180, 211, .35); border-radius: 50%; box-sizing: border-box; }
+  .tour-live-dot { width: .9rem; height: .9rem; margin-bottom: .15rem; border: 2px solid rgba(159, 180, 211, .35); border-radius: 50%; box-sizing: border-box; }
   .is-done .tour-live-dot { border-color: var(--accent); background: var(--accent); }
   .is-next .tour-live-dot { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .16); }
   .is-today .tour-live-dot { background: var(--accent); }
@@ -82,17 +82,20 @@ const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: 
   .is-dense li:not(.is-next) :is(.tour-live-stop, time) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .is-dense li.is-next :is(.tour-live-stop, time) { max-width: none; overflow: visible; }
 
-  .tour-live-cta { grid-column: 1 / -1; display: inline-flex; align-items: center; justify-self: end; gap: .3rem; color: var(--accent); font-size: .8125rem; }
+  .tour-live-arrow { display: inline-flex; color: var(--muted); opacity: .55; }
+  .tour-live:hover .tour-live-arrow, .tour-live:focus-within .tour-live-arrow { color: var(--accent); opacity: 1; }
 
   @media (prefers-reduced-motion: no-preference) {
     .tour-live-label i { animation: tour-live-pulse 2.4s ease-out infinite; }
     @keyframes tour-live-pulse { 70%, 100% { box-shadow: 0 0 0 7px rgba(var(--accent-rgb), 0); } }
   }
   @media (max-width: 800px) {
-    .tour-live { grid-template-columns: minmax(0, 1fr); gap: 1.1rem; margin-top: 1rem; padding: 1rem 1.1rem 1.1rem; }
+    .tour-live { grid-template-columns: minmax(0, 1fr); gap: .7rem; margin-top: 1rem; padding: .85rem 1.1rem .9rem; }
+    /* The arrow rides the label row instead of taking a row of its own. */
+    .tour-live-arrow { position: absolute; top: .85rem; right: 1.1rem; }
+    .tour-live-label { padding-right: 1.5rem; }
     .tour-live:hover { transform: none; }
-    .tour-live h2 { color: #d3dce8; font-size: 1.0625rem; font-weight: 600; }
-    .tour-live-cta { justify-self: start; }
+    .tour-live h2 { color: #d3dce8; font-size: 1rem; font-weight: 600; }
   }
   @media (max-width: 560px) {
     .tour-live-stop { font-size: .75rem; }

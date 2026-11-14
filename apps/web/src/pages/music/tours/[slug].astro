@@ -2,6 +2,7 @@
 import { getPublicTourPage, type TourCell, type TourMatrixColumn } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
+import SpoilerGuard from "../../../components/SpoilerGuard.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { getLocale, t } from "../../../lib/i18n";
@@ -41,6 +42,8 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
         <span class="tag">{t(locale, "music.tourStops", { count: matrix.stop_count })}</span>
         <span class="tag">{t(locale, "music.tourSetlistStops", { count: tour.setlist_stop_count })}</span>
       </div>
+      {/* Fixed / rotating counts give the set away too; they follow the cover further down. */}
+      <SpoilerGuard tour={tour.slug} until={tour.last_date} quiet>
       {matrix.stats ? (
         <div class="tour-stats">
           <dl>
@@ -51,9 +54,11 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
           <p>{t(locale, "music.tourStatsBasis", { count: matrix.complete_count })}</p>
         </div>
       ) : matrix.setlist_count > 0 && <p class="tour-stats-note">{t(locale, "music.tourStatsUnavailable")}</p>}
+      </SpoilerGuard>
     </header>
 
     {matrix.rows.length > 0 ? (
+      <SpoilerGuard tour={tour.slug} until={tour.last_date}>
       <section class="music-section tour-views" data-tour-views data-view="matrix" aria-label={t(locale, "music.tourViewLabel")}>
         <div class="tour-view-switch" role="group" aria-label={t(locale, "music.tourViewLabel")}>
           <button type="button" data-tour-view-button="matrix"><Icon name="list-stars" />{t(locale, "music.tourViewMatrix")}</button>
@@ -175,6 +180,23 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
           </ol>
         </div>
       </section>
+      {/* Behind the cover the tour is still browsable stop by stop, without a single song title. */}
+      <ol class="tour-stop-list" slot="safe">
+        {matrix.columns.map((column) => (
+          <li class:list={["tour-stop", { "is-upcoming": column.upcoming }]}>
+            <a class="tour-stop-head" href={columnHref(column)}>
+              <span class="tour-show-number">{column.stop_number}</span>
+              <span class="tour-stop-title">
+                <strong>{column.stop_label}{showLabel(column) && <span> · {showLabel(column)}</span>}</strong>
+                <time datetime={column.start_date}>{formatMusicDate(column.start_date, locale)}</time>
+              </span>
+              <Icon name="chevron-right" />
+            </a>
+            {column.upcoming && <p class="tour-stop-note">{t(locale, "music.tourUpcoming")}</p>}
+          </li>
+        ))}
+      </ol>
+      </SpoilerGuard>
     ) : (
       <section class="music-section">
         <ol class="tour-stop-list">
@@ -267,6 +289,8 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   .tour-stats-note { margin-top: 1rem; }
 
   .tour-views { margin-top: 2rem; }
+  .tour-page > :global(.spoiler-guard) { margin-top: 2rem; }
+  .tour-page > :global(.spoiler-guard) .tour-views { margin-top: 0; }
   .tour-view-switch { display: inline-flex; gap: .25rem; margin-bottom: 1rem; padding: .3rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(5, 13, 23, .58); }
   .tour-view-switch button { display: inline-flex; align-items: center; gap: .4rem; min-height: 40px; padding: .45rem .8rem; color: var(--muted); border: 0; border-radius: 9px; background: transparent; font: inherit; font-size: .84rem; font-weight: 650; cursor: pointer; }
   .tour-view-switch button:hover { color: var(--text); }

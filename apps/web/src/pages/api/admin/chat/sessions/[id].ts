@@ -1,7 +1,5 @@
 import type { APIRoute } from "astro";
-import { deleteChatMessages } from "@frip-fan/core";
-import { chatProposals, chatTranscript, previewProposal } from "../../../../../lib/chat";
-import { getEnv } from "../../../../../lib/env";
+import { chatProposals, chatTranscript, deleteChatTranscript, previewProposal } from "../../../../../lib/chat";
 import { CHANGE_OPERATION_LABELS, changeHeadline, changedFields } from "../../../../../lib/change-review";
 import { jsonError } from "../../chat";
 
@@ -37,6 +35,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
       },
       messages: messages.map((message) => ({
         id: message.id, role: message.role, body: message.body, created_at: message.created_at,
+        images: message.images,
         tool_calls: message.tool_calls_json ? JSON.parse(message.tool_calls_json) : [],
       })),
       proposals: cards.filter(Boolean),
@@ -46,9 +45,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
 
 export const DELETE: APIRoute = async ({ locals, params }) => {
   try {
-    // chatTranscript scopes by actor, so this cannot delete someone else's record.
-    const { session } = await chatTranscript(locals.actor!, params.id!);
-    await deleteChatMessages(getEnv().DB, session.id);
+    await deleteChatTranscript(locals.actor!, params.id!);
     return Response.json({ deleted: true });
   } catch (error) { return jsonError(error); }
 };

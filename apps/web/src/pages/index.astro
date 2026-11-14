@@ -1,8 +1,9 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { dateInTimeZone, eventUpdateWindowStart, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
+import { dateInTimeZone, eventUpdateWindowStart, getActiveTour, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
+import ActiveTourCard from "../components/ActiveTourCard.astro";
 import EventCard from "../components/EventCard.astro";
-import CommunityDiscussion from "../components/CommunityDiscussion.astro";
+import Comments from "../components/Comments.astro";
 import Icon from "../components/Icon.astro";
 import SongSpotlight from "../components/SongSpotlight.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
@@ -20,7 +21,7 @@ const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay] = await Promise.all([
+const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay, activeTour] = await Promise.all([
   searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 4 }, true),
   listSetlists(db, { order: "desc", limit: 3 }),
   // The date is the seed, so the spotlight holds for the whole day and for every visitor and language.
@@ -29,6 +30,8 @@ const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay]
   getLastOfficialSyncAt(db),
   // The pill above the headline leads with what happened on this calendar day.
   getOnThisDay(db, today),
+  // Shown only between a tour's first and last stop.
+  getActiveTour(db, today),
 ]);
 // Claim the daily sync only while it is actually running: the line disappears once the last
 // completed run falls out of the window, rather than promising something that stopped.
@@ -128,6 +131,8 @@ const nextCountdown = !next
     </div>
   </section>
 
+  {activeTour && <ActiveTourCard tour={activeTour} today={today} />}
+
   {moreEvents.length > 0 && (
     <>
       <div class="section-heading latest-events-heading">
@@ -190,7 +195,7 @@ const nextCountdown = !next
     <span class="journey-teaser-cta">{t(locale, "home.journeyCta")} <Icon name="chevron-right" size=".75rem" /></span>
   </a>
 
-  <CommunityDiscussion locale={locale} />
+  <Comments locale={locale} thread="site" title={t(locale, "community.discussionTitle")} />
 
 </SiteLayout>
 
@@ -287,7 +292,7 @@ const nextCountdown = !next
   .signal { position: relative; min-height: 340px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; overflow: hidden; }
   .panel-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
   .panel-top span { margin-right: auto; }
-  .hero + .section-heading { margin-top: 2rem; }
+  .hero + .section-heading, :global(.tour-live) + .section-heading { margin-top: 2rem; }
   /* Section headings sit above cards that carry their own titles, so they stay quieter than h2. */
   .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; font-size: clamp(1.15rem, 1.7vw, 1.4rem); }
   .sync-note { margin: 1.1rem 0 0; color: var(--muted); font-size: .75rem; line-height: 1.6; }

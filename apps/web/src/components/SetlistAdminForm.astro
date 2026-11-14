@@ -78,7 +78,6 @@ const entries = setlist?.entries ?? [];
   <section class="entry-editor" aria-labelledby="entry-editor-title">
     <div class="editor-heading">
       <div>
-        <p class="eyebrow">Setlist editor</p>
         <h2 id="entry-editor-title">演唱顺序 <span class="count" data-entry-count>{entries.length}</span></h2>
         <p class="muted hint">拖动 <Icon name="grip-vertical" /> 排序，或直接改左侧序号后回车。保存时按当前排列重新编号。</p>
       </div>
@@ -538,7 +537,7 @@ const entries = setlist?.entries ?? [];
 </script>
 
 <style>
-  .catalog-form { --panel-pad: clamp(1rem, 3vw, 1.6rem); display: grid; gap: 2rem; padding-bottom: 0; }
+  .catalog-form { --panel-pad: 1.15rem; display: grid; gap: 1.5rem; }
   .form-field { display: grid; min-width: 0; gap: .4rem; }
   .field-label { color: var(--muted); font-size: .82rem; }
   .publish-check { display: flex; align-items: center; gap: .55rem; }

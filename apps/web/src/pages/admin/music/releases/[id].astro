@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../../components/AdminPageHeader.astro";
 import { getAdminReleaseById, getMusicEditorOptions } from "@frip-fan/core";
 import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
 import Icon from "../../../../components/Icon.astro";
@@ -16,16 +17,9 @@ const saved = Astro.url.searchParams.get("saved") === "1";
 ---
 <SiteLayout title={`编辑 ${release.title}`} admin>
   <AdminMusicNav />
-  <a class="muted back-link" href="/admin/music/releases"><Icon name="arrow-left" />专辑列表</a>
-  <header class="edit-head">
-    <div><p class="eyebrow">Release editor</p><h1>{release.title}</h1></div>
+  <AdminPageHeader title={release.title} back={{ href: "/admin/music/releases", label: "专辑列表" }}>
     {release.published && <a class="button secondary" href={`/music/releases/${release.slug}`} target="_blank">公开页面 <Icon name="box-arrow-up-right" /></a>}
-  </header>
+  </AdminPageHeader>
   {saved && <p class="notice success">专辑已经保存并写入审计日志。</p>}
   <ReleaseAdminForm release={release} options={options} canWrite={canWrite} />
 </SiteLayout>
-<style>
-  .back-link { display:inline-flex;align-items:center;gap:.35rem;text-decoration:none }
-  .edit-head{display:flex;justify-content:space-between;align-items:end;gap:2rem;margin:1.5rem 0 2rem}.edit-head h1{font-size:clamp(2rem,5vw,3.5rem);margin:0}.edit-head>.button{flex:0 0 auto;white-space:nowrap}.success{border-left-color:#79d9a6;color:#c9f8dc;background:rgba(78,190,127,.08)}
-  @media(max-width:720px){.edit-head{align-items:flex-start;flex-direction:column}}
-</style>

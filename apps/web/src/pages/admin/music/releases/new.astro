@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../../components/AdminPageHeader.astro";
 import { getMusicEditorOptions } from "@frip-fan/core";
 import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
 import ReleaseAdminForm from "../../../../components/ReleaseAdminForm.astro";
@@ -10,8 +11,6 @@ const canWrite = Astro.locals.actor!.scopes.includes("music:write");
 ---
 <SiteLayout title="新增专辑" admin>
   <AdminMusicNav />
-  <p class="eyebrow">New release</p><h1 class="page-title">新增专辑</h1>
-  <p class="lede">保存后直接写入音乐库；关闭“公开显示”可以先保存在后台。</p>
+  <AdminPageHeader title="新增专辑" description="保存后直接写入音乐库；关闭“公开显示”可以先保存在后台。" back={{ href: "/admin/music/releases", label: "专辑列表" }} />
   <ReleaseAdminForm options={options} canWrite={canWrite} />
 </SiteLayout>
-<style>.page-title{font-size:var(--heading-1-size);margin-bottom:.8rem}.catalog-form{margin-top:2rem}</style>

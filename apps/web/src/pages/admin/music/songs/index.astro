@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../../components/AdminPageHeader.astro";
 import { listAdminSongs, songPhasesFromMask } from "@frip-fan/core";
 import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
 import Icon from "../../../../components/Icon.astro";
@@ -11,27 +12,29 @@ const canWrite = Astro.locals.actor!.scopes.includes("music:write");
 ---
 <SiteLayout title="歌曲管理" admin>
   <AdminMusicNav />
-  <header class="list-head">
-    <div><p class="eyebrow">Song catalog</p><h1>歌曲管理</h1><p class="lede">新增歌曲并维护别名、歌曲版本、公开状态与来源。</p></div>
+  <AdminPageHeader title="歌曲管理" description="新增歌曲并维护别名、歌曲版本、公开状态与来源。">
     <a class:list={["button", { disabled: !canWrite }]} href={canWrite ? "/admin/music/songs/new" : undefined} aria-disabled={!canWrite}><Icon name="plus" />新歌曲</a>
-  </header>
+  </AdminPageHeader>
   <form class="filters panel" method="get">
     <label>搜索<input type="search" name="q" value={query} placeholder="歌曲名、别名、歌手或 slug" /></label>
     <button type="submit"><Icon name="search" />搜索</button>
   </form>
   <div class="panel table-wrap">
     <table>
-      <thead><tr><th>歌曲</th><th>歌手</th><th>期别</th><th>版本</th><th>专辑</th><th>Live</th><th>公开</th><th>操作</th></tr></thead>
+      <thead><tr><th>歌曲</th><th class="hide-sm">歌手</th><th class="hide-sm">期别</th><th class="num">版本</th><th class="num hide-sm">专辑</th><th class="num hide-sm">Live</th><th>公开</th><th class="row-links"><span class="visually-hidden">操作</span></th></tr></thead>
       <tbody>
         {songs.map((song) => <tr>
           <td><a href={`/admin/music/songs/${song.id}`}>{song.title}</a><small>{song.slug}</small></td>
-          <td>{song.original_artist}</td>
-          <td>{songPhasesFromMask(song.phase_mask).join("·") || "—"}</td>
-          <td>{song.version_count}</td>
-          <td>{song.release_count}</td>
-          <td>{song.show_count}</td>
-          <td><span class:list={["tag", { live: song.published }]}>{song.published ? "公开" : "未公开"}</span></td>
-          <td>{song.published && <a href={`/music/songs/${song.slug}`} target="_blank" aria-label="查看公开页面"><Icon name="box-arrow-up-right" /></a>}</td>
+          <td class="hide-sm">{song.original_artist}</td>
+          <td class="nowrap hide-sm">{songPhasesFromMask(song.phase_mask).join("·") || "—"}</td>
+          <td class="num">{song.version_count}</td>
+          <td class="num hide-sm">{song.release_count}</td>
+          <td class="num hide-sm">{song.show_count}</td>
+          <td><span class:list={["tag", song.published ? "live" : "off"]}>{song.published ? "公开" : "未公开"}</span></td>
+          <td class="row-links">
+            <a href={`/admin/music/songs/${song.id}`} aria-label="编辑"><Icon name="pencil-square" /></a>
+            {song.published && <a href={`/music/songs/${song.slug}`} target="_blank" aria-label="查看公开页面"><Icon name="box-arrow-up-right" /></a>}
+          </td>
         </tr>)}
       </tbody>
     </table>
@@ -39,10 +42,6 @@ const canWrite = Astro.locals.actor!.scopes.includes("music:write");
   </div>
 </SiteLayout>
 <style>
-  .list-head { display: flex; justify-content: space-between; align-items: end; gap: 2rem; margin-bottom: 2rem; }
-  .list-head h1 { font-size: var(--heading-1-size); margin-bottom: .5rem; }
   .filters { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
-  td small { display: block; color: var(--muted); margin-top: .2rem; }
-  .button.disabled { opacity: .45; pointer-events: none; }
-  @media (max-width: 720px) { .list-head { align-items: flex-start; flex-direction: column; } .filters { grid-template-columns: 1fr; } }
+  @media (max-width: 720px) { .filters { grid-template-columns: 1fr; } }
 </style>

@@ -2,6 +2,7 @@
 import Icon from "./Icon.astro";
 import { CHAT_MODELS_MAX } from "@frip-fan/core";
 import type { ChatDockState } from "../lib/chat";
+import { renderChatMarkdown } from "../lib/chat-markdown";
 import "../styles/admin-chat.css";
 
 interface Props { state: ChatDockState }
@@ -59,7 +60,9 @@ function clock(value: string): string {
       ) : (
         <li class:list={["chat-turn", message.role === "error" ? "chat-turn-error" : "chat-turn-assistant"]} data-turn={message.turn_id ?? undefined}>
           <p class="chat-turn-label">{message.role === "error" ? "出错" : "助手"} · {clock(message.created_at)}</p>
-          <div class={message.role === "error" ? "chat-error" : "chat-prose"}>{message.body}</div>
+          {message.role === "error"
+            ? <div class="chat-error">{message.body}</div>
+            : <div class="chat-prose" set:html={renderChatMarkdown(message.body)} />}
         </li>
       )
     ))}

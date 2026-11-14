@@ -137,7 +137,12 @@ function mount(root: HTMLElement): void {
   more.addEventListener("click", () => void load());
   find<HTMLButtonElement>("[data-comments-retry]").addEventListener("click", () => void load());
 
-  const updateRemaining = () => { remaining.textContent = `${[...bodyInput.value].length}/${bodyInput.maxLength}`; };
+  // The counter only appears once the limit is in sight.
+  const updateRemaining = () => {
+    const used = [...bodyInput.value].length;
+    remaining.textContent = `${used}/${bodyInput.maxLength}`;
+    remaining.hidden = used < bodyInput.maxLength * .8;
+  };
   bodyInput.addEventListener("input", updateRemaining);
   try { nameInput.value = localStorage.getItem(NAME_KEY) ?? ""; } catch { /* remembering the nickname is optional */ }
   updateRemaining();

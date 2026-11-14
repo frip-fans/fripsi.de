@@ -27,22 +27,19 @@ const headingId = `comments-title-${thread.replace(/[^A-Za-z0-9_-]/g, "-")}`;
     <p>{copy}</p>
   </div>
 
-  <form class="comment-form panel" data-comment-form novalidate hidden>
+  {/* One box: the text area is the composer, and the nickname and button share its bottom bar. */}
+  <form class="comment-form" data-comment-form novalidate hidden>
     <p class="comment-reply-target" data-reply-target hidden>
       <Icon name="reply" /><span data-reply-label></span>
-      <button type="button" class="secondary" data-reply-cancel>{t(locale, "comments.cancelReply")}</button>
+      <button type="button" data-reply-cancel aria-label={t(locale, "comments.cancelReply")} title={t(locale, "comments.cancelReply")}><Icon name="x-lg" /></button>
     </p>
-    <label class="comment-name-field">{t(locale, "comments.name")}
-      <input name="name" type="text" maxlength={COMMENT_NAME_MAX} required autocomplete="nickname" placeholder={t(locale, "comments.namePlaceholder")} />
-    </label>
-    <label>{t(locale, "comments.body")}
-      <textarea name="body" rows="3" maxlength={COMMENT_BODY_MAX} required placeholder={t(locale, "comments.bodyPlaceholder")}></textarea>
-    </label>
+    <textarea name="body" rows="2" maxlength={COMMENT_BODY_MAX} required aria-label={t(locale, "comments.body")} placeholder={t(locale, "comments.bodyPlaceholder")}></textarea>
     <div class="comment-extra" aria-hidden="true"><label>Website<input name="website" type="text" tabindex="-1" autocomplete="off" /></label></div>
     <div class="comment-challenge" data-turnstile></div>
     <div class="comment-form-foot">
+      <input class="comment-name-field" name="name" type="text" maxlength={COMMENT_NAME_MAX} required autocomplete="nickname" aria-label={t(locale, "comments.name")} placeholder={t(locale, "comments.name")} />
       <p class="comment-status" data-comment-status role="status" aria-live="polite"></p>
-      <span class="comment-remaining" data-comment-remaining aria-hidden="true"></span>
+      <span class="comment-remaining" data-comment-remaining aria-hidden="true" hidden></span>
       <button type="submit" data-comment-submit><Icon name="send" />{t(locale, "comments.submit")}</button>
     </div>
   </form>
@@ -93,69 +90,65 @@ const headingId = `comments-title-${thread.replace(/[^A-Za-z0-9_-]/g, "-")}`;
   .comments-count[hidden] { display: none; }
   .comments-count { padding: .12rem .5rem; color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 999px; font-size: .75rem; font-variant-numeric: tabular-nums; }
 
-  .comment-form { display: grid; gap: .9rem; }
-  .comment-name-field { max-width: 20rem; }
-  .comment-form textarea { min-height: 5.5rem; line-height: 1.6; }
+  .comment-form { background: rgba(6, 14, 25, .76); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(18px); transition: border-color .15s; }
+  .comment-form:focus-within { border-color: rgba(var(--accent-rgb), .5); }
   /* 16px keeps iOS from zooming the page when a field takes focus. */
-  .comment-form input, .comment-form textarea { font-size: 1rem; }
+  .comment-form textarea, .comment-form .comment-name-field { font-size: 1rem; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
+  .comment-form textarea { display: block; min-height: 4.6rem; padding: .85rem 1rem .4rem; line-height: 1.6; resize: vertical; }
   .comment-extra { position: absolute; left: -200vw; width: 1px; height: 1px; overflow: hidden; }
+  .comment-challenge { padding: 0 1rem; }
   .comment-challenge:empty { display: none; }
-  .comment-reply-target { display: flex; align-items: center; gap: .5rem; margin: 0; color: var(--accent); font-size: .85rem; }
+  .comment-reply-target { display: flex; align-items: center; gap: .45rem; margin: 0; padding: .55rem .6rem 0 1rem; color: var(--accent); font-size: .82rem; }
   .comment-reply-target span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .comment-reply-target button { min-height: 32px; margin-left: auto; padding: .3rem .7rem; font-size: .78rem; font-weight: 600; }
-  .comment-form-foot { display: flex; align-items: center; gap: .9rem; }
-  .comment-status { flex: 1; min-width: 0; margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.5; }
+  .comment-reply-target button { min-height: 28px; padding: .3rem; color: var(--muted); background: transparent; }
+  .comment-form-foot { display: flex; align-items: center; gap: .6rem; padding: .45rem .5rem .5rem 1rem; }
+  .comment-form .comment-name-field { flex: 0 1 11rem; min-width: 0; width: auto; padding: .35rem 0; border-bottom: 1px solid var(--line); }
+  .comment-form .comment-name-field:focus { border-bottom-color: rgba(var(--accent-rgb), .6); }
+  .comment-status { flex: 1; min-width: 0; margin: 0; color: var(--muted); font-size: .82rem; line-height: 1.4; }
   .comment-status.is-error { color: var(--danger); }
   .comment-remaining { color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
+  .comment-remaining[hidden] { display: none; }
+  .comment-form-foot button { min-height: 36px; padding: .4rem .9rem; }
   .comment-form button[disabled] { opacity: .55; cursor: progress; }
 
   .comment-list, .comment-replies { margin: 0; padding: 0; list-style: none; }
-  .comment-list { display: grid; gap: .75rem; margin-top: 1.25rem; }
+  .comment-list { margin-top: .5rem; }
   .comment-list:empty { display: none; }
-  .comment { padding: 1rem 1.15rem; background: rgba(6, 14, 25, .76); border: 1px solid var(--line); border-radius: 14px; }
-  .comment.is-new { border-color: rgba(var(--accent-rgb), .5); }
-  .comment article { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr); column-gap: .8rem; row-gap: .3rem; }
-  .comment-avatar { grid-row: span 3; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; color: #07101c; background: hsl(var(--comment-hue, 200) 62% 68%); border-radius: 50%; font-size: .95rem; font-weight: 750; }
+  .comment-list > .comment { padding: .9rem .25rem; border-bottom: 1px solid var(--line); }
+  .comment-list > .comment:last-child { border-bottom: 0; }
+  .comment.is-new > article .comment-name { color: var(--accent); }
+  .comment article { display: grid; grid-template-columns: 2rem minmax(0, 1fr); column-gap: .7rem; row-gap: .15rem; }
+  .comment-avatar { grid-row: span 3; display: grid; place-items: center; width: 2rem; height: 2rem; color: #07101c; background: hsl(var(--comment-hue, 200) 62% 68%); border-radius: 50%; font-size: .88rem; font-weight: 750; }
   .comment header { display: flex; align-items: baseline; flex-wrap: wrap; gap: .1rem .6rem; min-width: 0; }
-  .comment-name { min-width: 0; overflow-wrap: anywhere; font-size: .92rem; }
+  .comment-name { min-width: 0; overflow-wrap: anywhere; font-size: .9rem; }
   .comment time { color: var(--muted); font-size: .76rem; white-space: nowrap; }
-  .comment-body { margin: 0; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
-  .comment-reply { justify-self: start; min-height: 32px; margin-left: -.45rem; padding: .25rem .45rem; color: var(--muted); background: transparent; border-radius: 8px; font-size: .78rem; font-weight: 600; }
+  .comment-body { margin: 0; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .comment-reply { justify-self: start; min-height: 28px; margin-left: -.4rem; padding: .15rem .4rem; color: var(--muted); background: transparent; border-radius: 8px; font-size: .76rem; font-weight: 600; }
   .comment-reply:hover, .comment-reply:focus-visible { color: var(--accent); }
-  .comment-replies { display: grid; gap: .9rem; margin: .9rem 0 0 1.1rem; padding-left: 1rem; border-left: 1px solid var(--line); }
+  .comment-replies { display: grid; gap: .7rem; margin: .6rem 0 0 .95rem; padding-left: .9rem; border-left: 1px solid var(--line); }
   .comment-replies:empty { display: none; }
-  .comment-replies .comment { padding: 0; background: none; border: 0; border-radius: 0; }
-  .comment-replies .comment-avatar { width: 1.9rem; height: 1.9rem; font-size: .82rem; }
-  .comment-replies .comment article { grid-template-columns: 1.9rem minmax(0, 1fr); column-gap: .65rem; }
+  .comment-replies .comment-avatar { width: 1.7rem; height: 1.7rem; font-size: .78rem; }
+  .comment-replies .comment article { grid-template-columns: 1.7rem minmax(0, 1fr); column-gap: .6rem; }
 
   .comments-note { margin: 1.25rem 0 0; color: var(--muted); font-size: .88rem; text-align: center; }
   .comments-note button { min-height: 34px; margin-left: .6rem; padding: .35rem .8rem; font-size: .8rem; }
   .comments-more { display: flex; margin: 1rem auto 0; }
   .comments-more[hidden], .comment-form[hidden], .comment-reply-target[hidden] { display: none; }
 
-  .comments .guidelines {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 1rem;
-    margin-top: 1.5rem;
-    padding: 1rem 1.15rem;
-    background: linear-gradient(110deg, rgba(var(--accent-rgb), .1), rgba(10, 22, 38, .8) 48%);
-    border: 1px solid rgba(var(--accent-rgb), .28);
-    border-radius: 14px;
-    backdrop-filter: blur(14px);
-  }
-  .comments .guidelines-icon { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; color: var(--accent); background: rgba(var(--accent-rgb), .1); border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 10px; }
-  .comments .guidelines h3 { margin: .05rem 0 .3rem; font-size: .94rem; }
-  .comments .guidelines p { max-width: 54rem; margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.7; }
+  /* A footnote, not another panel: the comments themselves are the content here. */
+  .comments .guidelines { display: flex; gap: .55rem; margin-top: 1.25rem; padding-top: .9rem; color: var(--muted); border-top: 1px solid var(--line); font-size: .8rem; line-height: 1.65; }
+  .comments .guidelines-icon { flex: none; margin-top: .1rem; color: var(--accent); }
+  .comments .guidelines h3 { display: inline; margin: 0 .4rem 0 0; color: var(--text); font-size: inherit; }
+  .comments .guidelines p { display: inline; margin: 0; }
 
   @media (max-width: 680px) {
     .comments { margin-top: 3.5rem; }
     .comments .section-heading { display: grid; align-items: start; }
     .comments .section-heading > p { text-align: left; }
-    .comment { padding: .9rem; }
-    .comment-replies { margin-left: .35rem; padding-left: .8rem; }
+    .comment-replies { margin-left: .3rem; padding-left: .7rem; }
     .comment-form-foot { flex-wrap: wrap; }
-    .comment-status { flex-basis: 100%; }
-    .comment-form-foot button { margin-left: auto; }
+    .comment-form .comment-name-field { flex: 1 1 8rem; }
+    .comment-status { order: -1; flex-basis: 100%; }
+    .comment-status:empty { display: none; }
   }
 </style>

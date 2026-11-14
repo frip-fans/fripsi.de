@@ -36,8 +36,9 @@ type Block =
 
 export function renderChatMarkdown(source: string): string {
   const blocks: Block[] = [];
-  let open: Block | null = null;
-  const close = () => { open = null; };
+  // Held in an object: a `let` assigned inside the loop body narrows to `never` here.
+  const state: { open: Block | null } = { open: null };
+  const close = () => { state.open = null; };
   const lines = source.replace(/\r\n?/g, "\n").split("\n");
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index]!;
@@ -58,23 +59,23 @@ export function renderChatMarkdown(source: string): string {
     const numbered = /^\s*(\d{1,9})[.)]\s+(.*)$/.exec(line);
     if (bullet || numbered) {
       const ordered = Boolean(numbered);
-      const current: Block | null = open;
+      const current = state.open;
       if (current?.kind === "list" && current.ordered === ordered) current.items.push([bullet ? bullet[1]! : numbered![2]!]);
       else {
-        open = { kind: "list", ordered, start: numbered ? Number(numbered[1]) : 1, items: [[bullet ? bullet[1]! : numbered![2]!]] };
-        blocks.push(open);
+        state.open = { kind: "list", ordered, start: numbered ? Number(numbered[1]) : 1, items: [[bullet ? bullet[1]! : numbered![2]!]] };
+        blocks.push(state.open);
       }
       continue;
     }
     const quote = /^\s{0,3}>\s?(.*)$/.exec(line);
     const kind = quote ? "quote" : "paragraph";
     const text = quote ? quote[1]! : line.trim();
-    const current: Block | null = open;
+    const current = state.open;
     // A plain line right under a list item continues that item, as models write it.
     if (!quote && current?.kind === "list") { current.items.at(-1)!.push(text); continue; }
-    if (current && current.kind === kind) { (current as { lines: string[] }).lines.push(text); continue; }
-    open = { kind, lines: [text] };
-    blocks.push(open);
+    if (current && current.kind === kind) { current.lines.push(text); continue; }
+    state.open = { kind, lines: [text] };
+    blocks.push(state.open);
   }
   const joined = (parts: string[]) => parts.map(inline).join("<br>");
   return blocks.map((block) => {

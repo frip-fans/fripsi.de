@@ -11,7 +11,8 @@ interface Props {
   /** "site" for the site-wide board, or "event:<id>" for one event. */
   thread: string;
   title: string;
-  copy: string;
+  /** A one-line prompt beside the heading; omitted where the heading says enough. */
+  copy?: string;
 }
 
 const { locale, thread, title, copy } = Astro.props;
@@ -24,7 +25,7 @@ const headingId = `comments-title-${thread.replace(/[^A-Za-z0-9_-]/g, "-")}`;
   data-turnstile-key={turnstileSiteKey(getEnv()) ?? undefined} data-labels={JSON.stringify(labels)}>
   <div class="section-heading">
     <div class="comments-title"><h2 id={headingId}>{title}</h2><span class="comments-count" data-comments-count hidden></span></div>
-    <p>{copy}</p>
+    {copy && <p>{copy}</p>}
   </div>
 
   {/* One box: the text area is the composer, and the nickname and button share its bottom bar. */}

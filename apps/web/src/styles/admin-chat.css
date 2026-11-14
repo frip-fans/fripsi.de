@@ -238,11 +238,12 @@ body[data-chat-locked="true"] {
 /* The add-image button sits in the row under the composer, opposite the shortcut hint. */
 .chat-dock .chat-attach {
   display: inline-grid; place-items: center; width: 32px; min-width: 32px; height: 32px; min-height: 32px;
-  padding: 0; border: 1px solid var(--line); border-radius: 50%; background: none; color: var(--muted);
+  /* Pulled left by its own inset so the icon, not the hit area, lines up with the composer edge. */
+  padding: 0; margin-left: -7px; border: 0; border-radius: 9px; background: none; color: var(--muted);
 }
-.chat-dock .chat-attach:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); background: rgba(var(--accent-rgb), .12); }
+.chat-dock .chat-attach:hover:not(:disabled) { color: var(--accent); background: rgba(var(--accent-rgb), .12); }
 .chat-dock .chat-attach:disabled { opacity: .45; cursor: not-allowed; }
-.chat-dock .chat-attach svg { width: 16px; height: 16px; }
+.chat-dock .chat-attach svg { width: 18px; height: 18px; }
 /* No composer (ended session, archive view), nothing to attach to. */
 .chat-composer[hidden] ~ .chat-hint .chat-attach { display: none; }
 /* Covers the dock while a file is dragged over it; pointer-events off so the dock keeps the drag. */

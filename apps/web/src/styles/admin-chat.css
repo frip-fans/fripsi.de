@@ -152,6 +152,22 @@ body[data-chat-locked="true"] {
   /* A neutral fill without a frame: the accent stays for actions and proposals. */
   background: rgba(255,255,255,.08); border-radius: 16px 16px 4px 16px;
 }
+/* The working indicator under the message just sent; the status row repeats it up top. */
+.chat-turn-pending {
+  grid-auto-flow: column; justify-content: start; align-items: center; gap: .5rem;
+  color: var(--muted); font: .7rem/1.6 ui-monospace;
+}
+.chat-pending-dots { display: inline-flex; gap: 4px; }
+.chat-pending-dots i {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  opacity: .3; animation: chat-pending 1.2s ease-in-out infinite;
+}
+.chat-pending-dots i:nth-child(2) { animation-delay: .2s; }
+.chat-pending-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes chat-pending { 30% { opacity: 1; transform: translateY(-2px); } 60% { opacity: .3; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .chat-pending-dots i { animation: none; opacity: .7; }
+}
 .chat-turn-label { margin: 0; color: var(--muted); font: .68rem/1.4 ui-monospace; letter-spacing: .06em; }
 /* No bubble for the assistant: in a 420px rail two bubbles are mostly border and padding. */
 .chat-prose { font-size: .9rem; line-height: 1.7; overflow-wrap: anywhere; }

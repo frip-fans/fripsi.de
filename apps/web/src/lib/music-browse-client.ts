@@ -80,7 +80,8 @@ export function setupMusicBrowser() {
     }
     status.textContent = busy ? root.dataset.loading ?? "" : "";
   };
-  const fetchResults = async (append = false) => {
+  /** `page` reloads that many batches at once; appending always asks for the next one. */
+  const fetchResults = async (append = false, page = 1) => {
     clearTimeout(timer);
     request?.abort();
     cancelContentEntry(results());
@@ -90,9 +91,10 @@ export function setupMusicBrowser() {
     error.hidden = true;
     setBusy(true);
     const nextParams = params();
-    nextParams.set("page", append ? String(Number(results().dataset.page) + 1) : "1");
+    nextParams.set("page", append ? String(Number(results().dataset.page) + 1) : String(page));
     const apiParams = new URLSearchParams(nextParams);
     apiParams.set("kind", root.dataset.kind!);
+    if (!append && page > 1) apiParams.set("full", "1");
     try {
       const response = await fetch(`/api/music/browse?${apiParams}`, { signal: request.signal });
       if (!response.ok) throw new Error("Music query failed");
@@ -100,17 +102,19 @@ export function setupMusicBrowser() {
       if (current !== serial) return;
       const next = new DOMParser().parseFromString(html, "text/html").querySelector<HTMLElement>("[data-music-results]");
       if (!next) throw new Error("Missing music results");
-      if (append && next.dataset.revision !== results().dataset.revision) {
-        await fetchResults(false);
+      const list = results().querySelector<HTMLElement>("[data-music-items]")!;
+      // The list changed under the loaded items (new or removed entries before this batch):
+      // reload every batch up to the requested one instead of stitching mismatched pages.
+      if (append && next.dataset.anchor !== [...list.querySelectorAll<HTMLElement>("a[data-music-id]")].at(-1)?.dataset.musicId) {
+        await fetchResults(false, Number(next.dataset.page));
         return;
       }
       if (append) {
-        const list = results().querySelector<HTMLElement>("[data-music-items]")!;
         const seen = new Set([...list.querySelectorAll<HTMLElement>("[data-music-id]")].map(item => item.dataset.musicId));
         next.querySelectorAll<HTMLElement>("[data-music-id]").forEach(item => {
           if (!seen.has(item.dataset.musicId)) { seen.add(item.dataset.musicId); list.appendChild(item); }
         });
-        for (const key of ["total", "shown", "page", "batch", "hasMore", "revision"]) results().dataset[key] = next.dataset[key];
+        for (const key of ["total", "shown", "page", "batch", "hasMore", "anchor"]) results().dataset[key] = next.dataset[key];
         const shown = list.querySelectorAll("a[data-music-id]").length;
         const count = results().querySelector<HTMLElement>("[data-music-count]")!;
         count.textContent = count.dataset.template!.replaceAll("{shown}", String(shown)).replaceAll("{total}", next.dataset.total!);

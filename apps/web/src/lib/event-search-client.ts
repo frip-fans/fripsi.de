@@ -110,10 +110,8 @@ export function setupEventSearch() {
       if (current !== serial || signal.aborted) return;
       const next = new DOMParser().parseFromString(html, "text/html").querySelector<HTMLElement>("[data-search-results]");
       if (!next) throw new Error("Missing event results");
-      // Do not concatenate pages across a content change: refresh the first page instead.
-      if (more && next.dataset.revision !== results().dataset.revision) {
-        cache.clear(); await fetchResults(false); return;
-      }
+      // "More" continues from a keyset cursor (date, time, id), so it stays in order even when
+      // the database changed; the revision moves on any unrelated write and must not reset the list.
       if (cache.size >= 12) cache.delete(cache.keys().next().value!);
       cache.set(url, { html, expires: Date.now() + 15_000 });
       if (more) {

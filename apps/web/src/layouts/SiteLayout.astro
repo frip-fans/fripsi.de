@@ -22,6 +22,7 @@ import QuizBoard from "../components/QuizBoard.astro";
 import QuizInvite from "../components/QuizInvite.astro";
 import QuizChibi from "../components/QuizChibi.astro";
 import "../styles/quiz.css";
+import "../styles/admin.css";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
 import moonBackground from "../../../../images/A_New_View_of_the_Moon-no-earth.webp?url";
 import issBackground from "../../../../images/ISS.jpg?url";
@@ -37,7 +38,7 @@ const current = Astro.url.pathname;
 const locale = admin ? "zh-CN" : getLocale(Astro.request);
 const resolvedDescription = description ?? t(locale, "site.description");
 const rotateHomeBackground = !admin && current === "/";
-const siteName = admin ? "Calendar Studio" : "fripSi.de Fan Site";
+const siteName = admin ? "fripSi.de 管理后台" : "fripSi.de Fan Site";
 // The /quiz page already shows the board, so the floating entry would duplicate it.
 const showQuizLauncher = !admin && !current.startsWith("/quiz");
 const autoOpenOfficialSiteGate = !admin && current === "/" && Astro.cookies.get(OFFICIAL_SITE_NOTICE_COOKIE)?.value !== "yes";
@@ -137,8 +138,8 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
       <a class="brand" href={admin ? "/admin" : "/"} aria-label={siteName}>
         {admin ? (
           <>
-            <span class="brand-mark">F</span>
-            <span><b>{siteName}</b><small>protected workspace</small></span>
+            <img class="brand-logo" src="/fan-site-logo.svg" width="34" height="34" alt="" />
+            <span><b>fripSi<span class="brand-tld">.de</span></b><small>管理后台</small></span>
           </>
         ) : (
           <>
@@ -157,7 +158,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
             </div>
           </details>
         ) : <a class:list={{ active: link.active }} aria-current={link.active ? "page" : undefined} href={link.href} data-astro-prefetch={hoverPrefetch} data-music-entry={!admin && link.href === "/music/lives" || undefined}>{link.label}</a>)}
-        {admin && <a href="/" target="_blank">查看网站 <Icon name="box-arrow-up-right" /></a>}
+        {admin && <a class="nav-external" href="/" target="_blank">查看网站 <Icon name="box-arrow-up-right" /></a>}
       </nav>
       <span class="menu-loading-status" data-menu-loading-status role="status" aria-live="polite"></span>
       </div>
@@ -533,7 +534,6 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   .site-header { position: relative; z-index: 20; width: min(1180px, calc(100% - 2rem)); margin: 0 auto; min-height: 88px; display: flex; align-items: center; justify-content: flex-start; gap: .75rem; border-bottom: 1px solid var(--line); }
   .brand { display: flex; align-items: center; gap: .8rem; text-decoration: none; letter-spacing: -.02em; }
   .brand-logo { display: block; width: 3rem; height: 3rem; object-fit: contain; }
-  .brand-mark { display: grid; place-items: center; width: 2.55rem; height: 2.55rem; border: 1px solid rgba(var(--accent-rgb), .5); border-radius: 12px; background: linear-gradient(145deg, rgba(var(--accent-rgb), .16), rgba(156,134,255,.2)); color: var(--accent); font-weight: 900; font-size: 1.25rem; }
   .brand b, .brand small { display: block; }
   .brand-tld { position: relative; top: .035em; color: var(--accent); }
   .brand small { color: var(--muted); font-size: .67rem; margin-top: .15rem; text-transform: uppercase; letter-spacing: .15em; }

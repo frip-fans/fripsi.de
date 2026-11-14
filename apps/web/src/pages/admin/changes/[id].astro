@@ -48,7 +48,7 @@ const proposed = change.status === "proposed";
 ---
 <SiteLayout title={`提案 · ${headline.title}`} admin>
   <div class="top-row">
-    <a class="muted back-link" href="/admin/changes"><Icon name="arrow-left" />提案列表</a>
+    <a class="page-back" href="/admin/changes"><Icon name="arrow-left" />提案列表</a>
     {proposed && queueIndex >= 0 && <span class="queue muted">待处理 {queueIndex + 1} / {pending.length}{nextLink && <a href={nextLink}>跳过，看下一条 <Icon name="arrow-right" /></a>}</span>}
   </div>
   {handled && (
@@ -58,7 +58,7 @@ const proposed = change.status === "proposed";
   )}
 
   <header class="change-head">
-    <p class="eyebrow">{CHANGE_OPERATION_LABELS[change.operation] ?? change.operation} · <span class:list={["status", `status-${change.status}`]}>{CHANGE_STATUS_LABELS[change.status] ?? change.status}</span></p>
+    <p class="kind"><span class="tag">{CHANGE_OPERATION_LABELS[change.operation] ?? change.operation}</span><span class:list={["tag", `status-${change.status}`]}>{CHANGE_STATUS_LABELS[change.status] ?? change.status}</span></p>
     <h1>{headline.title}</h1>
     {change.reason && <p class="lede">{change.reason}</p>}
     <dl class="meta">
@@ -177,15 +177,16 @@ const proposed = change.status === "proposed";
 
 <style>
   .top-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .6rem 1rem; }
-  .back-link { display: inline-flex; align-items: center; gap: .35rem; text-decoration: none; }
   .queue { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .8rem; font-size: .82rem; }
   .queue a { display: inline-flex; align-items: center; gap: .3rem; color: var(--accent); text-decoration: none; }
-  .change-head { max-width: 950px; margin: 1.5rem 0 1.5rem; }
-  .change-head h1 { font-size: clamp(1.7rem, 4vw, 2.6rem); line-height: 1.2; margin: .4rem 0 .6rem; }
-  .change-head .lede { margin-bottom: 1rem; }
-  .status-proposed { color: var(--accent); }
-  .status-published { color: #9ee6bd; }
-  .status-discarded { color: var(--muted); }
+  .top-row .page-back { margin-bottom: 0; }
+  .change-head { max-width: 950px; margin: .75rem 0 1.25rem; }
+  .change-head .kind { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0 0 .5rem; }
+  .change-head h1 { margin: 0 0 .5rem; }
+  .change-head .lede { margin-bottom: .9rem; }
+  .tag.status-proposed { color: var(--accent); border-color: rgba(var(--accent-rgb), .45); }
+  .tag.status-published { color: #9ee6bd; border-color: rgba(120, 220, 160, .4); }
+  .tag.status-failed { color: #ffb0b0; border-color: rgba(255, 120, 120, .45); }
   .meta { display: grid; gap: .35rem; margin: 0; font-size: .82rem; }
   .meta div { display: grid; grid-template-columns: 3.5rem 1fr; gap: .6rem; }
   .meta dt { color: var(--muted); }
@@ -220,8 +221,6 @@ const proposed = change.status === "proposed";
   .publish { display: grid; grid-template-columns: 1fr auto; gap: 1.5rem; align-items: center; }
   .publish .notice { margin: .6rem 0 0; }
   form { margin: 0; }
-  button:disabled { opacity: .45; cursor: not-allowed; }
-  .success { border-left-color: #79d9a6; color: #c9f8dc; background: rgba(78,190,127,.08); }
   .success a { color: inherit; margin-left: .4rem; }
   @media (max-width: 700px) {
     .publish { grid-template-columns: 1fr; }

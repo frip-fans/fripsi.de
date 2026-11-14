@@ -2,7 +2,9 @@
 import { categorySchema, countEvents, searchEvents } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import Pagination from "../../../components/Pagination.astro";
-import { categoryLabels, statusLabels } from "../../../lib/format";
+import AdminPageHeader from "../../../components/AdminPageHeader.astro";
+import { EVENT_STATUS_LABELS } from "../../../lib/change-review";
+import { categoryLabels } from "../../../lib/format";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 
@@ -29,24 +31,27 @@ const events = await searchEvents(db, {
 }, false, { newestFirst: true });
 ---
 <SiteLayout title="活动管理" admin>
-  <header class="list-head"><div><p class="eyebrow">Events</p><h1>活动管理</h1></div><a class="button" href="/admin/events/new"><Icon name="plus" />新活动</a></header>
+  <AdminPageHeader title="活动管理" description={`共 ${totalItems} 条${query || category || includeArchived ? "符合筛选条件的" : ""}活动，按日期从新到旧排列。`}>
+    <a class="button" href="/admin/events/new"><Icon name="plus" />新活动</a>
+  </AdminPageHeader>
   <form class="filters panel" method="get">
     <label>搜索<input type="search" name="q" value={query} placeholder="标题、场地、来源 URL" /></label>
-    <label>分类<select name="category"><option value="">全部</option>{Object.keys(categoryLabels).map((value) => <option value={value} selected={category === value}>{value}</option>)}</select></label>
+    <label>分类<select name="category"><option value="">全部</option>{Object.keys(categoryLabels).map((value) => <option value={value} selected={category === value}>{categoryLabels[value as keyof typeof categoryLabels]}</option>)}</select></label>
     <label class="check"><input type="checkbox" name="archived" value="1" checked={includeArchived} /> 包含归档</label>
     <button type="submit"><Icon name="funnel" />筛选</button>
+    {(query || category || includeArchived) && <a class="button secondary" href="/admin/events">清除</a>}
   </form>
   <div class="panel table-wrap">
     <table>
-      <thead><tr><th>日期</th><th>活动</th><th>分类</th><th>状态</th><th>公开</th><th>版本</th></tr></thead>
+      <thead><tr><th>日期</th><th>活动</th><th class="hide-sm">分类</th><th class="hide-sm">状态</th><th>公开</th><th class="num hide-sm">版本</th></tr></thead>
       <tbody>
         {events.map((event) => <tr>
-          <td>{event.start_date}</td>
+          <td class="date">{event.start_date}</td>
           <td><a href={`/admin/events/${event.id}`}>{event.title}</a><small>{event.location_label}</small></td>
-          <td>{categoryLabels[event.category]}</td>
-          <td><span class:list={["tag", event.status]}>{statusLabels[event.status]}</span></td>
-          <td>{event.archived_at ? "归档" : event.published ? "是" : "否"}</td>
-          <td>v{event.version}</td>
+          <td class="hide-sm nowrap">{categoryLabels[event.category]}</td>
+          <td class="hide-sm"><span class:list={["tag", event.status]}>{EVENT_STATUS_LABELS[event.status]}</span></td>
+          <td><span class:list={["tag", event.archived_at ? "warn" : event.published ? "live" : "off"]}>{event.archived_at ? "已归档" : event.published ? "公开" : "未公开"}</span></td>
+          <td class="num hide-sm muted">v{event.version}</td>
         </tr>)}
       </tbody>
     </table>
@@ -55,11 +60,8 @@ const events = await searchEvents(db, {
   <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} itemLabel="条活动" />
 </SiteLayout>
 <style>
-  .list-head { display: flex; justify-content: space-between; align-items: end; margin-bottom: 2rem; }
-  .list-head h1 { font-size: var(--heading-1-size); margin: 0; }
-  .filters { display: grid; grid-template-columns: 1fr 180px auto auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
-  .check { display: flex; align-items: center; padding-bottom: .8rem; white-space: nowrap; }
+  .filters { display: grid; grid-template-columns: 1fr 180px auto auto auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
+  .check { display: flex; align-items: center; gap: .4rem; min-height: 38px; white-space: nowrap; }
   .check input { width: auto; }
-  td small { display: block; color: var(--muted); margin-top: .2rem; }
   @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
 </style>

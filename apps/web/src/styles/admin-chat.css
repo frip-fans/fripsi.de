@@ -10,10 +10,11 @@
 @media (min-width: 1180px) {
   html.chat-dock-open body { padding-right: var(--chat-dock-width); }
 }
-/* Only where the remaining width actually gets tight: above this the console's
-   three-column stats still read fine beside the rail. */
-@media (min-width: 1180px) and (max-width: 1379px) {
-  html.chat-dock-open .stats, html.chat-dock-open .columns { grid-template-columns: 1fr; }
+/* Only where the remaining width actually gets tight: above this the overview's
+   stat row and two columns still read fine beside the rail. */
+@media (min-width: 1180px) and (max-width: 1499px) {
+  html.chat-dock-open .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html.chat-dock-open .columns { grid-template-columns: 1fr; }
 }
 
 /* The entry sits in the admin header beside the other actions, not as a floating

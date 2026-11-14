@@ -37,14 +37,14 @@ export const EVENT_FIELD_LABELS = {
 export type ReviewField = keyof typeof EVENT_FIELD_LABELS;
 export const REVIEW_FIELDS = Object.keys(EVENT_FIELD_LABELS) as ReviewField[];
 
-const EVENT_STATUS_LABELS: Record<string, string> = {
+export const EVENT_STATUS_LABELS: Record<string, string> = {
   scheduled: "预定",
   completed: "已结束",
   cancelled: "已取消",
   postponed: "延期",
 };
 
-const LOCATION_MODE_LABELS: Record<string, string> = {
+export const LOCATION_MODE_LABELS: Record<string, string> = {
   none: "无地点",
   physical: "线下",
   online: "线上",

@@ -1,4 +1,5 @@
 ---
+import AdminPageHeader from "../../../../components/AdminPageHeader.astro";
 import { getMusicEditorOptions } from "@frip-fan/core";
 import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
 import SetlistAdminForm from "../../../../components/SetlistAdminForm.astro";
@@ -10,8 +11,6 @@ const canWrite = Astro.locals.actor!.scopes.includes("music:write");
 ---
 <SiteLayout title="新增 Setlist" admin>
   <AdminMusicNav />
-  <p class="eyebrow">New setlist</p><h1 class="page-title">新增 Setlist</h1>
-  <p class="lede">选择已有活动与歌曲；保存后直接写入音乐库，关闭公开显示可以暂存在后台。</p>
+  <AdminPageHeader title="新增 Setlist" description="选择已有活动与歌曲；保存后直接写入音乐库，关闭公开显示可以暂存在后台。" back={{ href: "/admin/music/setlists", label: "Setlist 列表" }} />
   <SetlistAdminForm options={options} canWrite={canWrite} />
 </SiteLayout>
-<style>.page-title{font-size:var(--heading-1-size);margin-bottom:.8rem}.catalog-form{margin-top:2rem}</style>

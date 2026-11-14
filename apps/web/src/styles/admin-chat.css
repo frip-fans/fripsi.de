@@ -91,14 +91,19 @@ body[data-chat-locked="true"] {
 .chat-dock-status {
   display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap;
   padding: .5rem var(--chat-gutter); border-bottom: 1px solid var(--line);
-  color: var(--accent); font: .7rem/1.6 ui-monospace;
+  color: var(--muted); font: .7rem/1.6 ui-monospace;
 }
+/* The row is metadata: it only takes the accent while a turn is actually running. */
+.chat-dock.chat-dock-busy .chat-dock-status { color: var(--accent); }
 .chat-dock.chat-dock-expiring .chat-dock-status { color: var(--warning, #ffd27f); }
-.chat-dock-status select {
-  min-height: 32px; max-width: 11rem; padding: .25rem .5rem; border-radius: 8px;
-  border: 1px solid var(--line); background: rgba(4,11,20,.72); color: inherit;
+/* A quiet picker, as in other chat tools: it reads as a label until hovered. `.chat-dock`
+   in the selector outranks the admin sheet's phone rule that sets every field to 16px. */
+.chat-dock .chat-dock-status select {
+  width: auto; min-height: 30px; max-width: 13rem; padding: .2rem 1.6rem .2rem .5rem; border-radius: 8px;
+  border: 1px solid transparent; background-color: transparent; color: var(--text);
   font: .72rem/1.4 ui-monospace;
 }
+.chat-dock .chat-dock-status select:hover:not(:disabled), .chat-dock .chat-dock-status select:focus-visible { border-color: var(--line); }
 .chat-dock-status select:disabled { opacity: .55; cursor: not-allowed; }
 
 /* History opens as its own dialog (styled by .chat-settings): a drawer inside the rail
@@ -140,13 +145,14 @@ body[data-chat-locked="true"] {
 .chat-turn { display: grid; gap: .35rem; }
 .chat-turn-user { justify-items: end; }
 .chat-bubble {
-  max-width: 88%; padding: .6rem .8rem; white-space: pre-wrap; overflow-wrap: anywhere;
-  background: rgba(var(--accent-rgb), .13); border: 1px solid rgba(var(--accent-rgb), .26);
-  border-radius: 14px 14px 4px 14px;
+  max-width: 85%; padding: .5rem .8rem; white-space: pre-wrap; overflow-wrap: anywhere;
+  font-size: .9rem; line-height: 1.55;
+  /* A neutral fill without a frame: the accent stays for actions and proposals. */
+  background: rgba(255,255,255,.08); border-radius: 16px 16px 4px 16px;
 }
 .chat-turn-label { margin: 0; color: var(--muted); font: .68rem/1.4 ui-monospace; letter-spacing: .06em; }
 /* No bubble for the assistant: in a 420px rail two bubbles are mostly border and padding. */
-.chat-prose { font-size: .9375rem; line-height: 1.75; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-prose { font-size: .9rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-error {
   padding: .5rem .7rem; border-radius: 12px;
   background: rgba(255,132,152,.08); color: #ffd9df; font-size: .875rem;
@@ -176,16 +182,25 @@ body[data-chat-locked="true"] {
 .chat-diff .was { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255,140,140,.55); }
 
 .chat-expired { margin: 0; padding: .6rem var(--chat-gutter); border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
-.chat-composer { display: flex; gap: .5rem; align-items: end; padding: .6rem var(--chat-gutter) 0; }
-/* The composer grows with its content (see fitInput), so no drag handle. One accent
-   border is enough of a focus cue; the layout's outline on top of it read as a double frame. */
-.chat-composer textarea { flex: 1; resize: none; min-height: 44px; max-height: 168px; line-height: 1.5; }
+/* One rounded field that holds both the text and the send button, as chat tools do:
+   the form draws the frame and the textarea inside it has none of its own. */
+.chat-composer {
+  display: flex; gap: .35rem; align-items: end; margin: .6rem var(--chat-gutter) 0; padding: .3rem;
+  border: 1px solid var(--line); border-radius: 20px; background: rgba(4,11,20,.6);
+  transition: border-color .15s;
+}
+.chat-composer:focus-within { border-color: rgba(var(--accent-rgb), .6); }
+/* The composer grows with its content (see fitInput), so no drag handle. */
+.chat-dock .chat-composer textarea {
+  flex: 1; resize: none; min-height: 36px; max-height: 168px; padding: .45rem .6rem;
+  border: 0; border-radius: 14px; background: none; font-size: .9rem; line-height: 1.5;
+}
 /* A one-row field cannot show a wrapped placeholder; cut it off instead of clipping line two. */
 .chat-composer textarea::placeholder { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.chat-composer textarea:focus-visible { outline: none; border-color: var(--accent); box-shadow: none; }
+.chat-dock .chat-composer textarea:focus-visible { outline: none; box-shadow: none; }
 /* Panels that take focus themselves are not controls and need no ring. */
 .chat-dock:focus, .chat-settings:focus { outline: none; }
-.chat-send { width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0; }
+.chat-dock .chat-composer .chat-send { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
 .chat-hint {
   display: flex; align-items: center; gap: .3rem; margin: 0;
   padding: .7rem var(--chat-gutter) max(var(--chat-gutter), env(safe-area-inset-bottom)); color: var(--muted); font-size: .7rem;
@@ -219,7 +234,7 @@ body[data-chat-locked="true"] {
 .chat-dock .chat-head-action:hover { color: var(--accent); background: rgba(var(--accent-rgb), .12); }
 .chat-dock .chat-head-action[aria-expanded="true"] { color: var(--accent); background: rgba(var(--accent-rgb), .16); }
 .chat-dock .chat-head-action svg { width: 16px; height: 16px; }
-.chat-dock .chat-send svg { width: 17px; height: 17px; }
+.chat-dock .chat-send svg { width: 15px; height: 15px; }
 .chat-dock .chat-proposal-actions a.link { color: var(--muted); font-size: .8rem; }
 .chat-dock .sr-only, .chat-toggle .sr-only, .chat-settings .sr-only {
   position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
@@ -232,10 +247,12 @@ body[data-chat-locked="true"] {
     inset: 0; width: 100%; height: 100dvh; z-index: 1150; border-left: 0;
     padding-top: env(safe-area-inset-top);
   }
-  .chat-bubble { max-width: 100%; }
-  .chat-dock-status { gap: .4rem; }
-  .chat-dock-status select { max-width: none; flex: 1; min-height: 44px; }
-  .chat-composer textarea { font-size: 1rem; }
+  /* 15px reads as body text on a phone. Fields under 16px make iOS zoom on focus;
+     the admin layout caps the viewport scale there so they do not. */
+  .chat-bubble, .chat-prose { font-size: .9375rem; }
+  .chat-dock .chat-composer textarea { min-height: 40px; padding: .55rem .65rem; font-size: .9375rem; }
+  .chat-dock .chat-composer .chat-send { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
+  .chat-dock .chat-dock-status select { min-height: 36px; font-size: .75rem; }
 }
 
 @media (prefers-reduced-motion: no-preference) {

@@ -88,6 +88,14 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    {/* iOS zooms the page when a focused field is under 16px. Capping the scale stops that
+        there while pinch zoom keeps working (iOS ignores the cap for gestures); other
+        browsers would lose pinch zoom, so they are left alone. */}
+    {admin && <script is:inline>
+      if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
+        document.querySelector('meta[name="viewport"]').content += ", maximum-scale=1";
+      }
+    </script>}
     <meta name="description" content={resolvedDescription} />
     <meta name="theme-color" content="#07101c" />
     <!-- Select the responsive navigation before external styles or scripts load. -->

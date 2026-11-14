@@ -8,6 +8,12 @@ import {
   assertScope,
   attachChatSession,
   closeChatSession,
+  isModelId,
+  readChatModelSettings,
+  validateChatModelSelection,
+  writeSetting,
+  CHAT_MODELS_SETTING,
+  type ChatModelSettings,
   getChatSessionForActor,
   listChatMessages,
   listChatSessions,
@@ -23,12 +29,13 @@ import {
 } from "@frip-fan/core";
 import { getEnv } from "./env";
 
-/** Model ids are opaque to us; only the shape is checked before one reaches OpenAI. */
-const MODEL_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$/;
 /** The provider's model list changes without a deploy, so it is fetched and cached briefly. */
 const MODEL_CACHE_MS = 600_000;
 /** The history list shows topics, so a session is titled by its opening message. */
 const TITLE_MAX = 60;
+// Upstream and configuration failures answer 424, never 502/503: the CDN in front of
+// the origin swaps those for its own HTML error page, and the dock then has nothing to
+// show but a bare "请求失败".
 let modelCache: { models: string[]; at: number } | null = null;
 
 /**
@@ -72,20 +79,20 @@ export function chatEnabled(): boolean {
 
 function configuration(): ChatEnv {
   const env = getEnv();
-  if (!chatEnabled()) throw new ServiceError("chat_disabled", "后台聊天助手未启用", 503);
+  if (!chatEnabled()) throw new ServiceError("chat_disabled", "后台聊天助手未启用", 424);
   const secret = env.AUTOMATION_SIGNING_SECRET ?? "";
   if (!env.OPENAI_API_KEY || !env.MCP_ENDPOINT_URL || !env.AUTOMATION_AUDIENCE
-    || new TextEncoder().encode(secret).length < 32) throw new ServiceError("chat_config", "后台聊天助手配置不完整", 503);
+    || new TextEncoder().encode(secret).length < 32) throw new ServiceError("chat_config", "后台聊天助手配置不完整", 424);
   const endpoint = new URL(env.MCP_ENDPOINT_URL);
   if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.search
-    || endpoint.hash || endpoint.pathname !== "/mcp") throw new ServiceError("chat_config", "MCP 地址配置无效", 503);
+    || endpoint.hash || endpoint.pathname !== "/mcp") throw new ServiceError("chat_config", "MCP 地址配置无效", 424);
   return { key: env.OPENAI_API_KEY, mcpUrl: env.MCP_ENDPOINT_URL,
     secret, audience: env.AUTOMATION_AUDIENCE };
 }
 
 /**
- * Whatever this API key can reach is what the picker offers: no server-side allowlist,
- * so a newly released model needs no configuration change.
+ * Every model this API key can reach. The settings page offers this whole list, so a
+ * newly released model needs no configuration change to become selectable.
  */
 export async function listChatModels(now = Date.now()): Promise<string[]> {
   if (modelCache && now - modelCache.at < MODEL_CACHE_MS) return modelCache.models;
@@ -95,20 +102,69 @@ export async function listChatModels(now = Date.now()): Promise<string[]> {
     models = await new ChatAgentsClient(key).models();
   } catch {
     // Never surface the provider's message; say what the operator can act on.
-    throw new ServiceError("chat_upstream", "无法获取模型列表，请检查 OPENAI_API_KEY 是否有效", 502);
+    throw new ServiceError("chat_upstream", "无法获取模型列表，请检查 OPENAI_API_KEY 是否有效", 424);
   }
-  if (!models.length) throw new ServiceError("chat_upstream", "该 API key 没有可用模型", 502);
+  if (!models.length) throw new ServiceError("chat_upstream", "该 API key 没有可用模型", 424);
   modelCache = { models, at: now };
   return models;
+}
+
+export interface ChatModelChoices {
+  /** What the dock picker lists, in the order it should render them. */
+  models: string[];
+  /** Preselected for a new session, when the operator has nominated one. */
+  default_model: string | null;
+  /** True when the operator has not ticked anything, so the full provider list is offered. */
+  unconfigured: boolean;
+}
+
+/**
+ * What the picker may offer. An empty selection falls back to the full provider list so
+ * the chat keeps working before anyone visits the settings page, and so a stored
+ * selection that has gone stale can never lock the maintainer out of chatting.
+ */
+export async function chatModelChoices(): Promise<ChatModelChoices> {
+  const [settings, available] = await Promise.all([
+    readChatModelSettings(getEnv().DB),
+    listChatModels(),
+  ]);
+  const offered = settings.enabled.filter((model) => available.includes(model));
+  if (!offered.length) return { models: available, default_model: null, unconfigured: true };
+  return {
+    models: offered,
+    default_model: settings.default_model && offered.includes(settings.default_model) ? settings.default_model : null,
+    unconfigured: false,
+  };
+}
+
+/** The settings page: the full provider list alongside what is currently stored. */
+export async function chatModelSettingsView(): Promise<ChatModelSettings & { available: string[] }> {
+  const [settings, available] = await Promise.all([
+    readChatModelSettings(getEnv().DB),
+    listChatModels(),
+  ]);
+  return { ...settings, available };
+}
+
+export async function saveChatModelSettings(actor: Actor, enabled: string[], defaultModel: string | null,
+  now = new Date()): Promise<void> {
+  assertScope(actor, "events:publish");
+  const checked = validateChatModelSelection(enabled, defaultModel, await listChatModels());
+  await writeSetting(getEnv().DB, CHAT_MODELS_SETTING, checked, actor.id, now);
 }
 
 /** Opens a session, hands OpenAI a short-lived MCP credential and submits the first input. */
 export async function startChat(actor: Actor, input: string, chosen: string, now = new Date()): Promise<ChatSession> {
   assertScope(actor, "events:draft");
   const config = configuration();
-  // The provider decides which ids are real; this only rejects shapes that have no
-  // business being interpolated into a request.
-  if (!MODEL_PATTERN.test(chosen)) throw new ServiceError("invalid_model", "模型名称无效", 400);
+  // The shape check keeps a nonsense id out of the request; the ticked list is then
+  // enforced here too, so a stale tab or a crafted request cannot pick a model the
+  // operator has not approved.
+  if (!isModelId(chosen)) throw new ServiceError("invalid_model", "模型名称无效", 400);
+  const allowed = await chatModelChoices();
+  if (!allowed.models.includes(chosen)) {
+    throw new ServiceError("invalid_model", "该模型未在后台设置中勾选", 400);
+  }
   const db = getEnv().DB;
   const id = crypto.randomUUID();
   const created = now.toISOString();
@@ -148,7 +204,14 @@ export async function startChat(actor: Actor, input: string, chosen: string, now
     return { ...session, agent_session_id: remote.id };
   } catch (error) {
     await closeChatSession(db, id, "closed", now);
-    throw error instanceof ServiceError ? error : new ServiceError("chat_upstream", "创建聊天会话失败", 502);
+    if (error instanceof ServiceError) throw error;
+    // A 400/404 at creation is the provider refusing the request itself; with a fixed
+    // request shape that means the model: not every listed id can run an agent session.
+    if (error instanceof Error && /^openai_http_(400|404)$/.test(error.message)) {
+      throw new ServiceError("chat_model_rejected",
+        `OpenAI 拒绝了模型 ${chosen}，它多半不支持 Agents API。请换一个模型，并在模型设置里取消勾选它。`, 422);
+    }
+    throw new ServiceError("chat_upstream", "创建聊天会话失败：OpenAI 暂时不可用，或 API key 无效", 424);
   }
 }
 

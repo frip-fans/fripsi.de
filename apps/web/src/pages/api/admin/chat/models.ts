@@ -1,10 +1,11 @@
 import type { APIRoute } from "astro";
-import { listChatModels } from "../../../../lib/chat";
+import { chatModelChoices } from "../../../../lib/chat";
 import { jsonError } from "../chat";
 
-// A static segment, so it wins over the sibling [id] route.
+// A static segment, so it wins over the sibling [id] route. Only the models the
+// operator ticked in /admin/settings are offered; the full provider list lives there.
 export const GET: APIRoute = async () => {
   try {
-    return Response.json({ models: await listChatModels() });
+    return Response.json(await chatModelChoices());
   } catch (error) { return jsonError(error); }
 };

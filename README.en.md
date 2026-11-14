@@ -14,7 +14,7 @@ The project organizes publicly available information about events, releases, son
 - Search historical events by year, type, location, and keyword.
 - Explore past in-person events on the Live Journey world map with an interactive timeline.
 - Browse live setlists, release track lists, song versions, and the relationships between them.
-- Join public conversations through the community page and embedded GitHub Discussions.
+- Leave comments on the guestbook and on every event with just a nickname, no account needed.
 - Try the interactive “Satoshi Yaginuma Intensity Calibrator” and generate a playful result.
 - Use the public site in Simplified Chinese, Traditional Chinese, Japanese, or English.
 - Manage events, songs, releases, and setlists through `/admin`.

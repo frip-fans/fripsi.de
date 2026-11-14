@@ -1,0 +1,158 @@
+---
+import { countAdminComments, listAdminComments, listCommentBlocks, readCommentSettings, type CommentStatus } from "@frip-fan/core";
+import AdminPageHeader from "../../components/AdminPageHeader.astro";
+import Icon from "../../components/Icon.astro";
+import Pagination from "../../components/Pagination.astro";
+import SiteLayout from "../../layouts/SiteLayout.astro";
+import { formatTimestamp } from "../../lib/change-review";
+import { getEnv } from "../../lib/env";
+
+const PAGE_SIZE = 50;
+const params = Astro.url.searchParams;
+const query = params.get("q")?.trim().slice(0, 100) || undefined;
+const requestedStatus = params.get("status") ?? "";
+const status: CommentStatus | undefined = requestedStatus === "visible" || requestedStatus === "hidden" ? requestedStatus : undefined;
+const requestedSource = params.get("source") ?? "";
+const source = /^[0-9a-f]{32}$/.test(requestedSource) ? requestedSource : undefined;
+const filters = { query, status, source };
+const filtered = Boolean(query || status || source);
+const requestedPageValue = params.get("page") ?? "1";
+const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
+
+const db = getEnv().DB;
+const totalItems = await countAdminComments(db, filters);
+const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+const currentPage = Math.min(requestedPage, totalPages);
+const [comments, blocks, settings] = await Promise.all([
+  listAdminComments(db, filters, PAGE_SIZE, (currentPage - 1) * PAGE_SIZE),
+  listCommentBlocks(db),
+  readCommentSettings(db),
+]);
+const canModerate = Astro.locals.actor!.scopes.includes("events:publish");
+
+// Actions return to this exact view, minus the last action's notice.
+const backParams = new URLSearchParams(params);
+backParams.delete("done");
+const back = backParams.toString();
+const doneLabels: Record<string, string> = {
+  hide: "已隐藏留言。", restore: "已恢复显示。", delete: "已删除留言。", block: "已封禁该来源，并隐藏它发过的全部留言。",
+  unblock: "已解除封禁。", terms: "屏蔽词已保存。",
+};
+const done = doneLabels[params.get("done") ?? ""];
+const threadLink = (comment: (typeof comments)[number]) => comment.thread_type === "site"
+  ? { href: `/#comment-${comment.id}`, label: "留言板" }
+  : { href: comment.event_slug ? `/events/${encodeURIComponent(comment.event_slug)}#comment-${comment.id}` : null, label: comment.event_title ?? `活动 ${comment.thread_id}` };
+---
+<SiteLayout title="留言管理" admin>
+  <AdminPageHeader title="留言管理" description={`共 ${totalItems} 条${filtered ? "符合筛选条件的" : ""}留言，新的在前。留言发布后立即公开，在这里隐藏、删除或封禁来源；每次操作都记入审计日志。`} />
+  {done && <p class="notice panel" role="status"><Icon name="check-circle" />{done}</p>}
+  <form class="filters panel" method="get">
+    <label>搜索<input type="search" name="q" value={query} placeholder="昵称或留言内容" /></label>
+    <label>状态<select name="status"><option value="">全部</option><option value="visible" selected={status === "visible"}>公开</option><option value="hidden" selected={status === "hidden"}>已隐藏</option></select></label>
+    {source && <input type="hidden" name="source" value={source} />}
+    <button type="submit"><Icon name="funnel" />筛选</button>
+    {filtered && <a class="button secondary" href="/admin/comments">清除</a>}
+  </form>
+  {source && <p class="source-note">正在查看来源 <code>{source.slice(0, 8)}</code> 的全部留言。</p>}
+
+  <ul class="comment-queue">
+    {comments.map((comment) => {
+      const link = threadLink(comment);
+      return <li class:list={["panel", { hidden: comment.status === "hidden" }]}>
+        <header>
+          <strong translate="no">{comment.author_name}</strong>
+          <span class:list={["tag", comment.status === "hidden" ? "cancelled" : "live"]}>{comment.status === "hidden" ? "已隐藏" : "公开"}</span>
+          {comment.parent_id && <span class="tag">回复 #{comment.parent_id}</span>}
+          {comment.source_blocked ? <span class="tag cancelled">来源已封禁</span> : null}
+          <time datetime={comment.created_at}>{formatTimestamp(comment.created_at)}</time>
+        </header>
+        <p class="body">{comment.body}</p>
+        <div class="meta">
+          <span class="where">
+            #{comment.id} · {link.href ? <a href={link.href} target="_blank">{link.label}</a> : link.label}
+            {comment.locale && <> · {comment.locale}</>}
+            {" · "}<a href={`/admin/comments?source=${comment.source_hash}`} title="查看同一来源的全部留言">来源 <code>{comment.source_hash.slice(0, 8)}</code>（{comment.source_count} 条）</a>
+            {comment.moderated_by && <> · {comment.moderated_by} 处理于 {formatTimestamp(comment.moderated_at!)}</>}
+          </span>
+          {canModerate && <div class="actions">
+            <form method="post" action="/api/admin/comments">
+              <input type="hidden" name="id" value={comment.id} /><input type="hidden" name="back" value={back} />
+              {comment.status === "visible"
+                ? <button class="secondary" name="action" value="hide"><Icon name="eye-slash" />隐藏</button>
+                : <button class="secondary" name="action" value="restore"><Icon name="eye" />恢复</button>}
+            </form>
+            <form method="post" action="/api/admin/comments" data-confirm={comment.parent_id ? "删除这条回复？删除后不能恢复。" : "删除这条留言及其全部回复？删除后不能恢复。"}>
+              <input type="hidden" name="id" value={comment.id} /><input type="hidden" name="back" value={back} />
+              <button class="secondary" name="action" value="delete"><Icon name="trash" />删除</button>
+            </form>
+            {!comment.source_blocked && <form method="post" action="/api/admin/comments" data-confirm={`封禁这个来源？它发过的 ${comment.source_count} 条留言会全部隐藏，之后也无法再留言。来源按网络地址区分，校园网或移动网络下可能有多人共用。`}>
+              <input type="hidden" name="id" value={comment.id} /><input type="hidden" name="back" value={back} />
+              <button class="danger" name="action" value="block"><Icon name="slash-circle" />封禁来源</button>
+            </form>}
+          </div>}
+        </div>
+      </li>;
+    })}
+  </ul>
+  {!comments.length && <div class="panel empty">{filtered ? "没有符合条件的留言。" : "还没有留言。"}</div>}
+  <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} itemLabel="条留言" />
+
+  <section class="settings">
+    <form class="panel" method="post" action="/api/admin/comments">
+      <h2>屏蔽词</h2>
+      <p class="muted">每行一个，最多 200 个。昵称或内容包含任一屏蔽词的留言会被直接拒绝；不区分大小写和全半角。</p>
+      <input type="hidden" name="action" value="terms" /><input type="hidden" name="back" value={back} />
+      <label>屏蔽词列表<textarea name="terms" rows="6" disabled={!canModerate}>{settings.blocked_terms.join("\n")}</textarea></label>
+      {canModerate && <button type="submit">保存屏蔽词</button>}
+    </form>
+    <div class="panel">
+      <h2>已封禁的来源</h2>
+      {blocks.length ? <ul class="blocks">
+        {blocks.map((block) => <li>
+          <span><a href={`/admin/comments?source=${block.source_hash}`}><code>{block.source_hash.slice(0, 8)}</code></a> · {block.comment_count} 条留言<small>{block.created_by} · {formatTimestamp(block.created_at)}</small></span>
+          {canModerate && <form method="post" action="/api/admin/comments" data-confirm="解除封禁？已隐藏的留言不会自动恢复。">
+            <input type="hidden" name="action" value="unblock" /><input type="hidden" name="source" value={block.source_hash} /><input type="hidden" name="back" value={back} />
+            <button class="secondary">解除</button>
+          </form>}
+        </li>)}
+      </ul> : <p class="muted">没有被封禁的来源。</p>}
+    </div>
+  </section>
+</SiteLayout>
+
+<script>
+  for (const form of document.querySelectorAll<HTMLFormElement>("form[data-confirm]")) {
+    form.addEventListener("submit", (event) => {
+      if (!confirm(form.dataset.confirm ?? "")) event.preventDefault();
+    });
+  }
+</script>
+
+<style>
+  .filters { display: grid; grid-template-columns: 1fr 150px auto auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
+  .notice { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; padding: .7rem 1rem; color: var(--accent); }
+  .source-note { color: var(--muted); font-size: .85rem; }
+  .comment-queue { display: grid; gap: .7rem; margin: 0; padding: 0; list-style: none; }
+  .comment-queue li { display: grid; gap: .6rem; padding: .9rem 1rem; }
+  .comment-queue li.hidden .body { color: var(--muted); }
+  .comment-queue header { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+  .comment-queue header strong { overflow-wrap: anywhere; }
+  .comment-queue time { margin-left: auto; color: var(--muted); font-size: .78rem; white-space: nowrap; }
+  .body { margin: 0; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .6rem; }
+  .where { min-width: 0; color: var(--muted); font-size: .78rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .where code, .blocks code { font-size: .74rem; }
+  .actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+  .actions button, .blocks button { min-height: 34px; padding: .35rem .7rem; font-size: .8rem; }
+  .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; margin-top: 2rem; }
+  .settings form { display: grid; gap: .8rem; }
+  .settings h2 { margin: 0 0 .2rem; font-size: 1rem; }
+  .settings p { margin: 0; font-size: .84rem; line-height: 1.6; }
+  .blocks { display: grid; gap: .6rem; margin: .8rem 0 0; padding: 0; list-style: none; }
+  .blocks li { display: flex; align-items: center; justify-content: space-between; gap: .8rem; font-size: .85rem; }
+  .blocks small { display: block; color: var(--muted); font-size: .74rem; overflow-wrap: anywhere; }
+  @media (max-width: 760px) {
+    .filters, .settings { grid-template-columns: 1fr; }
+    .comment-queue time { margin-left: 0; flex-basis: 100%; }
+  }
+</style>

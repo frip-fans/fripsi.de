@@ -6,7 +6,7 @@
 
 - 测试站整站由独立的 Cloudflare Access 应用保护，只允许测试管理员邮箱。
 - 应用把 `APP_ENV=staging` 的所有 SSR 页面和 API 视为私有路由：验证 Access JWT、AUD 与 `ADMIN_PUBLISHERS`，并强制关闭开发身份绕过；缺少 AUD 时拒绝访问。
-- 响应带 `X-Robots-Tag: noindex, nofollow`，不进入公开页面缓存；Giscus 评论组件不加载。
+- 响应带 `X-Robots-Tag: noindex, nofollow`，不进入公开页面缓存；留言功能可用，数据写入测试库，与生产互不相通（见[留言系统](comments.md)）。
 
 ## 更新测试站
 

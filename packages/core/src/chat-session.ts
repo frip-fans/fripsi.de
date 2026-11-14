@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { Actor } from "./types";
 import { ServiceError } from "./utils";
+import type { ChatAttachment } from "./chat-attachments";
 
 const issuer = "fripsi:admin-chat";
 const prefix = "fchat.";
@@ -123,6 +124,8 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system" | "error";
   body: string;
   tool_calls_json: string | null;
+  /** JSON array of ChatAttachment; read it with chatAttachments(). */
+  attachments_json: string | null;
   created_at: string;
 }
 
@@ -132,6 +135,7 @@ export interface ChatMessageInput {
   role: ChatMessage["role"];
   body: string;
   tool_calls?: Array<{ name: string; status: string }>;
+  attachments?: ChatAttachment[];
 }
 
 /**
@@ -144,10 +148,12 @@ export interface ChatMessageInput {
  */
 export async function appendChatMessage(db: D1Database, message: ChatMessageInput, now = new Date()): Promise<void> {
   const at = now.toISOString();
-  const inserted = await db.prepare(`INSERT OR IGNORE INTO admin_chat_messages (id,session_id,turn_id,role,body,tool_calls_json,created_at)
-    VALUES (?,?,?,?,?,?,?)`)
+  const inserted = await db.prepare(`INSERT OR IGNORE INTO admin_chat_messages (id,session_id,turn_id,role,body,tool_calls_json,attachments_json,created_at)
+    VALUES (?,?,?,?,?,?,?,?)`)
     .bind(crypto.randomUUID(), message.session_id, message.turn_id ?? null, message.role, message.body,
-      message.tool_calls?.length ? JSON.stringify(message.tool_calls) : null, at).run();
+      message.tool_calls?.length ? JSON.stringify(message.tool_calls) : null,
+      message.attachments?.length
+        ? JSON.stringify(message.attachments.map(({ id, type, bytes }) => ({ id, type, bytes }))) : null, at).run();
   if (!inserted.meta.changes) return;
   // Only a session that is still open is extended; one already past its deadline stays
   // ended even if a late reply is recorded for it. strftime's %f matches toISOString.

@@ -1,6 +1,7 @@
 ---
 import { getEventTourContext, getPublicEventBySlug, listPublicSetlistsForEvent } from "@frip-fan/core";
 import BackLink from "../../components/BackLink.astro";
+import Comments from "../../components/Comments.astro";
 import { eventReturnLink } from "../../lib/event-navigation";
 import Icon from "../../components/Icon.astro";
 import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../../lib/format";
@@ -136,6 +137,7 @@ const structuredData = {
       </section>
     </div>
   </article>
+  <Comments locale={locale} thread={`event:${event.id}`} title={t(locale, "comments.eventTitle")} copy={t(locale, "comments.eventCopy")} />
   </div>
 </SiteLayout>
 

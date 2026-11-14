@@ -1,5 +1,6 @@
 ---
 import { getAdjacentSetlists, getEventTourContext, getSetlistById, getSetlistHighlights } from "@frip-fan/core";
+import Comments from "../../../components/Comments.astro";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
 import SpoilerGuard from "../../../components/SpoilerGuard.astro";
@@ -167,6 +168,9 @@ let previousSection = "";
         })}
       </nav>
     )}
+
+    {/* A show has one conversation: the setlist page shows its event's thread. */}
+    <Comments locale={locale} thread={`event:${setlist.event_id}`} title={t(locale, "comments.eventTitle")} copy={t(locale, "comments.eventCopy")} />
   </div>
 </SiteLayout>
 

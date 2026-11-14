@@ -1,10 +1,10 @@
 /// <reference types="node" />
 import { afterEach, expect, it, vi } from "vitest";
 import type { DatabaseSync } from "node:sqlite";
-import { ChangeService, type Actor } from "@frip-fan/core";
+import { ChangeService, createComment, moderateComment, type Actor } from "@frip-fan/core";
 import { createTestD1 } from "../../../packages/core/src/test-d1";
 import { scheduledTick } from "./index";
-import { safeTickNotifications, tickNotifications, type BarkEnv } from "./notifications";
+import { safeTickNotifications, tickCommentNotifications, tickNotifications, type BarkEnv } from "./notifications";
 
 const databases: DatabaseSync[] = [];
 afterEach(() => { vi.unstubAllGlobals(); for (const database of databases.splice(0)) database.close(); });
@@ -155,4 +155,32 @@ it("counts discovery errors recorded in the model input of a completed run", asy
   await tickNotifications(t.env, later, t.request);
   const payload = JSON.parse(String(t.request.mock.calls[0][1]?.body));
   expect(payload.title).toContain("活动更新"); expect(payload.body).toContain("2 个页面读取失败");
+});
+
+it("announces new comments once, skips history and hidden ones, and retries a failed push", async () => {
+  const t = setup(), at = (minutes: number) => new Date(later.valueOf() + minutes * 60_000);
+  const post = (body: string, minutes: number, source: string) => createComment(t.db, { thread: "site", name: "ナナ", body }, source, at(minutes));
+  await post("before activation", 0, "a");
+  await tickCommentNotifications(t.env, at(1), t.request);
+  await tickCommentNotifications(t.env, at(2), t.request);
+  expect(t.request).not.toHaveBeenCalled();
+
+  await post("first\nline", 3, "b");
+  const hidden = await post("spam", 3, "c");
+  await moderateComment(t.db, hidden.id, "hide", actor, "req", at(4));
+  t.request.mockImplementationOnce(async () => new Response("", { status: 500 }));
+  await expect(tickCommentNotifications(t.env, at(5), t.request)).rejects.toThrow("bark_http_500");
+  await tickCommentNotifications(t.env, at(6), t.request);
+  const payload = JSON.parse(String(t.request.mock.calls[1][1]?.body));
+  expect(payload).toMatchObject({ title: "fripSi.de 新留言 1 条", url: "https://fripsi.de/admin/comments", group: "fripsi-comments" });
+  expect(payload.body).toBe("ナナ：first line\n— 留言板");
+  await tickCommentNotifications(t.env, at(7), t.request);
+  expect(t.request).toHaveBeenCalledTimes(2);
+
+  // A tick that finds only hidden comments moves on without a push.
+  const quiet = await post("more spam", 8, "d");
+  await moderateComment(t.db, quiet.id, "hide", actor, "req", at(9));
+  await tickCommentNotifications(t.env, at(10), t.request);
+  expect(t.request).toHaveBeenCalledTimes(2);
+  expect(t.sqlite.prepare("SELECT last_comment_id AS id FROM comment_notification_state").get()).toMatchObject({ id: quiet.id });
 });

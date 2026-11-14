@@ -33,6 +33,7 @@ export function auditActionLabel(action: string): string {
     if (operation) return `${change[1] === "propose" ? "提交提案" : "发布提案"} · ${operation}`;
   }
   if (action === "change.discard") return "丢弃提案";
+  if (action in COMMENT_ACTION_LABELS) return COMMENT_ACTION_LABELS[action]!;
   const parts = action.replace(/^content\./, "").split(".");
   if (parts.length === 2) {
     const entity = ENTITY_LABELS[parts[0]!];
@@ -42,6 +43,15 @@ export function auditActionLabel(action: string): string {
   return action;
 }
 
+const COMMENT_ACTION_LABELS: Record<string, string> = {
+  "comment.hide": "隐藏留言",
+  "comment.restore": "恢复留言",
+  "comment.delete": "删除留言",
+  "comment.block": "封禁留言来源",
+  "comment.unblock": "解除来源封禁",
+  "comment.settings": "修改留言屏蔽词",
+};
+
 const TARGET_LABELS: Record<string, string> = {
   event: "活动",
   change_set: "提案",
@@ -50,6 +60,9 @@ const TARGET_LABELS: Record<string, string> = {
   song: "歌曲",
   tour: "巡演",
   import_job: "导入任务",
+  comment: "留言",
+  comment_source: "留言来源",
+  comment_settings: "留言设置",
 };
 
 export const AUDIT_TARGET_TYPES = Object.keys(TARGET_LABELS);

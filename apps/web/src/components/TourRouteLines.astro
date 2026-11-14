@@ -1,0 +1,34 @@
+---
+/**
+ * Decorative backdrop for tour cards: route lines hopping from stop to stop, the tour's answer to
+ * the rings on the homepage's next-show panel. The parent must be positioned, clip its overflow and
+ * set `isolation: isolate`, so the lines sit behind its content but above its background.
+ * Only `animated` cards drift; a list of static ones costs nothing.
+ */
+interface Props { animated?: boolean }
+const { animated = false } = Astro.props;
+---
+<svg class:list={["tour-routes", { "is-animated": animated }]} viewBox="0 0 1200 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+  <path class="is-still" d="M-20 78 Q 140 4 300 58 T 620 52 T 940 60 T 1220 22" />
+  <path d="M-20 44 Q 170 108 360 46 T 720 40 T 1060 54 T 1220 80" />
+  <path class="is-slow" d="M-20 96 Q 220 30 430 84 T 800 76 T 1220 58" />
+</svg>
+
+<style>
+  .tour-routes { position: absolute; z-index: -1; inset: 0; width: 100%; height: 100%; pointer-events: none; -webkit-mask-image: linear-gradient(to right, transparent 8%, #000 60%); mask-image: linear-gradient(to right, transparent 8%, #000 60%); }
+  .tour-routes path { fill: none; stroke: rgba(var(--accent-rgb), .2); stroke-width: 1; stroke-dasharray: 5 9; vector-effect: non-scaling-stroke; }
+  .tour-routes .is-still { stroke: rgba(var(--accent-rgb), .11); stroke-dasharray: none; }
+  .tour-routes .is-slow { stroke: rgba(var(--accent-rgb), .14); stroke-dasharray: 2 8; }
+  @media (prefers-reduced-motion: no-preference) {
+    /* One dash period per cycle, so the loop has no seam. */
+    .tour-routes.is-animated path:not(.is-still) { animation: tour-route-drift 2.8s linear infinite; }
+    .tour-routes.is-animated .is-slow { animation-duration: 4.5s; --route-period: -10; }
+    @keyframes tour-route-drift { to { stroke-dashoffset: var(--route-period, -14); } }
+    /* The homepage "pause motion" switch stops the routes too. */
+    :global(html[data-home-motion-paused="true"]) .tour-routes path { animation-play-state: paused; }
+  }
+  @media (max-width: 800px) {
+    /* In a stacked card the text sits on top of the lines: fade them toward the bottom instead. */
+    .tour-routes { -webkit-mask-image: linear-gradient(to bottom, transparent 25%, #000 90%); mask-image: linear-gradient(to bottom, transparent 25%, #000 90%); opacity: .8; }
+  }
+</style>

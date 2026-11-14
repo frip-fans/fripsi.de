@@ -1,7 +1,9 @@
 ---
-import { listTours } from "@frip-fan/core";
+import { dateInTimeZone, listPublicTourStops, listTours, type TourListStop } from "@frip-fan/core";
 import MusicListState from "../../../components/MusicListState.astro";
 import MusicNav from "../../../components/MusicNav.astro";
+import TourRouteLines from "../../../components/TourRouteLines.astro";
+import TourStopTrack, { type TrackStop } from "../../../components/TourStopTrack.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { getLocale, t } from "../../../lib/i18n";
@@ -9,7 +11,17 @@ import { formatMusicDate } from "../../../lib/music";
 import "../../../styles/music.css";
 
 const locale = getLocale(Astro.request);
-const tours = (await listTours(getEnv().DB, { publicOnly: true })).filter((tour) => tour.stop_count > 0);
+const today = dateInTimeZone();
+const [allTours, stopsByTour] = await Promise.all([listTours(getEnv().DB, { publicOnly: true }), listPublicTourStops(getEnv().DB, today)]);
+const tours = allTours.filter((tour) => tour.stop_count > 0).map((tour) => {
+  const stops = stopsByTour.get(tour.id) ?? [];
+  // On the road: the first stop has come and at least one is still ahead (today's included).
+  const next = stops[0]?.state !== "upcoming" ? stops.find((stop) => stop.state !== "done") : undefined;
+  // A lit dot is a stop with a setlist, a dim one was played without one, an open one is still to come.
+  const tone = (stop: TourListStop): TrackStop["tone"] => stop.has_setlist ? "lit" : stop.state === "done" ? "dim" : "open";
+  const track: TrackStop[] = stops.map((stop) => ({ label: stop.stop_label, date: stop.start_date, tone: tone(stop), next: stop === next }));
+  return { ...tour, track, live: Boolean(next) };
+});
 const range = (first: string | null, last: string | null) => !first ? t(locale, "common.datePending")
   : first === last ? formatMusicDate(first, locale) : `${formatMusicDate(first, locale)} – ${formatMusicDate(last, locale)}`;
 ---
@@ -22,15 +34,19 @@ const range = (first: string | null, last: string | null) => !first ? t(locale, 
       {tours.length ? (
         <div class="music-grid tour-grid" data-page-entry>
           {tours.map((tour) => (
-            <a class="music-card tour-card" href={`/music/tours/${encodeURIComponent(tour.slug)}`}>
-              <p class="tour-card-date">{range(tour.first_date, tour.last_date)}</p>
+            <a class:list={["music-card", "tour-card", { "is-live": tour.live }]} href={`/music/tours/${encodeURIComponent(tour.slug)}`}>
+              <TourRouteLines animated={tour.live} />
+              <p class="tour-card-date">
+                <span>{range(tour.first_date, tour.last_date)}</span>
+                {tour.live && <span class="tour-card-live"><i aria-hidden="true"></i>{t(locale, "home.tourLive")}</span>}
+              </p>
               <h2 translate="no">{tour.name}</h2>
+              <TourStopTrack stops={tour.track} label={t(locale, "music.tourStops", { count: tour.stop_count })} showDates={false} />
               <p class="music-card-meta">
                 <span>{t(locale, "music.tourStops", { count: tour.stop_count })}</span>
                 <span aria-hidden="true">·</span>
                 <span>{t(locale, "music.tourSetlistStops", { count: tour.setlist_stop_count })}</span>
               </p>
-              <span class="tour-card-coverage" aria-hidden="true"><span style={`--coverage: ${Math.round(tour.setlist_stop_count / tour.stop_count * 100)}%`}></span></span>
             </a>
           ))}
         </div>
@@ -40,11 +56,14 @@ const range = (first: string | null, last: string | null) => !first ? t(locale, 
 </SiteLayout>
 
 <style>
-  .tour-card { align-content: start; }
-  .tour-card-date { color: var(--accent); font-size: .8125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  /* Isolated and clipped for the route lines behind the text (see TourRouteLines). */
+  .tour-card { align-content: start; isolation: isolate; overflow: hidden; }
+  .tour-card.is-live { border-color: rgba(var(--accent-rgb), .32); }
+  .tour-card-date { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .2rem .75rem; color: var(--accent); font-size: .8125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .tour-card-live { display: inline-flex; align-items: center; gap: .4rem; font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
+  .tour-card-live i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
   .tour-card h2 { font-size: 1.05rem; }
-  .tour-card-coverage { display: block; height: 3px; margin-top: .15rem; overflow: hidden; border-radius: 999px; background: rgba(159, 180, 211, .16); }
-  .tour-card-coverage span { display: block; width: var(--coverage); height: 100%; border-radius: inherit; background: var(--accent); }
+  .tour-card :global(.tour-track) { margin-top: .2rem; }
   @media (max-width: 560px) {
     .tour-grid { grid-template-columns: 1fr; }
   }

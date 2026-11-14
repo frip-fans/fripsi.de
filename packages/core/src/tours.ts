@@ -53,6 +53,38 @@ export async function listTours(db: D1Database, options: { publicOnly?: boolean 
   return result.results.map(mapTour);
 }
 
+/** One stop on the tour list's track: where it is, and whether it has been played and documented. */
+export interface TourListStop {
+  start_date: string;
+  /** tour_stop, or the first venue's area; null when neither is known. */
+  stop_label: string | null;
+  has_setlist: boolean;
+  state: "done" | "today" | "upcoming";
+}
+
+/** Public stops of every published tour, in order, keyed by tour id. Counts match `listTours({ publicOnly: true })`. */
+export async function listPublicTourStops(db: D1Database, today = dateInTimeZone()): Promise<Map<string, TourListStop[]>> {
+  const result = await db.prepare(`SELECT e.tour_id, e.start_date, e.end_date,
+      COALESCE(NULLIF(TRIM(e.tour_stop), ''), ${eventStopAreaSql("e")}) AS stop_label,
+      EXISTS (SELECT 1 FROM setlists sl WHERE sl.event_id = e.id AND sl.published = 1) AS has_setlist
+    FROM events e
+    JOIN tours t ON t.id = e.tour_id AND t.published = 1
+    WHERE e.published = 1 AND e.archived_at IS NULL
+    ORDER BY e.start_date, COALESCE(e.start_time, ''), e.id`)
+    .all<{ tour_id: string; start_date: string; end_date: string | null; stop_label: string | null; has_setlist: number }>();
+  const byTour = new Map<string, TourListStop[]>();
+  for (const row of result.results) {
+    const stop: TourListStop = {
+      start_date: row.start_date, stop_label: row.stop_label, has_setlist: row.has_setlist === 1,
+      state: (row.end_date ?? row.start_date) < today ? "done" : row.start_date <= today ? "today" : "upcoming",
+    };
+    const list = byTour.get(row.tour_id);
+    if (list) list.push(stop);
+    else byTour.set(row.tour_id, [stop]);
+  }
+  return byTour;
+}
+
 async function tourStops(db: D1Database, tourId: string, publicOnly: boolean): Promise<TourStop[]> {
   const result = await db.prepare(`SELECT e.id AS event_id, e.slug AS event_slug, e.title AS event_title,
       ${eventDisplayTitleSql("e")} AS display_title, e.start_date, e.tour_stop, e.published,
@@ -149,4 +181,75 @@ export async function getEventTourContext(db: D1Database, eventId: string): Prom
   if (index < 0) return null;
   const pick = (stop: (typeof stops.results)[number] | undefined) => stop ? { slug: stop.slug, title: stop.title, start_date: stop.start_date } : null;
   return { slug: tour.slug, name: tour.name, stop_number: index + 1, stop_count: stops.results.length, previous: pick(stops.results[index - 1]), next: pick(stops.results[index + 1]) };
+}
+
+/** A tour that is on the road right now, for the homepage: where it stands and what comes next. */
+export interface ActiveTourStop {
+  event_slug: string;
+  start_date: string;
+  /** tour_stop, or the first venue's area; null when neither is known. */
+  stop_label: string | null;
+  state: "done" | "today" | "upcoming";
+}
+
+export interface ActiveTour {
+  slug: string;
+  name: string;
+  /** Stops still on the schedule (cancelled and postponed ones are left out), in order. */
+  stops: ActiveTourStop[];
+  done_count: number;
+  /** Today's stop, else the next one; null only once the last stop is over. */
+  next: ActiveTourStop | null;
+}
+
+export interface ActiveTourRow {
+  tour_id: string;
+  slug: string;
+  name: string;
+  event_slug: string;
+  start_date: string;
+  end_date: string | null;
+  stop_label: string | null;
+}
+
+/**
+ * A tour is active from its first stop's day to its last stop's day, both included. With several
+ * at once, the one whose next stop is soonest wins. Rows must be sorted by start date.
+ */
+export function pickActiveTour(rows: ActiveTourRow[], today: string): ActiveTour | null {
+  const byTour = new Map<string, ActiveTourRow[]>();
+  for (const row of rows) {
+    const list = byTour.get(row.tour_id);
+    if (list) list.push(row);
+    else byTour.set(row.tour_id, [row]);
+  }
+  let best: ActiveTour | null = null;
+  for (const list of byTour.values()) {
+    const lastDay = list.reduce((latest, row) => { const end = row.end_date ?? row.start_date; return end > latest ? end : latest; }, "");
+    if (list[0].start_date > today || lastDay < today) continue;
+    const stops: ActiveTourStop[] = list.map((row) => ({
+      event_slug: row.event_slug, start_date: row.start_date, stop_label: row.stop_label,
+      state: (row.end_date ?? row.start_date) < today ? "done" : row.start_date <= today ? "today" : "upcoming",
+    }));
+    const tour: ActiveTour = {
+      slug: list[0].slug, name: list[0].name, stops,
+      done_count: stops.filter((stop) => stop.state === "done").length,
+      next: stops.find((stop) => stop.state !== "done") ?? null,
+    };
+    if (!best || (tour.next?.start_date ?? "") < (best.next?.start_date ?? "")) best = tour;
+  }
+  return best;
+}
+
+export async function getActiveTour(db: D1Database, today = dateInTimeZone()): Promise<ActiveTour | null> {
+  const result = await db.prepare(`SELECT t.id AS tour_id, t.slug, t.name, e.slug AS event_slug, e.start_date, e.end_date,
+      COALESCE(NULLIF(TRIM(e.tour_stop), ''), ${eventStopAreaSql("e")}) AS stop_label
+    FROM tours t
+    JOIN events e ON e.tour_id = t.id AND e.published = 1 AND e.archived_at IS NULL AND e.status NOT IN ('cancelled', 'postponed')
+    WHERE t.published = 1
+      AND t.id IN (SELECT tour_id FROM events
+        WHERE tour_id IS NOT NULL AND published = 1 AND archived_at IS NULL AND status NOT IN ('cancelled', 'postponed')
+        GROUP BY tour_id HAVING MIN(start_date) <= ?1 AND MAX(COALESCE(end_date, start_date)) >= ?1)
+    ORDER BY e.start_date, COALESCE(e.start_time, ''), e.id`).bind(today).all<ActiveTourRow>();
+  return pickActiveTour(result.results, today);
 }

@@ -58,7 +58,16 @@ export class AgentsClient {
       } catch { /* Keep unstructured or oversized provider bodies out of logs. */ }
       throw new Error(`openai_http_${response.status}`);
     }
-    return JSON.parse(await boundedText(response));
+    // Feeding input into a running session is answered 202 with no body: the turn is
+    // accepted, there is nothing to return. Parsing that as JSON threw after the
+    // provider had already taken the message, so the caller reported a failure for a
+    // request that went through.
+    const text = response.body ? await boundedText(response) : "";
+    if (!text.trim()) return null;
+    try { return JSON.parse(text); } catch (error) {
+      if (response.status === 202 || response.status === 204) return null;
+      throw error;
+    }
   }
 
   /**

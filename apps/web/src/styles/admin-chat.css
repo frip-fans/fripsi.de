@@ -67,8 +67,10 @@ body[data-chat-locked="true"] {
   position: fixed; left: 0; right: 0; width: 100%; overflow: hidden;
 }
 
-/* An indeterminate bar while a turn runs: the first token can be many seconds away. */
-.chat-dock-status { position: relative; }
+/* An indeterminate bar while a turn runs: the first token can be many seconds away.
+   It sweeps a full row width to either side, so the row clips it sideways; `clip` on
+   one axis leaves the other visible, which the bar needs to sit on the bottom border. */
+.chat-dock-status { position: relative; overflow-x: clip; }
 .chat-dock-status::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
   background: linear-gradient(90deg, transparent, var(--accent), transparent);
@@ -152,7 +154,25 @@ body[data-chat-locked="true"] {
 }
 .chat-turn-label { margin: 0; color: var(--muted); font: .68rem/1.4 ui-monospace; letter-spacing: .06em; }
 /* No bubble for the assistant: in a 420px rail two bubbles are mostly border and padding. */
-.chat-prose { font-size: .9rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-prose { font-size: .9rem; line-height: 1.7; overflow-wrap: anywhere; }
+/* Rendered from the reply's Markdown by lib/chat-markdown.ts. */
+.chat-prose > * { margin: 0; }
+.chat-prose > * + * { margin-top: .65em; }
+.chat-prose ul, .chat-prose ol { padding-left: 1.3em; }
+.chat-prose ul { list-style: disc; }
+.chat-prose li + li { margin-top: .3em; }
+.chat-prose li::marker { color: var(--muted); }
+.chat-prose h4 { font-size: 1em; font-weight: 700; }
+.chat-prose strong { font-weight: 700; }
+.chat-prose a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.chat-prose code {
+  padding: .1em .35em; border-radius: 5px; background: rgba(255,255,255,.08);
+  font: .85em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.chat-prose pre { padding: .6rem .7rem; border-radius: 10px; background: rgba(4,11,20,.7); border: 1px solid var(--line); overflow-x: auto; }
+.chat-prose pre code { padding: 0; background: none; white-space: pre; }
+.chat-prose blockquote { padding-left: .7em; border-left: 2px solid var(--line); color: var(--muted); }
+.chat-prose hr { border: 0; border-top: 1px solid var(--line); }
 .chat-error {
   padding: .5rem .7rem; border-radius: 12px;
   background: rgba(255,132,152,.08); color: #ffd9df; font-size: .875rem;
@@ -262,13 +282,19 @@ body[data-chat-locked="true"] {
 
 /* A reply being streamed: a caret marks the live edge, and the tool line above it
    shows what the model is doing while the text is still arriving. */
-.chat-dock .chat-turn-live .chat-prose::after {
+/* The reply is block elements now, so the caret goes inside the last one (the last
+   item of a list); on the container it would drop to a line of its own. */
+.chat-dock .chat-turn-live .chat-prose:empty::after,
+.chat-dock .chat-turn-live .chat-prose > :last-child:not(ul, ol, pre, hr)::after,
+.chat-dock .chat-turn-live .chat-prose > :is(ul, ol):last-child > li:last-child::after {
   content: ""; display: inline-block; width: .5ch; height: 1em; margin-left: .1em;
   background: var(--accent); vertical-align: text-bottom;
 }
 .chat-dock .chat-tools-live { color: var(--accent); }
 @media (prefers-reduced-motion: no-preference) {
-  .chat-dock .chat-turn-live .chat-prose::after { animation: chat-caret 1s steps(1) infinite; }
+  .chat-dock .chat-turn-live .chat-prose:empty::after,
+  .chat-dock .chat-turn-live .chat-prose > :last-child:not(ul, ol, pre, hr)::after,
+  .chat-dock .chat-turn-live .chat-prose > :is(ul, ol):last-child > li:last-child::after { animation: chat-caret 1s steps(1) infinite; }
   @keyframes chat-caret { 50% { opacity: 0; } }
 }
 

@@ -2,6 +2,7 @@
 import { getAdjacentSetlists, getEventTourContext, getSetlistById, getSetlistHighlights } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
+import SpoilerGuard from "../../../components/SpoilerGuard.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import {
@@ -81,6 +82,8 @@ let previousSection = "";
       </div>
     </header>
 
+    {/* While the tour is still running, the songs and notes stay covered until the visitor asks for them. */}
+    <SpoilerGuard tour={tour?.slug ?? ""} until={tour?.last_date ?? null}>
     <section class="music-section setlist-order" aria-labelledby="setlist-heading">
       <div class="music-section-head"><h2 id="setlist-heading">{t(locale, "music.order")}</h2></div>
       {setlist.entries.length ? (
@@ -148,6 +151,7 @@ let previousSection = "";
         )}
       </section>
     )}
+    </SpoilerGuard>
 
     {(adjacent.previous || adjacent.next) && (
       <nav class="music-section setlist-pager" aria-label={t(locale, "music.adjacentLives")}>
@@ -173,6 +177,8 @@ let previousSection = "";
   .setlist-where a { display: inline-flex; align-items: center; gap: .3rem; min-height: 44px; color: var(--text); font-weight: 650; text-decoration: none; }
   .setlist-where a:hover { color: var(--accent); }
   .setlist-order { margin-top: 2rem; }
+  .music-page > :global(.spoiler-guard) { margin-top: 2rem; }
+  :global(.spoiler-guard) .setlist-order { margin-top: 0; }
   .setlist-entry-main :global(.setlist-badge) { justify-self: start; padding: .2rem .5rem; border: 1px solid; border-radius: 999px; font-size: .75rem; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
   .setlist-entry-main :global(.setlist-badge.is-debut) { color: #08111d; background: var(--accent); border-color: var(--accent); }
   .setlist-entry-main :global(.setlist-badge.is-return) { color: var(--accent); border-color: rgba(var(--accent-rgb), .45); background: rgba(var(--accent-rgb), .1); }

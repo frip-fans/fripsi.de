@@ -134,6 +134,8 @@ export interface EventTourContext {
   name: string;
   stop_number: number;
   stop_count: number;
+  /** Day of the tour's last stop: until then its setlists are spoilers for the stops still to come. */
+  last_date: string;
   previous: { slug: string; title: string; start_date: string } | null;
   next: { slug: string; title: string; start_date: string } | null;
 }
@@ -148,5 +150,5 @@ export async function getEventTourContext(db: D1Database, eventId: string): Prom
   const index = stops.results.findIndex((stop) => stop.id === eventId);
   if (index < 0) return null;
   const pick = (stop: (typeof stops.results)[number] | undefined) => stop ? { slug: stop.slug, title: stop.title, start_date: stop.start_date } : null;
-  return { slug: tour.slug, name: tour.name, stop_number: index + 1, stop_count: stops.results.length, previous: pick(stops.results[index - 1]), next: pick(stops.results[index + 1]) };
+  return { slug: tour.slug, name: tour.name, stop_number: index + 1, stop_count: stops.results.length, last_date: stops.results[stops.results.length - 1].start_date, previous: pick(stops.results[index - 1]), next: pick(stops.results[index + 1]) };
 }

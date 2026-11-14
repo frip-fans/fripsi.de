@@ -80,7 +80,7 @@ function clock(value: string): string {
     <label class="sr-only" for="chat-input">给助手的消息</label>
     <textarea id="chat-input" rows="1" maxlength="4000" data-role="input"
       placeholder="描述要查询或修改的内容，附上来源链接"></textarea>
-    <button type="submit" class="button chat-send" data-role="send" aria-label="发送"><Icon name="send" /></button>
+    <button type="submit" class="button chat-send" data-role="send" aria-label="发送" title="发送（Enter），Shift+Enter 换行"><Icon name="send" /></button>
   </form>
   <div class="chat-hint" data-role="hint">
     <button type="button" class="chat-attach" data-role="attach" aria-label="添加图片" title="添加图片（也可以粘贴或拖入）"><Icon name="plus" /></button>
@@ -92,7 +92,6 @@ function clock(value: string): string {
           aria-label="模型设置" title="模型设置"><Icon name="gear" /></button>
       )}
     </span>
-    <span class="chat-keys"><kbd data-role="hint-mod">Ctrl</kbd><kbd data-role="hint-enter">Enter</kbd><span>发送</span></span>
   </div>
   <span class="sr-only" role="status" aria-live="polite" data-role="announce"></span>
   <div class="chat-drop" data-role="drop" hidden><Icon name="image" /><span>松开以添加图片</span></div>

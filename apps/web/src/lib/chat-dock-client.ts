@@ -112,6 +112,7 @@ export function setupAdminChatDock(): void {
   let preparing = 0;
 
   const rail = window.matchMedia(RAIL_QUERY);
+  const touchKeyboard = window.matchMedia("(hover: none) and (pointer: coarse)");
   const scrollToEnd = () => log.scrollTo({ top: log.scrollHeight });
 
   // ---- open / close -------------------------------------------------------
@@ -778,7 +779,13 @@ export function setupAdminChatDock(): void {
     if (files.length && canAttach()) { void addImages(files); input.focus(); }
   });
   input.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); form.requestSubmit(); }
+    // Enter while an IME is composing confirms the candidate; it must never send.
+    if (event.key !== "Enter" || event.isComposing || event.keyCode === 229) return;
+    // Shift+Enter is the line break. On a touch keyboard Enter is one too: there the
+    // send button is in reach and a stray tap on Return should not post a half message.
+    if (event.shiftKey || (touchKeyboard.matches && !event.metaKey && !event.ctrlKey)) return;
+    event.preventDefault();
+    form.requestSubmit();
   });
   /** Grows the composer with its content instead of offering a drag handle. */
   function fitInput(): void {
@@ -802,15 +809,6 @@ export function setupAdminChatDock(): void {
   const draft = read(DRAFT_KEY);
   if (draft) input.value = draft;
   fitInput();
-  // The shortcut is spelled for the visitor's keyboard: ⌘ Return on Apple, Ctrl Enter elsewhere.
-  const platform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform
-    || navigator.platform || "";
-  if (/mac|iphone|ipad/i.test(platform)) {
-    const mod = dock.querySelector<HTMLElement>('[data-role="hint-mod"]');
-    const enter = dock.querySelector<HTMLElement>('[data-role="hint-enter"]');
-    if (mod) mod.textContent = "⌘";
-    if (enter) enter.textContent = "Return";
-  }
   setOpen(read(OPEN_KEY) !== "0" && root.classList.contains("chat-dock-open"), false);
   applyMode();
   setLive(live, expiresAt);

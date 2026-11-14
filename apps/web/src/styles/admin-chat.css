@@ -266,19 +266,8 @@ body[data-chat-locked="true"] {
 .chat-dock:focus, .chat-settings:focus { outline: none; }
 .chat-dock .chat-composer .chat-send { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
 .chat-hint {
-  display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin: 0;
+  display: flex; align-items: center; gap: .5rem; margin: 0;
   padding: .5rem var(--chat-gutter) max(var(--chat-gutter), env(safe-area-inset-bottom)); color: var(--muted); font-size: .7rem;
-}
-.chat-hint kbd {
-  display: inline-grid; place-items: center; min-width: 1.5rem; height: 1.35rem; padding: 0 .38rem;
-  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
-  background: rgba(255,255,255,.05); color: var(--text); font: 600 .66rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-.chat-keys { display: inline-flex; align-items: center; gap: .3rem; margin-left: auto; flex: none; white-space: nowrap; }
-.chat-keys span { margin-left: .15rem; }
-/* No hardware keyboard, no shortcut to advertise; the add-image button stays. */
-@media (hover: none) and (pointer: coarse) {
-  .chat-keys { display: none; }
 }
 
 /* The layout paints every <button> as the accent action; secondary controls must not

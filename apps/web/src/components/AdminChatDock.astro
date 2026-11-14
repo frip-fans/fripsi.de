@@ -33,14 +33,6 @@ function clock(value: string): string {
 
   <div class="chat-dock-status">
     <span data-role="status">{live ? `会话有效至 ${clock(session!.expires_at)}` : "准备就绪"}</span>
-    <span class="chat-model">
-      <label class="sr-only" for="chat-model">模型</label>
-      <select id="chat-model" data-role="model" disabled><option value="">加载中…</option></select>
-      {can_publish && (
-        <button type="button" class="chat-model-settings" data-chat-settings-open
-          aria-label="模型设置" title="模型设置"><Icon name="gear" /></button>
-      )}
-    </span>
   </div>
 
   <ol class="chat-log" data-role="log" aria-busy="false">
@@ -92,6 +84,14 @@ function clock(value: string): string {
   </form>
   <div class="chat-hint" data-role="hint">
     <button type="button" class="chat-attach" data-role="attach" aria-label="添加图片" title="添加图片（也可以粘贴或拖入）"><Icon name="plus" /></button>
+    <span class="chat-model">
+      <label class="sr-only" for="chat-model">模型</label>
+      <select id="chat-model" data-role="model" disabled><option value="">加载中…</option></select>
+      {can_publish && (
+        <button type="button" class="chat-model-settings" data-chat-settings-open
+          aria-label="模型设置" title="模型设置"><Icon name="gear" /></button>
+      )}
+    </span>
     <span class="chat-keys"><kbd data-role="hint-mod">Ctrl</kbd><kbd data-role="hint-enter">Enter</kbd><span>发送</span></span>
   </div>
   <span class="sr-only" role="status" aria-live="polite" data-role="announce"></span>

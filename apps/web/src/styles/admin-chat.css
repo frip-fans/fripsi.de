@@ -100,13 +100,13 @@ body[data-chat-locked="true"] {
 .chat-dock.chat-dock-expiring .chat-dock-status { color: var(--warning, #ffd27f); }
 /* A quiet picker, as in other chat tools: it reads as a label until hovered. `.chat-dock`
    in the selector outranks the admin sheet's phone rule that sets every field to 16px. */
-.chat-dock .chat-dock-status select {
-  width: auto; min-height: 30px; max-width: 13rem; padding: .2rem 1.6rem .2rem .5rem; border-radius: 8px;
+.chat-dock .chat-model select {
+  width: auto; min-width: 0; min-height: 30px; max-width: 11rem; text-overflow: ellipsis; padding: .2rem 1.6rem .2rem .5rem; border-radius: 8px;
   border: 1px solid transparent; background-color: transparent; color: var(--text);
   font: .72rem/1.4 ui-monospace;
 }
-.chat-dock .chat-dock-status select:hover:not(:disabled), .chat-dock .chat-dock-status select:focus-visible { border-color: var(--line); }
-.chat-dock-status select:disabled { opacity: .55; cursor: not-allowed; }
+.chat-dock .chat-model select:hover:not(:disabled), .chat-dock .chat-model select:focus-visible { border-color: var(--line); }
+.chat-model select:disabled { opacity: .55; cursor: not-allowed; }
 
 /* History opens as its own dialog (styled by .chat-settings): a drawer inside the rail
    pushed the transcript down and read as part of the conversation. */
@@ -274,7 +274,7 @@ body[data-chat-locked="true"] {
   border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
   background: rgba(255,255,255,.05); color: var(--text); font: 600 .66rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
 }
-.chat-keys { display: inline-flex; align-items: center; gap: .3rem; margin-left: auto; }
+.chat-keys { display: inline-flex; align-items: center; gap: .3rem; margin-left: auto; flex: none; white-space: nowrap; }
 .chat-keys span { margin-left: .15rem; }
 /* No hardware keyboard, no shortcut to advertise; the add-image button stays. */
 @media (hover: none) and (pointer: coarse) {
@@ -316,7 +316,7 @@ body[data-chat-locked="true"] {
   .chat-dock .chat-composer textarea { min-height: 40px; padding: .55rem .65rem; font-size: .9375rem; }
   .chat-dock .chat-composer .chat-send { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
   .chat-dock .chat-attach { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
-  .chat-dock .chat-dock-status select { min-height: 36px; font-size: .75rem; }
+  .chat-dock .chat-model select { min-height: 36px; font-size: .75rem; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -405,8 +405,8 @@ body[data-chat-locked="true"] {
   border-top: 1px solid var(--line);
 }
 .chat-settings-count { margin-right: auto; color: var(--muted); font: .7rem/1.6 ui-monospace; }
-.chat-model { display: inline-flex; align-items: center; gap: .25rem; }
-.chat-model select { max-width: 13rem; }
+/* Beside the add-image button; it gives way before the shortcut hint does. */
+.chat-model { display: inline-flex; align-items: center; gap: .25rem; min-width: 0; flex: 0 1 auto; }
 .chat-model-settings {
   display: inline-grid; place-items: center; width: 30px; min-width: 30px; height: 30px;
   min-height: 30px; padding: 0; border: 0; border-radius: 9px; background: none; color: var(--muted);

@@ -102,12 +102,58 @@ async function send(payload: NotificationPayload, key: string, request: typeof f
   if (result.code !== 200) throw new DeliveryError("bark_rejected");
 }
 
-export async function tickNotifications(env: BarkEnv, now = new Date(), request: typeof fetch = fetch.bind(globalThis)): Promise<void> {
-  if (env.BARK_ENABLED !== "true" || !env.BARK_DEVICE_KEY?.trim()) return;
+/** Null when delivery is switched off; a present but malformed configuration is an error. */
+function barkTarget(env: BarkEnv): { key: string; site: URL } | null {
+  if (env.BARK_ENABLED !== "true" || !env.BARK_DEVICE_KEY?.trim()) return null;
   const key = env.BARK_DEVICE_KEY.trim(), site = new URL(env.BARK_SITE_URL || "https://fripsi.de");
   if (!/^[A-Za-z0-9_-]{8,200}$/.test(key) || site.protocol !== "https:" || site.username || site.password || site.pathname !== "/" || site.search || site.hash) {
     throw new DeliveryError("bark_configuration_invalid");
   }
+  return { key, site };
+}
+
+interface NewComment { id: number; author_name: string; body: string; thread_type: string; event_title: string | null }
+
+/**
+ * Comments go public the moment they are posted, so the maintainer hears about them here:
+ * one digest per tick for everything since the last one. The cursor only moves after a
+ * successful push, so a failed delivery is simply retried on the next tick.
+ */
+export async function tickCommentNotifications(env: BarkEnv, now = new Date(), request: typeof fetch = fetch.bind(globalThis)): Promise<void> {
+  const target = barkTarget(env);
+  if (!target) return;
+  const state = await env.DB.prepare("SELECT last_comment_id FROM comment_notification_state WHERE channel='bark'").first<{ last_comment_id: number }>();
+  if (!state) {
+    // Switching notifications on does not announce the comments that already exist.
+    await env.DB.prepare(`INSERT OR IGNORE INTO comment_notification_state(channel,last_comment_id,updated_at)
+      SELECT 'bark',COALESCE(MAX(id),0),? FROM comments`).bind(now.toISOString()).run();
+    return;
+  }
+  const pending = await env.DB.prepare(`SELECT MAX(id) AS newest, COALESCE(SUM(status='visible'),0) AS visible FROM comments WHERE id>?`)
+    .bind(state.last_comment_id).first<{ newest: number | null; visible: number }>();
+  if (!pending?.newest) return;
+  if (pending.visible > 0) {
+    const rows = await env.DB.prepare(`SELECT c.id,c.author_name,c.body,c.thread_type,e.title AS event_title
+      FROM comments c LEFT JOIN events e ON c.thread_type='event' AND e.id=c.thread_id
+      WHERE c.id>? AND c.id<=? AND c.status='visible' ORDER BY c.id LIMIT 4`).bind(state.last_comment_id, pending.newest).all<NewComment>();
+    const lines = rows.results.map((row) =>
+      `${row.author_name}：${truncate(row.body.replace(/\s+/g, " "), 240)}\n— ${row.thread_type === "site" ? "留言板" : truncate(row.event_title ?? "活动", 120)}`);
+    if (pending.visible > rows.results.length) lines.push(`另有 ${pending.visible - rows.results.length} 条，请查看后台。`);
+    const prefix = target.site.hostname === "fripsi.de" ? "fripSi.de" : "fripSi.de [测试]";
+    await send({
+      title: `${prefix} 新留言 ${pending.visible} 条`, body: truncate(lines.join("\n\n"), 2000),
+      url: `${target.site.origin}/admin/comments`, group: "fripsi-comments",
+    }, target.key, request);
+    console.log(JSON.stringify({ action: "comments.notification_sent", count: pending.visible }));
+  }
+  await env.DB.prepare("UPDATE comment_notification_state SET last_comment_id=?,updated_at=? WHERE channel='bark' AND last_comment_id=?")
+    .bind(pending.newest, now.toISOString(), state.last_comment_id).run();
+}
+
+export async function tickNotifications(env: BarkEnv, now = new Date(), request: typeof fetch = fetch.bind(globalThis)): Promise<void> {
+  const target = barkTarget(env);
+  if (!target) return;
+  const { key, site } = target;
   await enqueue(env.DB, site.origin, now);
   const ready = await env.DB.prepare(`SELECT run_id,payload_json,attempts FROM official_sync_notifications
     WHERE available_at<=? AND (status='pending' OR (status='sending' AND locked_until<=?))
@@ -140,4 +186,6 @@ export async function tickNotifications(env: BarkEnv, now = new Date(), request:
 export async function safeTickNotifications(env: BarkEnv): Promise<void> {
   try { await tickNotifications(env); }
   catch (error) { console.error(JSON.stringify({ action: "official_sync.notification_error", code: error instanceof DeliveryError ? error.code : "notification_tick_failed" })); }
+  try { await tickCommentNotifications(env); }
+  catch (error) { console.error(JSON.stringify({ action: "comments.notification_error", code: error instanceof DeliveryError ? error.code : "notification_tick_failed" })); }
 }

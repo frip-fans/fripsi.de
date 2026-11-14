@@ -92,7 +92,7 @@ Web（`web.env`）：
 | `MCP_RESOURCE_URL`、`MCP_AUTHORIZATION_SERVER`、`MCP_AUDIENCE` | MCP OAuth resource 配置 |
 | `AUTOMATION_AUDIENCE`、`AUTOMATION_SIGNING_SECRET` | 自动同步任务凭据；签名密钥与 `sync.env` 相同，只存主机 |
 
-数据库与媒体路径由 `fripside-web.service` 固定为 `FRIP_DB_PATH=/var/lib/fripside/site.sqlite`、`FRIP_MEDIA_DIR=/var/lib/fripside/media`。
+数据库与媒体路径由 `fripside-web.service` 固定为 `FRIP_DB_PATH=/var/lib/fripside/site.sqlite`、`FRIP_MEDIA_DIR=/var/lib/fripside/media`。后台聊天里发送的图片存放在 `FRIP_DATA_DIR/chat-media`（即 `/var/lib/fripside/chat-media`，可用 `FRIP_CHAT_MEDIA_DIR` 覆盖），由 Web 进程首次写入时创建；该目录不对外提供访问，只经登录后的后台接口读取，也不在 SQLite 备份范围内。
 
 ### 管理后台 Access
 

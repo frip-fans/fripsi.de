@@ -25,6 +25,8 @@ async function request(path = "/", init?: ResponseInit & { status?: number }) {
 describe("staging access isolation", () => {
   beforeEach(() => {
     mocks.env.APP_ENV = "staging";
+    delete mocks.env.TURNSTILE_SITE_KEY;
+    delete mocks.env.TURNSTILE_SECRET_KEY;
     mocks.authenticate.mockReset();
   });
   it("blocks unauthenticated public pages before rendering", async () => {
@@ -48,7 +50,6 @@ describe("staging access isolation", () => {
     expect(response.status).toBe(200);
     expect(next).toHaveBeenCalledOnce();
     expect(response.headers.get("content-security-policy")).toContain("https://tiles.openfreemap.org");
-    expect(response.headers.get("content-security-policy")).not.toContain("https://giscus.app");
     expect(response.headers.get("cache-control")).toBe("private, no-store");
   });
   it("keeps production public pages accessible without login", async () => {
@@ -59,18 +60,26 @@ describe("staging access isolation", () => {
     expect(mocks.authenticate).not.toHaveBeenCalled();
     expect(response.headers.has("x-robots-tag")).toBe(false);
   });
-  it.each(["/about", "/calendar", "/music/lives"])("allows Giscus after client navigation from %s", async path => {
+  it.each(["/about", "/calendar", "/music/lives"])("allows the comment challenge after client navigation from %s", async path => {
     mocks.env.APP_ENV = "production";
+    Object.assign(mocks.env, { TURNSTILE_SITE_KEY: "site", TURNSTILE_SECRET_KEY: "secret" });
     const { response } = await request(path);
     const policy = response.headers.get("content-security-policy")!;
-    expect(policy).toMatch(/script-src [^;]*https:\/\/giscus\.app/);
-    expect(policy).toMatch(/frame-src [^;]*https:\/\/giscus\.app/);
+    expect(policy).toMatch(/script-src [^;]*https:\/\/challenges\.cloudflare\.com/);
+    expect(policy).toMatch(/frame-src [^;]*https:\/\/challenges\.cloudflare\.com/);
+    expect(policy).not.toContain("giscus");
   });
-  it("keeps Giscus disabled for admin documents", async () => {
+  it("allows no third-party comment origin until a challenge is configured", async () => {
     mocks.env.APP_ENV = "production";
+    mocks.env.TURNSTILE_SITE_KEY = "site";
+    const { response } = await request("/");
+    expect(response.headers.get("content-security-policy")).not.toContain("challenges.cloudflare.com");
+  });
+  it("keeps the comment challenge out of admin documents but on staging pages", async () => {
+    Object.assign(mocks.env, { TURNSTILE_SITE_KEY: "site", TURNSTILE_SECRET_KEY: "secret" });
     mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
-    const { response } = await request("/admin");
-    expect(response.headers.get("content-security-policy")).not.toContain("https://giscus.app");
+    expect((await request("/admin")).response.headers.get("content-security-policy")).not.toContain("challenges.cloudflare.com");
+    expect((await request("/")).response.headers.get("content-security-policy")).toContain("challenges.cloudflare.com");
   });
   it("keeps list view caching private after moving the archive under calendar", async () => {
     mocks.env.APP_ENV = "production";

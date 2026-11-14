@@ -1,0 +1,120 @@
+---
+import { dateInTimeZone } from "@frip-fan/core";
+import { getLocale, t } from "../lib/i18n";
+import Icon from "./Icon.astro";
+
+/**
+ * Covers setlist content of a tour that is still on the road. The page is cached for everyone, so
+ * the content is always in the markup, hidden by default; the script below uncovers it once the
+ * tour is over or when this device has chosen to see it (see lib/spoiler-guard.ts).
+ *
+ * `quiet` hides its content without a cover of its own, for a second block on a page that already
+ * has one. The `safe` slot is shown with the cover: things worth seeing that give nothing away.
+ */
+interface Props { tour: string; until: string | null; quiet?: boolean }
+const { tour, until, quiet = false } = Astro.props;
+const locale = getLocale(Astro.request);
+// Only while the tour runs; afterwards the content renders exactly as it did before.
+const active = Boolean(until && until >= dateInTimeZone());
+---
+{active ? (
+  <>
+  <div class="spoiler-guard" data-spoiler-guard data-spoiler-tour={tour} data-spoiler-until={until}>
+    {!quiet && (
+      <div class="spoiler-cover">
+        <div class="spoiler-notice panel">
+          <Icon name="eye-slash" size="1.4rem" />
+          <div class="spoiler-notice-text">
+            <h2>{t(locale, "spoiler.title")}</h2>
+            <p>{t(locale, "spoiler.body")}</p>
+          </div>
+          <button type="button" data-spoiler-reveal><Icon name="eye" />{t(locale, "spoiler.reveal")}</button>
+        </div>
+        <slot name="safe" />
+      </div>
+    )}
+    <div class="spoiler-content" data-spoiler-content tabindex="-1">
+      {!quiet && (
+        <p class="spoiler-bar">
+          <span><Icon name="eye" />{t(locale, "spoiler.shown")}</span>
+          <button type="button" class="secondary" data-spoiler-hide><Icon name="eye-slash" />{t(locale, "spoiler.hide")}</button>
+        </p>
+      )}
+      <slot />
+    </div>
+  </div>
+  <script is:inline>
+    // Runs while the page is still being parsed, so a device that revealed this tour never sees the cover flash.
+    (() => { try {
+      const guard = document.currentScript.previousElementSibling;
+      const revealed = JSON.parse(localStorage.getItem("frip_fan_spoilers_revealed") || "[]");
+      if (Array.isArray(revealed) && revealed.includes(guard.dataset.spoilerTour)) guard.setAttribute("data-revealed", "");
+    } catch { /* The module script decides. */ } })();
+  </script>
+  <noscript><style>.spoiler-guard .spoiler-cover { display: none !important; } .spoiler-guard .spoiler-content { display: block !important; } .spoiler-guard .spoiler-bar { display: none !important; }</style></noscript>
+  </>
+) : <slot />}
+
+<script>
+  import { isSpoilerConcealed, readRevealedTours, setTourRevealed, spoilerToday } from "../lib/spoiler-guard";
+
+  // Reveals that storage refused to keep still hold until the page is left.
+  const sessionRevealed = new Set<string>();
+  const revealedTours = () => [...new Set([...readRevealedTours(localStorage), ...sessionRevealed])];
+
+  function applySpoilerGuards() {
+    const guards = document.querySelectorAll<HTMLElement>("[data-spoiler-guard]");
+    if (!guards.length) return;
+    const today = spoilerToday();
+    let revealed: string[];
+    try { revealed = revealedTours(); } catch { revealed = [...sessionRevealed]; }
+    for (const guard of guards) {
+      const over = today > guard.dataset.spoilerUntil!;
+      guard.toggleAttribute("data-revealed", !isSpoilerConcealed(guard.dataset.spoilerUntil!, guard.dataset.spoilerTour!, revealed, today));
+      // Once the tour is over there is nothing left to switch back to.
+      guard.toggleAttribute("data-spoiler-over", over);
+    }
+  }
+
+  document.addEventListener("click", (event) => {
+    const button = (event.target as Element | null)?.closest<HTMLElement>("[data-spoiler-reveal], [data-spoiler-hide]");
+    const guard = button?.closest<HTMLElement>("[data-spoiler-guard]");
+    if (!button || !guard) return;
+    const reveal = button.hasAttribute("data-spoiler-reveal");
+    const tour = guard.dataset.spoilerTour!;
+    if (reveal) sessionRevealed.add(tour); else sessionRevealed.delete(tour);
+    try { setTourRevealed(localStorage, tour, reveal); } catch { /* Storage unavailable: this page only. */ }
+    applySpoilerGuards();
+    // Keep keyboard and screen-reader users where the change happened.
+    const target = reveal ? guard.querySelector<HTMLElement>("[data-spoiler-content]") : guard.querySelector<HTMLElement>("[data-spoiler-reveal]");
+    target?.focus({ preventScroll: true });
+    guard.scrollIntoView({ block: "nearest" });
+  });
+
+  applySpoilerGuards();
+  // After a client-side navigation the new page's guards are in place before it is painted.
+  document.addEventListener("astro:after-swap", applySpoilerGuards);
+  document.addEventListener("astro:page-load", applySpoilerGuards);
+</script>
+
+<style>
+  .spoiler-guard:not([data-revealed]) > .spoiler-content { display: none; }
+  .spoiler-guard[data-revealed] > .spoiler-cover { display: none; }
+  .spoiler-content:focus { outline: none; }
+  .spoiler-cover { display: grid; gap: 1.25rem; }
+  .spoiler-notice { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .9rem 1.1rem; padding: 1.1rem 1.25rem; }
+  .spoiler-notice > :global(.icon) { color: var(--accent); }
+  .spoiler-notice-text { display: grid; gap: .25rem; min-width: 0; }
+  .spoiler-notice h2 { margin: 0; font-size: 1rem; }
+  .spoiler-notice p { margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.6; }
+  .spoiler-notice button { white-space: nowrap; }
+  .spoiler-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 1rem; margin: 0 0 1rem; padding: .35rem .4rem .35rem .85rem; color: var(--muted); border: 1px dashed rgba(var(--accent-rgb), .4); border-radius: 12px; font-size: .8125rem; }
+  .spoiler-bar span { display: inline-flex; align-items: center; gap: .45rem; }
+  .spoiler-bar span :global(.icon) { color: var(--accent); }
+  .spoiler-bar button { min-height: 36px; padding: .35rem .7rem; font-size: .8125rem; font-weight: 650; }
+  .spoiler-guard[data-spoiler-over] .spoiler-bar { display: none; }
+  @media (max-width: 560px) {
+    .spoiler-notice { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+    .spoiler-notice button { grid-column: 1 / -1; min-height: 44px; }
+  }
+</style>

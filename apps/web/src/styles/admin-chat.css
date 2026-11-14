@@ -100,13 +100,13 @@ body[data-chat-locked="true"] {
 .chat-dock.chat-dock-expiring .chat-dock-status { color: var(--warning, #ffd27f); }
 /* A quiet picker, as in other chat tools: it reads as a label until hovered. `.chat-dock`
    in the selector outranks the admin sheet's phone rule that sets every field to 16px. */
-.chat-dock .chat-dock-status select {
-  width: auto; min-height: 30px; max-width: 13rem; padding: .2rem 1.6rem .2rem .5rem; border-radius: 8px;
+.chat-dock .chat-model select {
+  width: auto; min-width: 0; min-height: 30px; max-width: 11rem; text-overflow: ellipsis; padding: .2rem 1.6rem .2rem .5rem; border-radius: 8px;
   border: 1px solid transparent; background-color: transparent; color: var(--text);
   font: .72rem/1.4 ui-monospace;
 }
-.chat-dock .chat-dock-status select:hover:not(:disabled), .chat-dock .chat-dock-status select:focus-visible { border-color: var(--line); }
-.chat-dock-status select:disabled { opacity: .55; cursor: not-allowed; }
+.chat-dock .chat-model select:hover:not(:disabled), .chat-dock .chat-model select:focus-visible { border-color: var(--line); }
+.chat-model select:disabled { opacity: .55; cursor: not-allowed; }
 
 /* History opens as its own dialog (styled by .chat-settings): a drawer inside the rail
    pushed the transcript down and read as part of the conversation. */
@@ -151,6 +151,31 @@ body[data-chat-locked="true"] {
   font-size: .9rem; line-height: 1.55;
   /* A neutral fill without a frame: the accent stays for actions and proposals. */
   background: rgba(255,255,255,.08); border-radius: 16px 16px 4px 16px;
+}
+/* Images a maintainer sent sit above the bubble, right-aligned with it. */
+.chat-images { display: flex; flex-wrap: wrap; justify-content: end; gap: .35rem; max-width: 85%; }
+.chat-images img {
+  display: block; max-width: 100%; max-height: 180px; border-radius: 12px;
+  border: 1px solid var(--line); object-fit: cover; background: rgba(255,255,255,.04);
+}
+/* Several images share a row as equal tiles; a single one keeps its own shape. */
+.chat-images > :not(:only-child), .chat-images > :not(:only-child) img { width: 96px; height: 96px; }
+.chat-images a { display: block; border-radius: 12px; }
+/* The working indicator under the message just sent; the status row repeats it up top. */
+.chat-turn-pending {
+  grid-auto-flow: column; justify-content: start; align-items: center; gap: .5rem;
+  color: var(--muted); font: .7rem/1.6 ui-monospace;
+}
+.chat-pending-dots { display: inline-flex; gap: 4px; }
+.chat-pending-dots i {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  opacity: .3; animation: chat-pending 1.2s ease-in-out infinite;
+}
+.chat-pending-dots i:nth-child(2) { animation-delay: .2s; }
+.chat-pending-dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes chat-pending { 30% { opacity: 1; transform: translateY(-2px); } 60% { opacity: .3; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .chat-pending-dots i { animation: none; opacity: .7; }
 }
 .chat-turn-label { margin: 0; color: var(--muted); font: .68rem/1.4 ui-monospace; letter-spacing: .06em; }
 /* No bubble for the assistant: in a 420px rail two bubbles are mostly border and padding. */
@@ -209,6 +234,41 @@ body[data-chat-locked="true"] {
   border: 1px solid var(--line); border-radius: 20px; background: rgba(4,11,20,.6);
   transition: border-color .15s;
 }
+/* Pending images take the composer's first row; the controls wrap below them. */
+.chat-composer { flex-wrap: wrap; }
+.chat-attachments {
+  flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; margin: 0; padding: .3rem .3rem .1rem;
+}
+.chat-attachments li { position: relative; }
+.chat-attachments img {
+  display: block; width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line);
+}
+.chat-dock .chat-attachment-remove {
+  position: absolute; top: -6px; right: -6px; display: grid; place-items: center;
+  width: 20px; min-width: 20px; height: 20px; min-height: 20px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--line); background: #0b1220; color: var(--text); font: 600 .8rem/1 system-ui;
+}
+/* The visible disc stays small beside a thumbnail; this widens what a finger can hit. */
+.chat-dock .chat-attachment-remove::after { content: ""; position: absolute; inset: -8px; }
+.chat-dock .chat-attachment-remove:hover { border-color: var(--accent); color: var(--accent); }
+/* The add-image button sits in the row under the composer, opposite the shortcut hint. */
+.chat-dock .chat-attach {
+  display: inline-grid; place-items: center; width: 32px; min-width: 32px; height: 32px; min-height: 32px;
+  /* Pulled left by its own inset so the icon, not the hit area, lines up with the composer edge. */
+  padding: 0; margin-left: -7px; border: 0; border-radius: 9px; background: none; color: var(--muted);
+}
+.chat-dock .chat-attach:hover:not(:disabled) { color: var(--accent); background: rgba(var(--accent-rgb), .12); }
+.chat-dock .chat-attach:disabled { opacity: .45; cursor: not-allowed; }
+.chat-dock .chat-attach svg { width: 18px; height: 18px; }
+/* No composer (ended session, archive view), nothing to attach to. */
+.chat-composer[hidden] ~ .chat-hint .chat-attach { display: none; }
+/* Covers the dock while a file is dragged over it; pointer-events off so the dock keeps the drag. */
+.chat-drop {
+  position: absolute; inset: 6px; z-index: 5; display: grid; place-content: center; justify-items: center; gap: .5rem;
+  border: 2px dashed var(--accent); border-radius: 16px; background: rgba(6,12,24,.86);
+  color: var(--accent); font-size: .85rem; pointer-events: none;
+}
+.chat-drop svg { width: 26px; height: 26px; }
 .chat-composer:focus-within { border-color: rgba(var(--accent-rgb), .6); }
 /* The composer grows with its content (see fitInput), so no drag handle. */
 .chat-dock .chat-composer textarea {
@@ -222,20 +282,8 @@ body[data-chat-locked="true"] {
 .chat-dock:focus, .chat-settings:focus { outline: none; }
 .chat-dock .chat-composer .chat-send { width: 36px; min-width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; }
 .chat-hint {
-  display: flex; align-items: center; gap: .3rem; margin: 0;
-  padding: .7rem var(--chat-gutter) max(var(--chat-gutter), env(safe-area-inset-bottom)); color: var(--muted); font-size: .7rem;
-}
-.chat-hint kbd {
-  display: inline-grid; place-items: center; min-width: 1.5rem; height: 1.35rem; padding: 0 .38rem;
-  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
-  background: rgba(255,255,255,.05); color: var(--text); font: 600 .66rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-.chat-hint span { margin-left: .15rem; }
-/* No hardware keyboard, no shortcut to advertise; keep only the safe-area padding. */
-@media (hover: none) and (pointer: coarse) {
-  /* Named, not `> *`: the keycap rule above is more specific and kept the keys on screen. */
-  .chat-hint kbd, .chat-hint span { display: none; }
-  .chat-hint { padding-top: 0; }
+  display: flex; align-items: center; gap: .5rem; margin: 0;
+  padding: .5rem var(--chat-gutter) max(var(--chat-gutter), env(safe-area-inset-bottom)); color: var(--muted); font-size: .7rem;
 }
 
 /* The layout paints every <button> as the accent action; secondary controls must not
@@ -272,7 +320,8 @@ body[data-chat-locked="true"] {
   .chat-bubble, .chat-prose { font-size: .9375rem; }
   .chat-dock .chat-composer textarea { min-height: 40px; padding: .55rem .65rem; font-size: .9375rem; }
   .chat-dock .chat-composer .chat-send { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
-  .chat-dock .chat-dock-status select { min-height: 36px; font-size: .75rem; }
+  .chat-dock .chat-attach { width: 40px; min-width: 40px; height: 40px; min-height: 40px; }
+  .chat-dock .chat-model select { min-height: 36px; font-size: .75rem; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -361,8 +410,8 @@ body[data-chat-locked="true"] {
   border-top: 1px solid var(--line);
 }
 .chat-settings-count { margin-right: auto; color: var(--muted); font: .7rem/1.6 ui-monospace; }
-.chat-model { display: inline-flex; align-items: center; gap: .25rem; }
-.chat-model select { max-width: 13rem; }
+/* Beside the add-image button; it gives way before the shortcut hint does. */
+.chat-model { display: inline-flex; align-items: center; gap: .25rem; min-width: 0; flex: 0 1 auto; }
 .chat-model-settings {
   display: inline-grid; place-items: center; width: 30px; min-width: 30px; height: 30px;
   min-height: 30px; padding: 0; border: 0; border-radius: 9px; background: none; color: var(--muted);

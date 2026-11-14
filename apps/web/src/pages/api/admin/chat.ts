@@ -1,4 +1,4 @@
-import { ServiceError } from "@frip-fan/core";
+import { ServiceError, parseChatImages, type ChatImage } from "@frip-fan/core";
 import type { APIRoute } from "astro";
 import { startChat } from "../../../lib/chat";
 
@@ -12,12 +12,14 @@ export function jsonError(error: unknown): Response {
   return Response.json({ error: { code, message } }, { status: known ? error.status : 500 });
 }
 
-export async function readInput(request: Request): Promise<string> {
-  const body = await request.json().catch(() => null) as { input?: unknown } | null;
+/** A message is its text, its images, or both; images alone are a complete message. */
+export async function readInput(request: Request): Promise<{ input: string; images: ChatImage[] }> {
+  const body = await request.json().catch(() => null) as { input?: unknown; images?: unknown } | null;
   const input = typeof body?.input === "string" ? body.input.trim() : "";
-  if (!input) throw new ServiceError("invalid_input", "请输入内容", 400);
   if (input.length > MAX_INPUT) throw new ServiceError("invalid_input", `单条输入不能超过 ${MAX_INPUT} 字`, 400);
-  return input;
+  const images = parseChatImages(body?.images);
+  if (!input && !images.length) throw new ServiceError("invalid_input", "请输入内容", 400);
+  return { input, images };
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -25,7 +27,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const body = await request.clone().json().catch(() => null) as { model?: unknown } | null;
     const model = typeof body?.model === "string" ? body.model.trim() : "";
     if (!model) throw new ServiceError("invalid_model", "请选择模型", 400);
-    const session = await startChat(locals.actor!, await readInput(request), model);
+    const { input, images } = await readInput(request);
+    const session = await startChat(locals.actor!, input, model, new Date(), images);
     return Response.json({ session_id: session.id, model: session.model, expires_at: session.expires_at });
   } catch (error) { return jsonError(error); }
 };

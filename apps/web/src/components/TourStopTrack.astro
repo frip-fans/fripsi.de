@@ -1,0 +1,51 @@
+---
+import { getLocale } from "../lib/i18n";
+
+/**
+ * A tour drawn as a line of stops. `tone` colours the dot: "lit" (accent), "dim" (played, but
+ * nothing to show for it) or "open" (still to come); `next` rings the stop the tour is heading to.
+ */
+export interface TrackStop { label: string | null; date: string; tone: "lit" | "dim" | "open"; next?: boolean }
+interface Props { stops: TrackStop[]; label: string; showDates?: boolean }
+const { stops, label, showDates = true } = Astro.props;
+const locale = getLocale(Astro.request);
+const shortDate = new Intl.DateTimeFormat(locale, { month: "numeric", day: "numeric", timeZone: "UTC" });
+// "東京公演" reads as "東京" under a dot; the tour page trims its column headers the same way.
+const stopName = (stop: TrackStop) => stop.label?.replace(/公演$/, "") || null;
+---
+<ol class:list={["tour-track", { "is-crowded": stops.length > 4, "is-dense": stops.length > 8 }]} aria-label={label}>
+  {stops.map((stop) => (
+    <li class:list={[`is-${stop.tone}`, { "is-next": stop.next }]} aria-current={stop.next ? "step" : undefined}>
+      <span class="tour-track-dot" aria-hidden="true"></span>
+      {stopName(stop) && <span class="tour-track-stop" translate="no">{stopName(stop)}</span>}
+      <time class:list={[{ "is-unseen": !showDates }]} datetime={stop.date}>{shortDate.format(new Date(`${stop.date}T00:00:00Z`))}</time>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .tour-track { display: flex; min-width: 0; margin: 0; padding: 0; list-style: none; }
+  .tour-track li { position: relative; display: grid; flex: 1 1 0; justify-items: center; align-content: start; gap: .15rem; min-width: 0; padding: 0 .2rem; color: var(--muted); text-align: center; }
+  /* Each stop draws the leg that leads to it; a leg is lit once the stop it reaches has been played. */
+  .tour-track li + li::before { content: ""; position: absolute; top: calc(.45rem - 1px); right: calc(50% + .45rem); width: calc(100% - .9rem); height: 2px; border-radius: 1px; background: rgba(159, 180, 211, .2); }
+  .tour-track li + li.is-lit::before { background: rgba(var(--accent-rgb), .7); }
+  .tour-track li + li.is-dim::before { background: rgba(159, 180, 211, .38); }
+  .tour-track-dot { width: .9rem; height: .9rem; margin-bottom: .15rem; border: 2px solid rgba(159, 180, 211, .35); border-radius: 50%; box-sizing: border-box; }
+  .is-lit .tour-track-dot { border-color: var(--accent); background: var(--accent); }
+  .is-dim .tour-track-dot { border-color: rgba(159, 180, 211, .5); background: rgba(159, 180, 211, .5); }
+  .is-next .tour-track-dot { border-color: var(--accent); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .16); }
+  .tour-track-stop { max-width: 100%; overflow: hidden; color: #c8d9e7; font-size: .8125rem; font-weight: 650; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+  .tour-track time { font-size: .72rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  /* Without dates the day is still there for screen readers. */
+  .tour-track time.is-unseen { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .is-next :is(.tour-track-stop, time) { color: var(--accent); }
+  :is(.is-lit, .is-dim):not(.is-next) :is(.tour-track-stop, time) { color: var(--muted); }
+  /* Too many stops to caption: only the next one keeps its name and date, still read out for the rest. */
+  .is-dense li:not(.is-next) :is(.tour-track-stop, time) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .is-dense li.is-next :is(.tour-track-stop, time:not(.is-unseen)) { max-width: none; overflow: visible; }
+  @media (max-width: 560px) {
+    .tour-track-stop { font-size: .75rem; }
+    .is-crowded li:not(.is-next) :is(.tour-track-stop, time) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+    .is-crowded li.is-next :is(.tour-track-stop, time:not(.is-unseen)) { max-width: none; overflow: visible; }
+  }
+</style>

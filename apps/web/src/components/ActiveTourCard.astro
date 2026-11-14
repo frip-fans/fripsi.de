@@ -1,0 +1,65 @@
+---
+import type { ActiveTour } from "@frip-fan/core";
+import { getLocale, t } from "../lib/i18n";
+import Icon from "./Icon.astro";
+import TourRouteLines from "./TourRouteLines.astro";
+import TourStopTrack, { type TrackStop } from "./TourStopTrack.astro";
+
+interface Props { tour: ActiveTour; today: string }
+const { tour, today } = Astro.props;
+const locale = getLocale(Astro.request);
+const { next, stops } = tour;
+
+const daysUntilNext = next ? Math.round((Date.parse(next.start_date) - Date.parse(today)) / 86_400_000) : 0;
+// One short line: the stop track already carries the next stop's name and date.
+const nextLine = !next ? ""
+  : next.state === "today" ? t(locale, "home.tourToday")
+    : daysUntilNext === 1 ? t(locale, "home.tourNextTomorrow")
+      : t(locale, "home.tourNextDays", { count: daysUntilNext });
+const trackStops: TrackStop[] = stops.map((stop) => ({
+  label: stop.stop_label, date: stop.start_date, tone: stop.state === "upcoming" ? "open" : "lit", next: stop === next,
+}));
+const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: stops.length });
+---
+<section class="tour-live panel" aria-labelledby="tour-live-title">
+  <TourRouteLines animated />
+  <div class="tour-live-main">
+    <p class="tour-live-label"><i aria-hidden="true"></i>{t(locale, "home.tourLive")}<span title={progress}>{tour.done_count}/{stops.length}</span></p>
+    <h2 id="tour-live-title"><a href={`/music/tours/${encodeURIComponent(tour.slug)}`} translate="no">{tour.name}</a></h2>
+    {next && <p class="tour-live-next">{nextLine}</p>}
+  </div>
+  <TourStopTrack stops={trackStops} label={progress} />
+  <span class="tour-live-arrow" aria-hidden="true"><Icon name="chevron-right" size=".85rem" /></span>
+</section>
+
+<style>
+  /* Isolated and clipped for the route lines behind the text (see TourRouteLines). */
+  .tour-live { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) auto; align-items: center; gap: .75rem clamp(1.25rem, 3vw, 2.5rem); margin-top: 2rem; padding: .85rem 1.25rem; transition: border-color .18s, transform .18s; }
+  .tour-live:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }
+  .tour-live:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tour-live-main { display: grid; gap: .2rem; min-width: 0; }
+  .tour-live-label { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .55rem; margin: 0; color: var(--accent); font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
+  .tour-live-label span { color: var(--muted); font-weight: 500; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+  .tour-live-label i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 rgba(var(--accent-rgb), .5); }
+  .tour-live h2 { margin: 0; font-size: 1.0625rem; line-height: 1.4; overflow-wrap: anywhere; }
+  .tour-live h2 a { color: inherit; text-decoration: none; }
+  .tour-live h2 a:focus-visible { outline: none; }
+  /* The whole card is the link to the tour page. */
+  .tour-live h2 a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+  .tour-live-next { margin: 0; color: var(--accent); font-size: .8125rem; font-weight: 650; line-height: 1.55; }
+  .tour-live-arrow { display: inline-flex; color: var(--muted); opacity: .55; }
+  .tour-live:hover .tour-live-arrow, .tour-live:focus-within .tour-live-arrow { color: var(--accent); opacity: 1; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .tour-live-label i { animation: tour-live-pulse 2.4s ease-out infinite; }
+    @keyframes tour-live-pulse { 70%, 100% { box-shadow: 0 0 0 7px rgba(var(--accent-rgb), 0); } }
+  }
+  @media (max-width: 800px) {
+    .tour-live { grid-template-columns: minmax(0, 1fr); gap: .7rem; margin-top: 1rem; padding: .85rem 1.1rem .9rem; }
+    .tour-live:hover { transform: none; }
+    /* The arrow rides the label row instead of taking a row of its own. */
+    .tour-live-arrow { position: absolute; top: .85rem; right: 1.1rem; }
+    .tour-live-label { padding-right: 1.5rem; }
+    .tour-live h2 { color: #d3dce8; font-size: 1rem; font-weight: 600; }
+  }
+</style>

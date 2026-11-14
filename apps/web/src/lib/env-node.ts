@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import process from "node:process";
-import { openDatabase, localMedia } from "@frip-fan/node-runtime";
+import { openDatabase, localMedia, localChatMedia } from "@frip-fan/node-runtime";
 
 let cached: Env | undefined;
 export function getRuntimeEnv(): Env {
@@ -23,6 +23,8 @@ export function getRuntimeEnv(): Env {
     // Written by the host backup job next to the database; absent where backups are not scheduled.
     BACKUP_STATUS_FILE: resolve(process.env.BACKUP_STATUS_FILE || `${data}/backup-status.json`),
     MEDIA: localMedia(resolve(process.env.FRIP_MEDIA_DIR || `${data}/media`)),
+    // Outside FRIP_MEDIA_DIR on purpose: that directory is served publicly.
+    CHAT_MEDIA: localChatMedia(resolve(process.env.FRIP_CHAT_MEDIA_DIR || `${data}/chat-media`)),
     SITE_URL: process.env.SITE_URL || "http://localhost:4326",
     APP_ENV: appEnv,
     ACCESS_TEAM_DOMAIN: process.env.ACCESS_TEAM_DOMAIN,
@@ -31,6 +33,9 @@ export function getRuntimeEnv(): Env {
     DEV_AUTH_BYPASS: development ? process.env.DEV_AUTH_BYPASS : "false",
     DEV_ACTOR: process.env.DEV_ACTOR,
     MAP_TILE_URL: process.env.MAP_TILE_URL,
+    COMMENT_SOURCE_SECRET: process.env.COMMENT_SOURCE_SECRET,
+    TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,
+    TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
   } as Env;
   return cached;
 }

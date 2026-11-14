@@ -4,10 +4,11 @@ import { getEnv } from "./lib/env";
 import { publicResponse } from "#public-cache";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "./lib/site-notice";
 import { getLocale, type Locale } from "./lib/i18n";
+import { turnstileSiteKey } from "./lib/comment-request";
 
 const PUBLIC_DOCUMENT_CACHE = "private, max-age=60, stale-while-revalidate=30";
 
-function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale, allowGiscus = false, allowVectorMap = false, allowCoverPreview = false): Response {
+function secure(response: Response, privateRoute = false, cacheControl?: string, locale?: Locale, allowComments = false, allowVectorMap = false, allowCoverPreview = false): Response {
   const headers = new Headers(response.headers);
   if (getEnv().APP_ENV === "staging") headers.set("x-robots-tag", "noindex, nofollow");
   headers.set("x-content-type-options", "nosniff");
@@ -16,14 +17,15 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
   // The release editor previews official covers and Apple Music search artwork.
   const coverOrigin = allowCoverPreview ? " https://fripside.net https://*.mzstatic.com" : "";
-  const giscusOrigin = allowGiscus ? " https://giscus.app" : "";
+  // The comment form loads the Turnstile challenge only where one is configured.
+  const challengeOrigin = allowComments && turnstileSiteKey(getEnv()) ? " https://challenges.cloudflare.com" : "";
   const vectorMapOrigin = allowVectorMap ? " https://tiles.openfreemap.org" : "";
   const vectorMapBlob = allowVectorMap ? " blob:" : "";
   const youtubeOrigin = allowVectorMap ? " https://www.youtube.com https://www.youtube-nocookie.com" : "";
   // Listen players on release/song pages. Client-side navigation keeps the first document's CSP,
   // so every page allows these frames; they load only after a visitor clicks.
   const listenFrames = " https://embed.music.apple.com https://www.youtube-nocookie.com";
-  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'${giscusOrigin}; script-src 'self'${giscusOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${giscusOrigin}${youtubeOrigin}${listenFrames}`);
+  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'; script-src 'self'${challengeOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${challengeOrigin}${youtubeOrigin}${listenFrames}`);
   if (locale && headers.get("content-type")?.includes("text/html")) {
     headers.set("content-language", locale);
     headers.append("vary", "Cookie");
@@ -54,8 +56,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // policy a redirect would not pick up from the document rule below.
     const cacheControl = path === "/archive" || (path === "/calendar" && context.url.searchParams.get("view") === "list") ? PUBLIC_DOCUMENT_CACHE : undefined;
     const locale = getLocale(context.request);
-    // A client-routed visit to the home discussion retains the initial document CSP.
-    // Every public entry page must allow its Giscus script and iframe.
+    // A client-routed visit to a page with comments retains the initial document CSP,
+    // so every public entry page must allow the comment form's challenge.
     const render = async () => secure(await next(), false, cacheControl, locale, true, path === "/journey");
     const eligible = context.request.method === "GET"
       && !context.request.headers.has("authorization") && context.url.href.length <= 2048
@@ -73,7 +75,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         throw new ServiceError("forbidden", "没有测试环境访问权限", 403);
       }
     }
-    return secure(await next(), true, undefined, getLocale(context.request), false, path === "/journey", path.startsWith("/admin/music/releases"));
+    return secure(await next(), true, undefined, getLocale(context.request), !path.startsWith("/admin") && !path.startsWith("/api/admin"), path === "/journey", path.startsWith("/admin/music/releases"));
   } catch (error) {
     const status = error instanceof ServiceError ? error.status : 401;
     const message = error instanceof Error ? error.message : "未授权";

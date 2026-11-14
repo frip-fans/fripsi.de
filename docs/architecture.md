@@ -107,7 +107,7 @@ published = 1 AND archived_at IS NULL
 - `/admin/music/releases`：专辑列表、新建与曲目编辑。
 - `/admin/changes`：AI/MCP 创建的变更提案与审核。
 - `/admin/audit`：审计记录。
-- `/admin/data`：CSV 导入、导出和迁移检查。
+- `/admin/data`：数据库备份状态、官方同步任务的运行情况和活动 CSV 导出。
 
 `/admin/*` 与 `/api/admin/*` 必须由 Cloudflare Access 保护，服务端还要验证 Access JWT，不以“页面不可见”代替 API 鉴权。
 

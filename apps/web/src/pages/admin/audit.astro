@@ -1,11 +1,64 @@
 ---
-import { listAuditLogs } from "@frip-fan/core";
+import { countAuditLogs, listAuditLogs } from "@frip-fan/core";
+import AdminPageHeader from "../../components/AdminPageHeader.astro";
+import Icon from "../../components/Icon.astro";
+import Pagination from "../../components/Pagination.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
+import { AUDIT_CHANNEL_LABELS, AUDIT_TARGET_TYPES, auditActionLabel, auditTargetHref, auditTargetLabel } from "../../lib/admin-labels";
+import { formatTimestamp } from "../../lib/change-review";
 import { getEnv } from "../../lib/env";
-const logs = await listAuditLogs(getEnv().DB, 200);
+
+const PAGE_SIZE = 50;
+const params = Astro.url.searchParams;
+const query = params.get("q")?.trim() || undefined;
+// Only offer values the list knows; anything else in the URL is ignored rather than matching nothing.
+const requestedTarget = params.get("target") ?? "";
+const targetType = AUDIT_TARGET_TYPES.includes(requestedTarget) ? requestedTarget : undefined;
+const requestedChannel = params.get("channel") ?? "";
+const channel = requestedChannel in AUDIT_CHANNEL_LABELS ? requestedChannel : undefined;
+const filters = { query, target_type: targetType, channel };
+const filtered = Boolean(query || targetType || channel);
+const requestedPageValue = params.get("page") ?? "1";
+const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
+
+const db = getEnv().DB;
+const totalItems = await countAuditLogs(db, filters);
+const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+const currentPage = Math.min(requestedPage, totalPages);
+const logs = await listAuditLogs(db, PAGE_SIZE, { ...filters, offset: (currentPage - 1) * PAGE_SIZE });
+const actorTypeLabels: Record<string, string> = { human: "人工", ai: "AI", system: "系统" };
 ---
 <SiteLayout title="审计日志" admin>
-  <p class="eyebrow">Audit trail</p><h1 class="page-title">审计日志</h1>
-  <div class="panel table-wrap"><table><thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>目标</th><th>请求 ID</th></tr></thead><tbody>{logs.map((log) => <tr><td>{log.created_at.slice(0,19).replace("T"," ")}</td><td>{log.action}</td><td>{log.actor_id}<small>{log.actor_type} / {log.channel}</small></td><td>{log.target_type}<small>{log.target_id}</small></td><td><code>{log.request_id}</code></td></tr>)}</tbody></table>{!logs.length && <div class="empty">还没有写操作。</div>}</div>
+  <AdminPageHeader title="审计日志" description={`共 ${totalItems} 条${filtered ? "符合筛选条件的" : ""}写操作，新的在前。每条记录都保留操作者、渠道和请求 ID。`} />
+  <form class="filters panel" method="get">
+    <label>搜索<input type="search" name="q" value={query} placeholder="操作者、动作 key、目标 ID 或请求 ID" /></label>
+    <label>目标<select name="target"><option value="">全部</option>{AUDIT_TARGET_TYPES.map((value) => <option value={value} selected={targetType === value}>{auditTargetLabel(value)}</option>)}</select></label>
+    <label>渠道<select name="channel"><option value="">全部</option>{Object.entries(AUDIT_CHANNEL_LABELS).map(([value, label]) => <option value={value} selected={channel === value}>{label}</option>)}</select></label>
+    <button type="submit"><Icon name="funnel" />筛选</button>
+    {filtered && <a class="button secondary" href="/admin/audit">清除</a>}
+  </form>
+  <div class="panel table-wrap">
+    <table>
+      <thead><tr><th>时间</th><th>动作</th><th>操作者</th><th>目标</th><th class="hide-sm">请求 ID</th></tr></thead>
+      <tbody>
+        {logs.map((log) => {
+          const href = auditTargetHref(log.target_type, log.target_id);
+          return <tr>
+            <td class="date">{formatTimestamp(log.created_at)}</td>
+            <td>{auditActionLabel(log.action)}<small><code>{log.action}</code></small></td>
+            <td>{log.actor_id}<small>{actorTypeLabels[log.actor_type] ?? log.actor_type} · {AUDIT_CHANNEL_LABELS[log.channel] ?? log.channel}</small></td>
+            <td>{href ? <a href={href}>{auditTargetLabel(log.target_type)}</a> : auditTargetLabel(log.target_type)}{log.target_id && <small><code>{log.target_id}</code></small>}</td>
+            <td class="hide-sm"><code>{log.request_id}</code></td>
+          </tr>;
+        })}
+      </tbody>
+    </table>
+    {!logs.length && <div class="empty">{filtered ? "没有符合条件的记录。" : "还没有写操作。"}</div>}
+  </div>
+  <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} itemLabel="条记录" />
 </SiteLayout>
-<style>.page-title{font-size:var(--heading-1-size);margin-bottom:2rem}td small{display:block;color:var(--muted);margin-top:.2rem}td code{font-size:.7rem;color:var(--muted)}</style>
+<style>
+  .filters { display: grid; grid-template-columns: 1fr 150px 130px auto auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
+  td code { font-size: .7rem; color: var(--muted); }
+  @media (max-width: 760px) { .filters { grid-template-columns: 1fr; } }
+</style>

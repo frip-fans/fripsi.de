@@ -510,7 +510,9 @@ export function setupAdminChatDock(): void {
         lastTurn = null;
         setLive(true, String(created.expires_at));
       } else {
-        await api(`/api/admin/chat/${encodeURIComponent(sessionId)}`, { input: text });
+        const sent = await api(`/api/admin/chat/${encodeURIComponent(sessionId)}`, { input: text });
+        // Sending is activity: the idle deadline moved, so the countdown must follow it.
+        if (typeof sent.expires_at === "string") setLive(true, sent.expires_at);
       }
       store(DRAFT_KEY, null);
       stopPolling();

@@ -1,0 +1,22 @@
+---
+import Icon from "./Icon.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Parent list this page belongs to; rendered as the way back above the title. */
+  back?: { href: string; label: string };
+}
+const { title, description, back } = Astro.props;
+---
+<header class="page-head">
+  {back && <a class="page-back" href={back.href}><Icon name="arrow-left" />{back.label}</a>}
+  <div class="page-head-row">
+    <div class="page-head-text">
+      <h1>{title}</h1>
+      {description && <p class="page-desc">{description}</p>}
+      <slot name="meta" />
+    </div>
+    {Astro.slots.has("default") && <div class="page-head-actions"><slot /></div>}
+  </div>
+</header>

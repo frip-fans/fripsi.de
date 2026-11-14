@@ -39,7 +39,12 @@ export function parseMusicBrowse(kind: MusicBrowseKind, params: URLSearchParams)
 export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKind, params: URLSearchParams, append = false) {
   const input = parseMusicBrowse(kind, params);
   const offset = append ? (input.page - 1) * input.batch : 0;
-  const limit = append ? input.batch : input.page * input.batch;
+  // An appended batch also reads the item just before it, so the client can tell whether the
+  // items it already shows still end where this batch starts. A database revision cannot tell
+  // that: unrelated writes (quiz answers, chat, sync bookkeeping) change it constantly.
+  const anchored = offset > 0;
+  const start = anchored ? offset - 1 : offset;
+  const limit = (append ? input.batch : input.page * input.batch) + (anchored ? 1 : 0);
   let lives: SetlistSummary[] = [];
   let songs: SongBrowseSummary[] = [];
   let releases: ReleaseSummary[] = [];
@@ -53,7 +58,7 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
     const filters = { query: input.query || undefined, years: input.years, classifications: input.classifications, order: input.sort as "asc" | "desc" };
     let years: Array<{ year: string; count: number }>;
     let archive: Map<string, SetlistHighlights>;
-    [total, lives, years, archive] = await Promise.all([countSetlists(db, filters), listSetlists(db, { ...filters, offset, limit }), listSetlistYears(db, filters), getSetlistHighlights(db)]);
+    [total, lives, years, archive] = await Promise.all([countSetlists(db, filters), listSetlists(db, { ...filters, offset: start, limit }), listSetlistYears(db, filters), getSetlistHighlights(db)]);
     yearCounts = Object.fromEntries(years.map(item => [item.year, item.count]));
     for (const setlist of lives) { const item = archive.get(setlist.id); if (item) highlights[setlist.id] = item; }
   } else if (kind === "songs") {
@@ -70,7 +75,7 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
       return b.show_count - a.show_count || a.title.localeCompare(b.title) || a.id.localeCompare(b.id);
     });
     total = filtered.length;
-    songs = filtered.slice(offset, offset + limit);
+    songs = filtered.slice(start, start + limit);
   } else {
     const [all, matched] = await Promise.all([listReleases(db, { limit: 500 }), input.query ? matchReleaseIds(db, input.query, "public") : null]);
     const matchedIds = matched && new Set(matched);
@@ -81,10 +86,12 @@ export async function getMusicBrowseResults(db: D1Database, kind: MusicBrowseKin
       ? (a.title.localeCompare(b.title) || a.id.localeCompare(b.id)) * (input.sort === "title-asc" ? 1 : -1)
       : compareDates(a.release_date, b.release_date, a.title, b.title, input.sort === "date-asc") || a.id.localeCompare(b.id));
     total = filtered.length;
-    releases = filtered.slice(offset, offset + limit);
+    releases = filtered.slice(start, start + limit);
   }
+  const anchor = anchored ? (lives.shift() ?? songs.shift() ?? releases.shift())?.id ?? "" : "";
+  if (anchor) delete highlights[anchor];
   const shown = Math.min(total, offset + lives.length + songs.length + releases.length);
-  return { lives, songs, releases, total, shown, yearCounts, highlights, ranks, maxShows, ranked: kind === "songs" && input.sort === "live-desc", page: input.page, batch: input.batch, hasMore: shown < total };
+  return { lives, songs, releases, total, shown, yearCounts, highlights, ranks, maxShows, ranked: kind === "songs" && input.sort === "live-desc", page: input.page, batch: input.batch, hasMore: shown < total, anchor };
 }
 
 function compareDates(left: string | null, right: string | null, leftTitle: string, rightTitle: string, ascending: boolean) {

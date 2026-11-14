@@ -244,9 +244,46 @@ export async function getEventHeads(db: D1Database, ids: string[]): Promise<Map<
   return new Map(result.results.map((row) => [row.id, { ...row, published: Boolean(row.published) }]));
 }
 
-export async function listAuditLogs(db: D1Database, limit = 100): Promise<AuditLog[]> {
-  const result = await db.prepare("SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT ?").bind(Math.max(1, Math.min(limit, 200))).all<AuditLog>();
+export interface AuditLogFilters {
+  /** Matches the actor, action key, target id or request id. */
+  query?: string;
+  target_type?: string;
+  channel?: string;
+}
+
+function auditLogWhere(filters: AuditLogFilters): { where: string; bindings: string[] } {
+  const clauses: string[] = [];
+  const bindings: string[] = [];
+  const query = filters.query?.trim();
+  if (query) {
+    // Ids and action keys contain "_", which LIKE would otherwise read as a wildcard.
+    const pattern = `%${query.replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
+    clauses.push("(actor_id LIKE ? ESCAPE '\\' OR action LIKE ? ESCAPE '\\' OR target_id LIKE ? ESCAPE '\\' OR request_id LIKE ? ESCAPE '\\')");
+    bindings.push(pattern, pattern, pattern, pattern);
+  }
+  if (filters.target_type) {
+    clauses.push("target_type = ?");
+    bindings.push(filters.target_type);
+  }
+  if (filters.channel) {
+    clauses.push("channel = ?");
+    bindings.push(filters.channel);
+  }
+  return { where: clauses.length ? `WHERE ${clauses.join(" AND ")}` : "", bindings };
+}
+
+export async function listAuditLogs(db: D1Database, limit = 100, options: AuditLogFilters & { offset?: number } = {}): Promise<AuditLog[]> {
+  const { where, bindings } = auditLogWhere(options);
+  // Writes in one request share a timestamp; rowid keeps their order stable across pages.
+  const result = await db.prepare(`SELECT * FROM audit_logs ${where} ORDER BY created_at DESC, rowid DESC LIMIT ? OFFSET ?`)
+    .bind(...bindings, Math.max(1, Math.min(limit, 200)), Math.max(0, Math.trunc(options.offset ?? 0))).all<AuditLog>();
   return result.results;
+}
+
+export async function countAuditLogs(db: D1Database, filters: AuditLogFilters = {}): Promise<number> {
+  const { where, bindings } = auditLogWhere(filters);
+  const row = await db.prepare(`SELECT COUNT(*) AS total FROM audit_logs ${where}`).bind(...bindings).first<{ total: number }>();
+  return row?.total ?? 0;
 }
 
 /**

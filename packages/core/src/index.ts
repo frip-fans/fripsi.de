@@ -26,6 +26,7 @@ export * from "./automation-auth";
 export * from "./agents-client";
 export * from "./agents-budget";
 export * from "./chat-session";
+export * from "./app-settings";
 export * from "./automation-service";
 export * from "./sync-policy";
 

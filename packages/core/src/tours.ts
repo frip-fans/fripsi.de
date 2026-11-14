@@ -157,7 +157,6 @@ export interface ActiveTourStop {
   start_date: string;
   /** tour_stop, or the first venue's area; null when neither is known. */
   stop_label: string | null;
-  venue_name: string | null;
   state: "done" | "today" | "upcoming";
 }
 
@@ -179,7 +178,6 @@ export interface ActiveTourRow {
   start_date: string;
   end_date: string | null;
   stop_label: string | null;
-  venue_name: string | null;
 }
 
 /**
@@ -198,7 +196,7 @@ export function pickActiveTour(rows: ActiveTourRow[], today: string): ActiveTour
     const lastDay = list.reduce((latest, row) => { const end = row.end_date ?? row.start_date; return end > latest ? end : latest; }, "");
     if (list[0].start_date > today || lastDay < today) continue;
     const stops: ActiveTourStop[] = list.map((row) => ({
-      event_slug: row.event_slug, start_date: row.start_date, stop_label: row.stop_label, venue_name: row.venue_name,
+      event_slug: row.event_slug, start_date: row.start_date, stop_label: row.stop_label,
       state: (row.end_date ?? row.start_date) < today ? "done" : row.start_date <= today ? "today" : "upcoming",
     }));
     const tour: ActiveTour = {
@@ -213,9 +211,7 @@ export function pickActiveTour(rows: ActiveTourRow[], today: string): ActiveTour
 
 export async function getActiveTour(db: D1Database, today = dateInTimeZone()): Promise<ActiveTour | null> {
   const result = await db.prepare(`SELECT t.id AS tour_id, t.slug, t.name, e.slug AS event_slug, e.start_date, e.end_date,
-      COALESCE(NULLIF(TRIM(e.tour_stop), ''), ${eventStopAreaSql("e")}) AS stop_label,
-      (SELECT v.canonical_name FROM event_venues ev JOIN venues v ON v.id = ev.venue_id
-        WHERE ev.event_id = e.id ORDER BY ev.position LIMIT 1) AS venue_name
+      COALESCE(NULLIF(TRIM(e.tour_stop), ''), ${eventStopAreaSql("e")}) AS stop_label
     FROM tours t
     JOIN events e ON e.tour_id = t.id AND e.published = 1 AND e.archived_at IS NULL AND e.status NOT IN ('cancelled', 'postponed')
     WHERE t.published = 1

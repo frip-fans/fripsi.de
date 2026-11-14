@@ -148,7 +148,7 @@ describe("public tour queries", () => {
 
   it("prefers the tour whose next stop is soonest and counts a multi-day stop until its last day", () => {
     const row = (tour: string, slug: string, start_date: string, end_date: string | null = null): ActiveTourRow =>
-      ({ tour_id: tour, slug: tour, name: tour, event_slug: slug, start_date, end_date, stop_label: null, venue_name: null });
+      ({ tour_id: tour, slug: tour, name: tour, event_slug: slug, start_date, end_date, stop_label: null });
     const rows = [row("a", "a1", "2026-01-01"), row("b", "b1", "2026-01-02", "2026-01-03"), row("b", "b2", "2026-01-10"), row("a", "a2", "2026-01-20")];
     expect(pickActiveTour(rows, "2026-01-05")).toMatchObject({ slug: "b", done_count: 1, next: { event_slug: "b2" } });
     expect(pickActiveTour(rows, "2026-01-03")).toMatchObject({ slug: "b", done_count: 0, next: { event_slug: "b1", state: "today" } });

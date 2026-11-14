@@ -1,7 +1,6 @@
 ---
 import type { ActiveTour, ActiveTourStop } from "@frip-fan/core";
 import { getLocale, t } from "../lib/i18n";
-import { formatMusicDate } from "../lib/music";
 import Icon from "./Icon.astro";
 
 interface Props { tour: ActiveTour; today: string }
@@ -14,26 +13,18 @@ const stopDate = (stop: ActiveTourStop) => shortDate.format(new Date(`${stop.sta
 // "東京公演" reads as "東京" under a dot; the tour page trims its column headers the same way.
 const stopName = (stop: ActiveTourStop) => stop.stop_label?.replace(/公演$/, "") || null;
 const daysUntilNext = next ? Math.round((Date.parse(next.start_date) - Date.parse(today)) / 86_400_000) : 0;
-const countdown = !next ? ""
+// One short line: the stop track below already carries the next stop's name and date.
+const nextLine = !next ? ""
   : next.state === "today" ? t(locale, "home.tourToday")
-    : daysUntilNext === 1 ? t(locale, "home.countdownTomorrow")
-      : t(locale, "home.countdownDays", { count: daysUntilNext });
-// A stop named after its venue would otherwise print the venue twice.
-const nextPlace = next ? [stopName(next), next.venue_name].filter((part, index, parts) => part && parts.indexOf(part) === index).join(" · ") : "";
+    : daysUntilNext === 1 ? t(locale, "home.tourNextTomorrow")
+      : t(locale, "home.tourNextDays", { count: daysUntilNext });
 const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: stops.length });
 ---
 <section class="tour-live panel" aria-labelledby="tour-live-title">
   <div class="tour-live-main">
-    <p class="tour-live-label"><i aria-hidden="true"></i>{t(locale, "home.tourLive")}<span>{progress}</span></p>
+    <p class="tour-live-label"><i aria-hidden="true"></i>{t(locale, "home.tourLive")}<span title={progress}>{tour.done_count}/{stops.length}</span></p>
     <h2 id="tour-live-title"><a href={`/music/tours/${encodeURIComponent(tour.slug)}`} translate="no">{tour.name}</a></h2>
-    {next && (
-      <p class="tour-live-next">
-        <span class="tour-live-next-label">{t(locale, "home.tourNextStop")}</span>
-        <time datetime={next.start_date}>{formatMusicDate(next.start_date, locale)}</time>
-        {nextPlace && <span translate="no">{nextPlace}</span>}
-        <b>{countdown}</b>
-      </p>
-    )}
+    {next && <p class="tour-live-next">{nextLine}</p>}
   </div>
   <ol class:list={["tour-live-stops", { "is-crowded": stops.length > 4, "is-dense": stops.length > 8 }]} aria-label={progress}>
     {stops.map((stop) => (
@@ -60,10 +51,7 @@ const progress = t(locale, "home.tourProgress", { done: tour.done_count, count: 
   .tour-live h2 a:focus-visible { outline: none; }
   /* The whole card is the link to the tour page. */
   .tour-live h2 a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
-  .tour-live-next { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .6rem; margin: 0; color: #c8d9e7; font-size: .8125rem; line-height: 1.55; }
-  .tour-live-next-label { color: var(--muted); }
-  .tour-live-next time { font-variant-numeric: tabular-nums; }
-  .tour-live-next b { color: var(--accent); font-weight: 650; white-space: nowrap; }
+  .tour-live-next { margin: 0; color: var(--accent); font-size: .8125rem; font-weight: 650; line-height: 1.55; }
 
   .tour-live-stops { display: flex; min-width: 0; margin: 0; padding: 0; list-style: none; }
   .tour-live-stops li { position: relative; display: grid; flex: 1 1 0; justify-items: center; align-content: start; gap: .15rem; min-width: 0; padding: 0 .2rem; color: var(--muted); text-align: center; }

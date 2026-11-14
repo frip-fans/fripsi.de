@@ -73,6 +73,8 @@ OpenAI 收到的是短期 MCP 凭据，不会收到签名密钥；凭据不写�
 
 ## 运维
 
+后台 `/admin/data` 汇总同步的运行情况：最近一次任务及其结果、近 30 天的任务数与估算费用、已抓取公告与未处理正文、Bark 通知积压，以及分页的任务列表（公告数、关联提案的当前状态、工具调用、费用、通知）。页面只读这些表，不能启停任务；最近一次任务失败，或超过 36 小时没有新任务时会标出来（staging 停用同步，显示“没有新任务”属于正常）。
+
 `official_sync_runs.result_json` 是 Agent 的报告；`summary_json` 从真实关联的 change set 状态生成，不能只相信模型声称已发布。`official_sync_changes` 记录任务、提案与预览摘要。`audit_logs` 使用 `actor_id=official-sync-agent`、`channel=mcp` 记录写入，后台 `/admin/audit` 可查。
 
 将 `SYNC_ENABLED=false` 可停止后续调度，但已运行的 OpenAI 任务仍可能在一小时有效期内调用 MCP。要立即撤销某个任务，可将其 run 标记为失败并取消 OpenAI session；轮换签名密钥会撤销该环境所有旧自动化凭据。`SYNC_AUTO_PUBLISH` 是新任务的授权配置，不回溯撤销已签发任务；当前任务的权限以 run 记录为准。

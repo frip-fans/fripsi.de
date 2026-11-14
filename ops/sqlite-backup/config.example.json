@@ -2,6 +2,7 @@
   "database": "/var/lib/fripside/site.sqlite",
   "release_sha_file": "/opt/fripside/current/REVISION",
   "state_dir": "/var/lib/fripside-backup",
+  "status_file": "/var/lib/fripside/backup-status.json",
   "endpoint": "https://ACCOUNT_ID.r2.cloudflarestorage.com",
   "bucket": "fripside-production-db-backups",
   "prefix": "sqlite/production/",

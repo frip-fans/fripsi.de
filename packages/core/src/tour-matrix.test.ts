@@ -119,7 +119,7 @@ describe("public tour queries", () => {
     try {
       seed(sqlite);
       const context = await getEventTourContext(db, "e2");
-      expect(context).toMatchObject({ slug: "tour-one", name: "Tour One", stop_number: 2, stop_count: 3 });
+      expect(context).toMatchObject({ slug: "tour-one", name: "Tour One", stop_number: 2, stop_count: 3, last_date: "2026-01-05" });
       expect(context?.previous?.slug).toBe("slug-e1");
       expect(context?.next?.slug).toBe("slug-e3");
       expect((await getEventTourContext(db, "e1"))?.previous).toBeNull();

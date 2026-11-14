@@ -10,6 +10,7 @@ const { state } = Astro.props;
 const { session, messages, proposals, can_publish } = state;
 const live = Boolean(session?.continuable);
 
+/** UTC, until the client swaps in the browser's zone (see chat-dock-client.ts). */
 function clock(value: string): string {
   return value.slice(11, 16);
 }
@@ -59,7 +60,7 @@ function clock(value: string): string {
         <li class="chat-turn chat-turn-user"><div class="chat-bubble">{message.body}</div></li>
       ) : (
         <li class:list={["chat-turn", message.role === "error" ? "chat-turn-error" : "chat-turn-assistant"]} data-turn={message.turn_id ?? undefined}>
-          <p class="chat-turn-label">{message.role === "error" ? "出错" : "助手"} · {clock(message.created_at)}</p>
+          <p class="chat-turn-label">{message.role === "error" ? "出错" : "助手"} · <time datetime={message.created_at} data-chat-time>{clock(message.created_at)}</time></p>
           {message.role === "error"
             ? <div class="chat-error">{message.body}</div>
             : <div class="chat-prose" set:html={renderChatMarkdown(message.body)} />}

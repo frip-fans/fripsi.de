@@ -57,8 +57,19 @@ function read(key: string): string | null {
   try { return sessionStorage.getItem(key); } catch { return null; }
 }
 
+const two = (value: number): string => String(value).padStart(2, "0");
+
+/** Timestamps are stored as UTC ISO strings; the operator reads them in their own zone. */
 function clock(value: string): string {
-  return value.slice(11, 16);
+  const at = new Date(value);
+  if (Number.isNaN(at.valueOf())) return value.slice(11, 16);
+  return `${two(at.getHours())}:${two(at.getMinutes())}`;
+}
+
+function dayClock(value: string): string {
+  const at = new Date(value);
+  if (Number.isNaN(at.valueOf())) return value.slice(5, 16).replace("T", " ");
+  return `${two(at.getMonth() + 1)}-${two(at.getDate())} ${clock(value)}`;
 }
 
 export function setupAdminChatDock(): void {
@@ -99,6 +110,12 @@ export function setupAdminChatDock(): void {
   let awaiting = 0;
   let viewingArchive = false;
   let source: EventSource | null = null;
+
+  // The server renders these in UTC because it cannot know the browser's zone.
+  for (const time of dock.querySelectorAll<HTMLElement>("time[data-chat-time]")) {
+    const value = time.getAttribute("datetime");
+    if (value) time.textContent = clock(value);
+  }
 
   const rail = window.matchMedia(RAIL_QUERY);
   const scrollToEnd = () => log.scrollTo({ top: log.scrollHeight });
@@ -229,12 +246,48 @@ export function setupAdminChatDock(): void {
       item.appendChild(label);
       item.appendChild(tools);
       item.appendChild(prose);
+      // The reply itself is the feedback from here on.
+      log.querySelector(".chat-turn-pending")?.remove();
       log.appendChild(item);
     }
     return {
       prose: item.querySelector<HTMLElement>(".chat-prose")!,
       tools: item.querySelector<HTMLElement>(".chat-tools-live")!,
     };
+  }
+
+  /**
+   * The working indicator inside the transcript, right under the message it answers.
+   * The status row says the same thing, but it sits at the top of the dock, far from
+   * where the operator is looking after sending. It is decorative for assistive tech:
+   * the status row and aria-busy already carry the state.
+   */
+  function pendingTurn(label: string | null): void {
+    let item = log.querySelector<HTMLElement>(".chat-turn-pending");
+    if (label === null || viewingArchive || log.querySelector(".chat-turn-live")) {
+      item?.remove();
+      return;
+    }
+    if (!item) {
+      item = document.createElement("li");
+      item.className = "chat-turn chat-turn-pending";
+      item.setAttribute("aria-hidden", "true");
+      const dots = document.createElement("span");
+      dots.className = "chat-pending-dots";
+      for (let index = 0; index < 3; index += 1) dots.appendChild(document.createElement("i"));
+      const text = document.createElement("span");
+      text.className = "chat-pending-label";
+      item.appendChild(dots);
+      item.appendChild(text);
+    }
+    item.querySelector<HTMLElement>(".chat-pending-label")!.textContent = label;
+    // Only scroll when it is placed: the poll relabels it every few seconds, and that
+    // must not pull the transcript back down while the operator reads further up.
+    if (log.lastElementChild !== item) {
+      clearEmpty();
+      log.appendChild(item);
+      scrollToEnd();
+    }
   }
 
   function settleLive(): void {
@@ -432,6 +485,7 @@ export function setupAdminChatDock(): void {
     // seconds before the first token, and a static line looks like nothing is happening.
     dock.classList.toggle("chat-dock-busy", on);
     status.textContent = label;
+    pendingTurn(on ? label : null);
   }
 
   function stopPolling(): void {
@@ -568,7 +622,7 @@ export function setupAdminChatDock(): void {
         button.className = "chat-history-row";
         button.innerHTML = [
           `<span class="chat-history-title">${escapeHtml(row.title ?? "（无标题）")}</span>`,
-          `<span class="chat-history-meta">${escapeHtml(row.created_at.slice(5, 16).replace("T", " "))} · ${row.message_count} 条`,
+          `<span class="chat-history-meta">${escapeHtml(dayClock(row.created_at))} · ${row.message_count} 条`,
           `<code>${escapeHtml(row.model)}</code></span>`,
         ].join("");
         button.addEventListener("click", () => void openArchive(row.id));

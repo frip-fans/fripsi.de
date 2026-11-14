@@ -29,6 +29,7 @@ export * from "./chat-session";
 export * from "./app-settings";
 export * from "./automation-service";
 export * from "./sync-policy";
+export * from "./official-sync-monitor";
 
 export * from "./public-event-search";
 export * from "./search-text";

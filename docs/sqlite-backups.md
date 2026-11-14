@@ -10,6 +10,14 @@
 
 清单包含创建时间、完整应用提交 SHA、`d1_migrations` 全部已应用迁移、原始/gzip/密文大小、密文及原始库 SHA-256，以及 events、songs、releases、setlists、change_sets、audit_logs 记录数。`d1_migrations` 表沿用 D1 的格式记录迁移历史；缺失时备份失败，不能用猜测的迁移版本替代。
 
+### 后台状态文件
+
+配置了 `status_file`（模板为 `/var/lib/fripside/backup-status.json`）时，每次 `backup` 结束都会原子写入一份 0644 的摘要，供后台 `/admin/data` 显示：最近一次尝试的时间和结果、连续失败次数，以及最近一次成功备份的时间、应用提交 SHA、对象 key、大小、关键表计数和最新迁移。失败时只记录异常类名，并保留上一次成功的信息；不写入凭据、哈希或 SDK 错误文本。状态文件写不进去不影响备份本身的结果，只在日志留一行提示。
+
+Web 进程默认读取 `FRIP_DATA_DIR/backup-status.json`，可用 `BACKUP_STATUS_FILE` 覆盖；文件不存在时后台显示“无记录”（staging 不做定时备份，属于正常情况）。超过 26 小时没有新的成功备份，或最近一次尝试失败，后台标为异常。这只是备份任务自己的记录，不能替代下文的远端监控：主机整体不可用或 timer 没有触发时，页面只能靠“已过期”体现。
+
+已安装旧版脚本的主机需要重新安装 `sqlite_backup.py` 并在 `/etc/fripside-backup/config.json` 加上 `status_file`，后台才会有记录；`fripside-backup.service` 已允许写 `/var/lib/fripside`，无需改动。
+
 ## R2 与密钥准备
 
 1. 创建独立私有 R2 桶 `fripside-production-db-backups`，默认 Standard，关闭 r2.dev 和所有自定义公开域名，不绑定任何公开服务。

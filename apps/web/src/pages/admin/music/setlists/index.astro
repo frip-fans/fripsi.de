@@ -1,27 +1,34 @@
 ---
 import AdminPageHeader from "../../../../components/AdminPageHeader.astro";
-import { listAdminSetlists } from "@frip-fan/core";
+import { ADMIN_SETLIST_FOLLOW_UP_KEYS, countAdminSetlists, listAdminSetlists, type AdminSetlistFollowUp } from "@frip-fan/core";
 import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
 import Icon from "../../../../components/Icon.astro";
+import Pagination from "../../../../components/Pagination.astro";
 import SiteLayout from "../../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../../lib/env";
 
 const query = Astro.url.searchParams.get("q")?.trim() ?? "";
-const all = await listAdminSetlists(getEnv().DB, query || undefined);
 const canWrite = Astro.locals.actor!.scopes.includes("music:write");
 const completenessLabels = { complete: "完整", partial: "部分", unknown: "未知" } as const;
 const confidenceLabels = { official: "官方", reported: "现场记录", unverified: "待核验" } as const;
 // Quick filters for the follow-up work an admin looks for: hidden drafts and lists that still need checking.
-const filters = [
-  { value: "", label: "全部", match: () => true },
-  { value: "draft", label: "未公开", match: (setlist: (typeof all)[number]) => !setlist.published },
-  { value: "incomplete", label: "部分 / 未知", match: (setlist: (typeof all)[number]) => setlist.completeness !== "complete" },
-  { value: "unverified", label: "待核验", match: (setlist: (typeof all)[number]) => setlist.confidence === "unverified" },
-  { value: "empty", label: "没有歌曲", match: (setlist: (typeof all)[number]) => setlist.entry_count === 0 },
-];
+const followUpLabels: Record<AdminSetlistFollowUp, string> = { draft: "未公开", incomplete: "部分 / 未知", unverified: "待核验", empty: "没有歌曲" };
 const requested = Astro.url.searchParams.get("show") ?? "";
-const active = filters.find((filter) => filter.value === requested) ?? filters[0];
-const setlists = all.filter(active.match);
+const followUp = ADMIN_SETLIST_FOLLOW_UP_KEYS.find((key) => key === requested);
+const PAGE_SIZE = 50;
+const requestedPageValue = Astro.url.searchParams.get("page") ?? "1";
+const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
+const db = getEnv().DB;
+const counts = await countAdminSetlists(db, query || undefined);
+const filters = [
+  { value: "", label: "全部", count: counts.all },
+  ...ADMIN_SETLIST_FOLLOW_UP_KEYS.map((key) => ({ value: key as string, label: followUpLabels[key], count: counts[key] })),
+];
+const active = filters.find((filter) => filter.value === (followUp ?? ""))!;
+const totalItems = active.count;
+const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+const currentPage = Math.min(requestedPage, totalPages);
+const setlists = await listAdminSetlists(db, query || undefined, PAGE_SIZE, { followUp, offset: (currentPage - 1) * PAGE_SIZE });
 const hrefFor = (value: string) => {
   const params = new URLSearchParams();
   if (query) params.set("q", query);
@@ -32,19 +39,17 @@ const hrefFor = (value: string) => {
 ---
 <SiteLayout title="Setlist 管理" admin>
   <AdminMusicNav />
-  <AdminPageHeader title="Setlist 管理" description="维护关联活动、歌曲顺序、演唱版本、Medley 与来源。">
+  <AdminPageHeader title="Setlist 管理" description={`共 ${counts.all} 份${query ? "符合搜索条件的" : ""} Setlist，按演出日期从新到旧排列。维护关联活动、歌曲顺序、演唱版本、Medley 与来源。`}>
     <a class:list={["button", { disabled: !canWrite }]} href={canWrite ? "/admin/music/setlists/new" : undefined} aria-disabled={!canWrite}><Icon name="plus" />新 Setlist</a>
   </AdminPageHeader>
   <form class="filters panel" method="get">
     <label>搜索<input type="search" name="q" value={query} placeholder="活动、场地或 Setlist 标题" /></label>
     {active.value && <input type="hidden" name="show" value={active.value} />}
     <button type="submit"><Icon name="search" />搜索</button>
+    {query && <a class="button secondary" href={active.value ? `/admin/music/setlists?show=${active.value}` : "/admin/music/setlists"}>清除</a>}
   </form>
   <nav class="chips" aria-label="快速筛选">
-    {filters.map((filter) => {
-      const count = all.filter(filter.match).length;
-      return <a class:list={{ active: filter === active }} aria-current={filter === active ? "page" : undefined} href={hrefFor(filter.value)}>{filter.label}<span>{count}</span></a>;
-    })}
+    {filters.map((filter) => <a class:list={{ active: filter === active }} aria-current={filter === active ? "page" : undefined} href={hrefFor(filter.value)}>{filter.label}<span>{filter.count}</span></a>)}
   </nav>
   <div class="panel table-wrap">
     <table>
@@ -69,9 +74,10 @@ const hrefFor = (value: string) => {
     </table>
     {!setlists.length && <div class="empty">没有符合条件的 Setlist。</div>}
   </div>
+  <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} itemLabel="份 Setlist" />
 </SiteLayout>
 <style>
-  .filters { display:grid;grid-template-columns:1fr auto;align-items:end;gap:.8rem;margin-bottom:.8rem }
+  .filters { display:grid;grid-template-columns:1fr auto auto;align-items:end;gap:.8rem;margin-bottom:.8rem }
   .chips { display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem }
   .chips a { display:inline-flex;align-items:center;gap:.45rem;padding:.45rem .75rem;border:1px solid var(--line);border-radius:999px;color:var(--muted);text-decoration:none;font-size:.8rem }
   .chips a span { min-width:1.3rem;padding:.05rem .35rem;border-radius:999px;background:rgba(255,255,255,.07);font:700 .68rem/1.4 ui-monospace,monospace;text-align:center }

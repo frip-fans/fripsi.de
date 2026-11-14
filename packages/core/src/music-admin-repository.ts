@@ -74,16 +74,35 @@ const adminSongSelect = `
   FROM songs s
 `;
 
-export async function listAdminSongs(db: D1Database, query?: string, limit = 500): Promise<AdminSongSummary[]> {
+const pageLimit = (limit: number) => Math.max(1, Math.min(limit, 500));
+const pageOffset = (offset: number) => Math.max(0, Math.trunc(offset));
+
+async function countRows(db: D1Database, sql: string, bindings: string[]): Promise<number> {
+  const row = await db.prepare(sql).bind(...bindings).first<{ total: number }>();
+  return row?.total ?? 0;
+}
+
+async function adminSongWhere(db: D1Database, query?: string): Promise<{ where: string; bindings: string[] }> {
   const search = query?.trim();
-  const where = search ? `WHERE ${idInJson("s.id")}` : "";
-  const bindings = search ? [JSON.stringify(await matchSongIds(db, search, "all"))] : [];
+  return search
+    ? { where: `WHERE ${idInJson("s.id")}`, bindings: [JSON.stringify(await matchSongIds(db, search, "all"))] }
+    : { where: "", bindings: [] };
+}
+
+export async function listAdminSongs(db: D1Database, query?: string, limit = 500, offset = 0): Promise<AdminSongSummary[]> {
+  const { where, bindings } = await adminSongWhere(db, query);
+  // The id keeps rows that tie on the sort keys in one place across pages.
   const result = await db.prepare(`${adminSongSelect}
     ${where}
-    ORDER BY s.updated_at DESC, s.title COLLATE NOCASE ASC
-    LIMIT ?
-  `).bind(...bindings, Math.max(1, Math.min(limit, 500))).all<AdminSongRow>();
+    ORDER BY s.updated_at DESC, s.title COLLATE NOCASE ASC, s.id ASC
+    LIMIT ? OFFSET ?
+  `).bind(...bindings, pageLimit(limit), pageOffset(offset)).all<AdminSongRow>();
   return result.results.map(mapSong);
+}
+
+export async function countAdminSongs(db: D1Database, query?: string): Promise<number> {
+  const { where, bindings } = await adminSongWhere(db, query);
+  return countRows(db, `SELECT COUNT(*) AS total FROM songs s ${where}`, bindings);
 }
 
 export async function getAdminSongById(db: D1Database, id: string): Promise<AdminSongDetail | null> {
@@ -140,16 +159,26 @@ const adminSetlistSelect = `
   JOIN events e ON e.id = sl.event_id
 `;
 
-export async function listAdminReleases(db: D1Database, query?: string, limit = 500): Promise<AdminReleaseSummary[]> {
+async function adminReleaseWhere(db: D1Database, query?: string): Promise<{ where: string; bindings: string[] }> {
   const search = query?.trim();
-  const where = search ? `WHERE ${idInJson("r.id")}` : "";
-  const bindings = search ? [JSON.stringify(await matchReleaseIds(db, search, "all"))] : [];
+  return search
+    ? { where: `WHERE ${idInJson("r.id")}`, bindings: [JSON.stringify(await matchReleaseIds(db, search, "all"))] }
+    : { where: "", bindings: [] };
+}
+
+export async function listAdminReleases(db: D1Database, query?: string, limit = 500, offset = 0): Promise<AdminReleaseSummary[]> {
+  const { where, bindings } = await adminReleaseWhere(db, query);
   const result = await db.prepare(`${adminReleaseSelect}
     ${where}
-    ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC
-    LIMIT ?
-  `).bind(...bindings, Math.max(1, Math.min(limit, 500))).all<AdminReleaseRow>();
+    ORDER BY r.release_date DESC, r.title COLLATE NOCASE ASC, r.id ASC
+    LIMIT ? OFFSET ?
+  `).bind(...bindings, pageLimit(limit), pageOffset(offset)).all<AdminReleaseRow>();
   return result.results.map(mapRelease);
+}
+
+export async function countAdminReleases(db: D1Database, query?: string): Promise<number> {
+  const { where, bindings } = await adminReleaseWhere(db, query);
+  return countRows(db, `SELECT COUNT(*) AS total FROM releases r ${where}`, bindings);
 }
 
 export async function getAdminReleaseById(db: D1Database, id: string): Promise<AdminReleaseDetail | null> {
@@ -187,16 +216,51 @@ export async function getAdminReleaseById(db: D1Database, id: string): Promise<A
   };
 }
 
-export async function listAdminSetlists(db: D1Database, query?: string, limit = 500): Promise<AdminSetlistSummary[]> {
+/** Follow-up work an editor looks for in the Setlist list: hidden drafts and lists that still need checking. */
+const ADMIN_SETLIST_FOLLOW_UPS = {
+  draft: "sl.published = 0",
+  incomplete: "sl.completeness <> 'complete'",
+  unverified: "sl.confidence = 'unverified'",
+  empty: "NOT EXISTS (SELECT 1 FROM setlist_entries se WHERE se.setlist_id = sl.id)",
+} as const;
+
+export type AdminSetlistFollowUp = keyof typeof ADMIN_SETLIST_FOLLOW_UPS;
+export const ADMIN_SETLIST_FOLLOW_UP_KEYS = Object.keys(ADMIN_SETLIST_FOLLOW_UPS) as AdminSetlistFollowUp[];
+
+/** Rows matching the search, by follow-up bucket; `follow_up` counts a Setlist once however many buckets it is in. */
+export type AdminSetlistCounts = Record<AdminSetlistFollowUp | "all" | "follow_up", number>;
+
+async function adminSetlistSearch(db: D1Database, query?: string): Promise<{ clauses: string[]; bindings: string[] }> {
   const search = query?.trim();
-  const where = search ? `WHERE ${idInJson("sl.id")}` : "";
-  const bindings = search ? [JSON.stringify(await matchSetlistIds(db, search, "all"))] : [];
+  return search
+    ? { clauses: [idInJson("sl.id")], bindings: [JSON.stringify(await matchSetlistIds(db, search, "all"))] }
+    : { clauses: [], bindings: [] };
+}
+
+export async function listAdminSetlists(
+  db: D1Database, query?: string, limit = 500, options: { offset?: number; followUp?: AdminSetlistFollowUp } = {},
+): Promise<AdminSetlistSummary[]> {
+  const { clauses, bindings } = await adminSetlistSearch(db, query);
+  if (options.followUp) clauses.push(ADMIN_SETLIST_FOLLOW_UPS[options.followUp]);
   const result = await db.prepare(`${adminSetlistSelect}
-    ${where}
-    ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label ASC
-    LIMIT ?
-  `).bind(...bindings, Math.max(1, Math.min(limit, 500))).all<AdminSetlistRow>();
+    ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
+    ORDER BY e.start_date DESC, e.start_time DESC, sl.performance_label ASC, sl.id ASC
+    LIMIT ? OFFSET ?
+  `).bind(...bindings, pageLimit(limit), pageOffset(options.offset ?? 0)).all<AdminSetlistRow>();
   return result.results.map(mapSetlist);
+}
+
+export async function countAdminSetlists(db: D1Database, query?: string): Promise<AdminSetlistCounts> {
+  const { clauses, bindings } = await adminSetlistSearch(db, query);
+  const sums = ADMIN_SETLIST_FOLLOW_UP_KEYS.map((key) => `COALESCE(SUM(${ADMIN_SETLIST_FOLLOW_UPS[key]}), 0) AS ${key}`);
+  const any = ADMIN_SETLIST_FOLLOW_UP_KEYS.map((key) => `(${ADMIN_SETLIST_FOLLOW_UPS[key]})`).join(" OR ");
+  // Joined to events like the list, so a count never includes a row the list cannot show.
+  const row = await db.prepare(`
+    SELECT COUNT(*) AS "all", ${sums.join(", ")}, COALESCE(SUM(${any}), 0) AS follow_up
+    FROM setlists sl JOIN events e ON e.id = sl.event_id
+    ${clauses.length ? `WHERE ${clauses.join(" AND ")}` : ""}
+  `).bind(...bindings).first<AdminSetlistCounts>();
+  return row ?? { all: 0, draft: 0, incomplete: 0, unverified: 0, empty: 0, follow_up: 0 };
 }
 
 export async function getAdminSetlistById(db: D1Database, id: string): Promise<AdminSetlistDetail | null> {

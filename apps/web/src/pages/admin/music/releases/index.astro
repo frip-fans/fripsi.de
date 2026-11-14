@@ -1,23 +1,32 @@
 ---
 import AdminPageHeader from "../../../../components/AdminPageHeader.astro";
-import { listAdminReleases } from "@frip-fan/core";
+import { countAdminReleases, listAdminReleases } from "@frip-fan/core";
 import AdminMusicNav from "../../../../components/AdminMusicNav.astro";
 import Icon from "../../../../components/Icon.astro";
+import Pagination from "../../../../components/Pagination.astro";
 import SiteLayout from "../../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../../lib/env";
 
 const query = Astro.url.searchParams.get("q")?.trim() ?? "";
-const releases = await listAdminReleases(getEnv().DB, query || undefined);
+const PAGE_SIZE = 50;
+const requestedPageValue = Astro.url.searchParams.get("page") ?? "1";
+const requestedPage = /^\d+$/.test(requestedPageValue) ? Math.max(1, Number(requestedPageValue)) : 1;
+const db = getEnv().DB;
+const totalItems = await countAdminReleases(db, query || undefined);
+const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+const currentPage = Math.min(requestedPage, totalPages);
+const releases = await listAdminReleases(db, query || undefined, PAGE_SIZE, (currentPage - 1) * PAGE_SIZE);
 const canWrite = Astro.locals.actor!.scopes.includes("music:write");
 ---
 <SiteLayout title="专辑管理" admin>
   <AdminMusicNav />
-  <AdminPageHeader title="专辑管理" description="维护专辑元数据、曲序、歌曲版本关联与来源。">
+  <AdminPageHeader title="专辑管理" description={`共 ${totalItems} 张${query ? "符合搜索条件的" : ""}专辑，按发行日期从新到旧排列。维护元数据、曲序、歌曲版本关联与来源。`}>
     <a class:list={["button", { disabled: !canWrite }]} href={canWrite ? "/admin/music/releases/new" : undefined} aria-disabled={!canWrite}><Icon name="plus" />新专辑</a>
   </AdminPageHeader>
   <form class="filters panel" method="get">
     <label>搜索<input type="search" name="q" value={query} placeholder="标题、品番或 slug" /></label>
     <button type="submit"><Icon name="search" />搜索</button>
+    {query && <a class="button secondary" href="/admin/music/releases">清除</a>}
   </form>
   <div class="panel table-wrap">
     <table>
@@ -38,8 +47,9 @@ const canWrite = Astro.locals.actor!.scopes.includes("music:write");
     </table>
     {!releases.length && <div class="empty">没有符合条件的专辑。</div>}
   </div>
+  <Pagination currentPage={currentPage} totalPages={totalPages} totalItems={totalItems} itemLabel="张专辑" />
 </SiteLayout>
 <style>
-  .filters { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
+  .filters { display: grid; grid-template-columns: 1fr auto auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }
   @media (max-width: 720px) { .filters { grid-template-columns: 1fr; } }
 </style>

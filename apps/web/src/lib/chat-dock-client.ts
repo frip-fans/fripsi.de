@@ -3,6 +3,8 @@
  * never tries to keep state alive across navigations: the transcript arrives server
  * rendered in the markup and only ephemeral bits (open, draft, scroll) are restored.
  */
+import { setupChatModelSettings } from "./chat-model-settings-client";
+
 const POLL_MS = 2500;
 const RAIL_QUERY = "(min-width: 1180px)";
 const OPEN_KEY = "frip.chat-dock.open";
@@ -74,9 +76,11 @@ export function setupAdminChatDock(): void {
   const status = dock.querySelector<HTMLElement>('[data-role="status"]')!;
   const announce = dock.querySelector<HTMLElement>('[data-role="announce"]')!;
   const expired = dock.querySelector<HTMLElement>('[data-role="expired"]')!;
-  const historyPanel = dock.querySelector<HTMLElement>("[data-chat-history-panel]")!;
-  const historyList = dock.querySelector<HTMLElement>('[data-role="history-list"]')!;
-  const historyEmpty = dock.querySelector<HTMLElement>('[data-role="history-empty"]')!;
+  // The history dialog is a sibling of the dock, like the settings dialog: a closed
+  // sheet is inert, and a modal belongs in the top layer anyway.
+  const historyPanel = document.querySelector<HTMLDialogElement>("[data-chat-history-panel]")!;
+  const historyList = historyPanel.querySelector<HTMLElement>('[data-role="history-list"]')!;
+  const historyEmpty = historyPanel.querySelector<HTMLElement>('[data-role="history-empty"]')!;
   const model = dock.querySelector<HTMLElement>('[data-role="model"]') as unknown as ModelPicker | null;
   const canPublish = dock.dataset.canPublish === "true";
 
@@ -90,6 +94,8 @@ export function setupAdminChatDock(): void {
   let timer = 0;
   let countdown = 0;
   let modelsReady = false;
+  /** Poll retries left while the newest turn is one already shown. */
+  let awaiting = 0;
   let viewingArchive = false;
   let source: EventSource | null = null;
 
@@ -106,16 +112,41 @@ export function setupAdminChatDock(): void {
       dock.setAttribute("role", "dialog");
       dock.setAttribute("aria-modal", "true");
       setBackgroundInert(true);
+      setScrollLock(true);
     } else {
       dock.setAttribute("role", "complementary");
       dock.removeAttribute("aria-modal");
       setBackgroundInert(false);
+      setScrollLock(false);
     }
   }
 
   function setBackgroundInert(on: boolean): void {
     for (const element of document.querySelectorAll<HTMLElement>(".site-header, main, footer")) {
       element.inert = on;
+    }
+  }
+
+  /**
+   * Freezes the page behind the sheet. `overflow: hidden` alone does not hold on iOS
+   * Safari, so the body is pinned at its current offset and the scroll position is
+   * restored on close.
+   */
+  let lockedAt = 0;
+  function setScrollLock(on: boolean): void {
+    const body = document.body;
+    if (on === (body.dataset.chatLocked === "true")) return;
+    if (on) {
+      lockedAt = window.scrollY;
+      body.dataset.chatLocked = "true";
+      body.style.top = `-${lockedAt}px`;
+    } else {
+      delete body.dataset.chatLocked;
+      body.style.top = "";
+      // Reading layout puts the document back at full height first: while the body is
+      // still pinned the scrollable range is zero and the restore would clamp to the top.
+      void body.offsetHeight;
+      window.scrollTo(0, lockedAt);
     }
   }
 
@@ -129,11 +160,16 @@ export function setupAdminChatDock(): void {
     }
     applyMode();
     if (open) {
-      (rail.matches ? input : dock.querySelector<HTMLElement>("[data-chat-close]"))?.focus();
+      // The sheet takes focus itself: landing on the close button paints a focus ring
+      // on the one control nobody opened the panel to use.
+      (rail.matches ? input : dock).focus({ preventScroll: true });
       restoreScroll();
     } else {
       setBackgroundInert(false);
-      launcher?.focus();
+      setScrollLock(false);
+      // Without preventScroll, returning focus to the header scrolls the page back to
+      // the top and undoes the position just restored.
+      launcher?.focus({ preventScroll: true });
     }
   }
 
@@ -255,6 +291,8 @@ export function setupAdminChatDock(): void {
       closeStream();
       settleLive();
       stopPolling();
+      // A reply is on its way; allow the poll a minute to see the new turn appear.
+      awaiting = 24;
       timer = window.setTimeout(() => void poll(), 1200);
     });
   }
@@ -357,11 +395,18 @@ export function setupAdminChatDock(): void {
   async function loadModels(): Promise<void> {
     if (!model) return;
     try {
-      const listed = await api("/api/admin/chat/models", undefined, "GET") as { models?: string[] };
+      const listed = await api("/api/admin/chat/models", undefined, "GET") as
+        { models?: string[]; default_model?: string | null };
       const models = listed.models ?? [];
       if (!models.length) throw new Error("该 API key 没有可用模型");
+      // A running session keeps its model even if the operator has since unticked it;
+      // the picker must still name what the session is actually using.
+      const pinned = live ? dock.dataset.lastModel : "";
+      if (pinned && !models.includes(pinned)) models.unshift(pinned);
       model.innerHTML = models.map((id) => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join("");
-      const preferred = dock.dataset.lastModel;
+      // A running session is pinned to its own model. Otherwise the operator's default
+      // wins, because nominating one is how they say which model a new session should use.
+      const preferred = live ? dock.dataset.lastModel : listed.default_model || dock.dataset.lastModel;
       if (preferred && models.includes(preferred)) model.value = preferred;
       modelsReady = true;
       lockModel(live);
@@ -377,6 +422,9 @@ export function setupAdminChatDock(): void {
     sendButton.disabled = on;
     input.readOnly = on;
     log.setAttribute("aria-busy", String(on));
+    // Drives the indeterminate bar under the status row: a turn can run for many
+    // seconds before the first token, and a static line looks like nothing is happening.
+    dock.classList.toggle("chat-dock-busy", on);
     status.textContent = label;
   }
 
@@ -427,9 +475,16 @@ export function setupAdminChatDock(): void {
         return;
       }
       if (turn.turn_id && turn.turn_id === lastTurn) {
-        timer = window.setTimeout(() => void poll(), POLL_MS);
+        // The newest turn is already on screen. That is only worth waiting on when a
+        // reply is actually expected; otherwise this loop would spin until the session
+        // expires, two provider requests at a time.
+        if (awaiting > 0) {
+          awaiting -= 1;
+          timer = window.setTimeout(() => void poll(), POLL_MS);
+        } else busy(false, "");
         return;
       }
+      awaiting = 0;
       lastTurn = turn.turn_id;
       if (turn.reply) bubble("assistant", turn.reply);
       toolLine(turn.tool_calls ?? []);
@@ -487,15 +542,17 @@ export function setupAdminChatDock(): void {
 
   // ---- history ------------------------------------------------------------
 
-  async function toggleHistory(): Promise<void> {
-    const open = historyPanel.hidden;
-    historyPanel.hidden = !open;
-    dock.querySelector("[data-chat-history]")?.setAttribute("aria-expanded", String(open));
-    if (!open) return;
+  async function openHistory(): Promise<void> {
+    historyList.replaceChildren();
+    historyEmpty.hidden = false;
+    historyEmpty.textContent = "加载中…";
+    historyPanel.showModal();
+    historyPanel.focus();
     try {
       const listed = await api("/api/admin/chat/sessions", undefined, "GET") as { sessions?: HistoryRow[] };
       const rows = (listed.sessions ?? []).filter((row) => row.message_count > 0);
       historyEmpty.hidden = rows.length > 0;
+      historyEmpty.textContent = "还没有历史会话。";
       historyList.replaceChildren(...rows.map((row) => {
         const item = document.createElement("li");
         const button = document.createElement("button");
@@ -525,7 +582,7 @@ export function setupAdminChatDock(): void {
         proposals?: ProposalCard[];
       };
       viewingArchive = true;
-      historyPanel.hidden = true;
+      historyPanel.close();
       log.replaceChildren();
       for (const message of data.messages) {
         bubble(message.role === "user" ? "user" : message.role === "error" ? "error" : "assistant", message.body, message.created_at);
@@ -567,12 +624,15 @@ export function setupAdminChatDock(): void {
 
   launcher?.addEventListener("click", () => setOpen(!root.classList.contains("chat-dock-open")));
   dock.querySelector("[data-chat-close]")?.addEventListener("click", () => setOpen(false));
-  dock.querySelector("[data-chat-history]")?.addEventListener("click", () => void toggleHistory());
+  dock.querySelector("[data-chat-history]")?.addEventListener("click", () => void openHistory());
+  historyPanel.querySelector("[data-chat-history-close]")?.addEventListener("click", () => historyPanel.close());
+  // A click on the backdrop lands on the dialog element itself, never on its contents.
+  historyPanel.addEventListener("click", (event) => { if (event.target === historyPanel) historyPanel.close(); });
   for (const button of dock.querySelectorAll("[data-chat-new]")) {
     button.addEventListener("click", () => void endSession());
   }
   for (const sample of dock.querySelectorAll<HTMLElement>("[data-chat-sample]")) {
-    sample.addEventListener("click", () => { input.value = sample.textContent ?? ""; input.focus(); });
+    sample.addEventListener("click", () => { input.value = sample.textContent ?? ""; fitInput(); input.focus(); });
   }
   model?.addEventListener("change", () => {
     if (live) status.textContent = "切换模型会在下一个会话生效，请先开新会话";
@@ -583,25 +643,48 @@ export function setupAdminChatDock(): void {
     const text = input.value.trim();
     if (!text || sendButton.disabled) return;
     input.value = "";
+    fitInput();
     void submit(text);
   });
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) { event.preventDefault(); form.requestSubmit(); }
   });
-  input.addEventListener("input", () => store(DRAFT_KEY, input.value));
+  /** Grows the composer with its content instead of offering a drag handle. */
+  function fitInput(): void {
+    input.style.height = "auto";
+    // scrollHeight leaves out the border; without adding it back the box ends up a
+    // couple of pixels short and shows a scrollbar on a single line.
+    const wanted = input.scrollHeight + (input.offsetHeight - input.clientHeight);
+    input.style.height = `${Math.min(wanted, 168)}px`;
+    input.style.overflowY = wanted > 168 ? "auto" : "hidden";
+  }
+  input.addEventListener("input", () => { store(DRAFT_KEY, input.value); fitInput(); });
   log.addEventListener("scroll", () => store(SCROLL_KEY, String(log.scrollTop)));
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && !rail.matches && root.classList.contains("chat-dock-open")) setOpen(false);
   });
   rail.addEventListener("change", applyMode);
-  window.addEventListener("pagehide", () => { stopPolling(); closeStream(); setBackgroundInert(false); });
+  window.addEventListener("pagehide", () => {
+    stopPolling(); closeStream(); setBackgroundInert(false); setScrollLock(false);
+  });
 
   const draft = read(DRAFT_KEY);
   if (draft) input.value = draft;
+  fitInput();
+  // The shortcut is spelled for the visitor's keyboard: ⌘ Return on Apple, Ctrl Enter elsewhere.
+  const platform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform
+    || navigator.platform || "";
+  if (/mac|iphone|ipad/i.test(platform)) {
+    const mod = dock.querySelector<HTMLElement>('[data-role="hint-mod"]');
+    const enter = dock.querySelector<HTMLElement>('[data-role="hint-enter"]');
+    if (mod) mod.textContent = "⌘";
+    if (enter) enter.textContent = "Return";
+  }
   setOpen(read(OPEN_KEY) !== "0" && root.classList.contains("chat-dock-open"), false);
   applyMode();
   setLive(live, expiresAt);
   void loadModels();
+  setupChatModelSettings(() => void loadModels());
   // A turn may have completed while this page was loading, or while no tab was open.
   if (sessionId && live) timer = window.setTimeout(() => void poll(), 800);
   for (const button of dock.querySelectorAll("[data-chat-new]")) {

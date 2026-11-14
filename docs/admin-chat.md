@@ -1,6 +1,6 @@
 # 后台聊天编辑助手
 
-助手以侧栏形式停靠在所有 `/admin` 页面：宽屏（≥1180px）是 420px 右栏并把正文挤窄，窄屏是全屏 sheet，右下角有启动按钮。维护者用自然语言查询和修改活动日历。推理循环运行在 OpenAI Agents API 一侧，模型通过本站 Remote MCP（`https://fripsi.de/mcp`）读取数据并提交提案；网站只负责签发短期身份、启动会话、读取进度和渲染结果。发布由人在聊天流里点击确认，不由模型调用。
+助手以侧栏形式停靠在所有 `/admin` 页面：宽屏（≥1180px）是 420px 右栏并把正文挤窄，窄屏是全屏 sheet（打开时锁定背后页面的滚动，关闭后还原位置），入口在后台页头右侧。维护者用自然语言查询和修改活动日历。推理循环运行在 OpenAI Agents API 一侧，模型通过本站 Remote MCP（`https://fripsi.de/mcp`）读取数据并提交提案；网站只负责签发短期身份、启动会话、读取进度和渲染结果。发布由人在聊天流里点击确认，不由模型调用。
 
 与[官方活动自动同步](official-sync.md)共用 Agents API 客户端、预算记账和 MCP 工具层；区别是同步由 timer 无人驱动并可自动发布，聊天由登录维护者驱动且不能自动发布。
 
@@ -12,14 +12,15 @@
 
 窄屏下侧栏是 `role="dialog" aria-modal="true"`，并把 `.site-header / main / footer` 设为 `inert`，Escape 关闭；宽屏是 `role="complementary"`，不夺取 Escape，也不锁背景。对话区不整体 `aria-live`（否则每张 diff 表都会被朗读），改为单独的 `role="status"` 只播摘要。
 
-历史在侧栏内的抽屉里按会话列出，点开即只读回放：输入框隐藏，状态行显示该会话使用的模型。提案卡片始终按 `change_sets` 当前状态重新生成。
+历史在独立弹窗里按会话列出，点开即在侧栏只读回放：输入框隐藏，状态行显示该会话使用的模型。提案卡片始终按 `change_sets` 当前状态重新生成。
 
 ## 运行流程
 
 ```text
 浏览器 任意 /admin 页（Cloudflare Access 保护）
   └─ GET  /api/admin/chat/current    侧栏首屏状态（与服务端直出同一份载荷）
-  └─ GET  /api/admin/chat/models     列出该 API key 可用的模型
+  └─ GET  /api/admin/chat/models     侧栏下拉可选的模型（已勾选的，及默认项）
+  └─ GET/POST /api/admin/chat/model-settings  全部可用模型与勾选状态（POST 需 events:publish）
   └─ GET  /api/admin/chat/sessions   历史会话列表（按维护者过滤）
   └─ GET  /api/admin/chat/sessions/:id   读取某次会话的正文，过期会话同样可读
   └─ DELETE 同上                      清除该会话的对话正文
@@ -57,11 +58,20 @@
 
 ## 模型选择
 
-站内不维护模型白名单。`GET /api/admin/chat/models` 用本环境的 API key 调 `GET /v1/models`，把该 key 能访问的模型原样返回，页面下拉框据此渲染，服务端缓存 10 分钟。OpenAI 上线新模型后无需改配置也无需发版，等缓存过期即可选到。
+`GET /v1/models` 返回该 API key 能访问的全部模型——包括嵌入、语音、图像和不支持 Agents API 的对话模型，直接放进下拉框既冗长又容易误选。因此由维护者在侧栏的「模型设置」弹窗（模型下拉旁的齿轮，需要 `events:publish`）里勾选要用的模型，并指定其中一个为默认：
 
-服务端只校验模型名的字符形状，不判断它是否存在——这由 OpenAI 决定。因此列表里也包含嵌入、语音等非对话模型，误选会在创建会话时收到 OpenAI 的错误而不是静默失败。
+- 弹窗列出 key 可访问的全部模型（服务端缓存 10 分钟），OpenAI 上线新模型后无需改配置也无需发版，出现在列表里勾上即可。
+- 勾选结果存在 `app_settings` 表的 `chat.models` 一行（JSON：`enabled` 与 `default_model`，最多 12 个）。保存时逐个校验确实在该 key 的可用列表里，默认项必须在勾选之内。
+- 侧栏下拉只列勾选的模型；新会话预选默认项，没有默认项时沿用上次使用的模型。进行中的会话固定显示它自己的模型，即使该模型之后被取消勾选。
+- 创建会话时服务端同样按勾选列表校验，过期标签页或伪造请求选不到未勾选的模型。
+- **一个都没勾选时退回列出全部可用模型**，保证首次部署和勾选项全部失效时聊天仍然可用。
+- 读取存储行时做防御性解析：格式损坏或被手改的行按「未配置」处理，不让页面报错。
 
-Agents API 在创建 session 时固定 agent 配置，因此模型只能为**下一次会话**选择：会话开始后下拉框禁用，换模型要先结束当前会话。所选模型记录在 `admin_chat_sessions.model`，不同会话可以不同。浏览器只用 localStorage 记住上次的选择，作为每人每浏览器的便利项，不作为状态来源。
+OpenAI 在创建会话时拒绝模型（400/404，例如 `chat-latest` 不支持 Agents API）会明确提示换模型并取消勾选它。
+
+上游与配置类错误统一返回 424/422 而不是 502/503：站点前面的 Cloudflare 会把源站的 502/503 换成自己的 HTML 错误页，侧栏解析不出 JSON，就只能显示一句没有原因的「请求失败」（2026-11-14 生产实际发生过）。
+
+Agents API 在创建 session 时固定 agent 配置，因此模型只能为**下一次会话**选择：会话开始后下拉框禁用，换模型要先结束当前会话。所选模型记录在 `admin_chat_sessions.model`，不同会话可以不同。
 
 ## 会话与过期
 
@@ -137,7 +147,7 @@ changes.preview / changes.discard
 - 历史列表与正文读取按维护者隔离；手动删除与超期清理都只删正文。
 - 提案写入时带上 `chat_session_id`。
 - token 中声明 `events:publish` 时仍被白名单夹成只读加草稿。
-- `CHAT_ENABLED=false` 时 `/admin/chat` 与 API 返回 404/503，不签发凭据。
+- `CHAT_ENABLED=false` 时 `/admin/chat` 说明未启用，API 返回 424，不签发凭据。
 - 会话过期后继续输入的错误路径。
 - 非 publisher 角色看不到发布按钮，且直接请求 publish 接口返回 403。
 - 聊天输入和 MCP 返回不包含凭据、Access JWT 或异常堆栈。
@@ -161,5 +171,7 @@ changes.preview / changes.discard
 因此文本按 `item_id:content_index` 分段累积，`done` 的 `text` 覆盖该段的增量（流接晚了错过增量也不丢），**只有 `final_answer` 的分段写入 transcript**——与轮询回退写入的内容一致。前导句只在流式过程中显示，回合结束时气泡被替换为正式回答。
 
 轮询保留为兜底：回复由服务端在回合完成时写入 transcript，流中断只丢逐字显示效果，不丢内容。流出错即关闭 EventSource 退回轮询，不自动重连——官方明确说明流不重放错过的事件。提案卡片始终按 `change_sets` 当前状态重新拉取，不从流里取。
+
+轮询有界：页面加载恢复会话时只检查一次；只有流中断、确实在等一条回复时，才在最新回合尚未变化的情况下继续重试（约一分钟）。此前「最新回合已显示」的分支会无条件重试，一个打开着的标签页会每 2.5 秒向 OpenAI 发两个请求直到会话过期。
 
 参考：[Agents API MCP](https://developers.openai.com/api/docs/guides/agents-api/tools/mcp)、[Agents API quickstart](https://developers.openai.com/api/docs/guides/agents-api/quickstart)。

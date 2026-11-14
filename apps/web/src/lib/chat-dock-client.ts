@@ -3,6 +3,7 @@
  * never tries to keep state alive across navigations: the transcript arrives server
  * rendered in the markup and only ephemeral bits (open, draft, scroll) are restored.
  */
+import { renderChatMarkdown } from "./chat-markdown";
 import { setupChatModelSettings } from "./chat-model-settings-client";
 
 const POLL_MS = 2500;
@@ -199,7 +200,9 @@ export function setupAdminChatDock(): void {
       label.textContent = `${role === "error" ? "出错" : "助手"} · ${clock(at)}`;
       const body = document.createElement("div");
       body.className = role === "error" ? "chat-error" : "chat-prose";
-      body.textContent = text;
+      // renderChatMarkdown escapes the reply and emits only its own tags.
+      if (role === "assistant") body.innerHTML = renderChatMarkdown(text);
+      else body.textContent = text;
       item.appendChild(label);
       item.appendChild(body);
     }
@@ -253,6 +256,7 @@ export function setupAdminChatDock(): void {
     if (!sessionId) return;
     closeStream();
     const running = new Map<string, string>();
+    let streamed = "";
     const stream = new EventSource(`/api/admin/chat/${encodeURIComponent(sessionId)}/stream`);
     source = stream;
     busy(true, "助手正在回复");
@@ -260,7 +264,9 @@ export function setupAdminChatDock(): void {
       let data: any;
       try { data = JSON.parse((event as MessageEvent).data); } catch { return; }
       if (data.type === "delta") {
-        liveTurn().prose.textContent += data.text;
+        // The whole reply so far is re-rendered: a delta can close a list or a bold run.
+        streamed += data.text;
+        liveTurn().prose.innerHTML = renderChatMarkdown(streamed);
         scrollToEnd();
       } else if (data.type === "tool") {
         running.set(data.name, data.status);
@@ -272,7 +278,7 @@ export function setupAdminChatDock(): void {
       } else if (data.type === "done") {
         closeStream();
         const prose = liveTurn().prose;
-        if (data.text) prose.textContent = data.text;
+        if (data.text) prose.innerHTML = renderChatMarkdown(data.text);
         lastTurn = data.turn_id ?? lastTurn;
         settleLive();
         announce.textContent = `助手已回复：${String(data.text ?? "").slice(0, 120)}`;

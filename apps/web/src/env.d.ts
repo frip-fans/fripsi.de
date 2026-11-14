@@ -26,6 +26,9 @@ declare global {
     ADMIN_PUBLISHERS?: string;
     DEV_AUTH_BYPASS?: string;
     DEV_ACTOR?: string;
+    COMMENT_SOURCE_SECRET?: string;
+    TURNSTILE_SITE_KEY?: string;
+    TURNSTILE_SECRET_KEY?: string;
   }
 
   namespace App {

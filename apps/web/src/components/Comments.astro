@@ -91,7 +91,9 @@ const headingId = `comments-title-${thread.replace(/[^A-Za-z0-9_-]/g, "-")}`;
   .comments-count { padding: .12rem .5rem; color: var(--accent); border: 1px solid rgba(var(--accent-rgb), .3); border-radius: 999px; font-size: .75rem; font-variant-numeric: tabular-nums; }
 
   .comment-form { background: rgba(6, 14, 25, .76); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(18px); transition: border-color .15s; }
-  .comment-form:focus-within { border-color: rgba(var(--accent-rgb), .5); }
+  /* The rounded box carries the focus ring for the fields inside it, so they draw none of their own. */
+  .comment-form:has(textarea:focus, .comment-name-field:focus) { border-color: rgba(var(--accent-rgb), .6); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .12); }
+  .comment-form textarea:focus, .comment-form .comment-name-field:focus { outline: none; box-shadow: none; }
   /* 16px keeps iOS from zooming the page when a field takes focus. */
   .comment-form textarea, .comment-form .comment-name-field { font-size: 1rem; background: transparent; border: 0; border-radius: 0; box-shadow: none; }
   .comment-form textarea { display: block; min-height: 4.6rem; padding: .85rem 1rem .4rem; line-height: 1.6; resize: vertical; }

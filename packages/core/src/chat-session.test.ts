@@ -4,7 +4,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { authenticateMcp } from "./auth";
 import {
   CHAT_RETENTION_DAYS,
-  CHAT_SESSION_TTL_SECONDS,
+  CHAT_SESSION_IDLE_SECONDS,
+  CHAT_SESSION_MAX_SECONDS,
+  chatSessionDeadline,
   appendChatMessage,
   deleteChatMessages,
   getChatSessionForActor,
@@ -34,7 +36,7 @@ async function open(id = "session-1", created = now): Promise<string> {
   await openChatSession(db, {
     id, actor_id: actor, model: "gpt-6-luna", budget_group: `chat:${actor}:fixture`, title: "固定测试会话",
     created_at: created.toISOString(),
-    expires_at: new Date(created.valueOf() + CHAT_SESSION_TTL_SECONDS * 1000).toISOString(),
+    expires_at: chatSessionDeadline(created.toISOString(), created),
   });
   return signChatToken(secret, audience, id, actor, created.toISOString());
 }
@@ -54,7 +56,7 @@ describe("chat credentials", () => {
     const forged = `fchat.${await new SignJWT({ chat_session_id: "session-1", scopes: ["events:publish", "events:archive"] })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setIssuer("fripsi:admin-chat").setAudience(audience).setSubject(actor)
-      .setIssuedAt(issuedAt).setExpirationTime(issuedAt + CHAT_SESSION_TTL_SECONDS)
+      .setIssuedAt(issuedAt).setExpirationTime(issuedAt + CHAT_SESSION_MAX_SECONDS)
       .sign(new TextEncoder().encode(secret))}`;
     const resolved = await authenticateChatToken(forged, env(), now);
     expect(resolved.scopes).not.toContain("events:publish");
@@ -67,7 +69,7 @@ describe("chat credentials", () => {
       .rejects.toThrow(ServiceError);
     await expect(authenticateChatToken(token, { ...env(), AUTOMATION_SIGNING_SECRET: "another-secret-long-enough-here" }, now))
       .rejects.toThrow(ServiceError);
-    await expect(authenticateChatToken(token, env(), new Date(now.valueOf() + (CHAT_SESSION_TTL_SECONDS + 60) * 1000)))
+    await expect(authenticateChatToken(token, env(), new Date(now.valueOf() + (CHAT_SESSION_IDLE_SECONDS + 60) * 1000)))
       .rejects.toThrow(ServiceError);
   });
 
@@ -109,10 +111,68 @@ describe("chat sessions", () => {
 
   it("expires a session past its deadline instead of returning it", async () => {
     await open();
-    const later = new Date(now.valueOf() + (CHAT_SESSION_TTL_SECONDS + 1) * 1000);
+    const later = new Date(now.valueOf() + (CHAT_SESSION_IDLE_SECONDS + 1) * 1000);
     expect(await activeChatSession(db, actor, later)).toBeNull();
     const row = await db.prepare("SELECT status FROM admin_chat_sessions WHERE id='session-1'").first<{ status: string }>();
     expect(row?.status).toBe("expired");
+  });
+
+  const deadline = async () => (await db.prepare("SELECT expires_at FROM admin_chat_sessions WHERE id='session-1'").first<{ expires_at: string }>())!.expires_at;
+  const minutes = (count: number) => new Date(now.valueOf() + count * 60_000);
+
+  it("pushes the idle deadline out with each new message", async () => {
+    await open();
+    expect(await deadline()).toBe(minutes(45).toISOString());
+    await appendChatMessage(db, { session_id: "session-1", role: "user", body: "第二条" }, minutes(40));
+    expect(await deadline()).toBe(minutes(85).toISOString());
+    // Past the original 45 minutes, and still open because of the message at minute 40.
+    expect((await activeChatSession(db, actor, minutes(80)))?.id).toBe("session-1");
+    await appendChatMessage(db, { session_id: "session-1", turn_id: "turn-1", role: "assistant", body: "回复" }, minutes(41));
+    expect(await deadline()).toBe(minutes(86).toISOString());
+    expect(await activeChatSession(db, actor, minutes(87))).toBeNull();
+  });
+
+  it("does not extend on a repeated read of the same reply", async () => {
+    await open();
+    const reply = { session_id: "session-1", turn_id: "turn-1", role: "assistant" as const, body: "回复" };
+    await appendChatMessage(db, reply, minutes(10));
+    const after = await deadline();
+    await appendChatMessage(db, reply, minutes(30));
+    await appendChatMessage(db, reply, minutes(50));
+    expect(await deadline()).toBe(after);
+    const row = await db.prepare("SELECT message_count FROM admin_chat_sessions WHERE id='session-1'").first<{ message_count: number }>();
+    expect(row?.message_count).toBe(1);
+  });
+
+  it("stops extending at the hard cap", async () => {
+    await open();
+    const cap = new Date(now.valueOf() + CHAT_SESSION_MAX_SECONDS * 1000);
+    for (let minute = 40; minute < CHAT_SESSION_MAX_SECONDS / 60; minute += 40) {
+      await appendChatMessage(db, { session_id: "session-1", role: "user", body: `第 ${minute} 分钟` }, minutes(minute));
+    }
+    expect(await deadline()).toBe(cap.toISOString());
+    expect((await activeChatSession(db, actor, new Date(cap.valueOf() - 1000)))?.id).toBe("session-1");
+    expect(await activeChatSession(db, actor, cap)).toBeNull();
+    expect(chatSessionDeadline(now.toISOString(), new Date(cap.valueOf() - 60_000))).toBe(cap.toISOString());
+  });
+
+  it("does not revive a session that already ran out or was closed", async () => {
+    await open();
+    const before = await deadline();
+    await appendChatMessage(db, { session_id: "session-1", turn_id: "late", role: "assistant", body: "迟到的回复" }, minutes(50));
+    expect(await deadline()).toBe(before);
+    expect(await activeChatSession(db, actor, minutes(51))).toBeNull();
+    await open("session-2", minutes(60));
+    await closeChatSession(db, "session-2", "closed", minutes(61));
+    await appendChatMessage(db, { session_id: "session-2", role: "user", body: "关闭之后" }, minutes(62));
+    const closed = await db.prepare("SELECT expires_at FROM admin_chat_sessions WHERE id='session-2'").first<{ expires_at: string }>();
+    expect(closed?.expires_at).toBe(minutes(105).toISOString());
+  });
+
+  it("refuses the credential once idle, though the token itself is still valid", async () => {
+    const token = await open();
+    await expect(authenticateChatToken(token, env(), minutes(44))).resolves.toMatchObject({ id: actor });
+    await expect(authenticateChatToken(token, env(), minutes(46))).rejects.toThrow(ServiceError);
   });
 
   it("records the remote session id only while active", async () => {
@@ -145,7 +205,7 @@ describe("chat transcripts", () => {
   it("keeps a transcript readable after the session expires", async () => {
     await open();
     await appendChatMessage(db, { session_id: "session-1", role: "user", body: "测试" }, now);
-    const later = new Date(now.valueOf() + (CHAT_SESSION_TTL_SECONDS + 60) * 1000);
+    const later = new Date(now.valueOf() + (CHAT_SESSION_IDLE_SECONDS + 60) * 1000);
     expect(await activeChatSession(db, actor, later)).toBeNull();
 
     const session = await getChatSessionForActor(db, "session-1", actor);

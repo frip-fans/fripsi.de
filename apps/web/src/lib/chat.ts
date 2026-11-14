@@ -1,6 +1,6 @@
 import {
   AgentsClient,
-  CHAT_SESSION_TTL_SECONDS,
+  chatSessionDeadline,
   ChangeService,
   ServiceError,
   activeChatSession,
@@ -14,6 +14,7 @@ import {
   writeSetting,
   CHAT_MODELS_SETTING,
   type ChatModelSettings,
+  getChatSession,
   getChatSessionForActor,
   listChatMessages,
   listChatSessions,
@@ -173,7 +174,7 @@ export async function startChat(actor: Actor, input: string, chosen: string, now
     // A per-maintainer, per-day label for tracing sessions; spend itself is capped
     // on the OpenAI project behind the API key, not here.
     budget_group: `chat:${actor.id}:${dateInTimeZone(now, "Asia/Tokyo")}`,
-    created_at: created, expires_at: new Date(now.valueOf() + CHAT_SESSION_TTL_SECONDS * 1000).toISOString(),
+    created_at: created, expires_at: chatSessionDeadline(created, now),
     title: input.length > TITLE_MAX ? `${input.slice(0, TITLE_MAX)}…` : input,
   });
   await appendChatMessage(db, { session_id: id, role: "user", body: input }, now);
@@ -227,8 +228,8 @@ async function requireChat(actor: Actor, id: string, now: Date): Promise<ChatSes
   return session;
 }
 
-/** Submits the next maintainer message into the same remote session. */
-export async function continueChat(actor: Actor, id: string, input: string, now = new Date()): Promise<void> {
+/** Submits the next maintainer message into the same remote session; returns its new deadline. */
+export async function continueChat(actor: Actor, id: string, input: string, now = new Date()): Promise<string> {
   assertScope(actor, "events:draft");
   const config = configuration();
   const session = await requireChat(actor, id, now);
@@ -237,6 +238,7 @@ export async function continueChat(actor: Actor, id: string, input: string, now 
     events: [{ type: "agent.session.input.message", input: [{ role: "user", content: [{ type: "input_text", text: input }] }] }],
   }, `${id}:${now.valueOf()}`);
   await appendChatMessage(getEnv().DB, { session_id: id, role: "user", body: input }, now);
+  return (await getChatSession(getEnv().DB, id))?.expires_at ?? session.expires_at;
 }
 
 export interface ChatTurn {
@@ -265,7 +267,8 @@ export async function readChat(actor: Actor, id: string, now = new Date()): Prom
     turn_id: progress.turn_id ?? null,
     reply,
     tool_calls: progress.tools?.mcp_calls ?? [],
-    expires_at: session.expires_at,
+    // Re-read: recording the reply above may just have moved the idle deadline.
+    expires_at: (await getChatSession(getEnv().DB, session.id))?.expires_at ?? session.expires_at,
   };
 }
 

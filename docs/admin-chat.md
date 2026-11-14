@@ -77,7 +77,10 @@ Agents API 在创建 session 时固定 agent 配置，因此模型只能为**下
 
 Agents API 的工具配置在 session 创建时固定，后续 turn 不能更换 MCP 凭据（`agent.session.input.message` 只提交输入）。凭据过期后该会话的全部 MCP 调用都会失败。因此：
 
-- 会话硬上限 30 分钟，`admin_chat_sessions.expires_at` 到期后状态转为 `expired`，继续输入返回明确错误，由前端引导开新会话。
+- 凭据有效期等于会话的硬上限 8 小时（`CHAT_SESSION_MAX_SECONDS`），这样连续工作时不必中途换会话。
+- 会话本身按空闲过期：`admin_chat_sessions.expires_at` 是「最后一条新消息之后 45 分钟」（`CHAT_SESSION_IDLE_SECONDS`），且不超过创建后 8 小时。维护者发出消息、助手回复落库时都会顺延；重复读取同一轮回复不写入新行，也不顺延，所以只是开着后台页面不会让会话一直活着。
+- `authenticateChatToken` 每次 MCP 调用都核对会话行，空闲过期、关闭或开了新会话之后，仍在有效期内的凭据同样被拒绝。
+- 到期后状态转为 `expired`，继续输入返回明确错误，由前端引导开新会话；已过期的会话不会被迟到的回复重新激活。
 - 每个维护者同时只保留一个 `active` 会话，新建会话先关闭旧会话。
 - 会话记录保存对话正文，见下节。
 

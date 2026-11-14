@@ -1,9 +1,12 @@
 ---
 import SiteLayout from "../../layouts/SiteLayout.astro";
+import { YAGINUMA_CALIBRATOR_ENABLED } from "../../lib/features";
 import { getLocale, t } from "../../lib/i18n";
 import { ASSET_BASE, getPosterPath } from "../../scripts/yaginuma-intensity-calibrator/video-renderer";
 import "../../scripts/yaginuma-intensity-calibrator/styles.css";
 
+// Taken down for now: answer the way the site does for any missing page.
+if (!YAGINUMA_CALIBRATOR_ENABLED) return Astro.redirect("/404", 302);
 const locale = getLocale(Astro.request);
 const posterSrc = getPosterPath(0, ASSET_BASE);
 ---

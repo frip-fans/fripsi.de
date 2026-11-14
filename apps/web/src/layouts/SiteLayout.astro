@@ -8,6 +8,7 @@ interface Props {
   structuredData?: unknown;
 }
 import { ClientRouter } from "astro:transitions";
+import { YAGINUMA_CALIBRATOR_ENABLED } from "../lib/features";
 import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
 import Icon from "../components/Icon.astro";
@@ -51,7 +52,7 @@ interface NavigationItem {
 const funLinks = [
   { href: "/quiz", label: t(locale, "nav.quiz"), active: current.startsWith("/quiz") },
   { href: "/journey", label: t(locale, "nav.journey"), active: current.startsWith("/journey") },
-  { href: "/yaginuma-intensity-calibrator", label: t(locale, "nav.yaginuma"), active: current.startsWith("/yaginuma-intensity-calibrator") },
+  ...(YAGINUMA_CALIBRATOR_ENABLED ? [{ href: "/yaginuma-intensity-calibrator", label: t(locale, "nav.yaginuma"), active: current.startsWith("/yaginuma-intensity-calibrator") }] : []),
 ];
 const navigationLinks: NavigationItem[] = admin ? [
   { href: "/admin", label: "概览", active: current === "/admin" },

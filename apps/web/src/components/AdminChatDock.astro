@@ -18,7 +18,7 @@ function clock(value: string): string {
 <aside id="admin-chat-dock" class="chat-dock" data-chat-dock data-mode="rail" tabindex="-1"
   data-can-publish={String(can_publish)} data-session={session?.id ?? ""}
   data-live={String(live)} data-expires={session?.expires_at ?? ""}
-  data-last-model={state.last_model ?? ""}
+  data-last-model={state.last_model ?? ""} data-pending={JSON.stringify(state.pending_ids)}
   aria-label="编辑助手">
   <header class="chat-dock-head">
     <strong>编辑助手</strong>

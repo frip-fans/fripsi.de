@@ -447,6 +447,23 @@ export function setupAdminChatDock(): void {
     }
   }
 
+  /**
+   * A proposal can be published or discarded on the proposals page while its card sits
+   * here. `pending` is every proposal of this session the server still has open; a card
+   * that is not among them was decided elsewhere and must stop offering the buttons.
+   */
+  function settleProposals(pending: Set<string>): void {
+    for (const item of log.querySelectorAll<HTMLElement>(".chat-proposal:not(.done)")) {
+      if (pending.has(item.dataset.id ?? "")) continue;
+      item.classList.add("done");
+      const actions = item.querySelector('[data-role="actions"]');
+      if (!actions) continue;
+      const review = actions.querySelector("a");
+      actions.textContent = "已在别处处理 ";
+      if (review) actions.appendChild(review);
+    }
+  }
+
   // ---- api ----------------------------------------------------------------
 
   async function api(path: string, body?: unknown, method = "POST"): Promise<Record<string, any>> {
@@ -875,6 +892,12 @@ export function setupAdminChatDock(): void {
     event.newDocument.documentElement.classList.toggle("chat-dock-open", root.classList.contains("chat-dock-open"));
     // Moving the dock into the new body can reset the transcript's scroll offset.
     logScroll = log.scrollTop;
+    // The incoming document carries a freshly rendered dock that is about to be dropped
+    // in favour of this one. It still knows which proposals are open as of this request.
+    const fresh = event.newDocument.querySelector<HTMLElement>("[data-chat-dock]");
+    if (fresh && !viewingArchive && sessionId && fresh.dataset.session === sessionId) {
+      try { settleProposals(new Set(JSON.parse(fresh.dataset.pending ?? "[]") as string[])); } catch { /* cards stay as they are */ }
+    }
   });
   document.addEventListener("astro:after-swap", () => {
     if (!dock.isConnected) return;

@@ -138,10 +138,17 @@ const entries = setlist?.entries ?? [];
 <script>
   import { createSetlistMatcher, type PasteSong, type PasteVersion, type SetlistSection } from "../lib/setlist-paste";
 
-  const editorForm = document.querySelector<HTMLFormElement>("[data-setlist-editor]");
-  if (editorForm) initSetlistEditor(editorForm);
+  // Routed navigation runs this module once; the editor it wires up is new every time.
+  document.addEventListener("astro:page-load", () => {
+    const editorForm = document.querySelector<HTMLFormElement>("[data-setlist-editor]");
+    if (editorForm) initSetlistEditor(editorForm);
+  });
 
   function initSetlistEditor(form: HTMLFormElement) {
+    // Listeners outside the form would otherwise pile up, one set per visit.
+    const leaving = new AbortController();
+    const { signal } = leaving;
+    document.addEventListener("astro:before-swap", () => leaving.abort(), { once: true });
     const rowsBox = form.querySelector<HTMLElement>("[data-entry-rows]")!;
     const template = form.querySelector<HTMLTemplateElement>("[data-entry-template]")!;
     const empty = form.querySelector<HTMLElement>("[data-entry-empty]");
@@ -223,14 +230,20 @@ const entries = setlist?.entries ?? [];
     };
     window.addEventListener("beforeunload", (event) => {
       if (dirty && !submitting) { event.preventDefault(); event.returnValue = ""; }
-    });
+    }, { signal });
+    // A routed navigation never unloads the page. Handing it to the browser while there
+    // are unsaved changes makes it a real page load, which the prompt above then guards.
+    document.addEventListener("astro:before-preparation", (event) => {
+      if (dirty && !submitting) event.preventDefault();
+    }, { signal });
     form.addEventListener("submit", () => { submitting = true; });
+    form.addEventListener("admin:submit-failed", () => { submitting = false; });
     document.addEventListener("keydown", (event) => {
       if ((event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "s") {
         event.preventDefault();
         form.requestSubmit();
       }
-    });
+    }, { signal });
 
     const createRow = () => {
       const clone = template.content.firstElementChild?.cloneNode(true);

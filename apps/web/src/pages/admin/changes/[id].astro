@@ -167,13 +167,6 @@ const proposed = change.status === "proposed";
   )}
 </SiteLayout>
 
-<script>
-  for (const form of document.querySelectorAll<HTMLFormElement>("form[data-confirm]")) {
-    form.addEventListener("submit", (event) => {
-      if (!confirm(form.dataset.confirm ?? "")) event.preventDefault();
-    });
-  }
-</script>
 
 <style>
   .top-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .6rem 1rem; }

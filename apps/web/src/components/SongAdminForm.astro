@@ -101,6 +101,8 @@ const versions: Array<AdminSongVersion | undefined> = song?.versions.length ? so
 </form>
 
 <script>
+  // Routed navigation runs this module once; the page it wires up is new every time.
+  document.addEventListener("astro:page-load", () => {
   const editor = document.querySelector<HTMLElement>("[data-song-editor]");
   const rows = editor?.querySelector<HTMLElement>("[data-version-rows]");
   const template = editor?.querySelector<HTMLTemplateElement>("[data-version-template]");
@@ -145,6 +147,7 @@ const versions: Array<AdminSongVersion | undefined> = song?.versions.length ? so
     if (target instanceof HTMLInputElement && target.name === "version_title") target.dataset.touched = "true";
   });
   refreshVersions();
+  });
 </script>
 
 <style>

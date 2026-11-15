@@ -38,6 +38,8 @@
 }
 @media (max-width: 860px) { .chat-toggle-label { display: none; } .chat-toggle { padding: .4rem .55rem; } }
 
+/* Only a handle for the router to carry the dock and its dialogs across pages. */
+.chat-dock-root { display: contents; }
 .chat-dock {
   position: fixed; inset: 0 0 0 auto; z-index: 900;
   /* One side gutter for every row, so the title, the log and the composer share an edge. */

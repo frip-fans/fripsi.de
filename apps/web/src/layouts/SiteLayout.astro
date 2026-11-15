@@ -33,7 +33,7 @@ const {
   description,
   structuredData,
   admin = false,
-  clientRouting = !admin && !/^\/(journey|yaginuma-intensity-calibrator)(?:\/|$)/.test(Astro.url.pathname)
+  clientRouting = !/^\/(journey|yaginuma-intensity-calibrator)(?:\/|$)/.test(Astro.url.pathname)
 } = Astro.props;
 const current = Astro.url.pathname;
 const locale = admin ? "zh-CN" : getLocale(Astro.request);
@@ -79,7 +79,8 @@ const canonicalBase = getEnv().SITE_URL || Astro.url.origin;
 const canonicalUrl = new URL(Astro.url.pathname, canonicalBase).href;
 const pageTitle = title === siteName ? title : `${title} · ${siteName}`;
 
-// The dock is re-rendered on every admin page because admin keeps client routing off.
+// Admin navigates through the client router and the dock persists across it, so this
+// markup is only used by a full load; a routed visit keeps the dock already on screen.
 // The cookie lets the server emit the open class in the first byte, so the rail's
 // reflow never flashes.
 const chatDock = admin && chatEnabled() ? await chatDockState(Astro.locals.actor!) : null;
@@ -90,14 +91,6 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    {/* iOS zooms the page when a focused field is under 16px. Capping the scale stops that
-        there while pinch zoom keeps working (iOS ignores the cap for gestures); other
-        browsers would lose pinch zoom, so they are left alone. */}
-    {admin && <script is:inline>
-      if (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
-        document.querySelector('meta[name="viewport"]').content += ", maximum-scale=1";
-      }
-    </script>}
     <meta name="description" content={resolvedDescription} />
     <meta name="theme-color" content="#07101c" />
     <!-- Select the responsive navigation before external styles or scripts load. -->
@@ -232,7 +225,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
         </dialog>
       </div>
     )}
-    {!admin && <NavigationLoading />}
+    <NavigationLoading locale={locale} />
     {!admin && ["staging", "development"].includes(getEnv().APP_ENV ?? "") && <NavigationDiagnostics />}
     <footer>
       <span>{admin ? "fripSide 名称、标识、作品及其他相关内容的权利归各自权利人所有。" : t(locale, "footer.rights")}</span>
@@ -244,14 +237,22 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
         </div>
       )}
     </footer>
-    {chatDock && <AdminChatDock state={chatDock} />}
+    {chatDock && (
+      <div class="chat-dock-root" transition:persist="admin-chat-dock">
+        <AdminChatDock state={chatDock} />
+      </div>
+    )}
   </body>
 </html>
 
 <script>
+  import { setupAdminNavigation } from "../lib/admin-navigation-client";
   import { setupAdminChatDock } from "../lib/chat-dock-client";
   import { setupQuizLauncher } from "../lib/quiz-launcher";
+  setupAdminNavigation();
   setupAdminChatDock();
+  // Sets up a dock that first arrives through a routed navigation; a ready one is skipped.
+  document.addEventListener("astro:page-load", () => setupAdminChatDock());
   setupQuizLauncher();
   document.addEventListener("astro:page-load", () => setupQuizLauncher());
   import "../lib/public-navigation";

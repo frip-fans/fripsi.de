@@ -386,12 +386,15 @@ export interface ChatDockState {
   session: (ChatSession & { continuable: boolean }) | null;
   messages: ChatViewMessage[];
   proposals: ProposalCard[];
+  /** Every proposal of this session still awaiting a decision, not only the cards shown. */
+  pending_ids: string[];
 }
 
 /**
- * Everything the dock needs for a first paint. Admin pages have client routing disabled,
- * so the dock is re-rendered per navigation from the database rather than kept alive;
- * this must stay cheap and must never call the provider.
+ * Everything the dock needs for a first paint. It is rendered into every admin document,
+ * including the ones a routed navigation fetches (where the dock on screen is kept and
+ * only reads `pending_ids` from the new copy), so this must stay cheap and must never
+ * call the provider.
  */
 export async function chatDockState(actor: Actor, now = new Date()): Promise<ChatDockState> {
   const db = getEnv().DB;
@@ -401,7 +404,7 @@ export async function chatDockState(actor: Actor, now = new Date()): Promise<Cha
   ]);
   const can_publish = actor.scopes.includes("events:publish");
   if (!session) {
-    return { can_publish, last_model: recent[0]?.model ?? null, session: null, messages: [], proposals: [] };
+    return { can_publish, last_model: recent[0]?.model ?? null, session: null, messages: [], proposals: [], pending_ids: [] };
   }
   const [messages, proposals] = await Promise.all([
     listChatMessages(db, session.id),
@@ -413,6 +416,7 @@ export async function chatDockState(actor: Actor, now = new Date()): Promise<Cha
     session: { ...session, continuable: Date.parse(session.expires_at) > now.valueOf() },
     messages: messages.map(viewMessage),
     proposals: await proposalCards(actor, proposals.slice(0, 5), can_publish),
+    pending_ids: proposals.map((change) => change.id),
   };
 }
 

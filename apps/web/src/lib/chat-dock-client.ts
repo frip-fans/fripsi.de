@@ -896,6 +896,8 @@ export function setupAdminChatDock(): void {
     event.newDocument.documentElement.classList.toggle("chat-dock-open", root.classList.contains("chat-dock-open"));
     // Moving the dock into the new body can reset the transcript's scroll offset.
     logScroll = log.scrollTop;
+    // ...and would replay its entrance animation on every page change.
+    dock.dataset.carried = "";
     // The incoming document carries a freshly rendered dock that is about to be dropped
     // in favour of this one. It still knows which proposals are open as of this request.
     const fresh = event.newDocument.querySelector<HTMLElement>("[data-chat-dock]");

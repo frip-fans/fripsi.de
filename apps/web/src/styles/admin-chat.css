@@ -326,8 +326,11 @@ body[data-chat-locked="true"] {
   .chat-dock .chat-model select { min-height: 36px; font-size: .75rem; }
 }
 
+/* The entrance belongs to the page load. A routed navigation moves the same dock into
+   the next page, and re-inserting an element restarts its CSS animation, so the script
+   marks the dock before the first such move. */
 @media (prefers-reduced-motion: no-preference) {
-  .chat-dock { animation: chat-dock-in 180ms cubic-bezier(.2,.8,.2,1); }
+  .chat-dock:not([data-carried]) { animation: chat-dock-in 180ms cubic-bezier(.2,.8,.2,1); }
   @keyframes chat-dock-in { from { transform: translateX(14px); opacity: 0; } }
 }
 

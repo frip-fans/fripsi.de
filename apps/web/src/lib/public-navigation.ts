@@ -31,7 +31,9 @@ const savedUrl = (key: string, path: string): URL | null => {
 function setupContext() {
   renderedUrl = location.href;
   renderedSource = history.state?.fripSource ?? null;
-  for (const link of document.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+  // Admin routes within itself (see admin-navigation-client.ts); only public pages hand
+  // these links to the browser.
+  if (!/^\/admin(?:\/|$)/.test(location.pathname)) for (const link of document.querySelectorAll<HTMLAnchorElement>("a[href]")) {
     if (link.origin === location.origin && /^\/(admin|journey|yaginuma-intensity-calibrator)(?:\/|$)/.test(link.pathname)) link.setAttribute("data-astro-reload", "");
   }
   const locale = document.documentElement.lang;

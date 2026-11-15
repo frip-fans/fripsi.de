@@ -216,7 +216,7 @@ Astro 的 session API 当前未被使用；配置一个进程内 LRU driver 仅�
 
 ## 10. 公开页面导航
 
-首页、音乐库列表及详情、活动日历/搜索与活动详情、关于页统一使用 `SiteLayout` 中的 Astro `ClientRouter`。正常链接与 SSR 页面仍支持直接访问、分享和无 JavaScript 浏览；地图旅程、校准工具、讨论页和后台保留整页导航。`prefetch: false` 禁用预取，页面 HTML/CSS/脚本在导航时加载，搜索与加载更多的 API 请求继续由对应组件按需发起。
+首页、音乐库列表及详情、活动日历/搜索与活动详情、关于页统一使用 `SiteLayout` 中的 Astro `ClientRouter`。正常链接与 SSR 页面仍支持直接访问、分享和无 JavaScript 浏览；地图旅程、校准工具和讨论页保留整页导航。后台同样使用 ClientRouter，但只在 `/admin` 内部路由：离开后台的链接（公开站、CSV 下载）与从公开站进入后台都是整页加载。后台的 POST 表单由 `admin-navigation-client.ts` 提交：成功后路由到接口重定向的页面，失败时在原页面上方提示原因并保留已填内容；GET 筛选表单交给 ClientRouter。页面脚本是只执行一次的模块，页面级初始化都挂在 `astro:page-load` 上。`prefetch: false` 禁用预取，页面 HTML/CSS/脚本在导航时加载，搜索与加载更多的 API 请求继续由对应组件按需发起。
 
 `public-navigation.ts` 只保存来源、列表入口及显式返回的滚动/焦点上下文，不抓取页面、不替换 DOM、不自行处理 popstate。页面替换、标题/元信息、样式与浏览器历史由 ClientRouter 管理。模块修改筛选 URL 时使用 `replacePublicUrl`，保留 Astro 的 history state 并同步正在显示的 URL；popstate 时地址已变，不能拿新地址保存旧页面的状态。活动搜索继续使用带内容版本与期限的快照恢复加载深度；音乐列表的累积页数保存在 URL。
 

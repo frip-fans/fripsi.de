@@ -124,6 +124,8 @@ const idempotencyKey = () => `admin-tour-stops-${tour.id}-${crypto.randomUUID()}
 <script>
   import { searchMatcher } from "@frip-fan/core/search-text";
 
+  // Routed navigation runs this module once; the page it wires up is new every time.
+  document.addEventListener("astro:page-load", () => {
   for (const form of document.querySelectorAll<HTMLFormElement>("[data-tour-picker]")) {
     const search = form.querySelector<HTMLInputElement>("[data-picker-search]")!;
     const liveOnly = form.querySelector<HTMLInputElement>("[data-picker-live-only]")!;
@@ -185,15 +187,11 @@ const idempotencyKey = () => `admin-tour-stops-${tour.id}-${crypto.randomUUID()}
       refresh();
       search.focus();
     });
-    form.addEventListener("submit", () => { submit.disabled = true; });
+    // The shared submit handler locks the buttons; a failed save puts the picker's own rule back.
+    form.addEventListener("admin:submit-failed", refresh);
     refresh();
   }
 
-  document.querySelector<HTMLFormElement>("#tour-remove-form")?.addEventListener("submit", () => {
-    // Defer so the clicked button's name/value is still part of the submission.
-    setTimeout(() => {
-      for (const button of document.querySelectorAll<HTMLButtonElement>("button[form=tour-remove-form]")) button.disabled = true;
-    });
   });
 </script>
 

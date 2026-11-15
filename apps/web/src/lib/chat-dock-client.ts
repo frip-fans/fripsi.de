@@ -1,7 +1,9 @@
 /**
- * The admin chat dock. Admin pages have client-side routing disabled, so this module
- * never tries to keep state alive across navigations: the transcript arrives server
- * rendered in the markup and only ephemeral bits (open, draft, scroll) are restored.
+ * The admin chat dock. A full page load brings the transcript server rendered in the
+ * markup and restores the ephemeral bits (open, draft, scroll) from storage. Admin
+ * navigation is routed after that: the dock element persists across it, so a running
+ * reply, the draft and pending images carry over, and only what lives outside the dock
+ * (the header launcher, the page behind the sheet) is wired up again per page.
  */
 import { prepareImage, type PreparedImage } from "./chat-images-client";
 import { renderChatMarkdown } from "./chat-markdown";
@@ -81,7 +83,8 @@ export function setupAdminChatDock(): void {
   dock.dataset.ready = "true";
 
   const root = document.documentElement;
-  const launcher = document.querySelector<HTMLElement>("[data-chat-toggle]");
+  // The header is replaced on every routed navigation; the dock is not.
+  const launcher = () => document.querySelector<HTMLElement>("[data-chat-toggle]");
   const log = dock.querySelector<HTMLElement>('[data-role="log"]')!;
   const form = dock.querySelector<HTMLFormElement>('[data-role="composer"]')!;
   const input = dock.querySelector<HTMLTextAreaElement>('[data-role="input"]')!;
@@ -182,24 +185,28 @@ export function setupAdminChatDock(): void {
 
   function setOpen(open: boolean, remember = true): void {
     root.classList.toggle("chat-dock-open", open);
-    launcher?.setAttribute("aria-expanded", String(open));
+    launcher()?.setAttribute("aria-expanded", String(open));
     if (remember) {
       store(OPEN_KEY, open ? "1" : "0");
       // The server reads this on the next admin page so the layout never flashes.
       document.cookie = `chat_dock_open=${open ? "1" : "0"}; path=/admin; max-age=604800; samesite=lax`;
     }
     applyMode();
+    // Focus follows the operator's own toggle only. Restoring the remembered state on a
+    // page load must not pull focus into the dock: that lit the composer's focus border
+    // on every page and took the keyboard away from the page just opened.
     if (open) {
       // The sheet takes focus itself: landing on the close button paints a focus ring
-      // on the one control nobody opened the panel to use.
-      (rail.matches ? input : dock).focus({ preventScroll: true });
+      // on the one control nobody opened the panel to use. A restored sheet is modal, so
+      // it still needs the focus inside it.
+      if (remember || !rail.matches) (rail.matches ? input : dock).focus({ preventScroll: true });
       restoreScroll();
     } else {
       setBackgroundInert(false);
       setScrollLock(false);
       // Without preventScroll, returning focus to the header scrolls the page back to
       // the top and undoes the position just restored.
-      launcher?.focus({ preventScroll: true });
+      if (remember) launcher()?.focus({ preventScroll: true });
     }
   }
 
@@ -441,6 +448,23 @@ export function setupAdminChatDock(): void {
       if (log.querySelector(`.chat-proposal[data-id="${CSS.escape(proposal.id)}"]`)) continue;
       clearEmpty();
       log.appendChild(card(proposal));
+    }
+  }
+
+  /**
+   * A proposal can be published or discarded on the proposals page while its card sits
+   * here. `pending` is every proposal of this session the server still has open; a card
+   * that is not among them was decided elsewhere and must stop offering the buttons.
+   */
+  function settleProposals(pending: Set<string>): void {
+    for (const item of log.querySelectorAll<HTMLElement>(".chat-proposal:not(.done)")) {
+      if (pending.has(item.dataset.id ?? "")) continue;
+      item.classList.add("done");
+      const actions = item.querySelector('[data-role="actions"]');
+      if (!actions) continue;
+      const review = actions.querySelector("a");
+      actions.textContent = "已在别处处理 ";
+      if (review) actions.appendChild(review);
     }
   }
 
@@ -765,7 +789,9 @@ export function setupAdminChatDock(): void {
 
   // ---- wiring -------------------------------------------------------------
 
-  launcher?.addEventListener("click", () => setOpen(!root.classList.contains("chat-dock-open")));
+  document.addEventListener("click", (event) => {
+    if ((event.target as HTMLElement | null)?.closest?.("[data-chat-toggle]")) setOpen(!root.classList.contains("chat-dock-open"));
+  });
   dock.querySelector("[data-chat-close]")?.addEventListener("click", () => setOpen(false));
   dock.querySelector("[data-chat-history]")?.addEventListener("click", () => void openHistory());
   historyPanel.querySelector("[data-chat-history-close]")?.addEventListener("click", () => historyPanel.close());
@@ -856,6 +882,36 @@ export function setupAdminChatDock(): void {
     if (event.key === "Escape" && !rail.matches && root.classList.contains("chat-dock-open")) setOpen(false);
   });
   rail.addEventListener("change", applyMode);
+
+  // ---- routed navigation --------------------------------------------------
+
+  let logScroll = 0;
+  document.addEventListener("astro:before-preparation", () => {
+    // The sheet covers the whole page, so it would hide the one being opened.
+    if (!rail.matches && root.classList.contains("chat-dock-open")) setOpen(false);
+  });
+  document.addEventListener("astro:before-swap", (event) => {
+    // The swap takes the incoming document's root attributes. Its open class comes from
+    // a cookie that can trail what this tab shows, so carry the current state over.
+    event.newDocument.documentElement.classList.toggle("chat-dock-open", root.classList.contains("chat-dock-open"));
+    // Moving the dock into the new body can reset the transcript's scroll offset.
+    logScroll = log.scrollTop;
+    // ...and would replay its entrance animation on every page change.
+    dock.dataset.carried = "";
+    // The incoming document carries a freshly rendered dock that is about to be dropped
+    // in favour of this one. It still knows which proposals are open as of this request.
+    const fresh = event.newDocument.querySelector<HTMLElement>("[data-chat-dock]");
+    if (fresh && !viewingArchive && sessionId && fresh.dataset.session === sessionId) {
+      try { settleProposals(new Set(JSON.parse(fresh.dataset.pending ?? "[]") as string[])); } catch { /* cards stay as they are */ }
+    }
+  });
+  document.addEventListener("astro:after-swap", () => {
+    if (!dock.isConnected) return;
+    log.scrollTop = logScroll;
+    launcher()?.setAttribute("aria-expanded", String(root.classList.contains("chat-dock-open")));
+    // The page behind the sheet is new: its inert state and scroll lock start over.
+    applyMode();
+  });
   window.addEventListener("pagehide", () => {
     stopPolling(); closeStream(); setBackgroundInert(false); setScrollLock(false);
   });

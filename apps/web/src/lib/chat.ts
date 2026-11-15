@@ -425,13 +425,13 @@ export async function proposalCards(actor: Actor, changes: ChangeSet[], canPubli
   const cards = await Promise.all(changes.map(async (change): Promise<ProposalCard | null> => {
     try {
       const preview = await new ChangeService(getEnv().DB).preview(change.id, actor);
-      const { changeHeadline, changedFields, CHANGE_OPERATION_LABELS } = await import("./change-review");
+      const { changeHeadline, reviewRows, CHANGE_OPERATION_LABELS } = await import("./change-review");
       const headline = changeHeadline(preview.change, preview.before);
       return {
         id: change.id,
         operation: CHANGE_OPERATION_LABELS[change.operation] ?? change.operation,
         title: headline.title, date: headline.date, warnings: preview.warnings,
-        fields: changedFields(preview.before, preview.after).map(({ label, before, after }) => ({ label, before, after })),
+        fields: reviewRows(preview),
         review_path: `/admin/changes/${change.id}`, can_publish: canPublish,
       };
     } catch { return null; }

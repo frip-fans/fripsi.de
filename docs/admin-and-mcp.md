@@ -206,6 +206,18 @@ openWorldHint: false
 - `idempotency_key`
 - 来源和原因
 
+场馆地址通过 `patch.venue_updates` 修改，不需要同时传 `venues`：
+
+```json
+{ "venue_updates": [{ "venue_id": "ven_…", "address_text": "東京都江東区有明2-1-6" }] }
+```
+
+- `venue_id` 取自 `events.get` 返回的 `venues[].id`，且必须是该活动（应用本次 patch 之后）关联的场馆，否则返回 `venue_not_linked`。
+- `address_text` 传 `null` 表示清空。
+- 场馆记录由多个活动共用：发布后所有关联活动都会读到新地址，但只有目标活动的版本号递增。`changes.preview` 在 `venue_changes` 中给出修改前后的地址和受影响的其他活动数量，并写入警告。
+- 地址随活动更新在同一个 batch 内写入，受同一乐观锁保护；审计记录的 metadata 带有 `venue_changes`。
+- 官方活动自动同步（`sync.propose`）不接受 `venue_updates`。
+
 #### `changes.propose_status`
 
 用途：提出取消、延期或恢复为 scheduled/completed。

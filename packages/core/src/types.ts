@@ -162,10 +162,22 @@ export interface DuplicateCandidate {
   reasons: string[];
 }
 
+/** A venue address edit carried by an update proposal, with the stored value it would replace. */
+export interface VenueAddressChange {
+  venue_id: string;
+  canonical_name: string;
+  before: string | null;
+  after: string | null;
+  /** Other events linked to the same venue; the edit applies to them too. */
+  other_event_count: number;
+}
+
 export interface ChangePreview {
   change: ChangeSet;
   before: EventRecord | null;
   after: Partial<EventRecord> & { location_input?: EventLocationInput };
+  /** Present only when the proposal edits venue records. */
+  venue_changes?: VenueAddressChange[];
   duplicate_candidates: DuplicateCandidate[];
   warnings: string[];
   public_path: string | null;

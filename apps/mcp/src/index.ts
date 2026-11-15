@@ -224,7 +224,7 @@ export function createServer(env: Env, actor: Actor): McpServer {
 
   server.registerTool("changes.propose_update", {
     title: "提出修改活动",
-    description: "基于 expected_version 创建字段修改提案，不直接修改活动。patch 只包含要变更的字段。",
+    description: "基于 expected_version 创建字段修改提案，不直接修改活动。patch 只包含要变更的字段。修改场馆地址用 patch.venue_updates：[{venue_id, address_text}]，venue_id 取自 events.get 返回的 venues[].id；场馆由多个活动共用，地址修改对所有关联活动生效。",
     inputSchema: proposeUpdateSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
   }, async (input) => {

@@ -123,7 +123,13 @@ export const eventDraftSchema = z.object({
   validateLocation(event, context);
 });
 
-export const eventPatchSchema = z.object({
+/** Edits to a venue record itself, as opposed to which venues an event links to. */
+export const venueUpdateSchema = z.object({
+  venue_id: z.string().trim().min(1).max(160),
+  address_text: z.string().trim().max(500).nullable().transform((value) => value || null),
+});
+
+const eventPatchFields = {
   slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).optional(),
   title: z.string().trim().min(1).max(240).optional(),
   start_date: dateSchema.optional(),
@@ -139,7 +145,22 @@ export const eventPatchSchema = z.object({
   channels: z.array(eventChannelInputSchema).max(20).optional(),
   remark: z.string().trim().max(4000).nullish(),
   sources: z.array(sourceInputSchema).max(10).optional()
-}).refine((patch) => Object.keys(patch).length > 0, "至少需要修改一个字段");
+};
+const hasChange = (patch: object) => Object.keys(patch).length > 0;
+
+/** Patch accepted from the official sync, which may not edit venue records. */
+export const officialEventPatchSchema = z.object(eventPatchFields).refine(hasChange, "至少需要修改一个字段");
+
+export const eventPatchSchema = z.object({
+  ...eventPatchFields,
+  venue_updates: z.array(venueUpdateSchema).min(1).max(20).optional()
+    .describe("修改活动已关联场馆的地址：[{venue_id, address_text}]，address_text 传 null 表示清空。场馆由多个活动共用，修改对所有关联活动生效。不需要同时传 venues。"),
+}).refine(hasChange, "至少需要修改一个字段").superRefine((patch, context) => {
+  const ids = patch.venue_updates?.map((update) => update.venue_id) ?? [];
+  if (new Set(ids).size !== ids.length) {
+    context.addIssue({ code: "custom", path: ["venue_updates"], message: "同一场馆只能出现一次" });
+  }
+});
 
 export const searchInputSchema = z.object({
   source_url: sourceUrlSchema.optional(),
@@ -207,5 +228,6 @@ export type ChangeOperation = z.infer<typeof changeOperationSchema>;
 export type ChangeStatus = z.infer<typeof changeStatusSchema>;
 export type EventDraft = z.infer<typeof eventDraftSchema>;
 export type EventPatch = z.infer<typeof eventPatchSchema>;
+export type VenueUpdate = z.infer<typeof venueUpdateSchema>;
 export type SourceInput = z.infer<typeof sourceInputSchema>;
 export type SearchInput = z.infer<typeof searchInputSchema>;

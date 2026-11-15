@@ -13,7 +13,7 @@ import {
 } from "./schema";
 import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { findDuplicates, getChangeSet, getChangeSetByKey, getEventById, requireEvent } from "./repository";
-import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource } from "./types";
+import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource, VenueAddressChange } from "./types";
 import { assertScope, createEventSlug, makeId, nowIso, ServiceError } from "./utils";
 
 type NormalizedDraft = Omit<EventDraft, "slug" | "end_date" | "start_time" | "end_time" | "classification" | "location_note" | "remark"> & {
@@ -114,7 +114,8 @@ export class ChangeService {
   async proposeUpdate(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<ChangeSet> {
     assertScope(actor, "events:draft");
     const input = proposeUpdateSchema.parse(raw);
-    await this.assertBaseVersion(input.target_event_id, input.expected_version);
+    const event = await this.assertBaseVersion(input.target_event_id, input.expected_version);
+    this.assertVenuesLinked(await this.venueChanges(event, input.patch));
     return this.createProposal("update", input.target_event_id, input.expected_version, { patch: input.patch }, input.source_url, input.reason, input.idempotency_key, actor, requestId);
   }
 
@@ -164,6 +165,7 @@ export class ChangeService {
     if (!change) throw new ServiceError("not_found", "没有找到变更提案", 404);
     let before: EventRecord | null = null;
     let after: ChangePreview["after"];
+    let venueChanges: VenueAddressChange[] | undefined;
     const warnings: string[] = [];
 
     if (change.operation === "create") {
@@ -185,6 +187,12 @@ export class ChangeService {
         if (patch.location_mode !== undefined || patch.location_note !== undefined || patch.venues !== undefined || patch.channels !== undefined) {
           after.location_input = mergedLocation(before, patch);
         }
+        const resolved = await this.venueChanges(before, patch);
+        if (resolved.changes.length) venueChanges = resolved.changes;
+        for (const item of resolved.changes) {
+          if (item.other_event_count) warnings.push(`场馆「${item.canonical_name}」还关联 ${item.other_event_count} 个其他活动，地址修改对它们同样生效`);
+        }
+        if (resolved.unlinked.length) warnings.push(`场馆 ${resolved.unlinked.join("、")} 未关联该活动，不能通过此提案修改地址`);
       }
     }
 
@@ -205,6 +213,7 @@ export class ChangeService {
       change,
       before,
       after,
+      ...(venueChanges ? { venue_changes: venueChanges } : {}),
       duplicate_candidates: filtered,
       warnings,
       public_path: after.slug ? `/events/${after.slug}` : null
@@ -284,6 +293,9 @@ export class ChangeService {
     const after = this.applyPayload(before, change) as EventRecord;
     const payload = JSON.parse(change.payload_json) as UpdatePayload;
     const locationInput = change.operation === "update" ? mergedLocation(before, payload.patch) : null;
+    const venueEdits = change.operation === "update" ? await this.venueChanges(before, eventPatchSchema.parse(payload.patch)) : null;
+    if (venueEdits) this.assertVenuesLinked(venueEdits);
+    const venueChanges = venueEdits?.changes ?? [];
     if (locationInput) {
       after.location_mode = locationInput.location_mode;
       after.location_note = locationInput.location_note;
@@ -302,6 +314,11 @@ export class ChangeService {
       statements.push(...replaceEventLocationStatements(this.db, before.id, prepareEventLocation(locationInput), now,
         "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)", [before.id, now]));
     }
+    for (const item of venueChanges) {
+      statements.push(this.db.prepare(`UPDATE venues SET address_text = ?, updated_at = ?
+        WHERE id = ? AND EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)`)
+        .bind(item.after, now, item.venue_id, before.id, now));
+    }
     if (change.operation === "update" && payload.patch.sources) {
       for (const source of payload.patch.sources) statements.push(this.insertSourceStatement(before.id, source, actor.id, now, now));
     }
@@ -313,6 +330,7 @@ export class ChangeService {
       this.auditConditionalStatement(actor, requestId, `change.publish_${change.operation}`, "event", before.id, before, after, {
         change_set_id: change.id,
         ...(before.version !== change.base_version ? { base_version: change.base_version, reviewed_version: before.version } : {}),
+        ...(venueChanges.length ? { venue_changes: venueChanges.map(({ venue_id, before: from, after: to }) => ({ venue_id, before: from, after: to })) } : {}),
       }, now, before.id, now),
       this.db.prepare("INSERT INTO operation_receipts (idempotency_key, operation, result_json, created_at) SELECT ?, 'publish', ?, ? WHERE EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)").bind(idempotencyKey, JSON.stringify(after), now, before.id, now)
     );
@@ -345,8 +363,12 @@ export class ChangeService {
     if (change.operation === "update") {
       const payload = JSON.parse(change.payload_json) as UpdatePayload;
       const patch = eventPatchSchema.parse(payload.patch);
-      const { sources: sourcePatch, venues: _venues, channels: _channels, ...fields } = patch;
+      const { sources: sourcePatch, venues: _venues, channels: _channels, venue_updates: venueUpdates, ...fields } = patch;
       Object.assign(after, fields);
+      if (venueUpdates?.length) {
+        const addresses = new Map(venueUpdates.map((update) => [update.venue_id, update.address_text]));
+        after.venues = before.venues.map((venue) => addresses.has(venue.id) ? { ...venue, address_text: addresses.get(venue.id) ?? null } : venue);
+      }
       if (after.end_date && after.end_date < after.start_date) throw new ServiceError("invalid_date_range", "结束日期不能早于开始日期");
       if (sourcePatch?.length) after.sources = [...(after.sources ?? []), ...sourcePatch.map((source) => ({ ...source, id: "preview", event_id: before.id, verified_at: null, created_at: "preview", created_by: "preview" }))];
     } else if (change.operation === "status_change") {
@@ -361,9 +383,41 @@ export class ChangeService {
     return after;
   }
 
-  private async assertBaseVersion(id: string, version: number): Promise<void> {
+  private async assertBaseVersion(id: string, version: number): Promise<EventRecord> {
     const event = await requireEvent(this.db, id);
     if (event.version !== version) throw new ServiceError("version_conflict", `活动当前为 v${event.version}，请求基于 v${version}`, 409, { current: event });
+    return event;
+  }
+
+  /**
+   * Venue address edits in a patch, paired with the stored values they replace. A venue is editable
+   * through an event only while that event links to it once the patch is applied; ids that fail this,
+   * or that match no venue, come back in `unlinked`.
+   */
+  private async venueChanges(before: EventRecord, patch: EventPatch): Promise<{ changes: VenueAddressChange[]; unlinked: string[] }> {
+    const updates = patch.venue_updates ?? [];
+    if (!updates.length) return { changes: [], unlinked: [] };
+    const linked = new Set(mergedLocation(before, patch).venues.map((venue) => venue.venue_id));
+    const editable = updates.filter((update) => linked.has(update.venue_id));
+    const rows = editable.length
+      ? (await this.db.prepare(`SELECT v.id, v.canonical_name, v.address_text,
+          (SELECT COUNT(*) FROM event_venues ev WHERE ev.venue_id = v.id AND ev.event_id <> ?) AS other_event_count
+          FROM venues v WHERE v.id IN (${editable.map(() => "?").join(",")})`)
+          .bind(before.id, ...editable.map((update) => update.venue_id))
+          .all<{ id: string; canonical_name: string; address_text: string | null; other_event_count: number }>()).results
+      : [];
+    const stored = new Map(rows.map((row) => [row.id, row]));
+    const changes = editable.flatMap((update) => {
+      const row = stored.get(update.venue_id);
+      return row ? [{ venue_id: row.id, canonical_name: row.canonical_name, before: row.address_text, after: update.address_text, other_event_count: row.other_event_count }] : [];
+    });
+    return { changes, unlinked: updates.map((update) => update.venue_id).filter((id) => !stored.has(id)) };
+  }
+
+  private assertVenuesLinked(resolved: { unlinked: string[] }): void {
+    if (resolved.unlinked.length) {
+      throw new ServiceError("venue_not_linked", "只能修改该活动已关联场馆的地址", 400, { venue_ids: resolved.unlinked });
+    }
   }
 
   private insertSourceStatement(eventId: string, source: SourceInput, actorId: string, verifiedAt: string, createdAt: string): D1PreparedStatement {

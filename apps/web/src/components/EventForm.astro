@@ -103,25 +103,27 @@ const channelRows = event?.channels.length ? event.channels : [null];
   <button type="button" class="secondary compact" data-remove-row>移除</button>
 </div></template>
 <div class="actions form-actions"><button type="submit" disabled={!canWrite}>{submitLabel}</button><a class="button secondary" href={event ? "/admin/events" : "/admin"}>取消</a>{!canWrite && <span class="muted">当前账号没有 events:publish 权限。</span>}</div>
-<script is:inline>
-  const bindRemove = (root) => root.querySelectorAll("[data-remove-row]").forEach((button) => {
-    button.onclick = () => button.closest("[data-location-row], [data-channel-row]")?.remove();
+<script>
+  // A bundled module: the site's CSP only runs same-origin script files, and a routed
+  // navigation runs it once, so each page's form is wired up as it arrives.
+  document.addEventListener("astro:page-load", () => {
+    const addRow = (button: string, list: string, templateId: string, rowsSelector: string) => {
+      for (const editor of document.querySelectorAll<HTMLElement>(list)) {
+        editor.querySelector(button)?.addEventListener("click", () => {
+          const template = document.querySelector<HTMLTemplateElement>(templateId);
+          const rows = editor.querySelector<HTMLElement>(rowsSelector);
+          if (template && rows) rows.appendChild(template.content.cloneNode(true));
+        });
+        // Delegated, so rows added later need no wiring of their own.
+        editor.addEventListener("click", (event) => {
+          const remove = (event.target as HTMLElement).closest("[data-remove-row]");
+          remove?.closest("[data-location-row], [data-channel-row]")?.remove();
+        });
+      }
+    };
+    addRow("[data-add-row]", "[data-location-list]", "#venue-row-template", "[data-location-rows]");
+    addRow("[data-add-channel]", "[data-channel-list]", "#channel-row-template", "[data-channel-rows]");
   });
-  document.querySelectorAll("[data-location-list]").forEach((editor) => {
-    editor.querySelector("[data-add-row]")?.addEventListener("click", () => {
-      const template = document.querySelector("#venue-row-template");
-      const rows = editor.querySelector("[data-location-rows]");
-      if (template && rows) { rows.append(template.content.cloneNode(true)); bindRemove(rows); }
-    });
-  });
-  document.querySelectorAll("[data-channel-list]").forEach((editor) => {
-    editor.querySelector("[data-add-channel]")?.addEventListener("click", () => {
-      const template = document.querySelector("#channel-row-template");
-      const rows = editor.querySelector("[data-channel-rows]");
-      if (template && rows) { rows.append(template.content.cloneNode(true)); bindRemove(rows); }
-    });
-  });
-  bindRemove(document);
 </script>
 <style>
   small { color: var(--muted); }

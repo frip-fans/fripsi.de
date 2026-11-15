@@ -15,7 +15,8 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("x-frame-options", "DENY");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
-  // The release editor previews official covers and Apple Music search artwork.
+  // The release editor previews official covers and Apple Music search artwork. A routed
+  // visit keeps the first document's CSP, so every admin page allows them.
   const coverOrigin = allowCoverPreview ? " https://fripside.net https://*.mzstatic.com" : "";
   // The comment form loads the Turnstile challenge only where one is configured.
   const challengeOrigin = allowComments && turnstileSiteKey(getEnv()) ? " https://challenges.cloudflare.com" : "";
@@ -75,7 +76,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         throw new ServiceError("forbidden", "没有测试环境访问权限", 403);
       }
     }
-    return secure(await next(), true, undefined, getLocale(context.request), !path.startsWith("/admin") && !path.startsWith("/api/admin"), path === "/journey", path.startsWith("/admin/music/releases"));
+    return secure(await next(), true, undefined, getLocale(context.request), !path.startsWith("/admin") && !path.startsWith("/api/admin"), path === "/journey", path.startsWith("/admin"));
   } catch (error) {
     const status = error instanceof ServiceError ? error.status : 401;
     const message = error instanceof Error ? error.message : "未授权";

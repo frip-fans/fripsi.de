@@ -120,13 +120,6 @@ const threadLink = (comment: (typeof comments)[number]) => comment.thread_type =
   </section>
 </SiteLayout>
 
-<script>
-  for (const form of document.querySelectorAll<HTMLFormElement>("form[data-confirm]")) {
-    form.addEventListener("submit", (event) => {
-      if (!confirm(form.dataset.confirm ?? "")) event.preventDefault();
-    });
-  }
-</script>
 
 <style>
   .filters { display: grid; grid-template-columns: 1fr 150px auto auto; align-items: end; gap: .8rem; margin-bottom: 1rem; }

@@ -229,7 +229,10 @@ const pickerId = `search-select-${crypto.randomUUID()}`;
     trigger?.focus();
   }, true);
 
-  for (const picker of document.querySelectorAll<HTMLElement>(pickerSelector)) syncPicker(picker);
+  // The listeners above are delegated and set once; each page's pickers still need their label.
+  document.addEventListener("astro:page-load", () => {
+    for (const picker of document.querySelectorAll<HTMLElement>(pickerSelector)) syncPicker(picker);
+  });
 </script>
 
 <style>

@@ -53,6 +53,18 @@ body.admin .panel { padding: 1rem 1.15rem; background: var(--panel-solid); backd
 body.admin .notice { margin: 0 0 1rem; font-size: .88rem; }
 body.admin .notice.success { border-left-color: #79d9a6; color: #c9f8dc; background: rgba(78,190,127,.08); }
 
+/* A failed save, reported over the form that is still on screen. */
+body.admin .admin-error {
+  position: fixed; left: 50%; bottom: max(1.25rem, env(safe-area-inset-bottom)); z-index: 950; transform: translateX(-50%);
+  display: flex; align-items: flex-start; gap: .75rem; width: min(34rem, calc(100vw - 2rem)); padding: .8rem .9rem .8rem 1rem;
+  border: 1px solid rgba(255,120,120,.55); border-radius: 12px; background: #2a1319; color: #ffd9d9;
+  box-shadow: 0 14px 40px rgba(0,0,0,.45); font-size: .88rem; line-height: 1.5;
+}
+body.admin .admin-error p { margin: 0; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+body.admin .admin-error strong { display: block; color: #fff; }
+body.admin .admin-error-close { min-height: 0; padding: 0 .35rem; border: 0; background: none; color: inherit; font-size: 1.25rem; line-height: 1.2; cursor: pointer; }
+body.admin form[aria-busy="true"] { cursor: progress; }
+
 /* Filter bars above a table */
 body.admin form.filters { padding: .75rem .9rem; }
 

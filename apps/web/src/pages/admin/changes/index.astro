@@ -91,6 +91,8 @@ const staleCount = rows.filter((row) => row.stale).length;
 </SiteLayout>
 
 <script>
+  // Routed navigation runs this module once; the page it wires up is new every time.
+  document.addEventListener("astro:page-load", () => {
   const form = document.querySelector<HTMLFormElement>("[data-batch-form]");
   const checks = () => [...(form?.querySelectorAll<HTMLInputElement>("[data-row-check]") ?? [])];
   const selectAll = form?.querySelector<HTMLInputElement>("[data-select-all]");
@@ -120,6 +122,7 @@ const staleCount = rows.filter((row) => row.stale).length;
     if (!selected || !confirm(`丢弃 ${selected} 条提案？丢弃后不能恢复为待处理。`)) event.preventDefault();
   });
   sync();
+  });
 </script>
 
 <style>

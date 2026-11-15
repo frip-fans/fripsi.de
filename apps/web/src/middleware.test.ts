@@ -81,6 +81,11 @@ describe("staging access isolation", () => {
     expect((await request("/admin")).response.headers.get("content-security-policy")).not.toContain("challenges.cloudflare.com");
     expect((await request("/")).response.headers.get("content-security-policy")).toContain("challenges.cloudflare.com");
   });
+  it("allows cover previews on every admin document, since routed visits keep the first CSP", async () => {
+    mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
+    expect((await request("/admin")).response.headers.get("content-security-policy")).toContain("https://*.mzstatic.com");
+    expect((await request("/")).response.headers.get("content-security-policy")).not.toContain("mzstatic.com");
+  });
   it("keeps list view caching private after moving the archive under calendar", async () => {
     mocks.env.APP_ENV = "production";
     const { response } = await request("/calendar?view=list&year=2025");

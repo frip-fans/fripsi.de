@@ -192,17 +192,21 @@ export function setupAdminChatDock(): void {
       document.cookie = `chat_dock_open=${open ? "1" : "0"}; path=/admin; max-age=604800; samesite=lax`;
     }
     applyMode();
+    // Focus follows the operator's own toggle only. Restoring the remembered state on a
+    // page load must not pull focus into the dock: that lit the composer's focus border
+    // on every page and took the keyboard away from the page just opened.
     if (open) {
       // The sheet takes focus itself: landing on the close button paints a focus ring
-      // on the one control nobody opened the panel to use.
-      (rail.matches ? input : dock).focus({ preventScroll: true });
+      // on the one control nobody opened the panel to use. A restored sheet is modal, so
+      // it still needs the focus inside it.
+      if (remember || !rail.matches) (rail.matches ? input : dock).focus({ preventScroll: true });
       restoreScroll();
     } else {
       setBackgroundInert(false);
       setScrollLock(false);
       // Without preventScroll, returning focus to the header scrolls the page back to
       // the top and undoes the position just restored.
-      launcher()?.focus({ preventScroll: true });
+      if (remember) launcher()?.focus({ preventScroll: true });
     }
   }
 

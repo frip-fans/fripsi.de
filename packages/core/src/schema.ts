@@ -4,6 +4,7 @@ export const categorySchema = z.enum(["LIVE", "EVENT", "RELEASE", "MEDIA", "OTHE
 export const eventStatusSchema = z.enum(["scheduled", "completed", "cancelled", "postponed"]);
 export const locationModeSchema = z.enum(["none", "physical", "online", "broadcast", "hybrid", "multiple", "undisclosed", "unknown"]);
 export const venueRoleSchema = z.enum(["primary", "secondary", "broadcast_origin"]);
+const coordinatePrecisionSchema = z.enum(["entrance", "building", "site", "approximate"]);
 export const channelTypeSchema = z.enum(["streaming", "radio", "television", "digital_store", "download", "other"]);
 export const changeOperationSchema = z.enum([
   "create",
@@ -40,7 +41,7 @@ export const eventVenueInputSchema = z.object({
   address_text: z.string().trim().max(500).nullish(),
   latitude: z.number().min(-90).max(90).nullish(),
   longitude: z.number().min(-180).max(180).nullish(),
-  coordinate_precision: z.enum(["entrance", "building", "site", "approximate"]).nullish(),
+  coordinate_precision: coordinatePrecisionSchema.nullish(),
   coordinate_source: z.string().trim().max(120).nullish(),
   role: venueRoleSchema.default("primary"),
   position: z.number().int().min(1).max(100).default(1),
@@ -124,9 +125,35 @@ export const eventDraftSchema = z.object({
 });
 
 /** Edits to a venue record itself, as opposed to which venues an event links to. */
+/**
+ * Edits to a venue record itself, as opposed to which venues an event links to.
+ * A field left out stays as stored; null clears it.
+ */
 export const venueUpdateSchema = z.object({
   venue_id: z.string().trim().min(1).max(160),
-  address_text: z.string().trim().max(500).nullable().transform((value) => value || null),
+  canonical_name: z.string().trim().min(1).max(240).optional(),
+  administrative_area_id: z.string().trim().min(1).max(160).nullable().optional(),
+  address_text: z.string().trim().max(500).nullable().transform((value) => value || null).optional(),
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+  coordinate_precision: coordinatePrecisionSchema.nullable().optional(),
+  coordinate_source: z.string().trim().max(120).nullable().transform((value) => value || null).optional(),
+  /** With a rename: also rewrite event links whose saved display name is the old venue name. */
+  sync_display_names: z.boolean().optional(),
+}).superRefine((update, context) => {
+  const { venue_id: _id, sync_display_names: sync, ...fields } = update;
+  if (!Object.keys(fields).length) {
+    context.addIssue({ code: "custom", path: ["venue_id"], message: "至少需要修改一个场馆字段" });
+  }
+  if (sync && update.canonical_name === undefined) {
+    context.addIssue({ code: "custom", path: ["sync_display_names"], message: "只有修改场馆名称时才能同步显示名" });
+  }
+  if ((update.latitude === undefined) !== (update.longitude === undefined) || (update.latitude === null) !== (update.longitude === null)) {
+    context.addIssue({ code: "custom", path: ["latitude"], message: "纬度和经度必须同时填写或同时清空" });
+  }
+  if (update.latitude === null && (update.coordinate_precision || update.coordinate_source)) {
+    context.addIssue({ code: "custom", path: ["coordinate_precision"], message: "清空坐标时不能填写坐标精度或来源" });
+  }
 });
 
 const eventPatchFields = {
@@ -154,7 +181,7 @@ export const officialEventPatchSchema = z.object(eventPatchFields).refine(hasCha
 export const eventPatchSchema = z.object({
   ...eventPatchFields,
   venue_updates: z.array(venueUpdateSchema).min(1).max(20).optional()
-    .describe("修改活动已关联场馆的地址：[{venue_id, address_text}]，address_text 传 null 表示清空。场馆由多个活动共用，修改对所有关联活动生效。不需要同时传 venues。"),
+    .describe("修改活动已关联场馆的记录本身：[{venue_id, canonical_name?, administrative_area_id?, address_text?, latitude?, longitude?, coordinate_precision?, coordinate_source?, sync_display_names?}]。只传要改的字段，null 表示清空；纬度和经度必须成对。活动页面显示的是各活动保存的当时显示名：纠正场馆名称的错字时传 sync_display_names=true，把显示名等于原名称的活动一并改为新名称；场馆真的更名时不要传，旧活动保留当时的名称。场馆由多个活动共用，修改对所有关联活动生效。不需要同时传 venues。"),
 }).refine(hasChange, "至少需要修改一个字段").superRefine((patch, context) => {
   const ids = patch.venue_updates?.map((update) => update.venue_id) ?? [];
   if (new Set(ids).size !== ids.length) {

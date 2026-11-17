@@ -162,14 +162,30 @@ export interface DuplicateCandidate {
   reasons: string[];
 }
 
-/** A venue address edit carried by an update proposal, with the stored value it would replace. */
-export interface VenueAddressChange {
+export type VenueField = "canonical_name" | "administrative_area_id" | "address_text" | "latitude" | "longitude" | "coordinate_precision" | "coordinate_source";
+
+export interface VenueFieldChange {
+  field: VenueField;
+  before: string | number | null;
+  after: string | number | null;
+  /** Readable form of an id value, e.g. the name of an administrative area. */
+  before_label?: string | null;
+  after_label?: string | null;
+}
+
+/** Edits to one venue record carried by an update proposal, against the values stored now. */
+export interface VenueChange {
   venue_id: string;
+  /** The name stored now, before any rename in this proposal. */
   canonical_name: string;
-  before: string | null;
-  after: string | null;
+  /** Only the fields whose value would actually change. */
+  fields: VenueFieldChange[];
   /** Other events linked to the same venue; the edit applies to them too. */
   other_event_count: number;
+  /** On a rename: event links that keep showing their own display name instead of the new one. */
+  kept_display_names?: number;
+  /** On a rename with sync_display_names: event links whose display name follows the rename. */
+  synced_display_names?: number;
 }
 
 export interface ChangePreview {
@@ -177,7 +193,7 @@ export interface ChangePreview {
   before: EventRecord | null;
   after: Partial<EventRecord> & { location_input?: EventLocationInput };
   /** Present only when the proposal edits venue records. */
-  venue_changes?: VenueAddressChange[];
+  venue_changes?: VenueChange[];
   duplicate_candidates: DuplicateCandidate[];
   warnings: string[];
   public_path: string | null;

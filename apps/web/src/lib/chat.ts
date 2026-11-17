@@ -49,7 +49,7 @@ let modelCache: { models: string[]; at: number } | null = null;
  * publishes from the proposal card, so "the user confirmed" is never the model's claim.
  */
 export const CHAT_TOOLS = [
-  "events.search", "events.get", "events.list_upcoming", "events.check_duplicate",
+  "events.search", "events.get", "events.list_upcoming", "events.check_duplicate", "areas.search",
   "changes.propose_create", "changes.propose_update", "changes.propose_status",
   "changes.propose_unpublish", "changes.propose_archive", "changes.propose_restore",
   "changes.preview", "changes.discard",

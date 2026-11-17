@@ -12,7 +12,7 @@ afterEach(() => { for (const db of databases.splice(0)) db.close(); });
 const publisher: Actor = { id: "maintainer@example.com", type: "human", channel: "mcp",
   scopes: ["events:read", "events:draft", "events:publish"] };
 
-it("edits a venue address through propose_update, preview and publish", async () => {
+it("edits a venue record through propose_update, preview and publish", async () => {
   const { db, sqlite } = createTestD1(); databases.push(sqlite);
   const server = createServer({ DB: db }, publisher);
   const client = new Client({ name: "venue-address-test", version: "1" });
@@ -27,6 +27,9 @@ it("edits a venue address through propose_update, preview and publish", async ()
   try {
     const tool = (await client.listTools()).tools.find((item) => item.name === "changes.propose_update");
     expect(JSON.stringify(tool?.inputSchema)).toContain("venue_updates");
+
+    const { areas } = await call<{ areas: Array<{ id: string; name_local: string }> }>("areas.search", { query: "新宿" });
+    expect(areas).toContainEqual(expect.objectContaining({ id: "area_jp_13104", name_local: "新宿区" }));
 
     const created = await call<{ change: { id: string } }>("changes.propose_create", {
       event: {
@@ -44,18 +47,23 @@ it("edits a venue address through propose_update, preview and publish", async ()
 
     const proposed = await call<{ change: { id: string } }>("changes.propose_update", {
       target_event_id: event.id, expected_version: event.version,
-      patch: { venue_updates: [{ venue_id: venueId, address_text: "東京都江東区有明2-1-6" }] },
+      patch: { venue_updates: [{ venue_id: venueId, address_text: "東京都江東区有明2-1-6", latitude: 35.6367, longitude: 139.7915 }] },
       source_url: "https://fripside.net/venue-address-test", reason: "补充场馆地址", idempotency_key: "venue-address-update",
     });
     const preview = await call<ChangePreview>("changes.preview", { change_set_id: proposed.change.id });
     expect(preview.venue_changes).toEqual([{
-      venue_id: venueId, canonical_name: "東京ガーデンシアター", before: null, after: "東京都江東区有明2-1-6", other_event_count: 0,
+      venue_id: venueId, canonical_name: "東京ガーデンシアター", other_event_count: 0,
+      fields: [
+        { field: "address_text", before: null, after: "東京都江東区有明2-1-6" },
+        { field: "latitude", before: null, after: 35.6367 },
+        { field: "longitude", before: null, after: 139.7915 },
+      ],
     }]);
 
     await call("changes.publish", { change_set_id: proposed.change.id, confirm: true, idempotency_key: "venue-address-update-publish" });
     const read = await call<{ event: EventRecord }>("events.get", { event_id: event.id });
     expect(read.event.version).toBe(event.version + 1);
-    expect(read.event.venues[0]).toMatchObject({ id: venueId, address_text: "東京都江東区有明2-1-6" });
+    expect(read.event.venues[0]).toMatchObject({ id: venueId, address_text: "東京都江東区有明2-1-6", latitude: 35.6367, longitude: 139.7915 });
 
     const unlinked = await client.callTool({ name: "changes.propose_update", arguments: {
       target_event_id: event.id, expected_version: read.event.version,
@@ -63,6 +71,6 @@ it("edits a venue address through propose_update, preview and publish", async ()
       source_url: "https://fripside.net/venue-address-test", reason: "错误场馆", idempotency_key: "venue-address-unlinked",
     } });
     expect(unlinked.isError).toBe(true);
-    expect(JSON.stringify(unlinked.structuredContent)).toContain("venue_not_linked");
+    expect(JSON.stringify(unlinked.structuredContent)).toContain("invalid_venue_update");
   } finally { await client.close(); }
 });

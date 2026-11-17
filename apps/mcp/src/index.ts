@@ -13,6 +13,7 @@ import {
   duplicateInputSchema,
   findDuplicates,
   getEventById,
+  listAdministrativeAreas,
   listChangeSets,
   proposeCreateSchema,
   proposeLifecycleSchema,
@@ -212,6 +213,23 @@ export function createServer(env: Env, actor: Actor): McpServer {
     return server;
   }
 
+  server.registerTool("areas.search", {
+    title: "查找行政区",
+    description: "按名称或地域代码查找行政区，返回 administrative_area_id，用于新建场馆或 patch.venue_updates 中的 administrative_area_id。",
+    inputSchema: z.object({ query: z.string().trim().min(1).max(80), limit: z.number().int().min(1).max(50).default(10) }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, async ({ query, limit }) => {
+    try {
+      assertScope(actor, "events:read");
+      const fold = (value: string) => value.normalize("NFKC").toLowerCase();
+      const needle = fold(query);
+      const areas = (await listAdministrativeAreas(env.DB)).filter((area) =>
+        [area.id, area.name_local, area.name_ja, area.name_zh, area.name_en, ...area.codes.map((code) => code.code)]
+          .some((value) => value && fold(value).includes(needle)));
+      return result({ areas: areas.slice(0, limit), count: Math.min(areas.length, limit), total: areas.length });
+    } catch (error) { return failure(error); }
+  });
+
   server.registerTool("changes.propose_create", {
     title: "提出新增活动",
     description: "创建一个待审核的新增提案，不会直接公开。至少需要一个 HTTPS 官方来源和唯一幂等键。",
@@ -224,7 +242,7 @@ export function createServer(env: Env, actor: Actor): McpServer {
 
   server.registerTool("changes.propose_update", {
     title: "提出修改活动",
-    description: "基于 expected_version 创建字段修改提案，不直接修改活动。patch 只包含要变更的字段。修改场馆地址用 patch.venue_updates：[{venue_id, address_text}]，venue_id 取自 events.get 返回的 venues[].id；场馆由多个活动共用，地址修改对所有关联活动生效。",
+    description: "基于 expected_version 创建字段修改提案，不直接修改活动。patch 只包含要变更的字段。修改场馆记录本身（名称、行政区、地址、坐标）用 patch.venue_updates：[{venue_id, ...要改的字段}]，venue_id 取自 events.get 返回的 venues[].id；场馆由多个活动共用，修改对所有关联活动生效。纠正场馆名称错字时加 sync_display_names=true，同步更新显示名等于原名称的活动。",
     inputSchema: proposeUpdateSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
   }, async (input) => {

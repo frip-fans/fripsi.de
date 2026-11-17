@@ -1,5 +1,5 @@
 import type { APIRoute } from "astro";
-import { CHANGE_OPERATION_LABELS, changeHeadline, reviewRows } from "../../../../lib/change-review";
+import { changeOperationLabel, changeHeadline, reviewRows } from "../../../../lib/change-review";
 import { chatProposals, continueChat, currentChat, endChat, previewProposal, readChat } from "../../../../lib/chat";
 import { jsonError, readInput } from "../chat";
 
@@ -19,7 +19,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
         const headline = changeHeadline(preview.change, preview.before);
         return {
           id: change.id,
-          operation: CHANGE_OPERATION_LABELS[change.operation] ?? change.operation,
+          operation: changeOperationLabel(change),
           title: headline.title,
           date: headline.date,
           source_url: change.source_url,

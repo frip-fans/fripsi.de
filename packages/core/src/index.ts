@@ -12,6 +12,8 @@ export * from "./tours";
 export * from "./tour-matrix";
 export * from "./on-this-day";
 export * from "./music-admin-repository";
+export * from "./apple-music";
+export * from "./catalog-changes";
 export * from "./content-admin";
 export * from "./music-types";
 export * from "./repository";

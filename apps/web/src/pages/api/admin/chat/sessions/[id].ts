@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { chatProposals, chatTranscript, deleteChatTranscript, previewProposal } from "../../../../../lib/chat";
-import { CHANGE_OPERATION_LABELS, changeHeadline, reviewRows } from "../../../../../lib/change-review";
+import { changeOperationLabel, changeHeadline, reviewRows } from "../../../../../lib/change-review";
 import { jsonError } from "../../chat";
 
 const MAX_CARDS = 5;
@@ -20,7 +20,7 @@ export const GET: APIRoute = async ({ locals, params }) => {
         const headline = changeHeadline(preview.change, preview.before);
         return {
           id: change.id,
-          operation: CHANGE_OPERATION_LABELS[change.operation] ?? change.operation,
+          operation: changeOperationLabel(change),
           title: headline.title, date: headline.date, warnings: preview.warnings,
           fields: reviewRows(preview),
           review_path: `/admin/changes/${change.id}`, can_publish: canPublish,

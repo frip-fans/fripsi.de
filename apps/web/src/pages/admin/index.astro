@@ -4,7 +4,7 @@ import AdminPageHeader from "../../components/AdminPageHeader.astro";
 import Icon from "../../components/Icon.astro";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { auditActionLabel, auditTargetHref } from "../../lib/admin-labels";
-import { CHANGE_OPERATION_LABELS, changeHeadline, formatTimestamp } from "../../lib/change-review";
+import { changeOperationLabel, changeHeadline, formatTimestamp } from "../../lib/change-review";
 import { getEnv } from "../../lib/env";
 
 const db = getEnv().DB;
@@ -46,7 +46,7 @@ const canWriteMusic = actor.scopes.includes("music:write");
         {proposed.map((change) => {
           const headline = changeHeadline(change, change.target_event_id ? targets.get(change.target_event_id) : undefined);
           return <li><a href={`/admin/changes/${change.id}`}>
-            <span class="tag">{CHANGE_OPERATION_LABELS[change.operation] ?? change.operation}</span>
+            <span class="tag">{changeOperationLabel(change)}</span>
             <strong>{headline.title}</strong>
             {change.reason && <p>{change.reason}</p>}
             <small>{change.created_by} · {formatTimestamp(change.created_at)}</small>

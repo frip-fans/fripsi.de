@@ -12,11 +12,17 @@ import {
   dateInTimeZone,
   duplicateInputSchema,
   findDuplicates,
+  getAdminSetlistById,
+  getAdminSongById,
+  getChangeSet,
   getEventById,
+  listAdminSetlists,
+  listAdminSongs,
   listAdministrativeAreas,
   listChangeSets,
   proposeCreateSchema,
   proposeLifecycleSchema,
+  proposeSetlistSchema,
   proposeStatusSchema,
   proposeUpdateSchema,
   searchEvents,
@@ -25,6 +31,8 @@ import {
   type Actor
 } from "@frip-fan/core";
 import { z } from "zod";
+import { registerCatalogTools } from "./catalog-tools";
+import { failure, result } from "./tool-result";
 
 interface Env {
   DB: D1Database;
@@ -39,27 +47,6 @@ interface Env {
   AUTOMATION_AUDIENCE?: string;
 }
 
-function result(data: unknown) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
-    structuredContent: { result: data }
-  };
-}
-
-function failure(error: unknown) {
-  const known = error instanceof ServiceError;
-  const validation = error instanceof z.ZodError;
-  const payload = {
-    error: {
-      code: known ? error.code : validation ? "invalid_tool_input" : "internal_error",
-      message: known ? error.message : validation ? "参数不符合工具 schema，请修正列出的字段后重试" : "工具执行失败",
-      ...(validation ? { fields: error.issues.map((issue) => ({ path: issue.path.map(String).join("."), code: issue.code })) } : {}),
-      ...(known && error.details ? { details: error.details } : {})
-    }
-  };
-  return { ...result(payload), isError: true };
-}
-
 export function createServer(env: Env, actor: Actor): McpServer {
   const automatic = Boolean(actor.automation_run_id);
   const server = new McpServer(
@@ -68,7 +55,7 @@ export function createServer(env: Env, actor: Actor): McpServer {
       instructions: [
         "这是 fripSide 粉丝活动档案的受控编辑接口。",
         "新增前必须先调用 events.search 或 events.check_duplicate。",
-        "事实变更必须携带 HTTPS 来源。写操作只能创建 change set，不能直接修改活动。",
+        "事实变更必须携带 HTTPS 来源。活动、歌单、歌曲、专辑和巡演的写操作只能创建 change set，不能直接修改。",
         automatic
           ? "当前身份已获官方活动自动同步授权。使用 sync.propose 提案，再 changes.preview，最后 changes.publish_automatic，无需逐条人工确认。"
           : "发布前必须调用 changes.preview，并且只有用户明确确认后才可调用 changes.publish（confirm=true）。",
@@ -120,7 +107,8 @@ export function createServer(env: Env, actor: Actor): McpServer {
       if (!event) throw new ServiceError("not_found", "没有找到活动", 404);
       if (automatic && (!event.published || event.archived_at)) throw new ServiceError("not_found", "没有找到公开活动", 404);
       const proposals = (await listChangeSets(env.DB, "proposed", 200)).filter((change) => change.target_event_id === event_id);
-      if (automatic) return result({ event: { ...compactEvent(event), remark: event.remark }, pending_changes: proposals.map(({ id, operation, base_version }) => ({ change_set_id: id, operation, base_version })) });
+      // A pending setlist proposal belongs to the show but does not edit the event record the sync works on.
+      if (automatic) return result({ event: { ...compactEvent(event), remark: event.remark }, pending_changes: proposals.filter((change) => change.subject_type !== "setlist").map(({ id, operation, base_version }) => ({ change_set_id: id, operation, base_version })) });
       return result({ event, pending_changes: proposals });
     } catch (error) { return failure(error); }
   });
@@ -230,6 +218,90 @@ export function createServer(env: Env, actor: Actor): McpServer {
     } catch (error) { return failure(error); }
   });
 
+  server.registerTool("songs.search", {
+    title: "查找歌曲",
+    description: "按标题或别名查找歌曲，返回 song_id、别名和各版本的 version_id，用于歌单提案里的曲目。",
+    inputSchema: z.object({ query: z.string().trim().min(1).max(120), limit: z.number().int().min(1).max(20).default(8) }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, async ({ query, limit }) => {
+    try {
+      assertScope(actor, "events:read");
+      const matches = await listAdminSongs(env.DB, query, limit);
+      const songs = (await Promise.all(matches.map((song) => getAdminSongById(env.DB, song.id)))).filter((song) => song !== null);
+      return result({ count: songs.length, songs: songs.map((song) => ({
+        song_id: song.id, title: song.title, original_artist: song.original_artist, aliases: song.aliases,
+        performance_count: song.performance_count, published: song.published,
+        versions: song.versions.map((version) => ({ version_id: version.id, title: version.title, version_label: version.version_label, release_date: version.release_date })),
+      })) });
+    } catch (error) { return failure(error); }
+  });
+
+  const setlistSummary = (setlist: NonNullable<Awaited<ReturnType<typeof getAdminSetlistById>>> | Awaited<ReturnType<typeof listAdminSetlists>>[number]) => ({
+    setlist_id: setlist.id, event_id: setlist.event_id, event_title: setlist.event_title, start_date: setlist.start_date,
+    performance_label: setlist.performance_label, completeness: setlist.completeness, confidence: setlist.confidence,
+    published: setlist.published, entry_count: setlist.entry_count, updated_at: setlist.updated_at,
+  });
+
+  server.registerTool("setlists.search", {
+    title: "查找歌单",
+    description: "按活动、歌曲或场馆等关键词查找歌单，或用 event_id 列出某场活动的全部歌单。新增歌单前先用它确认该活动还没有歌单。",
+    inputSchema: z.object({
+      query: z.string().trim().max(120).optional(),
+      event_id: z.string().trim().min(1).max(160).optional(),
+      limit: z.number().int().min(1).max(50).default(10),
+    }).refine((input) => Boolean(input.query || input.event_id), "需要 query 或 event_id"),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, async ({ query, event_id, limit }) => {
+    try {
+      assertScope(actor, "events:read");
+      if (event_id) {
+        const ids = await env.DB.prepare("SELECT id FROM setlists WHERE event_id = ? ORDER BY performance_label, id LIMIT ?").bind(event_id, limit).all<{ id: string }>();
+        const found = (await Promise.all(ids.results.map((row) => getAdminSetlistById(env.DB, row.id)))).filter((setlist) => setlist !== null);
+        return result({ count: found.length, setlists: found.map(setlistSummary) });
+      }
+      const found = await listAdminSetlists(env.DB, query, limit);
+      return result({ count: found.length, setlists: found.map(setlistSummary) });
+    } catch (error) { return failure(error); }
+  });
+
+  server.registerTool("setlists.get", {
+    title: "读取歌单",
+    description: "读取一份歌单的完整曲目（含 song_id、performed_version_id）、来源、updated_at 和未完成的提案。修改歌单前必须先读取。",
+    inputSchema: z.object({ setlist_id: z.string().trim().min(1).max(160) }),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, async ({ setlist_id }) => {
+    try {
+      assertScope(actor, "events:read");
+      const setlist = await getAdminSetlistById(env.DB, setlist_id);
+      if (!setlist) throw new ServiceError("not_found", "没有找到歌单", 404);
+      const pending = (await listChangeSets(env.DB, "proposed", 200)).filter((change) => change.subject_type === "setlist" && change.subject_id === setlist_id);
+      return result({
+        setlist: {
+          ...setlistSummary(setlist), notes: setlist.notes,
+          entries: setlist.entries.map((entry) => ({
+            position: entry.position, section: entry.section, song_id: entry.song_id, song_title: entry.song_title,
+            performed_version_id: entry.performed_version_id, performed_version_title: entry.performed_version_title,
+            display_title: entry.display_title, medley_group: entry.medley_group, notes: entry.notes,
+          })),
+          sources: setlist.sources.map((source) => ({ url: source.url, label: source.label, source_type: source.source_type })),
+        },
+        pending_changes: pending.map(({ id, operation, created_at, reason }) => ({ change_set_id: id, operation, created_at, reason })),
+      });
+    } catch (error) { return failure(error); }
+  });
+
+  server.registerTool("changes.propose_setlist", {
+    title: "提出新增或修改歌单",
+    description: "为一场活动新增歌单，或整体替换已有歌单的曲目和属性；只创建待审核提案。新增填 event_id，修改填 setlist_id 和 setlists.get 返回的 updated_at。曲目按演出顺序完整列出，song_id 与 performed_version_id 取自 songs.search；找不到的歌曲不要编造 ID，告诉用户需要先在后台建歌曲。",
+    inputSchema: proposeSetlistSchema,
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+  }, async (input) => {
+    try { return result({ change: await changes.proposeSetlist(input, actor), next_step: "调用 changes.preview" }); }
+    catch (error) { return failure(error); }
+  });
+
+  registerCatalogTools(server, { db: env.DB, actor, changes });
+
   server.registerTool("changes.propose_create", {
     title: "提出新增活动",
     description: "创建一个待审核的新增提案，不会直接公开。至少需要一个 HTTPS 官方来源和唯一幂等键。",
@@ -242,7 +314,7 @@ export function createServer(env: Env, actor: Actor): McpServer {
 
   server.registerTool("changes.propose_update", {
     title: "提出修改活动",
-    description: "基于 expected_version 创建字段修改提案，不直接修改活动。patch 只包含要变更的字段。修改场馆记录本身（名称、行政区、地址、坐标）用 patch.venue_updates：[{venue_id, ...要改的字段}]，venue_id 取自 events.get 返回的 venues[].id；场馆由多个活动共用，修改对所有关联活动生效。纠正场馆名称错字时加 sync_display_names=true，同步更新显示名等于原名称的活动。",
+    description: "基于 expected_version 创建字段修改提案，不直接修改活动。patch 只包含要变更的字段。显示别名用 patch.alias，加入或移出巡演用 patch.tour_id（取自 tours.search）和 patch.tour_stop。修改场馆记录本身（名称、行政区、地址、坐标）用 patch.venue_updates：[{venue_id, ...要改的字段}]，venue_id 取自 events.get 返回的 venues[].id；场馆由多个活动共用，修改对所有关联活动生效。纠正场馆名称错字时加 sync_display_names=true，同步更新显示名等于原名称的活动。",
     inputSchema: proposeUpdateSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
   }, async (input) => {
@@ -277,7 +349,7 @@ export function createServer(env: Env, actor: Actor): McpServer {
 
   server.registerTool("changes.preview", {
     title: "预览变更",
-    description: "返回 before/after、字段差异所需数据、重复候选、警告和预估公开 URL。发布前必须调用。",
+    description: "返回 before/after、字段差异所需数据、重复候选、警告和预估公开 URL；歌单提案在 setlist 字段返回修改前后的完整曲目，歌曲、专辑和巡演提案在 catalog 字段返回修改前后的完整记录。发布前必须调用。",
     inputSchema: z.object({ change_set_id: z.string().min(1) }),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
   }, async ({ change_set_id }) => {
@@ -296,8 +368,14 @@ export function createServer(env: Env, actor: Actor): McpServer {
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async ({ change_set_id, idempotency_key }) => {
     try {
-      const event = await changes.publish(change_set_id, actor, idempotency_key);
-      return result({ published: true, event, public_url: `${(env.SITE_URL ?? "https://example.com").replace(/\/$/, "")}/events/${event.slug}` });
+      const event = await changes.publishAny(change_set_id, actor, idempotency_key);
+      const site = (env.SITE_URL ?? "https://example.com").replace(/\/$/, "");
+      const change = await getChangeSet(env.DB, change_set_id);
+      if (!event) return result({ published: true, subject_type: change?.subject_type, [`${change?.subject_type}_id`]: change?.subject_id });
+      if (change?.subject_type === "setlist" && change.subject_id) {
+        return result({ published: true, setlist_id: change.subject_id, event_id: event.id, public_url: `${site}/music/lives/${change.subject_id}` });
+      }
+      return result({ published: true, event, public_url: `${site}/events/${event.slug}` });
     } catch (error) { return failure(error); }
   });
 
@@ -319,7 +397,7 @@ function protectedResourceMetadata(env: Env) {
   return {
     resource: `${origin}/mcp`,
     authorization_servers: [env.MCP_AUTHORIZATION_SERVER ?? (env.ACCESS_TEAM_DOMAIN?.startsWith("https://") ? env.ACCESS_TEAM_DOMAIN : `https://${env.ACCESS_TEAM_DOMAIN ?? "your-team.cloudflareaccess.com"}`)],
-    scopes_supported: ["events:read", "events:draft", "events:publish", "events:archive"],
+    scopes_supported: ["events:read", "events:draft", "events:publish", "events:archive", "music:write"],
     bearer_methods_supported: ["header"],
     resource_documentation: `${origin}/`
   };

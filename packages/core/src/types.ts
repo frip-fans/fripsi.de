@@ -129,6 +129,39 @@ export interface ChangeSet {
   published_at: string | null;
   error_message: string | null;
   chat_session_id?: string | null;
+  /** What the proposal edits; absent on rows read before the column existed, which are all events. */
+  subject_type?: "event" | "setlist";
+  /** The setlist a setlist proposal edits; null for a new setlist and for event proposals. */
+  subject_id?: string | null;
+}
+
+export interface SetlistChangeEntry {
+  position: number;
+  section: "main" | "encore" | "double_encore" | "opening" | "other";
+  song_id: string;
+  song_title: string;
+  performed_version_id: string | null;
+  performed_version_title: string | null;
+  display_title: string;
+  medley_group: string | null;
+  notes: string | null;
+}
+
+export interface SetlistSnapshot {
+  performance_label: string;
+  completeness: "complete" | "partial" | "unknown";
+  confidence: "official" | "reported" | "unverified";
+  notes: string | null;
+  published: boolean;
+  entries: SetlistChangeEntry[];
+  sources: string[];
+}
+
+/** A setlist proposal as it would apply now: the stored setlist, if any, and what would replace it. */
+export interface SetlistChangePreview {
+  setlist_id: string | null;
+  before: SetlistSnapshot | null;
+  after: SetlistSnapshot;
 }
 
 export interface AuditLog {
@@ -192,6 +225,8 @@ export interface ChangePreview {
   change: ChangeSet;
   before: EventRecord | null;
   after: Partial<EventRecord> & { location_input?: EventLocationInput };
+  /** Present only on a setlist proposal; `before` and `after` then both hold the show it belongs to. */
+  setlist?: SetlistChangePreview;
   /** Present only when the proposal edits venue records. */
   venue_changes?: VenueChange[];
   duplicate_candidates: DuplicateCandidate[];

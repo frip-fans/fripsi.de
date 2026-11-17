@@ -13,6 +13,7 @@ import {
 } from "./schema";
 import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { findDuplicates, getChangeSet, getChangeSetByKey, getEventById, requireEvent } from "./repository";
+import { previewSetlist, proposeSetlist, publishSetlist } from "./setlist-changes";
 import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource, VenueChange, VenueFieldChange } from "./types";
 import { applyVenueUpdate, renameDisplayNameCounts, VENUE_FIELDS, venueWriteStatements, type VenueValues } from "./venues";
 import { assertScope, createEventSlug, makeId, nowIso, ServiceError } from "./utils";
@@ -130,6 +131,11 @@ export class ChangeService {
     return this.createProposal("status_change", input.target_event_id, input.expected_version, { status: input.status }, input.source_url, input.reason, input.idempotency_key, actor, requestId);
   }
 
+  /** A new setlist for an event, or a full replacement of an existing one; reviewed like any other proposal. */
+  async proposeSetlist(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<ChangeSet> {
+    return proposeSetlist(this.db, raw, actor, requestId);
+  }
+
   async proposeLifecycle(operation: "unpublish" | "archive" | "restore", raw: unknown, actor: Actor, requestId = makeId("req")): Promise<ChangeSet> {
     assertScope(actor, "events:archive");
     const input = proposeLifecycleSchema.parse(raw);
@@ -167,6 +173,7 @@ export class ChangeService {
     assertScope(actor, "events:read");
     const change = await getChangeSet(this.db, id);
     if (!change) throw new ServiceError("not_found", "没有找到变更提案", 404);
+    if (change.subject_type === "setlist") return previewSetlist(this.db, change);
     let before: EventRecord | null = null;
     let after: ChangePreview["after"];
     let venueChanges: VenueChange[] | undefined;
@@ -242,6 +249,7 @@ export class ChangeService {
     const change = await getChangeSet(this.db, id);
     if (!change) throw new ServiceError("not_found", "没有找到变更提案", 404);
     if (change.status !== "proposed") throw new ServiceError("invalid_state", `提案状态为 ${change.status}，不能发布`, 409);
+    if (change.subject_type === "setlist") return publishSetlist(this.db, change, actor, idempotencyKey, requestId);
 
     return change.operation === "create"
       ? this.publishCreate(change, actor, idempotencyKey, requestId)

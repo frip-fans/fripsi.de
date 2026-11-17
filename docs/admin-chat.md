@@ -117,17 +117,19 @@ Agents API 的工具配置在 session 创建时固定，后续 turn 不能更换
 
 ## 工具清单
 
-聊天身份只挂载活动相关工具：
+聊天身份只挂载活动和歌单相关的工具：
 
 ```text
 events.search / events.get / events.list_upcoming / events.check_duplicate
 areas.search
+songs.search / setlists.search / setlists.get
+changes.propose_setlist
 changes.propose_create / propose_update / propose_status
 changes.propose_unpublish / propose_archive / propose_restore
 changes.preview / changes.discard
 ```
 
-不挂载 `changes.publish`、`changes.publish_automatic` 和 `sync.*`。本期不包含歌曲、专辑和歌单：`ContentAdminService` 已有 `saveSong` / `saveRelease` / `saveSetlist`，但 MCP 尚无对应工具，需要另一期先扩展 change set 的 music 载荷。聊天挂载 `web_search`（`mode: live`，不限域名），便于核对官方公告原文。网页正文按资料处理，不作为指令；搜索结果最多变成一条待审提案，助手没有发布工具。
+不挂载 `changes.publish`、`changes.publish_automatic` 和 `sync.*`。歌单可以通过 `changes.propose_setlist` 提案（见[管理后台与 MCP](./admin-and-mcp.md#changespropose_setlist)）；歌曲和专辑的新增与修改仍然只能在后台进行，MCP 尚无对应工具。聊天挂载 `web_search`（`mode: live`，不限域名），便于核对官方公告原文。网页正文按资料处理，不作为指令；搜索结果最多变成一条待审提案，助手没有发布工具。
 
 ## 配置
 

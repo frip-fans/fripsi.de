@@ -239,6 +239,39 @@ openWorldHint: false
 - 场馆修改随活动更新在同一个 batch 内写入，受同一乐观锁保护；审计记录的 metadata 带有 `venue_changes`。
 - 场馆状态（`status`）和外部 ID 暂不支持。官方活动自动同步（`sync.propose`）不接受 `venue_updates`。
 
+#### `songs.search`、`setlists.search`、`setlists.get`
+
+用途：歌单提案需要的只读查询，自动同步身份不挂载。
+
+- `songs.search`：按标题或别名查歌曲，返回 `song_id`、别名和各版本的 `version_id`。
+- `setlists.search`：按关键词查歌单，或用 `event_id` 列出一场活动的全部歌单。
+- `setlists.get`：一份歌单的完整曲目、来源、`updated_at` 和未完成的提案。
+
+```text
+scope: events:read
+readOnlyHint: true
+```
+
+包含未公开的歌曲和歌单，与 `events.search` 对非自动同步身份的行为一致。
+
+#### `changes.propose_setlist`
+
+用途：为一场活动新增歌单，或整体替换已有歌单；只创建待审核提案。
+
+```text
+scope: events:draft
+readOnlyHint: false
+destructiveHint: false
+```
+
+- 新增：传 `event_id`。同一活动同一场次（`performance_label`，默认“本公演”）已有歌单时拒绝，返回 `invalid_setlist` 并给出已有歌单的 ID。
+- 修改：传 `setlist_id` 和 `setlists.get` 返回的 `updated_at`（`expected_updated_at`）。歌单在此之后被改过则返回 `version_conflict`。
+- `setlist.entries` 是按演出顺序排列的**完整**曲目，修改时整体替换。每首必须有 `song_id`；`performed_version_id` 可选，且必须属于该歌曲。不存在的歌曲或版本在提案时就被拒绝（`invalid_song` / `invalid_version`）——MCP 不能新建歌曲，缺的歌曲需要先在后台建好。
+- 来源只增不减：发布时保留歌单已有的来源，再加上提案的 `sources` 和 `source_url`。
+- 必须带 HTTPS 的 `source_url` 和原因。
+
+提案记录在 `change_sets` 中，`subject_type` 为 `setlist`，`target_event_id` 指向所属活动，因此会出现在该活动的待处理提案里。`changes.preview` 在 `setlist` 字段返回修改前后的完整曲目和属性，`before` / `after` 则是所属活动；歌单已过期或场次冲突时写入警告。发布走同一个 `changes.publish`，需要 `events:publish` 和 `music:write`，实际写入由后台保存歌单的同一段代码完成；发布结果返回 `setlist_id`。提案等待期间歌单被改过的，发布以 `version_conflict` 失败，需要重新提案，不提供“按当前版本发布”。
+
 #### `changes.propose_status`
 
 用途：提出取消、延期或恢复为 scheduled/completed。

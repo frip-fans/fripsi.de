@@ -3,7 +3,7 @@ import { ChangeService, getEventHeads, listChangeSets, listVenues } from "@frip-
 import Icon from "../../../components/Icon.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import {
-  CHANGE_OPERATION_LABELS,
+  changeOperationLabel,
   CHANGE_STATUS_LABELS,
   changeHeadline,
   describeLocation,
@@ -12,6 +12,7 @@ import {
   locationOfEvent,
   proposedSources,
   reviewRows,
+  setlistLines,
 } from "../../../lib/change-review";
 import { getEnv } from "../../../lib/env";
 
@@ -21,6 +22,9 @@ let preview;
 try { preview = await new ChangeService(db).preview(Astro.params.id!, actor); }
 catch { return Astro.redirect("/admin/changes", 302); }
 const { change, before, after, warnings, duplicate_candidates, public_path } = preview;
+// A setlist proposal carries the show in `before`; what it creates is the setlist, compared against nothing.
+const setlist = preview.setlist ? setlistLines(preview.setlist) : null;
+const creating = setlist ? !preview.setlist!.before : change.operation === "create";
 const needsVenueNames = after.location_input?.venues.some((venue) => venue.venue_id && !venue.display_name_snapshot && !venue.canonical_name);
 const [pending, venues] = await Promise.all([
   listChangeSets(db, "proposed", 200),
@@ -58,7 +62,7 @@ const proposed = change.status === "proposed";
   )}
 
   <header class="change-head">
-    <p class="kind"><span class="tag">{CHANGE_OPERATION_LABELS[change.operation] ?? change.operation}</span><span class:list={["tag", `status-${change.status}`]}>{CHANGE_STATUS_LABELS[change.status] ?? change.status}</span></p>
+    <p class="kind"><span class="tag">{changeOperationLabel(change)}</span><span class:list={["tag", `status-${change.status}`]}>{CHANGE_STATUS_LABELS[change.status] ?? change.status}</span></p>
     <h1>{headline.title}</h1>
     {change.reason && <p class="lede">{change.reason}</p>}
     <dl class="meta">
@@ -99,7 +103,7 @@ const proposed = change.status === "proposed";
         {siblings.map((item) => (
           <li>
             <a href={`/admin/changes/${item.id}`}>{item.reason || item.id}</a>
-            <small>{CHANGE_OPERATION_LABELS[item.operation] ?? item.operation} · {item.created_by} · {formatTimestamp(item.created_at)}{isStale(item, queueHeads.get(item.target_event_id ?? "")?.version) ? " · 已过期" : ""}</small>
+            <small>{changeOperationLabel(item)} · {item.created_by} · {formatTimestamp(item.created_at)}{isStale(item, queueHeads.get(item.target_event_id ?? "")?.version) ? " · 已过期" : ""}</small>
           </li>
         ))}
       </ul>
@@ -107,31 +111,40 @@ const proposed = change.status === "proposed";
   )}
 
   <section class="panel diff">
-    <h2>{change.operation === "create" ? "新活动内容" : "字段差异"}</h2>
+    <h2>{setlist ? (creating ? "新歌单内容" : "歌单差异") : creating ? "新活动内容" : "字段差异"}</h2>
     {fieldChanges.length > 0 ? (
       <div class="table-wrap"><table>
-        <thead><tr><th>字段</th>{change.operation !== "create" && <th>当前</th>}<th>{change.operation === "create" ? "内容" : "修改后"}</th></tr></thead>
+        <thead><tr><th>字段</th>{!creating && <th>当前</th>}<th>{creating ? "内容" : "修改后"}</th></tr></thead>
         <tbody>
           {fieldChanges.map((item) => (
             <tr>
               <th scope="row">{item.label}</th>
-              {change.operation !== "create" && <td class="before">{item.before}</td>}
+              {!creating && <td class="before">{item.before}</td>}
               <td class="after">{item.after}</td>
             </tr>
           ))}
         </tbody>
       </table></div>
     ) : <p class="muted">没有字段变化。</p>}
+    {setlist && (
+      <div class="location">
+        <h3>曲目</h3>
+        <div class="location-grid">
+          {!creating && <div><small>当前 · {setlist.before.length} 首</small><ol class="songs">{setlist.before.map((line) => <li class:list={{ removed: line.changed }}>{line.text}{line.detail && <small>{line.detail}</small>}</li>)}</ol></div>}
+          <div><small>{creating ? "内容" : "修改后"} · {setlist.after.length} 首</small><ol class="songs">{setlist.after.map((line) => <li class:list={{ added: line.changed }}>{line.text}{line.detail && <small>{line.detail}</small>}</li>)}</ol></div>
+        </div>
+      </div>
+    )}
     {locationChanged && (
       <div class="location">
         <h3>地点</h3>
         <div class="location-grid">
-          {change.operation !== "create" && <div><small>当前</small><ul>{locationBefore.length ? locationBefore.map((line) => <li>{line}</li>) : <li>—</li>}</ul></div>}
-          <div><small>{change.operation === "create" ? "内容" : "修改后"}</small><ul>{locationAfter.map((line) => <li>{line}</li>)}</ul></div>
+          {!creating && <div><small>当前</small><ul>{locationBefore.length ? locationBefore.map((line) => <li>{line}</li>) : <li>—</li>}</ul></div>}
+          <div><small>{creating ? "内容" : "修改后"}</small><ul>{locationAfter.map((line) => <li>{line}</li>)}</ul></div>
         </div>
       </div>
     )}
-    {public_path && change.operation === "create" && <p class="muted path">发布后地址：<code>{public_path}</code></p>}
+    {public_path && creating && <p class="muted path">发布后地址：<code>{public_path}</code></p>}
   </section>
 
   {duplicate_candidates.length > 0 && (
@@ -209,6 +222,11 @@ const proposed = change.status === "proposed";
   .location-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
   .location-grid small { color: var(--muted); }
   .location-grid ul { margin: .3rem 0 0; padding-left: 1.1rem; }
+  .songs { margin: .3rem 0 0; padding-left: 1.9rem; }
+  .songs li { padding: .1rem 0; overflow-wrap: anywhere; }
+  .songs li small { margin-left: .5rem; }
+  .songs li.added { color: #9ee6bd; }
+  .songs li.removed { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255, 140, 140, .55); }
   .path { margin-top: 1rem; font-size: .85rem; }
   .duplicates p { display: grid; gap: .2rem; border-bottom: 1px solid var(--line); padding-bottom: .7rem; }
   .publish { display: grid; grid-template-columns: 1fr auto; gap: 1.5rem; align-items: center; }

@@ -6,6 +6,8 @@ describe("auditActionLabel", () => {
     expect(auditActionLabel("change.propose_create")).toBe("提交提案 · 新增活动");
     expect(auditActionLabel("change.publish_status_change")).toBe("发布提案 · 变更状态");
     expect(auditActionLabel("change.discard")).toBe("丢弃提案");
+    expect(auditActionLabel("change.propose_setlist_create")).toBe("提交提案 · 新增歌单");
+    expect(auditActionLabel("change.publish_setlist_update")).toBe("发布提案 · 修改歌单");
   });
 
   it("reads entity actions with or without the content prefix", () => {

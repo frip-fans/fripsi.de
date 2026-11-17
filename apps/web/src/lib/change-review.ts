@@ -1,4 +1,4 @@
-import type { ChangePreview, ChangeSet, EventLocationInput, EventRecord, VenueField } from "@frip-fan/core";
+import type { ChangePreview, ChangeSet, EventLocationInput, EventRecord, SetlistChangeEntry, SetlistSnapshot, VenueField } from "@frip-fan/core";
 
 export const CHANGE_STATUS_LABELS: Record<string, string> = {
   proposed: "待处理",
@@ -14,7 +14,16 @@ export const CHANGE_OPERATION_LABELS: Record<string, string> = {
   unpublish: "取消公开",
   archive: "归档",
   restore: "恢复",
+  // Audit actions name setlist proposals this way: change.propose_setlist_create.
+  setlist_create: "新增歌单",
+  setlist_update: "修改歌单",
 };
+
+/** The same operation words mean different things for an event and for a setlist. */
+export function changeOperationLabel(change: Pick<ChangeSet, "operation" | "subject_type">): string {
+  const key = change.subject_type === "setlist" ? `setlist_${change.operation}` : change.operation;
+  return CHANGE_OPERATION_LABELS[key] ?? change.operation;
+}
 
 export const EVENT_FIELD_LABELS = {
   title: "标题",
@@ -102,8 +111,68 @@ const VENUE_FIELD_LABELS: Record<VenueField, string> = {
 
 export type ReviewRow = Pick<FieldChange, "label" | "before" | "after">;
 
-/** Every row a reviewer has to approve: event fields, then edits to venue records. */
-export function reviewRows(preview: Pick<ChangePreview, "before" | "after" | "venue_changes">): ReviewRow[] {
+const SETLIST_SECTION_LABELS: Record<string, string> = { main: "本篇", encore: "Encore", double_encore: "Double encore", opening: "Opening", other: "其他" };
+const SETLIST_VALUE_LABELS: Record<string, string> = {
+  complete: "完整", partial: "部分", unknown: "未知", official: "官方", reported: "报道", unverified: "待核实",
+};
+const SETLIST_FIELDS = [
+  ["performance_label", "场次"], ["completeness", "完整度"], ["confidence", "可信度"], ["notes", "歌单备注"], ["published", "公开"],
+] as const;
+
+function setlistValue(field: (typeof SETLIST_FIELDS)[number][0], snapshot: SetlistSnapshot | null): string {
+  if (!snapshot) return "—";
+  const value = snapshot[field];
+  if (field === "published") return value ? "公开" : "不公开";
+  return value ? SETLIST_VALUE_LABELS[String(value)] ?? String(value) : "—";
+}
+
+/** Setlist attributes that would change, plus one line for how the song list moves. */
+function setlistRows(setlist: NonNullable<ChangePreview["setlist"]>): ReviewRow[] {
+  const { before, after } = setlist;
+  const rows: ReviewRow[] = SETLIST_FIELDS
+    .map(([field, label]) => ({ label, before: setlistValue(field, before), after: setlistValue(field, after) }))
+    .filter((row) => !before || row.before !== row.after);
+  const keys = (snapshot: SetlistSnapshot | null) => (snapshot?.entries ?? []).map(entryKey).join("\n");
+  if (!before || keys(before) !== keys(after)) {
+    rows.push({ label: "曲目", before: before ? `${before.entries.length} 首` : "—", after: `${after.entries.length} 首` });
+  }
+  const added = after.sources.filter((url) => !before?.sources.includes(url));
+  // Sources are only ever added, so nothing is shown as replaced.
+  if (added.length) rows.push({ label: "新增来源", before: "—", after: added.map((url) => url.replace(/^https?:\/\//, "")).join("\n") });
+  return rows;
+}
+
+function entryKey(entry: SetlistChangeEntry): string {
+  return [entry.song_id, entry.performed_version_id ?? "", entry.section, entry.display_title, entry.medley_group ?? "", entry.notes ?? ""].join("\u001f");
+}
+
+export interface SetlistLine { position: number; text: string; detail: string; changed: boolean }
+
+/**
+ * The two song lists side by side. A line is marked when the other list has no identical entry,
+ * so a reorder alone marks nothing and an inserted or edited song stands out.
+ */
+export function setlistLines(setlist: NonNullable<ChangePreview["setlist"]>): { before: SetlistLine[]; after: SetlistLine[] } {
+  const lines = (snapshot: SetlistSnapshot | null, other: SetlistSnapshot | null): SetlistLine[] => {
+    const remaining = new Map<string, number>();
+    for (const entry of other?.entries ?? []) remaining.set(entryKey(entry), (remaining.get(entryKey(entry)) ?? 0) + 1);
+    return (snapshot?.entries ?? []).map((entry) => {
+      const key = entryKey(entry);
+      const matched = (remaining.get(key) ?? 0) > 0;
+      if (matched) remaining.set(key, remaining.get(key)! - 1);
+      const detail = [
+        entry.section === "main" ? "" : SETLIST_SECTION_LABELS[entry.section] ?? entry.section,
+        entry.medley_group ? `Medley ${entry.medley_group}` : "",
+        entry.notes ?? "",
+      ].filter(Boolean).join(" · ");
+      return { position: entry.position, text: entry.display_title, detail, changed: Boolean(other) && !matched };
+    });
+  };
+  return { before: lines(setlist.before, setlist.after), after: lines(setlist.after, setlist.before) };
+}
+
+/** Every row a reviewer has to approve: event fields, then edits to venue records or a setlist. */
+export function reviewRows(preview: Pick<ChangePreview, "before" | "after" | "venue_changes" | "setlist">): ReviewRow[] {
   // The venue is named only when a proposal edits several, to keep the usual single-venue rows short.
   const several = (preview.venue_changes?.length ?? 0) > 1;
   return [
@@ -113,6 +182,7 @@ export function reviewRows(preview: Pick<ChangePreview, "before" | "after" | "ve
       before: String(item.before_label ?? item.before ?? "—"),
       after: String(item.after_label ?? item.after ?? "—"),
     }))),
+    ...(preview.setlist ? setlistRows(preview.setlist) : []),
   ];
 }
 

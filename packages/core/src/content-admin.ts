@@ -217,7 +217,7 @@ export const releaseSaveSchema = z.object({
   }
 });
 
-const setlistEntrySchema = z.object({
+export const setlistEntrySchema = z.object({
   song_id: z.string().trim().min(1).max(160),
   performed_version_id: optionalText(160),
   section: z.enum(["main", "encore", "double_encore", "opening", "other"]),
@@ -797,7 +797,14 @@ export class ContentAdminService {
     return saved;
   }
 
-  async saveSetlist(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<AdminSetlistDetail> {
+  /**
+   * `extra` adds statements to the same batch, guarded by the same condition as the rest of the save;
+   * a published proposal uses it to mark itself done only if the setlist was actually written.
+   */
+  async saveSetlist(
+    raw: unknown, actor: Actor, requestId = makeId("req"),
+    extra?: (saved: { id: string; now: string; conditionSql: string; conditionBindings: unknown[] }) => D1PreparedStatement[],
+  ): Promise<AdminSetlistDetail> {
     assertScope(actor, "music:write");
     const input = setlistSaveSchema.parse(raw);
     const receiptId = await receiptTarget(this.db, input.idempotency_key, "admin.setlist.save");
@@ -837,10 +844,11 @@ export class ContentAdminService {
         .bind(makeId("mus_entry"), id, index + 1, entry.section, entry.song_id, entry.performed_version_id, entry.display_title, entry.medley_group, entry.notes, now, ...conditionBindings));
     }
     for (const source of input.sources) statements.push(sourceInsertStatement(this.db, "setlist", id, source, actor, now, conditionSql, conditionBindings));
-    const after = { ...input, entries, id, updated_at: now };
+    const after = { ...input, entries: entries.map(({ song_title: _song, performed_version_title: _version, ...entry }) => entry), id, updated_at: now };
     statements.push(
       auditStatement(this.db, actor, requestId, before ? "content.setlist.update" : "content.setlist.create", "setlist", id, before, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.setlist.save", id, now, conditionSql, conditionBindings),
+      ...(extra?.({ id, now, conditionSql, conditionBindings }) ?? []),
     );
     const results = await this.db.batch(statements);
     if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "Setlist 在保存前已发生变化，请刷新页面", 409);
@@ -849,7 +857,8 @@ export class ContentAdminService {
     return saved;
   }
 
-  private async resolveSetlistEntries(input: SetlistSaveInput): Promise<Array<SetlistSaveInput["entries"][number] & { display_title: string }>> {
+  /** Checks every song and version exists and fills in the title each entry will display. */
+  async resolveSetlistEntries(input: Pick<SetlistSaveInput, "entries">): Promise<Array<SetlistSaveInput["entries"][number] & { display_title: string; song_title: string; performed_version_title: string | null }>> {
     const songs = [...new Set(input.entries.map((entry) => entry.song_id))];
     const versions = [...new Set(input.entries.map((entry) => entry.performed_version_id).filter((id): id is string => Boolean(id)))];
     const songTitles = new Map<string, string>();
@@ -879,6 +888,8 @@ export class ContentAdminService {
       return {
         ...entry,
         display_title: entry.display_title || version?.title || songTitle,
+        song_title: songTitle,
+        performed_version_title: version?.title ?? null,
       };
     });
   }

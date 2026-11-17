@@ -237,6 +237,44 @@ export const proposeStatusSchema = z.object({
   idempotency_key: z.string().trim().min(8).max(200)
 });
 
+const setlistProposalEntrySchema = z.object({
+  song_id: z.string().trim().min(1).max(160),
+  performed_version_id: z.string().trim().max(160).nullish().transform((value) => value || null),
+  section: z.enum(["main", "encore", "double_encore", "opening", "other"]).default("main"),
+  display_title: z.string().trim().max(240).nullish().transform((value) => value || null),
+  medley_group: z.string().trim().max(40).nullish().transform((value) => value || null),
+  notes: z.string().trim().max(1000).nullish().transform((value) => value || null),
+});
+
+export const proposeSetlistSchema = z.object({
+  setlist_id: z.string().trim().min(1).max(160).optional()
+    .describe("修改已有歌单时填写；新增歌单时不填"),
+  expected_updated_at: z.string().trim().min(1).optional()
+    .describe("修改时必填，取自 setlists.get 的 updated_at"),
+  event_id: z.string().trim().min(1).max(160).optional()
+    .describe("歌单所属活动；新增时必填，修改时省略表示不变"),
+  setlist: z.object({
+    performance_label: z.string().trim().min(1).max(160).default("本公演"),
+    completeness: z.enum(["complete", "partial", "unknown"]),
+    confidence: z.enum(["official", "reported", "unverified"]),
+    notes: z.string().trim().max(4000).nullish().transform((value) => value || null),
+    published: z.boolean().default(true),
+    entries: z.array(setlistProposalEntrySchema).max(80)
+      .describe("完整曲目，按演出顺序排列；修改时会整体替换原有曲目。song_id 和 performed_version_id 取自 songs.search"),
+    sources: z.array(sourceInputSchema).max(10).default([]),
+  }),
+  source_url: sourceUrlSchema,
+  reason: z.string().trim().min(1).max(1000),
+  idempotency_key: z.string().trim().min(8).max(200)
+}).superRefine((input, context) => {
+  if (input.setlist_id && !input.expected_updated_at) {
+    context.addIssue({ code: "custom", path: ["expected_updated_at"], message: "修改歌单时必须提供 expected_updated_at" });
+  }
+  if (!input.setlist_id && !input.event_id) {
+    context.addIssue({ code: "custom", path: ["event_id"], message: "新增歌单时必须指定活动" });
+  }
+});
+
 export const proposeLifecycleSchema = z.object({
   target_event_id: z.string().trim().min(1),
   expected_version: z.number().int().positive(),
@@ -256,5 +294,6 @@ export type ChangeStatus = z.infer<typeof changeStatusSchema>;
 export type EventDraft = z.infer<typeof eventDraftSchema>;
 export type EventPatch = z.infer<typeof eventPatchSchema>;
 export type VenueUpdate = z.infer<typeof venueUpdateSchema>;
+export type ProposeSetlistInput = z.infer<typeof proposeSetlistSchema>;
 export type SourceInput = z.infer<typeof sourceInputSchema>;
 export type SearchInput = z.infer<typeof searchInputSchema>;

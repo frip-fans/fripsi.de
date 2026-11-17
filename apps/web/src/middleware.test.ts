@@ -81,6 +81,15 @@ describe("staging access isolation", () => {
     expect((await request("/admin")).response.headers.get("content-security-policy")).not.toContain("challenges.cloudflare.com");
     expect((await request("/")).response.headers.get("content-security-policy")).toContain("challenges.cloudflare.com");
   });
+  it("allows the Cloudflare Web Analytics beacon on production public pages only", async () => {
+    mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
+    expect((await request("/")).response.headers.get("content-security-policy")).not.toContain("cloudflareinsights.com");
+    mocks.env.APP_ENV = "production";
+    const policy = (await request("/")).response.headers.get("content-security-policy")!;
+    expect(policy).toMatch(/script-src [^;]*https:\/\/static\.cloudflareinsights\.com/);
+    expect(policy).toMatch(/connect-src [^;]*https:\/\/cloudflareinsights\.com/);
+    expect((await request("/admin")).response.headers.get("content-security-policy")).not.toContain("cloudflareinsights.com");
+  });
   it("allows cover previews on every admin document, since routed visits keep the first CSP", async () => {
     mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
     expect((await request("/admin")).response.headers.get("content-security-policy")).toContain("https://*.mzstatic.com");

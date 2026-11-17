@@ -89,6 +89,7 @@ Web（`web.env`）：
 | `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD` | Cloudflare Access issuer 与后台应用 audience |
 | `ADMIN_PUBLISHERS` | 逗号分隔的 publisher 邮箱 |
 | `DEV_AUTH_BYPASS` | 必须为 `false`；非 development 环境会被强制关闭 |
+| `STAGING_SERVICE_CLIENTS` | 仅测试站：允许作为 [Agent 测试身份](staging.md#agent-测试身份) 的 Access 服务令牌 Client ID，逗号分隔；生产环境忽略 |
 | `MCP_RESOURCE_URL`、`MCP_AUTHORIZATION_SERVER`、`MCP_AUDIENCE` | MCP OAuth resource 配置 |
 | `AUTOMATION_AUDIENCE`、`AUTOMATION_SIGNING_SECRET` | 自动同步任务凭据；签名密钥与 `sync.env` 相同，只存主机 |
 

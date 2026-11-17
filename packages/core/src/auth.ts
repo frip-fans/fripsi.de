@@ -14,6 +14,27 @@ export interface AuthEnv {
   ADMIN_PUBLISHERS?: string;
   DEV_AUTH_BYPASS?: string;
   DEV_ACTOR?: string;
+  APP_ENV?: string;
+  STAGING_SERVICE_CLIENTS?: string;
+}
+
+const STAGING_AGENT_PREFIX = "agent:";
+
+/**
+ * A Cloudflare Access service token that staging accepts as a test agent, or null. Access puts the
+ * token's client id in `common_name` and no email. Only staging honours the allowlist, so setting it
+ * anywhere else changes nothing.
+ */
+function stagingAgentId(env: AuthEnv, payload: JWTPayload): string | null {
+  if (env.APP_ENV !== "staging" || payload.email) return null;
+  const client = typeof payload.common_name === "string" ? payload.common_name.trim() : "";
+  const allowed = (env.STAGING_SERVICE_CLIENTS ?? "").split(",").map((item) => item.trim()).filter(Boolean);
+  return client && allowed.includes(client) ? `${STAGING_AGENT_PREFIX}${client}` : null;
+}
+
+/** True for the identity staging gives an allowed service token; a person's id is an email and never matches. */
+export function isStagingAgent(actor: Pick<Actor, "id" | "type">): boolean {
+  return actor.type === "ai" && actor.id.startsWith(STAGING_AGENT_PREFIX);
 }
 
 const allScopes = ["events:read", "events:draft", "events:publish", "events:archive", "music:read", "music:write"];
@@ -52,6 +73,9 @@ export async function authenticateAdmin(request: Request, env: AuthEnv): Promise
   if (!token) throw new ServiceError("unauthorized", "需要 Cloudflare Access 登录", 401);
   if (!env.ACCESS_AUD) throw new ServiceError("auth_config", "缺少 ACCESS_AUD", 500);
   const payload = await verifyToken(token, env.ACCESS_TEAM_DOMAIN!, env.ACCESS_AUD);
+  // Staging data is disposable, so a test agent gets what a publisher has there.
+  const agent = stagingAgentId(env, payload);
+  if (agent) return { id: agent, type: "ai", channel: "admin", scopes: allScopes };
   const email = String(payload.email || payload.sub || "unknown");
   const publishers = (env.ADMIN_PUBLISHERS ?? "").split(",").map((item) => item.trim().toLowerCase()).filter(Boolean);
   const scopes = ["events:read", "events:draft", "music:read"];
@@ -67,6 +91,12 @@ export async function authenticateMcp(request: Request, env: AuthEnv): Promise<A
   const local = devActor(env, "mcp");
   if (local) return local;
   const authorization = request.headers.get("Authorization");
+  const assertion = request.headers.get("Cf-Access-Jwt-Assertion");
+  if (!authorization && assertion && env.APP_ENV === "staging" && env.ACCESS_AUD) {
+    // The staging site sits behind Access, so a test agent reaches /mcp with the same service token.
+    const agent = stagingAgentId(env, await verifyToken(assertion, env.ACCESS_TEAM_DOMAIN!, env.ACCESS_AUD));
+    if (agent) return { id: agent, type: "ai", channel: "mcp", scopes: allScopes };
+  }
   if (!authorization?.startsWith("Bearer ")) throw new ServiceError("unauthorized", "需要 Bearer token", 401);
   if (!env.MCP_AUDIENCE) throw new ServiceError("auth_config", "缺少 MCP_AUDIENCE", 500);
   const payload = await verifyToken(authorization.slice(7), env.ACCESS_TEAM_DOMAIN!, env.MCP_AUDIENCE);

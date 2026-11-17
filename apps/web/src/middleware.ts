@@ -1,4 +1,4 @@
-import { authenticateAdmin, ServiceError } from "@frip-fan/core";
+import { authenticateAdmin, isStagingAgent, ServiceError } from "@frip-fan/core";
 import { defineMiddleware } from "astro:middleware";
 import { getEnv } from "./lib/env";
 import { publicResponse } from "#public-cache";
@@ -76,7 +76,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.actor = await authenticateAdmin(context.request, staging ? { ...env, DEV_AUTH_BYPASS: "false" } : env);
     if (staging) {
       const publishers = (env.ADMIN_PUBLISHERS ?? "").split(",").map((email) => email.trim().toLowerCase());
-      if (!publishers.includes(context.locals.actor.id.toLowerCase())) {
+      if (!isStagingAgent(context.locals.actor) && !publishers.includes(context.locals.actor.id.toLowerCase())) {
         throw new ServiceError("forbidden", "没有测试环境访问权限", 403);
       }
     }

@@ -1,0 +1,11 @@
+{
+  "Rules": [
+    {
+      "ID": "expire-staging-refresh-exports-after-7-days",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "sqlite/staging-refresh/" },
+      "Expiration": { "Days": 7 },
+      "AbortIncompleteMultipartUpload": { "DaysAfterInitiation": 1 }
+    }
+  ]
+}

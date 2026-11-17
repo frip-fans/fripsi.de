@@ -74,7 +74,7 @@ sudo -u frip-deploy sudo -n -l   # 应列出上面两条规则
 
 `ops/oci/bootstrap-host.sh` 是管理员通过 SSH 以 root 运行的脚本，不由 runner 执行。它安装固定版本的 Node、cloudflared 和 Actions runner（均验证 SHA-256），创建用户、目录和 2 GiB swap，写入 sudoers 规则；保留现有 Caddy/防火墙。之后由管理员安装 `ops/oci/*.service`/`*.timer`、root 所有的启动/安装脚本和环境文件，再把 runner 注册到私有部署仓库。Tunnel Token 通过受限文件和 systemd `LoadCredential` 传递，不放进命令参数或仓库。
 
-两套环境的数据库、凭据、runner 和 Tunnel 相互独立。不要把测试库覆盖到生产；测试库需要刷新时，只能把经授权的生产快照导入空路径，并核对完整性、外键、migration 记录和业务表计数。
+两套环境的数据库、凭据、runner 和 Tunnel 相互独立。不要把测试库覆盖到生产；测试库需要刷新时，按 [用生产数据刷新测试库](staging-refresh.md) 用脱敏的生产快照整体替换。
 
 ## 环境配置
 
@@ -89,6 +89,7 @@ Web（`web.env`）：
 | `ACCESS_TEAM_DOMAIN`、`ACCESS_AUD` | Cloudflare Access issuer 与后台应用 audience |
 | `ADMIN_PUBLISHERS` | 逗号分隔的 publisher 邮箱 |
 | `DEV_AUTH_BYPASS` | 必须为 `false`；非 development 环境会被强制关闭 |
+| `STAGING_SERVICE_CLIENTS` | 仅测试站：允许作为 [Agent 测试身份](staging.md#agent-测试身份) 的 Access 服务令牌 Client ID，逗号分隔；生产环境忽略 |
 | `MCP_RESOURCE_URL`、`MCP_AUTHORIZATION_SERVER`、`MCP_AUDIENCE` | MCP OAuth resource 配置 |
 | `AUTOMATION_AUDIENCE`、`AUTOMATION_SIGNING_SECRET` | 自动同步任务凭据；签名密钥与 `sync.env` 相同，只存主机 |
 

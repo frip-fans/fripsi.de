@@ -121,6 +121,7 @@ Agents API 的工具配置在 session 创建时固定，后续 turn 不能更换
 
 ```text
 events.search / events.get / events.list_upcoming / events.check_duplicate
+areas.search
 changes.propose_create / propose_update / propose_status
 changes.propose_unpublish / propose_archive / propose_restore
 changes.preview / changes.discard

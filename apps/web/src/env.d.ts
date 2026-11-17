@@ -25,6 +25,7 @@ declare global {
     ACCESS_TEAM_DOMAIN?: string;
     ACCESS_AUD?: string;
     ADMIN_PUBLISHERS?: string;
+    STAGING_SERVICE_CLIENTS?: string;
     DEV_AUTH_BYPASS?: string;
     DEV_ACTOR?: string;
     COMMENT_SOURCE_SECRET?: string;

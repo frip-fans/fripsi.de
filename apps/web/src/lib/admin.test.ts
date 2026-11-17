@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseSources, readSongSave } from "./admin";
+import { parseSources, readSongSave, readVenueSave } from "./admin";
 
 describe("admin source lines", () => {
   it("keeps explicit source types while remaining backwards compatible", () => {
@@ -53,5 +53,23 @@ describe("song admin form", () => {
       published: true,
       sources: [{ url: "https://fripside.net/discography/1", label: "官方发行页", source_type: "official" }],
     }]);
+  });
+});
+
+describe("venue admin form", () => {
+  it("reads coordinates as numbers and empty boxes as cleared", () => {
+    const form = new FormData();
+    for (const [key, value] of Object.entries({
+      id: "ven_1", expected_updated_at: "2026-01-01T00:00:00.000Z", idempotency_key: "admin-venue-test-key",
+      canonical_name: " 新宿LOFT ", administrative_area_id: "", address_text: "", latitude: " 35.6955 ", longitude: "139.7025",
+      coordinate_precision: "building", coordinate_source: "", sync_display_names: "on",
+    })) form.set(key, value);
+    expect(readVenueSave(form)).toEqual({
+      id: "ven_1", expected_updated_at: "2026-01-01T00:00:00.000Z", idempotency_key: "admin-venue-test-key",
+      canonical_name: " 新宿LOFT ", administrative_area_id: null, address_text: null, latitude: 35.6955, longitude: 139.7025,
+      coordinate_precision: "building", coordinate_source: null, sync_display_names: true,
+    });
+    form.set("latitude", ""); form.set("longitude", "abc"); form.delete("sync_display_names");
+    expect(readVenueSave(form)).toMatchObject({ latitude: null, longitude: Number.NaN, sync_display_names: false });
   });
 });

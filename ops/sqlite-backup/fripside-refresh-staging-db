@@ -1,0 +1,12 @@
+#!/bin/sh
+# Installed root-owned as /usr/local/bin/fripside-refresh-staging-db on the staging host only.
+# The deployment runner may run exactly this command, without arguments, through sudoers: which
+# export is applied and where it goes come from root-owned configuration, never from the caller.
+set -eu
+if [ "$#" -ne 0 ]; then
+  echo "fripside-refresh-staging-db takes no arguments" >&2
+  exit 2
+fi
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+exec /opt/fripside-backup/venv/bin/python /opt/fripside-backup/staging_refresh.py \
+  --config /etc/fripside-refresh/config.json apply

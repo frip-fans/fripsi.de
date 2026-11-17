@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily scrubbed export for staging at 04:30 Singapore time, after the backup
+
+[Timer]
+OnCalendar=*-*-* 04:30:00 Asia/Singapore
+Persistent=true
+AccuracySec=1min
+Unit=fripside-staging-refresh-export.service
+
+[Install]
+WantedBy=timers.target

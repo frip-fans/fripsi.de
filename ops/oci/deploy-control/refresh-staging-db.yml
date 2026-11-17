@@ -1,0 +1,28 @@
+name: Refresh staging database
+
+# Replaces the staging database with the newest scrubbed production export. The export travels from
+# the private R2 bucket straight to the staging host: no database content reaches GitHub, this
+# workflow only starts the root-owned host script and reports whether it succeeded.
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type "staging" to replace the staging database with production data
+        required: true
+
+permissions:
+  contents: read
+
+# Shares the deployment group, so a refresh and a deployment never touch the database together.
+concurrency:
+  group: oci-deployment
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    if: inputs.confirm == 'staging'
+    runs-on: [self-hosted, Linux, X64, deploy-only, fripside-staging]
+    timeout-minutes: 15
+    steps:
+      - name: Download, verify, migrate and swap in the newest export
+        run: sudo -n /usr/local/bin/fripside-refresh-staging-db

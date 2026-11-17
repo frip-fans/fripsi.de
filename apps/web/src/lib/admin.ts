@@ -11,6 +11,7 @@ import type {
   SetlistSaveInput,
   SongSaveInput,
   SourceInput,
+  VenueSaveInput,
 } from "@frip-fan/core";
 
 function optional(form: FormData, key: string): string | null {
@@ -276,6 +277,28 @@ export function readTourSave(form: FormData): TourSaveInput {
     name: String(form.get("name") ?? ""),
     notes: optional(form, "notes"),
     published: form.has("published"),
+  };
+}
+
+/** A coordinate box left empty clears the value; anything unparseable is left for the schema to reject. */
+function coordinate(form: FormData, key: string): number | null {
+  const value = optional(form, key);
+  return value === null ? null : Number(value);
+}
+
+export function readVenueSave(form: FormData): VenueSaveInput {
+  return {
+    id: String(form.get("id") ?? ""),
+    expected_updated_at: String(form.get("expected_updated_at") ?? ""),
+    idempotency_key: String(form.get("idempotency_key") ?? ""),
+    canonical_name: String(form.get("canonical_name") ?? ""),
+    administrative_area_id: optional(form, "administrative_area_id"),
+    address_text: optional(form, "address_text"),
+    latitude: coordinate(form, "latitude"),
+    longitude: coordinate(form, "longitude"),
+    coordinate_precision: optional(form, "coordinate_precision") as VenueSaveInput["coordinate_precision"],
+    coordinate_source: optional(form, "coordinate_source"),
+    sync_display_names: form.has("sync_display_names"),
   };
 }
 

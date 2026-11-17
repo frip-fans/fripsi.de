@@ -17,6 +17,7 @@ export * from "./music-types";
 export * from "./repository";
 export * from "./schema";
 export * from "./types";
+export * from "./venues";
 export * from "./utils";
 export * from "./release-media";
 export * from "./official-sync-schema";

@@ -7,6 +7,7 @@ const ENTITY_LABELS: Record<string, string> = {
   release: "专辑",
   song: "歌曲",
   tour: "巡演",
+  venue: "场馆",
   music: "音乐库",
 };
 
@@ -59,6 +60,7 @@ const TARGET_LABELS: Record<string, string> = {
   release: "专辑",
   song: "歌曲",
   tour: "巡演",
+  venue: "场馆",
   import_job: "导入任务",
   comment: "留言",
   comment_source: "留言来源",
@@ -84,6 +86,7 @@ export function auditTargetHref(targetType: string, targetId: string | null): st
     case "release": return `/admin/music/releases/${id}`;
     case "song": return `/admin/music/songs/${id}`;
     case "tour": return `/admin/tours/${id}`;
+    case "venue": return `/admin/venues/${id}`;
     default: return null;
   }
 }

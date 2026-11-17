@@ -1,0 +1,18 @@
+{
+  "environment": "staging",
+  "database": "/var/lib/fripside/site.sqlite",
+  "env_file": "/etc/fripside/web.env",
+  "release_link": "/opt/fripside/current",
+  "work_dir": "/var/lib/fripside-refresh",
+  "deploy_lock": "/var/lib/fripside-deploy/deploy.lock",
+  "status_file": "/var/lib/fripside/refresh-status.json",
+  "owner": "frip-app",
+  "identity_file": "/etc/fripside-refresh/staging-refresh.agekey",
+  "endpoint": "https://ACCOUNT_ID.r2.cloudflarestorage.com",
+  "bucket": "fripside-staging-refresh",
+  "prefix": "sqlite/staging-refresh/",
+  "access_key_id": "REFRESH_BUCKET_READ_ONLY_ACCESS_KEY",
+  "secret_access_key": "REFRESH_BUCKET_READ_ONLY_SECRET_KEY",
+  "max_age_hours": 36,
+  "keep_previous": 2
+}

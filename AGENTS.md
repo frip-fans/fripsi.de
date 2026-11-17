@@ -67,6 +67,7 @@
 - 数据库备份遵循 [SQLite 备份与恢复](docs/sqlite-backups.md)，生产 timer 独立于 GitHub Actions 和部署 runner。先完成脚本、配置模板、测试和真实隔离恢复验收，再启用生产 timer。
 - 活跃 WAL 库只能通过 SQLite Online Backup API 或 `.backup` 生成快照，禁止直接复制主数据库文件。数据库、备份密文、R2 凭据及恢复私钥不得提交 Git 或上传 Actions artifact。
 - 恢复必须显式指定备份，先验证隔离库和应用读取；不能自动覆盖线上库。生产机只保存 age 加密公钥，恢复私钥留在生产机之外。
+- 测试库只通过 [用生产数据刷新测试库](docs/staging-refresh.md) 的脱敏导出刷新：使用测试机专属密钥和独立的桶，不读取正式备份，脚本拒绝在非 staging 主机上运行。新增数据表时同时在导出脚本中归类。
 
 ## OCI 部署
 

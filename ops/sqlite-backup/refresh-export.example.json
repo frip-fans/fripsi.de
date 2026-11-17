@@ -1,0 +1,12 @@
+{
+  "database": "/var/lib/fripside/site.sqlite",
+  "release_sha_file": "/opt/fripside/current/REVISION",
+  "state_dir": "/var/lib/fripside-backup",
+  "endpoint": "https://ACCOUNT_ID.r2.cloudflarestorage.com",
+  "bucket": "fripside-staging-refresh",
+  "prefix": "sqlite/staging-refresh/",
+  "access_key_id": "REFRESH_BUCKET_READ_WRITE_ACCESS_KEY",
+  "secret_access_key": "REFRESH_BUCKET_READ_WRITE_SECRET_KEY",
+  "age_recipient": "age1_REPLACE_WITH_STAGING_HOST_PUBLIC_RECIPIENT",
+  "notify_url": "https://YOUR_NOTIFICATION_ENDPOINT"
+}

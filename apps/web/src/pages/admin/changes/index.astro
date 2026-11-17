@@ -3,7 +3,7 @@ import AdminPageHeader from "../../../components/AdminPageHeader.astro";
 import { countChangeSetsByStatus, getEventHeads, listChangeSets } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
-import { CHANGE_OPERATION_LABELS, CHANGE_STATUS_LABELS, changeHeadline, formatTimestamp, isStale } from "../../../lib/change-review";
+import { changeOperationLabel, CHANGE_STATUS_LABELS, changeHeadline, formatTimestamp, isStale } from "../../../lib/change-review";
 import { getEnv } from "../../../lib/env";
 
 const db = getEnv().DB;
@@ -71,7 +71,7 @@ const staleCount = rows.filter((row) => row.stale).length;
               {selectable && <td class="select-col"><input type="checkbox" name="id" value={change.id} data-row-check data-stale={stale ? "1" : undefined} aria-label={`选择：${headline.title}`} /></td>}
               <td class="status-col"><span class:list={["tag", `status-${change.status}`]}>{CHANGE_STATUS_LABELS[change.status] ?? change.status}</span></td>
               <td class="headline">
-                <a href={`/admin/changes/${change.id}`}><small class="op">{CHANGE_OPERATION_LABELS[change.operation] ?? change.operation}</small>{headline.title}</a>
+                <a href={`/admin/changes/${change.id}`}><small class="op">{changeOperationLabel(change)}</small>{headline.title}</a>
                 {headline.date && <small>{headline.date}</small>}
                 <small class="mobile-meta">{CHANGE_STATUS_LABELS[change.status] ?? change.status} · {change.created_by} · {formatTimestamp(change.created_at)}</small>
                 {(stale || siblings > 0) && <span class="flags">

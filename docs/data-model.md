@@ -222,6 +222,8 @@ CREATE INDEX idx_change_sets_target
   ON change_sets (target_event_id, created_at);
 ```
 
+`0023_change_set_subjects.sql` 增加 `subject_type`（`event`、`setlist`、`song`、`release` 或 `tour`，默认 `event`；取值在代码中校验，数据库不设 CHECK）和 `subject_id`。歌曲、专辑、巡演提案的 `target_event_id` 为空，`payload_json` 保存合并后的完整记录和提案所基于的 `updated_at`。歌单提案的 `subject_type` 为 `setlist`，`operation` 只用 `create` / `update`，`target_event_id` 是歌单所属的活动，`subject_id` 是被修改的歌单（新增时为空，发布后写入新歌单的 ID），`base_version` 为空——歌单用 `updated_at` 做并发校验，期望值保存在 `payload_json` 里。
+
 `payload_json` 必须先通过共享 Zod schema，再写入数据库。读取旧 change set 时仍需重新校验，不能假设历史 JSON 永远符合当前 schema。
 
 ### 3.4 `audit_logs`

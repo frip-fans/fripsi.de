@@ -237,7 +237,81 @@ openWorldHint: false
 - 场馆记录由多个活动共用：发布后所有关联活动都会读到新内容，但只有目标活动的版本号递增。`changes.preview` 在 `venue_changes` 中逐字段给出修改前后的值和受影响的其他活动数量，并写入警告。
 - 页面显示场馆时优先使用活动关联上保存的当时显示名（`display_name_snapshot`），因此改名默认不会改变已保存显示名的活动——场馆真的更名时，旧活动应继续显示当时的名称。纠正错字时传 `sync_display_names: true`：显示名等于原名称的关联跟随改名，另行填写过显示名的关联保持不变。预览在 `venue_changes` 中给出跟随（`synced_display_names`）和保留（`kept_display_names`）的数量并写入警告；个别活动可通过 `venues[].display_name_snapshot` 单独修改。
 - 场馆修改随活动更新在同一个 batch 内写入，受同一乐观锁保护；审计记录的 metadata 带有 `venue_changes`。
+- 活动的显示别名和巡演归属用 `patch.alias`、`patch.tour_id`（取自 `tours.search`，`null` 表示移出巡演）和 `patch.tour_stop`；`changes.propose_create` 用同名字段的 `display` 对象。巡演不存在时返回 `invalid_tour`。官方活动自动同步不接受这三个字段。
 - 场馆状态（`status`）和外部 ID 暂不支持。官方活动自动同步（`sync.propose`）不接受 `venue_updates`。
+
+#### `songs.search`、`setlists.search`、`setlists.get`
+
+用途：歌单提案需要的只读查询，自动同步身份不挂载。
+
+- `songs.search`：按标题或别名查歌曲，返回 `song_id`、别名和各版本的 `version_id`。
+- `setlists.search`：按关键词查歌单，或用 `event_id` 列出一场活动的全部歌单。
+- `setlists.get`：一份歌单的完整曲目、来源、`updated_at` 和未完成的提案。
+
+```text
+scope: events:read
+readOnlyHint: true
+```
+
+包含未公开的歌曲和歌单，与 `events.search` 对非自动同步身份的行为一致。
+
+#### `changes.propose_setlist`
+
+用途：为一场活动新增歌单，或整体替换已有歌单；只创建待审核提案。
+
+```text
+scope: events:draft
+readOnlyHint: false
+destructiveHint: false
+```
+
+- 新增：传 `event_id`。同一活动同一场次（`performance_label`，默认“本公演”）已有歌单时拒绝，返回 `invalid_setlist` 并给出已有歌单的 ID。
+- 修改：传 `setlist_id` 和 `setlists.get` 返回的 `updated_at`（`expected_updated_at`）。歌单在此之后被改过则返回 `version_conflict`。
+- `setlist.entries` 是按演出顺序排列的**完整**曲目，修改时整体替换。每首必须有 `song_id`；`performed_version_id` 可选，且必须属于该歌曲。不存在的歌曲或版本在提案时就被拒绝（`invalid_song` / `invalid_version`）——缺的歌曲先用 `changes.propose_song` 提案并发布。
+- 来源只增不减：发布时保留歌单已有的来源，再加上提案的 `sources` 和 `source_url`。
+- 必须带 HTTPS 的 `source_url` 和原因。
+
+提案记录在 `change_sets` 中，`subject_type` 为 `setlist`，`target_event_id` 指向所属活动，因此会出现在该活动的待处理提案里。`changes.preview` 在 `setlist` 字段返回修改前后的完整曲目和属性，`before` / `after` 则是所属活动；歌单已过期或场次冲突时写入警告。发布走同一个 `changes.publish`，需要 `events:publish` 和 `music:write`，实际写入由后台保存歌单的同一段代码完成；发布结果返回 `setlist_id`。提案等待期间歌单被改过的，发布以 `version_conflict` 失败，需要重新提案，不提供“按当前版本发布”。
+
+#### 歌曲、专辑、巡演、场馆的查询
+
+用途：只读查询，自动同步身份不挂载，包含未公开的记录。
+
+- `songs.get`：一首歌曲的全部字段、别名、版本、来源和 `updated_at`。
+- `releases.search`、`releases.get`：专辑和单曲；`releases.get` 返回曲目表，含 `song_version_id`、Apple Music 曲目 ID 和 YouTube 视频 ID。
+- `tours.search`、`tours.get`：巡演及其场次。
+- `venues.search`、`venues.get`：场馆、别名和关联活动。
+- `apple_music.search`：在 Apple Music 日区查专辑；传 `album_id` 返回曲目和曲目 ID。
+
+`songs.get`、`releases.get`、`tours.get` 同时返回该记录未完成的提案。
+
+#### `changes.propose_song`、`changes.propose_release`、`changes.propose_tour`
+
+用途：新增或修改歌曲、专辑、巡演；只创建待审核提案。与后台对应的编辑页写入同一批字段。
+
+行为：
+
+- 新增：不传 ID，内容对象（`song` / `release` / `tour`）给出完整内容。新建歌曲时省略 `versions` 会自动建一个与歌曲同名的版本。
+- 修改：传 `song_id` / `release_id` / `tour_id` 和对应 get 工具返回的 `updated_at`（`expected_updated_at`），内容对象里**只写要改的字段**，其余保持不变。记录在读取之后被改过则返回 `version_conflict`；内容与当前相同返回 `no_change`。
+- 列表字段（`aliases`、`sources`、专辑的 `tracks`）给出时整体替换。歌曲的 `versions` 例外：只列要改或要加的版本，带 `id` 的是修改，不带的是新增，未列出的保持不变；已有版本不能删除。
+- 只改曲目的试听链接时用 `release.track_links`，按碟号和曲序定位，不必重发曲目表：
+
+  ```json
+  { "track_links": [{ "track_number": 3, "youtube_video_id": "https://www.youtube.com/watch?v=…" }] }
+  ```
+
+  `youtube_video_id` 接受视频链接或 11 位 ID，保存为 ID；`null` 表示清空。位置不存在时返回 `invalid_track`。
+- 专辑曲目引用的歌曲版本必须已存在。封面只能填已导入本站图片库的路径，MCP 不能导入封面图片。
+- `source_url` 可选，给出时一并记入来源。
+- 提案时就执行后台保存的全部校验（slug 冲突、版本归属等），不通过则直接拒绝（`invalid_song` / `invalid_release` / `invalid_tour`）。
+
+提案的 `subject_type` 为 `song` / `release` / `tour`，`target_event_id` 为空。`changes.preview` 在 `catalog` 字段返回修改前后的完整记录（`before`、`after` 与保存时的结构相同），`before` / `after` 字段为空。发布走 `changes.publish`，歌曲和专辑需要 `events:publish` 和 `music:write`，实际写入由后台保存的同一段代码完成；发布结果返回 `song_id` / `release_id` / `tour_id`。过期的提案以 `version_conflict` 失败，需要重新提案。
+
+#### `comments.list`、`comments.moderate`、`comments.set_blocked_terms`、`audit.list`
+
+用途：留言审核和审计日志，只对有 `events:publish` 的身份挂载。
+
+与后台留言页一样**立即生效，不经过提案**：`comments.moderate` 的 `action` 为 `hide`、`restore`、`delete`、`block`（封禁该留言的来源）或 `unblock`（按 `source` 解除封禁）；`comments.set_blocked_terms` 整体替换屏蔽词。两者都要求 `confirm=true`，并写入审计日志。`audit.list` 按时间倒序列出写操作记录。
 
 #### `changes.propose_status`
 

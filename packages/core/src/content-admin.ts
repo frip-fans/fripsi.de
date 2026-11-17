@@ -217,7 +217,7 @@ export const releaseSaveSchema = z.object({
   }
 });
 
-const setlistEntrySchema = z.object({
+export const setlistEntrySchema = z.object({
   song_id: z.string().trim().min(1).max(160),
   performed_version_id: optionalText(160),
   section: z.enum(["main", "encore", "double_encore", "opening", "other"]),
@@ -353,6 +353,28 @@ function sourceInsertStatement(
     );
 }
 
+/** What a save tells the statements a caller adds to its batch. */
+export interface SavedRow { id: string; now: string; conditionSql: string; conditionBindings: unknown[] }
+
+/**
+ * `extra` adds statements to the save's batch, guarded by the same condition as the rest of it; a
+ * published proposal uses it to mark itself done only if the record was actually written.
+ * `check` runs every validation the save does and stops before writing anything.
+ */
+export interface SaveHooks { extra?: (saved: SavedRow) => D1PreparedStatement[]; check?: boolean }
+
+const CHECKED = Symbol("save checked");
+
+/** Runs a save with `check: true` and reports only what would have stopped it. */
+export async function checkSave(save: Promise<unknown>): Promise<void> {
+  try { await save; } catch (error) { if (error !== CHECKED) throw error; }
+}
+
+function hooked(hooks: SaveHooks | undefined, saved: SavedRow): D1PreparedStatement[] {
+  if (hooks?.check) throw CHECKED;
+  return hooks?.extra?.(saved) ?? [];
+}
+
 export class ContentAdminService {
   constructor(private readonly db: D1Database) {}
 
@@ -435,7 +457,7 @@ export class ContentAdminService {
     return requireEvent(this.db, id);
   }
 
-  async saveTour(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<TourDetail> {
+  async saveTour(raw: unknown, actor: Actor, requestId = makeId("req"), hooks?: SaveHooks): Promise<TourDetail> {
     assertScope(actor, "events:publish");
     const input = tourSaveSchema.parse(raw);
     const receiptId = await receiptTarget(this.db, input.idempotency_key, "admin.tour.save");
@@ -457,11 +479,13 @@ export class ContentAdminService {
       : this.db.prepare("INSERT INTO tours (id, slug, name, notes, published, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
         .bind(id, slug, input.name, notes, input.published ? 1 : 0, now, now);
     const after = { id, slug, name: input.name, notes, published: input.published };
+    const extra = hooked(hooks, { id, now, conditionSql, conditionBindings });
     const results = await this.db.batch([
       write,
       auditStatement(this.db, actor, requestId, before ? "content.tour.update" : "content.tour.create", "tour", id,
         before ? { id: before.id, slug: before.slug, name: before.name, notes: before.notes, published: before.published } : null, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.tour.save", id, now, conditionSql, conditionBindings),
+      ...extra,
     ]);
     if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "巡演在保存前已发生变化，请刷新页面", 409);
     return (await getTourById(this.db, id))!;
@@ -592,7 +616,7 @@ export class ContentAdminService {
     return requireEvent(this.db, before.id);
   }
 
-  async saveSong(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<AdminSongDetail> {
+  async saveSong(raw: unknown, actor: Actor, requestId = makeId("req"), hooks?: SaveHooks): Promise<AdminSongDetail> {
     assertScope(actor, "music:write");
     const input = songSaveSchema.parse(raw);
     const receiptId = await receiptTarget(this.db, input.idempotency_key, "admin.song.save");
@@ -685,6 +709,7 @@ export class ContentAdminService {
     statements.push(
       auditStatement(this.db, actor, requestId, before ? "content.song.update" : "content.song.create", "song", id, before, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.song.save", id, now, conditionSql, conditionBindings),
+      ...hooked(hooks, { id, now, conditionSql, conditionBindings }),
     );
     const results = await this.db.batch(statements);
     if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "歌曲在保存前已发生变化，请刷新页面", 409);
@@ -703,7 +728,7 @@ export class ContentAdminService {
     }
   }
 
-  async saveRelease(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<AdminReleaseDetail> {
+  async saveRelease(raw: unknown, actor: Actor, requestId = makeId("req"), hooks?: SaveHooks): Promise<AdminReleaseDetail> {
     assertScope(actor, "music:write");
     const input = releaseSaveSchema.parse(raw);
     const receiptId = await receiptTarget(this.db, input.idempotency_key, "admin.release.save");
@@ -789,6 +814,7 @@ export class ContentAdminService {
     statements.push(
       auditStatement(this.db, actor, requestId, before ? "content.release.update" : "content.release.create", "release", id, before, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.release.save", id, now, conditionSql, conditionBindings),
+      ...hooked(hooks, { id, now, conditionSql, conditionBindings }),
     );
     const results = await this.db.batch(statements);
     if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "专辑在保存前已发生变化，请刷新页面", 409);
@@ -797,7 +823,14 @@ export class ContentAdminService {
     return saved;
   }
 
-  async saveSetlist(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<AdminSetlistDetail> {
+  /**
+   * `extra` adds statements to the same batch, guarded by the same condition as the rest of the save;
+   * a published proposal uses it to mark itself done only if the setlist was actually written.
+   */
+  async saveSetlist(
+    raw: unknown, actor: Actor, requestId = makeId("req"),
+    extra?: (saved: { id: string; now: string; conditionSql: string; conditionBindings: unknown[] }) => D1PreparedStatement[],
+  ): Promise<AdminSetlistDetail> {
     assertScope(actor, "music:write");
     const input = setlistSaveSchema.parse(raw);
     const receiptId = await receiptTarget(this.db, input.idempotency_key, "admin.setlist.save");
@@ -837,10 +870,11 @@ export class ContentAdminService {
         .bind(makeId("mus_entry"), id, index + 1, entry.section, entry.song_id, entry.performed_version_id, entry.display_title, entry.medley_group, entry.notes, now, ...conditionBindings));
     }
     for (const source of input.sources) statements.push(sourceInsertStatement(this.db, "setlist", id, source, actor, now, conditionSql, conditionBindings));
-    const after = { ...input, entries, id, updated_at: now };
+    const after = { ...input, entries: entries.map(({ song_title: _song, performed_version_title: _version, ...entry }) => entry), id, updated_at: now };
     statements.push(
       auditStatement(this.db, actor, requestId, before ? "content.setlist.update" : "content.setlist.create", "setlist", id, before, after, now, conditionSql, conditionBindings),
       receiptStatement(this.db, input.idempotency_key, "admin.setlist.save", id, now, conditionSql, conditionBindings),
+      ...(extra?.({ id, now, conditionSql, conditionBindings }) ?? []),
     );
     const results = await this.db.batch(statements);
     if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "Setlist 在保存前已发生变化，请刷新页面", 409);
@@ -849,7 +883,8 @@ export class ContentAdminService {
     return saved;
   }
 
-  private async resolveSetlistEntries(input: SetlistSaveInput): Promise<Array<SetlistSaveInput["entries"][number] & { display_title: string }>> {
+  /** Checks every song and version exists and fills in the title each entry will display. */
+  async resolveSetlistEntries(input: Pick<SetlistSaveInput, "entries">): Promise<Array<SetlistSaveInput["entries"][number] & { display_title: string; song_title: string; performed_version_title: string | null }>> {
     const songs = [...new Set(input.entries.map((entry) => entry.song_id))];
     const versions = [...new Set(input.entries.map((entry) => entry.performed_version_id).filter((id): id is string => Boolean(id)))];
     const songTitles = new Map<string, string>();
@@ -879,6 +914,8 @@ export class ContentAdminService {
       return {
         ...entry,
         display_title: entry.display_title || version?.title || songTitle,
+        song_title: songTitle,
+        performed_version_title: version?.title ?? null,
       };
     });
   }

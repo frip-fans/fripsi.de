@@ -13,7 +13,9 @@ import {
 } from "./schema";
 import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { findDuplicates, getChangeSet, getChangeSetByKey, getEventById, requireEvent } from "./repository";
-import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource, VenueChange, VenueFieldChange } from "./types";
+import { isCatalogKind, previewCatalog, proposeCatalog, publishCatalog } from "./catalog-changes";
+import { previewSetlist, proposeSetlist, publishSetlist } from "./setlist-changes";
+import type { Actor, CatalogKind, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource, VenueChange, VenueFieldChange } from "./types";
 import { applyVenueUpdate, renameDisplayNameCounts, VENUE_FIELDS, venueWriteStatements, type VenueValues } from "./venues";
 import { assertScope, createEventSlug, makeId, nowIso, ServiceError } from "./utils";
 
@@ -27,7 +29,8 @@ type NormalizedDraft = Omit<EventDraft, "slug" | "end_date" | "start_time" | "en
   location_note: string | null;
   remark: string | null;
 };
-type CreatePayload = { event: NormalizedDraft };
+type DisplayFields = { alias?: string | null; tour_id?: string | null; tour_stop?: string | null };
+type CreatePayload = { event: NormalizedDraft; display?: DisplayFields };
 type UpdatePayload = { patch: EventPatch };
 type StatusPayload = { status: EventRecord["status"] };
 
@@ -102,7 +105,8 @@ export class ChangeService {
     if (existing) return existing;
     const id = makeId("chg");
     const eventId = makeId("evt");
-    const payload: CreatePayload = { event: normalizeDraft(input.event, eventId) };
+    const payload: CreatePayload = { event: normalizeDraft(input.event, eventId), ...(input.display ? { display: input.display } : {}) };
+    await this.assertTour(input.display?.tour_id);
     const createdAt = nowIso();
     await this.db.batch([
       this.db.prepare(`INSERT INTO change_sets (
@@ -120,6 +124,7 @@ export class ChangeService {
     const input = proposeUpdateSchema.parse(raw);
     const event = await this.assertBaseVersion(input.target_event_id, input.expected_version);
     this.assertVenueEdits(await this.venueEdits(event, input.patch));
+    await this.assertTour(input.patch.tour_id);
     return this.createProposal("update", input.target_event_id, input.expected_version, { patch: input.patch }, input.source_url, input.reason, input.idempotency_key, actor, requestId);
   }
 
@@ -128,6 +133,16 @@ export class ChangeService {
     const input = proposeStatusSchema.parse(raw);
     await this.assertBaseVersion(input.target_event_id, input.expected_version);
     return this.createProposal("status_change", input.target_event_id, input.expected_version, { status: input.status }, input.source_url, input.reason, input.idempotency_key, actor, requestId);
+  }
+
+  /** A new setlist for an event, or a full replacement of an existing one; reviewed like any other proposal. */
+  async proposeSetlist(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<ChangeSet> {
+    return proposeSetlist(this.db, raw, actor, requestId);
+  }
+
+  /** A new song, release or tour, or an edit to one; reviewed like any other proposal. */
+  async proposeCatalog(kind: CatalogKind, raw: unknown, actor: Actor, requestId = makeId("req")): Promise<ChangeSet> {
+    return proposeCatalog(this.db, kind, raw, actor, requestId);
   }
 
   async proposeLifecycle(operation: "unpublish" | "archive" | "restore", raw: unknown, actor: Actor, requestId = makeId("req")): Promise<ChangeSet> {
@@ -167,6 +182,8 @@ export class ChangeService {
     assertScope(actor, "events:read");
     const change = await getChangeSet(this.db, id);
     if (!change) throw new ServiceError("not_found", "没有找到变更提案", 404);
+    if (change.subject_type === "setlist") return previewSetlist(this.db, change);
+    if (isCatalogKind(change.subject_type)) return previewCatalog(this.db, change, actor);
     let before: EventRecord | null = null;
     let after: ChangePreview["after"];
     let venueChanges: VenueChange[] | undefined;
@@ -181,6 +198,7 @@ export class ChangeService {
         ...fields,
         location_input: { location_mode: normalized.location_mode, location_note: normalized.location_note, venues, channels },
         sources: previewSources(sources, normalized.id), published: true, version: 1,
+        ...this.cleanDisplay(payload.display),
       };
     } else {
       before = await requireEvent(this.db, change.target_event_id!);
@@ -233,15 +251,25 @@ export class ChangeService {
    * exact version, and any later edit still fails the version check.
    */
   async publish(id: string, actor: Actor, idempotencyKey: string, requestId = makeId("req"), options: { reviewedVersion?: number } = {}): Promise<EventRecord> {
+    const event = await this.publishAny(id, actor, idempotencyKey, requestId, options);
+    if (!event) throw new ServiceError("invalid_state", "这条提案不是活动提案", 409);
+    return event;
+  }
+
+  /** Publishes any proposal. Returns the event it changed or belongs to; null for a song, release or tour. */
+  async publishAny(id: string, actor: Actor, idempotencyKey: string, requestId = makeId("req"), options: { reviewedVersion?: number } = {}): Promise<EventRecord | null> {
     assertScope(actor, "events:publish");
     const receipt = await this.db.prepare("SELECT result_json FROM operation_receipts WHERE idempotency_key = ?").bind(idempotencyKey).first<{ result_json: string }>();
     if (receipt) {
-      const saved = JSON.parse(receipt.result_json) as EventRecord;
+      const saved = JSON.parse(receipt.result_json) as EventRecord & { subject_type?: string };
+      if (isCatalogKind(saved.subject_type)) return null;
       return (await getEventById(this.db, saved.id)) ?? saved;
     }
     const change = await getChangeSet(this.db, id);
     if (!change) throw new ServiceError("not_found", "没有找到变更提案", 404);
     if (change.status !== "proposed") throw new ServiceError("invalid_state", `提案状态为 ${change.status}，不能发布`, 409);
+    if (change.subject_type === "setlist") return publishSetlist(this.db, change, actor, idempotencyKey, requestId);
+    if (isCatalogKind(change.subject_type)) { await publishCatalog(this.db, change, actor, idempotencyKey, requestId); return null; }
 
     return change.operation === "create"
       ? this.publishCreate(change, actor, idempotencyKey, requestId)
@@ -255,8 +283,11 @@ export class ChangeService {
     const location = prepareEventLocation(event);
     const now = nowIso();
     const { sources: inputSources, venues: _venues, channels: _channels, ...eventFields } = event;
+    const display = this.cleanDisplay(payload.display);
+    await this.assertTour(display.tour_id);
     const result: EventRecord = {
       ...eventFields,
+      ...display,
       venues: [],
       channels: [],
       venue_label: null,
@@ -274,10 +305,10 @@ export class ChangeService {
       this.db.prepare(`INSERT INTO events (
         id, slug, title, start_date, end_date, start_time, end_time, timezone, category,
         classification, location_mode, location_note, remark, status, published, version, created_at,
-        updated_at, published_at, archived_at
-      ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?, NULL
+        updated_at, published_at, archived_at, alias, tour_id, tour_stop
+      ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?, NULL, ?, ?, ?
         WHERE EXISTS (SELECT 1 FROM change_sets WHERE id = ? AND status = 'proposed')`)
-        .bind(event.id, event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time, event.timezone, event.category, event.classification, event.location_mode, event.location_note, event.remark, event.status, now, now, now, change.id)
+        .bind(event.id, event.slug, event.title, event.start_date, event.end_date, event.start_time, event.end_time, event.timezone, event.category, event.classification, event.location_mode, event.location_note, event.remark, event.status, now, now, now, display.alias ?? null, display.tour_id ?? null, display.tour_stop ?? null, change.id)
     ];
     statements.push(...replaceEventLocationStatements(this.db, event.id, location, now,
       "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)", [event.id, now]));
@@ -299,6 +330,7 @@ export class ChangeService {
     }
     const after = this.applyPayload(before, change) as EventRecord;
     const payload = JSON.parse(change.payload_json) as UpdatePayload;
+    if (change.operation === "update" && after.tour_id !== before.tour_id) await this.assertTour(after.tour_id);
     const locationInput = change.operation === "update" ? mergedLocation(before, payload.patch) : null;
     const resolvedVenues = change.operation === "update" ? await this.venueEdits(before, eventPatchSchema.parse(payload.patch)) : null;
     if (resolvedVenues) this.assertVenueEdits(resolvedVenues);
@@ -313,9 +345,10 @@ export class ChangeService {
     const update = this.db.prepare(`UPDATE events SET
       slug = ?, title = ?, start_date = ?, end_date = ?, start_time = ?, end_time = ?, timezone = ?,
       category = ?, classification = ?, location_mode = ?, location_note = ?, remark = ?, status = ?, published = ?,
+      alias = ?, tour_id = ?, tour_stop = ?,
       version = version + 1, updated_at = ?, published_at = ?, archived_at = ?
       WHERE id = ? AND version = ?`)
-      .bind(after.slug, after.title, after.start_date, after.end_date, after.start_time, after.end_time, after.timezone, after.category, after.classification, after.location_mode, after.location_note, after.remark, after.status, after.published ? 1 : 0, now, after.published_at, after.archived_at, before.id, before.version);
+      .bind(after.slug, after.title, after.start_date, after.end_date, after.start_time, after.end_time, after.timezone, after.category, after.classification, after.location_mode, after.location_note, after.remark, after.status, after.published ? 1 : 0, after.alias ?? null, after.tour_id ?? null, after.tour_stop ?? null, now, after.published_at, after.archived_at, before.id, before.version);
     const statements: D1PreparedStatement[] = [update];
     if (locationInput) {
       statements.push(...replaceEventLocationStatements(this.db, before.id, prepareEventLocation(locationInput), now,
@@ -374,7 +407,7 @@ export class ChangeService {
       const payload = JSON.parse(change.payload_json) as UpdatePayload;
       const patch = eventPatchSchema.parse(payload.patch);
       const { sources: sourcePatch, venues: _venues, channels: _channels, venue_updates: venueUpdates, ...fields } = patch;
-      Object.assign(after, fields);
+      Object.assign(after, fields, this.cleanDisplay(fields));
       if (venueUpdates?.length) {
         const updates = new Map(venueUpdates.map((update) => [update.venue_id, update]));
         after.venues = before.venues.map((venue) => {
@@ -397,6 +430,21 @@ export class ChangeService {
       after.archived_at = null;
     }
     return after;
+  }
+
+  /** Empty display text is stored as NULL; a field the caller left out stays out. */
+  private cleanDisplay(display: DisplayFields | undefined): DisplayFields {
+    const clean: DisplayFields = {};
+    for (const key of ["alias", "tour_id", "tour_stop"] as const) {
+      if (display?.[key] !== undefined) clean[key] = cleanNullable(display[key]);
+    }
+    return clean;
+  }
+
+  private async assertTour(tourId: string | null | undefined): Promise<void> {
+    if (tourId && !await this.db.prepare("SELECT 1 FROM tours WHERE id = ?").bind(tourId).first()) {
+      throw new ServiceError("invalid_tour", `巡演 ${tourId} 不存在`, 400);
+    }
   }
 
   private async assertBaseVersion(id: string, version: number): Promise<EventRecord> {

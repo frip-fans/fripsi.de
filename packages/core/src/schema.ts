@@ -178,8 +178,16 @@ const hasChange = (patch: object) => Object.keys(patch).length > 0;
 /** Patch accepted from the official sync, which may not edit venue records. */
 export const officialEventPatchSchema = z.object(eventPatchFields).refine(hasChange, "至少需要修改一个字段");
 
+/** Display fields the official sync never sets: the short name shown for the event and its place in a tour. */
+const eventDisplayFields = {
+  alias: z.string().trim().max(240).nullish().describe("活动的显示别名；null 表示清空"),
+  tour_id: z.string().trim().min(1).max(160).nullish().describe("所属巡演，取自 tours.search；null 表示移出巡演"),
+  tour_stop: z.string().trim().max(120).nullish().describe("巡演中的场次名，如 東京公演；留空时按场馆所在地显示"),
+};
+
 export const eventPatchSchema = z.object({
   ...eventPatchFields,
+  ...eventDisplayFields,
   venue_updates: z.array(venueUpdateSchema).min(1).max(20).optional()
     .describe("修改活动已关联场馆的记录本身：[{venue_id, canonical_name?, administrative_area_id?, address_text?, latitude?, longitude?, coordinate_precision?, coordinate_source?, sync_display_names?}]。只传要改的字段，null 表示清空；纬度和经度必须成对。活动页面显示的是各活动保存的当时显示名：纠正场馆名称的错字时传 sync_display_names=true，把显示名等于原名称的活动一并改为新名称；场馆真的更名时不要传，旧活动保留当时的名称。场馆由多个活动共用，修改对所有关联活动生效。不需要同时传 venues。"),
 }).refine(hasChange, "至少需要修改一个字段").superRefine((patch, context) => {
@@ -214,6 +222,7 @@ export const duplicateInputSchema = z.object({
 
 export const proposeCreateSchema = z.object({
   event: eventDraftSchema,
+  display: z.object(eventDisplayFields).optional().describe("可选：显示别名和所属巡演"),
   source_url: sourceUrlSchema.optional(),
   reason: z.string().trim().min(1).max(1000),
   idempotency_key: z.string().trim().min(8).max(200)

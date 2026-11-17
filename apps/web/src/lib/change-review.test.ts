@@ -1,6 +1,6 @@
 import type { ChangePreview, SetlistChangeEntry, SetlistSnapshot } from "@frip-fan/core";
 import { describe, expect, it } from "vitest";
-import { changeOperationLabel, reviewRows, setlistLines } from "./change-review";
+import { changeOperationLabel, reviewRows, setlistLines, catalogRows, changeHeadline } from "./change-review";
 
 const entry = (position: number, song: string, extra: Partial<SetlistChangeEntry> = {}): SetlistChangeEntry => ({
   position, section: "main", song_id: song, song_title: song, performed_version_id: null, performed_version_title: null,
@@ -49,5 +49,28 @@ describe("setlist review", () => {
     const encore = setlistLines({ setlist_id: "s1", before: snapshot([entry(1, "a")]), after: snapshot([entry(1, "a"), entry(2, "a")]) });
     expect(encore.after.map((line) => line.changed)).toEqual([false, true]);
     expect(setlistLines({ setlist_id: null, before: null, after }).after.every((line) => !line.changed)).toBe(true);
+  });
+});
+
+describe("catalog proposals", () => {
+  const track = (number: number, title: string, youtube: string | null = null) =>
+    ({ song_version_id: `v${number}`, disc_number: 1, track_number: number, display_title: title, notes: null, apple_music_track_id: null, youtube_video_id: youtube });
+
+  it("shows only the changed lines of a long list", () => {
+    const before = { title: "infinite synthesis", release_type: "album", published: true, tracks: [track(1, "A"), track(2, "B")], sources: [] };
+    const rows = catalogRows({ kind: "release", id: "r1", before, after: { ...before, published: false, tracks: [track(1, "A"), track(2, "B", "dQw4w9WgXcQ")] } });
+    expect(rows).toEqual([
+      { label: "公开", before: "公开", after: "不公开" },
+      { label: "曲目（2 → 2）", before: "1-02 B", after: "1-02 B · YouTube dQw4w9WgXcQ" },
+    ]);
+  });
+
+  it("lists every filled field of a new record and names the proposal by its title", () => {
+    const rows = catalogRows({ kind: "song", id: null, before: null, after: { title: "sister's noise", original_artist: "fripSide", phases: [2], published: true, aliases: [], versions: [], sources: [] } });
+    expect(rows.map((row) => row.label)).toEqual(["标题", "原唱", "时期", "公开"]);
+    expect(rows[2].after).toBe("第 2 期");
+    const change = { operation: "create", subject_type: "song", reason: "补录", id: "chg", target_event_id: null, payload_json: JSON.stringify({ kind: "song", input: { title: "sister's noise" } }) };
+    expect(changeHeadline(change as never).title).toBe("sister's noise");
+    expect(changeOperationLabel({ operation: "update", subject_type: "tour" })).toBe("修改巡演");
   });
 });

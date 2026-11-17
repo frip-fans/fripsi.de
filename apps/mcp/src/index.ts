@@ -31,6 +31,8 @@ import {
   type Actor
 } from "@frip-fan/core";
 import { z } from "zod";
+import { registerCatalogTools } from "./catalog-tools";
+import { failure, result } from "./tool-result";
 
 interface Env {
   DB: D1Database;
@@ -45,27 +47,6 @@ interface Env {
   AUTOMATION_AUDIENCE?: string;
 }
 
-function result(data: unknown) {
-  return {
-    content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }],
-    structuredContent: { result: data }
-  };
-}
-
-function failure(error: unknown) {
-  const known = error instanceof ServiceError;
-  const validation = error instanceof z.ZodError;
-  const payload = {
-    error: {
-      code: known ? error.code : validation ? "invalid_tool_input" : "internal_error",
-      message: known ? error.message : validation ? "参数不符合工具 schema，请修正列出的字段后重试" : "工具执行失败",
-      ...(validation ? { fields: error.issues.map((issue) => ({ path: issue.path.map(String).join("."), code: issue.code })) } : {}),
-      ...(known && error.details ? { details: error.details } : {})
-    }
-  };
-  return { ...result(payload), isError: true };
-}
-
 export function createServer(env: Env, actor: Actor): McpServer {
   const automatic = Boolean(actor.automation_run_id);
   const server = new McpServer(
@@ -74,7 +55,7 @@ export function createServer(env: Env, actor: Actor): McpServer {
       instructions: [
         "这是 fripSide 粉丝活动档案的受控编辑接口。",
         "新增前必须先调用 events.search 或 events.check_duplicate。",
-        "事实变更必须携带 HTTPS 来源。写操作只能创建 change set，不能直接修改活动。",
+        "事实变更必须携带 HTTPS 来源。活动、歌单、歌曲、专辑和巡演的写操作只能创建 change set，不能直接修改。",
         automatic
           ? "当前身份已获官方活动自动同步授权。使用 sync.propose 提案，再 changes.preview，最后 changes.publish_automatic，无需逐条人工确认。"
           : "发布前必须调用 changes.preview，并且只有用户明确确认后才可调用 changes.publish（confirm=true）。",
@@ -319,6 +300,8 @@ export function createServer(env: Env, actor: Actor): McpServer {
     catch (error) { return failure(error); }
   });
 
+  registerCatalogTools(server, { db: env.DB, actor, changes });
+
   server.registerTool("changes.propose_create", {
     title: "提出新增活动",
     description: "创建一个待审核的新增提案，不会直接公开。至少需要一个 HTTPS 官方来源和唯一幂等键。",
@@ -331,7 +314,7 @@ export function createServer(env: Env, actor: Actor): McpServer {
 
   server.registerTool("changes.propose_update", {
     title: "提出修改活动",
-    description: "基于 expected_version 创建字段修改提案，不直接修改活动。patch 只包含要变更的字段。修改场馆记录本身（名称、行政区、地址、坐标）用 patch.venue_updates：[{venue_id, ...要改的字段}]，venue_id 取自 events.get 返回的 venues[].id；场馆由多个活动共用，修改对所有关联活动生效。纠正场馆名称错字时加 sync_display_names=true，同步更新显示名等于原名称的活动。",
+    description: "基于 expected_version 创建字段修改提案，不直接修改活动。patch 只包含要变更的字段。显示别名用 patch.alias，加入或移出巡演用 patch.tour_id（取自 tours.search）和 patch.tour_stop。修改场馆记录本身（名称、行政区、地址、坐标）用 patch.venue_updates：[{venue_id, ...要改的字段}]，venue_id 取自 events.get 返回的 venues[].id；场馆由多个活动共用，修改对所有关联活动生效。纠正场馆名称错字时加 sync_display_names=true，同步更新显示名等于原名称的活动。",
     inputSchema: proposeUpdateSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false }
   }, async (input) => {
@@ -366,7 +349,7 @@ export function createServer(env: Env, actor: Actor): McpServer {
 
   server.registerTool("changes.preview", {
     title: "预览变更",
-    description: "返回 before/after、字段差异所需数据、重复候选、警告和预估公开 URL；歌单提案在 setlist 字段返回修改前后的完整曲目。发布前必须调用。",
+    description: "返回 before/after、字段差异所需数据、重复候选、警告和预估公开 URL；歌单提案在 setlist 字段返回修改前后的完整曲目，歌曲、专辑和巡演提案在 catalog 字段返回修改前后的完整记录。发布前必须调用。",
     inputSchema: z.object({ change_set_id: z.string().min(1) }),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
   }, async ({ change_set_id }) => {
@@ -385,9 +368,10 @@ export function createServer(env: Env, actor: Actor): McpServer {
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true }
   }, async ({ change_set_id, idempotency_key }) => {
     try {
-      const event = await changes.publish(change_set_id, actor, idempotency_key);
+      const event = await changes.publishAny(change_set_id, actor, idempotency_key);
       const site = (env.SITE_URL ?? "https://example.com").replace(/\/$/, "");
       const change = await getChangeSet(env.DB, change_set_id);
+      if (!event) return result({ published: true, subject_type: change?.subject_type, [`${change?.subject_type}_id`]: change?.subject_id });
       if (change?.subject_type === "setlist" && change.subject_id) {
         return result({ published: true, setlist_id: change.subject_id, event_id: event.id, public_url: `${site}/music/lives/${change.subject_id}` });
       }

@@ -1,8 +1,9 @@
 ---
-import { ChangeService, getEventHeads, listChangeSets, listVenues } from "@frip-fan/core";
+import { ChangeService, getEventHeads, listChangeSets, listTours, listVenues } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import {
+  CATALOG_NOUNS,
   changeOperationLabel,
   CHANGE_STATUS_LABELS,
   changeHeadline,
@@ -24,14 +25,18 @@ catch { return Astro.redirect("/admin/changes", 302); }
 const { change, before, after, warnings, duplicate_candidates, public_path } = preview;
 // A setlist proposal carries the show in `before`; what it creates is the setlist, compared against nothing.
 const setlist = preview.setlist ? setlistLines(preview.setlist) : null;
-const creating = setlist ? !preview.setlist!.before : change.operation === "create";
+const catalog = preview.catalog ?? null;
+const creating = setlist ? !preview.setlist!.before : catalog ? !catalog.before : change.operation === "create";
+const subject = setlist ? "歌单" : catalog ? CATALOG_NOUNS[catalog.kind] : null;
 const needsVenueNames = after.location_input?.venues.some((venue) => venue.venue_id && !venue.display_name_snapshot && !venue.canonical_name);
-const [pending, venues] = await Promise.all([
+const tourChanged = !catalog && (after.tour_id ?? null) !== (before?.tour_id ?? null);
+const [pending, venues, tours] = await Promise.all([
   listChangeSets(db, "proposed", 200),
   needsVenueNames ? listVenues(db, 5000) : Promise.resolve([]),
+  tourChanged ? listTours(db) : Promise.resolve([]),
 ]);
 const venueNames = new Map(venues.map((venue) => [venue.id, venue.canonical_name]));
-const fieldChanges = reviewRows(preview);
+const fieldChanges = reviewRows(preview, new Map(tours.map((tour) => [tour.id, tour.name])));
 const locationBefore = describeLocation(locationOfEvent(before), venueNames);
 const locationAfter = after.location_input ? describeLocation(after.location_input, venueNames) : [];
 const locationChanged = locationAfter.length > 0 && JSON.stringify(locationBefore) !== JSON.stringify(locationAfter);
@@ -111,7 +116,7 @@ const proposed = change.status === "proposed";
   )}
 
   <section class="panel diff">
-    <h2>{setlist ? (creating ? "新歌单内容" : "歌单差异") : creating ? "新活动内容" : "字段差异"}</h2>
+    <h2>{subject ? (creating ? `新${subject}内容` : `${subject}差异`) : creating ? "新活动内容" : "字段差异"}</h2>
     {fieldChanges.length > 0 ? (
       <div class="table-wrap"><table>
         <thead><tr><th>字段</th>{!creating && <th>当前</th>}<th>{creating ? "内容" : "修改后"}</th></tr></thead>

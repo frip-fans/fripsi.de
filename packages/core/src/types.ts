@@ -130,8 +130,8 @@ export interface ChangeSet {
   error_message: string | null;
   chat_session_id?: string | null;
   /** What the proposal edits; absent on rows read before the column existed, which are all events. */
-  subject_type?: "event" | "setlist";
-  /** The setlist a setlist proposal edits; null for a new setlist and for event proposals. */
+  subject_type?: "event" | "setlist" | CatalogKind;
+  /** The record a non-event proposal edits; null for event proposals and until a new record is published. */
   subject_id?: string | null;
 }
 
@@ -162,6 +162,17 @@ export interface SetlistChangePreview {
   setlist_id: string | null;
   before: SetlistSnapshot | null;
   after: SetlistSnapshot;
+}
+
+/** Records other than events and setlists that a proposal can create or edit. */
+export type CatalogKind = "song" | "release" | "tour";
+
+/** A song, release or tour proposal: the stored record, if any, and what would be saved, both in the save's own shape. */
+export interface CatalogChangePreview {
+  kind: CatalogKind;
+  id: string | null;
+  before: Record<string, unknown> | null;
+  after: Record<string, unknown>;
 }
 
 export interface AuditLog {
@@ -227,6 +238,8 @@ export interface ChangePreview {
   after: Partial<EventRecord> & { location_input?: EventLocationInput };
   /** Present only on a setlist proposal; `before` and `after` then both hold the show it belongs to. */
   setlist?: SetlistChangePreview;
+  /** Present only on a song, release or tour proposal; `before` is then null and `after` empty. */
+  catalog?: CatalogChangePreview;
   /** Present only when the proposal edits venue records. */
   venue_changes?: VenueChange[];
   duplicate_candidates: DuplicateCandidate[];

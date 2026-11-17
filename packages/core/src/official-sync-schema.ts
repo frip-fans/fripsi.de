@@ -1,4 +1,4 @@
-import { eventDraftSchema, eventPatchSchema, eventStatusSchema } from "./schema";
+import { eventDraftSchema, eventStatusSchema, officialEventPatchSchema } from "./schema";
 import { z } from "zod";
 
 const evidence = {
@@ -11,7 +11,7 @@ const evidence = {
 };
 export const actionSchema = z.discriminatedUnion("operation", [
   z.object({ ...evidence, operation: z.literal("create"), event: eventDraftSchema }),
-  z.object({ ...evidence, operation: z.literal("update"), target_event_id: z.string().min(1), expected_version: z.number().int().positive(), patch: eventPatchSchema }),
+  z.object({ ...evidence, operation: z.literal("update"), target_event_id: z.string().min(1), expected_version: z.number().int().positive(), patch: officialEventPatchSchema }),
   z.object({ ...evidence, operation: z.literal("status_change"), target_event_id: z.string().min(1), expected_version: z.number().int().positive(), status: eventStatusSchema }),
 ]);
 export type SyncAction = z.infer<typeof actionSchema>;

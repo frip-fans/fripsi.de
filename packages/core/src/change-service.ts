@@ -9,11 +9,12 @@ import {
   type ChangeOperation,
   type EventDraft,
   type EventPatch,
-  type SourceInput
+  type SourceInput,
+  type VenueUpdate
 } from "./schema";
 import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { findDuplicates, getChangeSet, getChangeSetByKey, getEventById, requireEvent } from "./repository";
-import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource } from "./types";
+import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource, VenueChange, VenueField, VenueFieldChange } from "./types";
 import { assertScope, createEventSlug, makeId, nowIso, ServiceError } from "./utils";
 
 type NormalizedDraft = Omit<EventDraft, "slug" | "end_date" | "start_time" | "end_time" | "classification" | "location_note" | "remark"> & {
@@ -77,6 +78,19 @@ function mergedLocation(before: EventRecord, patch: EventPatch): EventLocationIn
   });
 }
 
+const VENUE_FIELDS: VenueField[] = ["canonical_name", "administrative_area_id", "address_text", "latitude", "longitude", "coordinate_precision", "coordinate_source"];
+type VenueValues = Record<VenueField, string | number | null>;
+interface VenueEdit { change: VenueChange; next: VenueValues; coordinatesChanged: boolean; syncDisplayNames: boolean }
+interface VenueEdits { edits: VenueEdit[]; problems: Array<{ venue_id: string; message: string }> }
+
+/** Stored venue values with an update laid over them; clearing the coordinates clears what describes them. */
+function applyVenueUpdate<T extends VenueValues>(stored: T, update: VenueUpdate): T {
+  const next = { ...stored };
+  for (const field of VENUE_FIELDS) if (update[field] !== undefined) (next as VenueValues)[field] = update[field] ?? null;
+  if (next.latitude === null) { next.coordinate_precision = null; next.coordinate_source = null; }
+  return next;
+}
+
 function previewSources(sources: SourceInput[], eventId: string): EventSource[] {
   return sources.map((source, index) => ({
     ...source,
@@ -114,7 +128,8 @@ export class ChangeService {
   async proposeUpdate(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<ChangeSet> {
     assertScope(actor, "events:draft");
     const input = proposeUpdateSchema.parse(raw);
-    await this.assertBaseVersion(input.target_event_id, input.expected_version);
+    const event = await this.assertBaseVersion(input.target_event_id, input.expected_version);
+    this.assertVenueEdits(await this.venueEdits(event, input.patch));
     return this.createProposal("update", input.target_event_id, input.expected_version, { patch: input.patch }, input.source_url, input.reason, input.idempotency_key, actor, requestId);
   }
 
@@ -164,6 +179,7 @@ export class ChangeService {
     if (!change) throw new ServiceError("not_found", "没有找到变更提案", 404);
     let before: EventRecord | null = null;
     let after: ChangePreview["after"];
+    let venueChanges: VenueChange[] | undefined;
     const warnings: string[] = [];
 
     if (change.operation === "create") {
@@ -185,6 +201,15 @@ export class ChangeService {
         if (patch.location_mode !== undefined || patch.location_note !== undefined || patch.venues !== undefined || patch.channels !== undefined) {
           after.location_input = mergedLocation(before, patch);
         }
+        const resolved = await this.venueEdits(before, patch);
+        if (resolved.edits.length) venueChanges = resolved.edits.map((edit) => edit.change);
+        for (const { change: item } of resolved.edits) {
+          if (!item.fields.length) warnings.push(`场馆「${item.canonical_name}」的内容与当前相同，没有变化`);
+          else if (item.other_event_count) warnings.push(`场馆「${item.canonical_name}」还关联 ${item.other_event_count} 个其他活动，修改对它们同样生效`);
+          if (item.synced_display_names) warnings.push(`场馆「${item.canonical_name}」改名会同步更新 ${item.synced_display_names} 个活动的显示名`);
+          if (item.kept_display_names) warnings.push(`场馆「${item.canonical_name}」有 ${item.kept_display_names} 个活动保存了当时显示名，改名后页面仍显示原名称`);
+        }
+        for (const problem of resolved.problems) warnings.push(`场馆 ${problem.venue_id}：${problem.message}，发布会失败`);
       }
     }
 
@@ -205,6 +230,7 @@ export class ChangeService {
       change,
       before,
       after,
+      ...(venueChanges ? { venue_changes: venueChanges } : {}),
       duplicate_candidates: filtered,
       warnings,
       public_path: after.slug ? `/events/${after.slug}` : null
@@ -284,6 +310,9 @@ export class ChangeService {
     const after = this.applyPayload(before, change) as EventRecord;
     const payload = JSON.parse(change.payload_json) as UpdatePayload;
     const locationInput = change.operation === "update" ? mergedLocation(before, payload.patch) : null;
+    const resolvedVenues = change.operation === "update" ? await this.venueEdits(before, eventPatchSchema.parse(payload.patch)) : null;
+    if (resolvedVenues) this.assertVenueEdits(resolvedVenues);
+    const venueEdits = (resolvedVenues?.edits ?? []).filter((edit) => edit.change.fields.length);
     if (locationInput) {
       after.location_mode = locationInput.location_mode;
       after.location_note = locationInput.location_note;
@@ -302,6 +331,27 @@ export class ChangeService {
       statements.push(...replaceEventLocationStatements(this.db, before.id, prepareEventLocation(locationInput), now,
         "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)", [before.id, now]));
     }
+    for (const { change: item, next, coordinatesChanged, syncDisplayNames } of venueEdits) {
+      statements.push(this.db.prepare(`UPDATE venues SET canonical_name = ?, administrative_area_id = ?, address_text = ?,
+        latitude = ?, longitude = ?, coordinate_precision = ?, coordinate_source = ?,
+        coordinates_verified_at = CASE WHEN ? THEN ? ELSE coordinates_verified_at END, updated_at = ?
+        WHERE id = ? AND EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)`)
+        .bind(next.canonical_name, next.administrative_area_id, next.address_text, next.latitude, next.longitude,
+          next.coordinate_precision, next.coordinate_source, coordinatesChanged ? 1 : 0, next.latitude === null ? null : now, now,
+          item.venue_id, before.id, now));
+      if (next.canonical_name !== item.canonical_name) {
+        // The old name stays an alias, so searches for it keep finding the venue.
+        statements.push(this.db.prepare(`INSERT OR IGNORE INTO venue_aliases (venue_id, alias)
+          SELECT ?, ? WHERE EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)`)
+          .bind(item.venue_id, next.canonical_name, before.id, now));
+      }
+      if (syncDisplayNames) {
+        // Runs after the event's own links are rewritten, so the target event follows the rename too.
+        statements.push(this.db.prepare(`UPDATE event_venues SET display_name_snapshot = ?
+          WHERE venue_id = ? AND display_name_snapshot = ? AND EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)`)
+          .bind(next.canonical_name, item.venue_id, item.canonical_name, before.id, now));
+      }
+    }
     if (change.operation === "update" && payload.patch.sources) {
       for (const source of payload.patch.sources) statements.push(this.insertSourceStatement(before.id, source, actor.id, now, now));
     }
@@ -313,6 +363,7 @@ export class ChangeService {
       this.auditConditionalStatement(actor, requestId, `change.publish_${change.operation}`, "event", before.id, before, after, {
         change_set_id: change.id,
         ...(before.version !== change.base_version ? { base_version: change.base_version, reviewed_version: before.version } : {}),
+        ...(venueEdits.length ? { venue_changes: venueEdits.map(({ change: { venue_id, fields, synced_display_names } }) => ({ venue_id, fields, ...(synced_display_names === undefined ? {} : { synced_display_names }) })) } : {}),
       }, now, before.id, now),
       this.db.prepare("INSERT INTO operation_receipts (idempotency_key, operation, result_json, created_at) SELECT ?, 'publish', ?, ? WHERE EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)").bind(idempotencyKey, JSON.stringify(after), now, before.id, now)
     );
@@ -345,8 +396,18 @@ export class ChangeService {
     if (change.operation === "update") {
       const payload = JSON.parse(change.payload_json) as UpdatePayload;
       const patch = eventPatchSchema.parse(payload.patch);
-      const { sources: sourcePatch, venues: _venues, channels: _channels, ...fields } = patch;
+      const { sources: sourcePatch, venues: _venues, channels: _channels, venue_updates: venueUpdates, ...fields } = patch;
       Object.assign(after, fields);
+      if (venueUpdates?.length) {
+        const updates = new Map(venueUpdates.map((update) => [update.venue_id, update]));
+        after.venues = before.venues.map((venue) => {
+          const update = updates.get(venue.id);
+          if (!update) return venue;
+          const next = applyVenueUpdate(venue, update);
+          const follows = update.sync_display_names && venue.display_name_snapshot === venue.canonical_name;
+          return follows ? { ...next, display_name_snapshot: next.canonical_name } : next;
+        });
+      }
       if (after.end_date && after.end_date < after.start_date) throw new ServiceError("invalid_date_range", "结束日期不能早于开始日期");
       if (sourcePatch?.length) after.sources = [...(after.sources ?? []), ...sourcePatch.map((source) => ({ ...source, id: "preview", event_id: before.id, verified_at: null, created_at: "preview", created_by: "preview" }))];
     } else if (change.operation === "status_change") {
@@ -361,9 +422,75 @@ export class ChangeService {
     return after;
   }
 
-  private async assertBaseVersion(id: string, version: number): Promise<void> {
+  private async assertBaseVersion(id: string, version: number): Promise<EventRecord> {
     const event = await requireEvent(this.db, id);
     if (event.version !== version) throw new ServiceError("version_conflict", `活动当前为 v${event.version}，请求基于 v${version}`, 409, { current: event });
+    return event;
+  }
+
+  /**
+   * Venue edits in a patch, resolved against the stored records. A venue is editable through an event
+   * only while that event links to it once the patch is applied. Anything that would make the publish
+   * fail is reported in `problems` instead of thrown, so a preview can still be shown.
+   */
+  private async venueEdits(before: EventRecord, patch: EventPatch): Promise<VenueEdits> {
+    const updates = patch.venue_updates ?? [];
+    if (!updates.length) return { edits: [], problems: [] };
+    const linked = new Set(mergedLocation(before, patch).venues.map((venue) => venue.venue_id));
+    const marks = (values: unknown[]) => values.map(() => "?").join(",");
+    const ids = updates.map((update) => update.venue_id).filter((id) => linked.has(id));
+    const areaIds = [...new Set(updates.map((update) => update.administrative_area_id).filter((id): id is string => Boolean(id)))];
+    type Row = VenueValues & { id: string; canonical_name: string; area_name: string | null; other_event_count: number };
+    const [rows, areas] = await Promise.all([
+      ids.length ? this.db.prepare(`SELECT v.id, v.canonical_name, v.administrative_area_id, v.address_text, v.latitude, v.longitude,
+          v.coordinate_precision, v.coordinate_source, a.name_local AS area_name,
+          (SELECT COUNT(*) FROM event_venues ev WHERE ev.venue_id = v.id AND ev.event_id <> ?) AS other_event_count
+          FROM venues v LEFT JOIN administrative_areas a ON a.id = v.administrative_area_id
+          WHERE v.id IN (${marks(ids)})`).bind(before.id, ...ids).all<Row>() : { results: [] as Row[] },
+      areaIds.length ? this.db.prepare(`SELECT id, name_local FROM administrative_areas WHERE id IN (${marks(areaIds)})`)
+        .bind(...areaIds).all<{ id: string; name_local: string }>() : { results: [] as Array<{ id: string; name_local: string }> },
+    ]);
+    const stored = new Map(rows.results.map((row) => [row.id, row]));
+    const areaNames = new Map(areas.results.map((area) => [area.id, area.name_local]));
+
+    const edits: VenueEdit[] = [];
+    const problems: VenueEdits["problems"] = [];
+    for (const update of updates) {
+      const row = stored.get(update.venue_id);
+      if (!row) { problems.push({ venue_id: update.venue_id, message: "未关联该活动，不能通过此提案修改" }); continue; }
+      if (update.administrative_area_id && !areaNames.has(update.administrative_area_id)) {
+        problems.push({ venue_id: row.id, message: `行政区 ${update.administrative_area_id} 不存在` }); continue;
+      }
+      const next = applyVenueUpdate<VenueValues>(row, update);
+      if (next.latitude === null && (update.coordinate_precision || update.coordinate_source)) {
+        problems.push({ venue_id: row.id, message: "场馆没有坐标，不能只填写坐标精度或来源" }); continue;
+      }
+      const fields = VENUE_FIELDS.filter((field) => next[field] !== row[field]).map((field): VenueFieldChange => ({
+        field, before: row[field], after: next[field],
+        ...(field === "administrative_area_id" ? { before_label: row.area_name, after_label: next[field] ? areaNames.get(String(next[field])) ?? null : null } : {}),
+      }));
+      const change: VenueChange = { venue_id: row.id, canonical_name: row.canonical_name, fields, other_event_count: row.other_event_count };
+      const renamed = next.canonical_name !== row.canonical_name;
+      const syncDisplayNames = renamed && update.sync_display_names === true;
+      if (renamed) {
+        const names = await this.db.prepare(`SELECT
+            COALESCE(SUM(display_name_snapshot = ?), 0) AS following,
+            COALESCE(SUM(display_name_snapshot <> ? AND display_name_snapshot <> ?), 0) AS other
+          FROM event_venues WHERE venue_id = ? AND display_name_snapshot IS NOT NULL`)
+          .bind(row.canonical_name, row.canonical_name, next.canonical_name, row.id).first<{ following: number; other: number }>();
+        const following = names?.following ?? 0;
+        change.kept_display_names = (names?.other ?? 0) + (syncDisplayNames ? 0 : following);
+        if (syncDisplayNames) change.synced_display_names = following;
+      }
+      edits.push({ change, next, coordinatesChanged: next.latitude !== row.latitude || next.longitude !== row.longitude, syncDisplayNames });
+    }
+    return { edits, problems };
+  }
+
+  private assertVenueEdits(resolved: VenueEdits): void {
+    if (resolved.problems.length) {
+      throw new ServiceError("invalid_venue_update", resolved.problems.map((problem) => `场馆 ${problem.venue_id}：${problem.message}`).join("；"), 400, { venues: resolved.problems });
+    }
   }
 
   private insertSourceStatement(eventId: string, source: SourceInput, actorId: string, verifiedAt: string, createdAt: string): D1PreparedStatement {

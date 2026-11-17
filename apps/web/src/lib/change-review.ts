@@ -1,4 +1,4 @@
-import type { ChangeSet, EventLocationInput, EventRecord } from "@frip-fan/core";
+import type { ChangePreview, ChangeSet, EventLocationInput, EventRecord, VenueField } from "@frip-fan/core";
 
 export const CHANGE_STATUS_LABELS: Record<string, string> = {
   proposed: "待处理",
@@ -88,6 +88,32 @@ export function changedFields(before: Partial<EventRecord> | null, after: Partia
       before: before ? formatFieldValue(field, before[field]) : "—",
       after: formatFieldValue(field, after[field]),
     }));
+}
+
+const VENUE_FIELD_LABELS: Record<VenueField, string> = {
+  canonical_name: "场馆名称",
+  administrative_area_id: "场馆行政区",
+  address_text: "场馆地址",
+  latitude: "场馆纬度",
+  longitude: "场馆经度",
+  coordinate_precision: "坐标精度",
+  coordinate_source: "坐标来源",
+};
+
+export type ReviewRow = Pick<FieldChange, "label" | "before" | "after">;
+
+/** Every row a reviewer has to approve: event fields, then edits to venue records. */
+export function reviewRows(preview: Pick<ChangePreview, "before" | "after" | "venue_changes">): ReviewRow[] {
+  // The venue is named only when a proposal edits several, to keep the usual single-venue rows short.
+  const several = (preview.venue_changes?.length ?? 0) > 1;
+  return [
+    ...changedFields(preview.before, preview.after).map(({ label, before, after }) => ({ label, before, after })),
+    ...(preview.venue_changes ?? []).flatMap((change) => change.fields.map((item) => ({
+      label: several ? `${VENUE_FIELD_LABELS[item.field]} · ${change.canonical_name}` : VENUE_FIELD_LABELS[item.field],
+      before: String(item.before_label ?? item.before ?? "—"),
+      after: String(item.after_label ?? item.after ?? "—"),
+    }))),
+  ];
 }
 
 /** One line per venue/channel so location edits read as a list instead of raw JSON. */

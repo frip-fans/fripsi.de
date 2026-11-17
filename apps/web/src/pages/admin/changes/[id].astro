@@ -5,13 +5,13 @@ import SiteLayout from "../../../layouts/SiteLayout.astro";
 import {
   CHANGE_OPERATION_LABELS,
   CHANGE_STATUS_LABELS,
-  changedFields,
   changeHeadline,
   describeLocation,
   formatTimestamp,
   isStale,
   locationOfEvent,
   proposedSources,
+  reviewRows,
 } from "../../../lib/change-review";
 import { getEnv } from "../../../lib/env";
 
@@ -27,7 +27,7 @@ const [pending, venues] = await Promise.all([
   needsVenueNames ? listVenues(db, 5000) : Promise.resolve([]),
 ]);
 const venueNames = new Map(venues.map((venue) => [venue.id, venue.canonical_name]));
-const fieldChanges = changedFields(before, after);
+const fieldChanges = reviewRows(preview);
 const locationBefore = describeLocation(locationOfEvent(before), venueNames);
 const locationAfter = after.location_input ? describeLocation(after.location_input, venueNames) : [];
 const locationChanged = locationAfter.length > 0 && JSON.stringify(locationBefore) !== JSON.stringify(locationAfter);
@@ -200,7 +200,7 @@ const proposed = change.status === "proposed";
   .siblings ul { display: grid; gap: .6rem; margin: 0; padding: 0; list-style: none; }
   .siblings li { display: grid; gap: .15rem; }
   .siblings small, .duplicates small { color: var(--muted); }
-  .diff th[scope="row"] { width: 7rem; color: var(--muted); font-weight: 600; white-space: nowrap; }
+  .diff th[scope="row"] { width: 7rem; color: var(--muted); font-weight: 600; overflow-wrap: anywhere; }
   .diff td { white-space: pre-wrap; overflow-wrap: anywhere; }
   .diff td.before { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255, 140, 140, .55); }
   .diff td.after { color: var(--text); }

@@ -1,4 +1,4 @@
-import { authenticateAdmin, ServiceError } from "@frip-fan/core";
+import { authenticateAdmin, isStagingAgent, ServiceError } from "@frip-fan/core";
 import { defineMiddleware } from "astro:middleware";
 import { getEnv } from "./lib/env";
 import { publicResponse } from "#public-cache";
@@ -26,7 +26,11 @@ function secure(response: Response, privateRoute = false, cacheControl?: string,
   // Listen players on release/song pages. Client-side navigation keeps the first document's CSP,
   // so every page allows these frames; they load only after a visitor clicks.
   const listenFrames = " https://embed.music.apple.com https://www.youtube-nocookie.com";
-  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'; script-src 'self'${challengeOrigin}${youtubeOrigin}; connect-src 'self'${vectorMapOrigin}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${challengeOrigin}${youtubeOrigin}${listenFrames}`);
+  // Cloudflare Web Analytics injects its beacon at the edge into public production pages only.
+  const analytics = !privateRoute && getEnv().APP_ENV !== "staging";
+  const beaconScript = analytics ? " https://static.cloudflareinsights.com" : "";
+  const beaconReport = analytics ? " https://cloudflareinsights.com" : "";
+  headers.set("content-security-policy", `default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' data: blob: https://tile.openstreetmap.org${coverOrigin}${vectorMapOrigin}; style-src 'self' 'unsafe-inline'; script-src 'self'${challengeOrigin}${youtubeOrigin}${beaconScript}; connect-src 'self'${vectorMapOrigin}${beaconReport}; worker-src 'self'${vectorMapBlob}; child-src 'self'${vectorMapBlob}; frame-src 'self'${challengeOrigin}${youtubeOrigin}${listenFrames}`);
   if (locale && headers.get("content-type")?.includes("text/html")) {
     headers.set("content-language", locale);
     headers.append("vary", "Cookie");
@@ -72,7 +76,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     context.locals.actor = await authenticateAdmin(context.request, staging ? { ...env, DEV_AUTH_BYPASS: "false" } : env);
     if (staging) {
       const publishers = (env.ADMIN_PUBLISHERS ?? "").split(",").map((email) => email.trim().toLowerCase());
-      if (!publishers.includes(context.locals.actor.id.toLowerCase())) {
+      if (!isStagingAgent(context.locals.actor) && !publishers.includes(context.locals.actor.id.toLowerCase())) {
         throw new ServiceError("forbidden", "没有测试环境访问权限", 403);
       }
     }

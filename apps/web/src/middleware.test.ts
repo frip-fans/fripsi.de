@@ -44,6 +44,12 @@ describe("staging access isolation", () => {
     expect(response.status).toBe(403);
     expect(next).not.toHaveBeenCalled();
   });
+  it("admits a test agent without an allowlisted email, but nothing else that merely looks like one", async () => {
+    mocks.authenticate.mockResolvedValue({ id: "agent:abc.access", type: "ai" });
+    expect((await request("/admin")).response.status).toBe(200);
+    mocks.authenticate.mockResolvedValue({ id: "agent:abc.access", type: "human" });
+    expect((await request("/admin")).response.status).toBe(403);
+  });
   it("serves the owner with map CSP, no caching and no indexing", async () => {
     mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
     const { response, next } = await request("/journey");
@@ -80,6 +86,15 @@ describe("staging access isolation", () => {
     mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
     expect((await request("/admin")).response.headers.get("content-security-policy")).not.toContain("challenges.cloudflare.com");
     expect((await request("/")).response.headers.get("content-security-policy")).toContain("challenges.cloudflare.com");
+  });
+  it("allows the Cloudflare Web Analytics beacon on production public pages only", async () => {
+    mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
+    expect((await request("/")).response.headers.get("content-security-policy")).not.toContain("cloudflareinsights.com");
+    mocks.env.APP_ENV = "production";
+    const policy = (await request("/")).response.headers.get("content-security-policy")!;
+    expect(policy).toMatch(/script-src [^;]*https:\/\/static\.cloudflareinsights\.com/);
+    expect(policy).toMatch(/connect-src [^;]*https:\/\/cloudflareinsights\.com/);
+    expect((await request("/admin")).response.headers.get("content-security-policy")).not.toContain("cloudflareinsights.com");
   });
   it("allows cover previews on every admin document, since routed visits keep the first CSP", async () => {
     mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });

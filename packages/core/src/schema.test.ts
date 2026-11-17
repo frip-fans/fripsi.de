@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { directEventSaveSchema, releaseSaveSchema, setlistSaveSchema } from "./content-admin";
-import { eventDraftSchema, searchInputSchema } from "./schema";
+import { actionSchema } from "./official-sync-schema";
+import { eventDraftSchema, eventPatchSchema, searchInputSchema } from "./schema";
 import { createEventSlug, dateInTimeZone, normalizeForDuplicate } from "./utils";
 
 const baseEvent = {
@@ -18,6 +19,18 @@ const baseEvent = {
 describe("event schema", () => {
   it("accepts a valid sourced event", () => {
     expect(eventDraftSchema.parse(baseEvent).title).toBe(baseEvent.title);
+  });
+
+  it("accepts venue address edits from editors but not from the official sync", () => {
+    const venue_updates = [{ venue_id: "ven_1", address_text: "  " }];
+    expect(eventPatchSchema.parse({ venue_updates }).venue_updates).toEqual([{ venue_id: "ven_1", address_text: null }]);
+    const action = {
+      operation: "update", target_event_id: "evt_1", expected_version: 1, source_url: "https://fripside.net/contents/1",
+      reason: "sync", needs_review: false,
+    };
+    expect(() => actionSchema.parse({ ...action, patch: { venue_updates } })).toThrow();
+    expect(actionSchema.parse({ ...action, patch: { remark: "kept", venue_updates } })).toMatchObject({ patch: { remark: "kept" } });
+    expect(actionSchema.parse({ ...action, patch: { remark: "kept", venue_updates } })).not.toHaveProperty("patch.venue_updates");
   });
 
   it("rejects an inverted range", () => {

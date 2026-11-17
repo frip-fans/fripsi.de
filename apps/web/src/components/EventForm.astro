@@ -59,6 +59,7 @@ const channelRows = event?.channels.length ? event.channels : [null];
           <select name="venue_area_id"><option value="">未确定</option>{areas.map((area) =>
             <option value={area.id}>{area.country_code} · {area.name_local}{area.codes[0] ? ` (${area.codes[0].code})` : ""}</option>)}</select>
         </label>
+        {venue && <p class="venue-record muted">地址、坐标等只在新建场馆时填写。<a href={`/admin/venues/${venue.id}`}>编辑「{venue.canonical_name}」的场馆记录</a></p>}
         <label>角色<select name="venue_role">{(["primary", "secondary", "broadcast_origin"] as const).map((role) => <option value={role} selected={(venue?.role ?? "primary") === role}>{role}</option>)}</select></label>
         <label>当时显示名<input name="venue_snapshot" maxlength="240" value={venue?.display_name_snapshot ?? ""} /></label>
         <label>地址<input name="venue_address" maxlength="500" value="" /></label>
@@ -136,5 +137,7 @@ const channelRows = event?.channels.length ? event.channels : [null];
   .location-row, .channel-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem; border-bottom: 1px solid var(--line); padding-bottom: 1rem; margin-bottom: 1rem; }
   .channel-row { grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; }
   .compact { align-self: end; padding: .65rem .8rem; }
+  .venue-record { grid-column: 1 / -1; margin: 0; font-size: .82rem; }
+  .venue-record a { color: var(--accent); }
   @media (max-width: 720px) { .location-row, .channel-row { grid-template-columns: 1fr; } }
 </style>

@@ -16,6 +16,7 @@ import { getTourById, type TourDetail } from "./tours";
 import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { dateSchema, eventDraftSchema, sourceInputSchema, type EventDraft } from "./schema";
 import type { Actor, EventRecord } from "./types";
+import { applyVenueUpdate, getVenueById, renameDisplayNameCounts, VENUE_FIELDS, venueWriteStatements, type VenueDetail, type VenueValues } from "./venues";
 import { assertScope, createEventSlug, makeId, normalizeForDuplicate, ServiceError, slugify } from "./utils";
 
 const idempotencyKeySchema = z.string().trim().min(8).max(200);
@@ -114,6 +115,28 @@ export const tourSaveSchema = z.object({
   published: z.boolean(),
 }).superRefine((input, context) => {
   if (input.id && !input.expected_updated_at) context.addIssue({ code: "custom", path: ["expected_updated_at"], message: "编辑巡演时缺少并发校验值" });
+});
+
+/** A full save of the venue form: every field is sent, an empty one clears the stored value. */
+export const venueSaveSchema = z.object({
+  id: z.string().trim().min(1).max(160),
+  expected_updated_at: z.string().trim().min(1),
+  idempotency_key: idempotencyKeySchema,
+  canonical_name: z.string().trim().min(1).max(240),
+  administrative_area_id: optionalText(160),
+  address_text: optionalText(500),
+  latitude: z.number().min(-90).max(90).nullish().transform((value) => value ?? null),
+  longitude: z.number().min(-180).max(180).nullish().transform((value) => value ?? null),
+  coordinate_precision: z.enum(["entrance", "building", "site", "approximate"]).nullish().transform((value) => value ?? null),
+  coordinate_source: optionalText(120),
+  sync_display_names: z.boolean().default(false),
+}).superRefine((input, context) => {
+  if ((input.latitude === null) !== (input.longitude === null)) {
+    context.addIssue({ code: "custom", path: ["latitude"], message: "纬度和经度必须同时填写或同时留空" });
+  }
+  if (input.latitude === null && (input.coordinate_precision || input.coordinate_source)) {
+    context.addIssue({ code: "custom", path: ["coordinate_precision"], message: "没有坐标时不能填写坐标精度或来源" });
+  }
 });
 
 const tourStopIdsSchema = z.array(z.string().trim().min(1).max(160)).max(200).default([]);
@@ -225,6 +248,7 @@ export const setlistSaveSchema = z.object({
 
 export type DirectEventSaveInput = z.infer<typeof directEventSaveSchema>;
 export type TourSaveInput = z.infer<typeof tourSaveSchema>;
+export type VenueSaveInput = z.input<typeof venueSaveSchema>;
 export type TourStopsUpdateInput = z.input<typeof tourStopsUpdateSchema>;
 export interface TourStopsUpdateResult { tour: TourDetail; added: number; removed: number }
 export type SongSaveInput = z.infer<typeof songSaveSchema>;
@@ -441,6 +465,45 @@ export class ContentAdminService {
     ]);
     if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "巡演在保存前已发生变化，请刷新页面", 409);
     return (await getTourById(this.db, id))!;
+  }
+
+  /**
+   * Saves a venue record from the admin form. The record is shared by every event linked to it, so the
+   * change shows on all of them; none of their versions move. Renaming keeps the old name as an alias and,
+   * with `sync_display_names`, carries the new name to event links that displayed the old one.
+   */
+  async saveVenue(raw: unknown, actor: Actor, requestId = makeId("req")): Promise<VenueDetail> {
+    assertScope(actor, "events:publish");
+    const input = venueSaveSchema.parse(raw);
+    const receiptId = await receiptTarget(this.db, input.idempotency_key, "admin.venue.save");
+    if (receiptId) return (await getVenueById(this.db, receiptId))!;
+    const before = await getVenueById(this.db, input.id);
+    if (!before) throw new ServiceError("not_found", "场馆不存在", 404);
+    if (before.updated_at !== input.expected_updated_at) throw new ServiceError("version_conflict", "场馆已经被修改，请刷新页面", 409);
+    if (input.administrative_area_id) {
+      const area = await this.db.prepare("SELECT id FROM administrative_areas WHERE id = ?").bind(input.administrative_area_id).first<{ id: string }>();
+      if (!area) throw new ServiceError("validation_error", "所选行政区不存在，请刷新页面", 400);
+    }
+    const { id, expected_updated_at: _expected, idempotency_key: _key, sync_display_names: sync, ...fields } = input;
+    const stored = Object.fromEntries(VENUE_FIELDS.map((field) => [field, before[field]])) as VenueValues;
+    const next = applyVenueUpdate(stored, { venue_id: id, ...fields });
+    const renamed = next.canonical_name !== before.canonical_name;
+    const syncDisplayNames = renamed && sync;
+    const synced = syncDisplayNames ? (await renameDisplayNameCounts(this.db, id, before.canonical_name, input.canonical_name, true)).synced : 0;
+    const now = nextUpdatedAt(before.updated_at);
+    const saved = { sql: "EXISTS (SELECT 1 FROM venues WHERE id = ? AND updated_at = ?)", bindings: [id, now] };
+    const results = await this.db.batch([
+      ...venueWriteStatements(this.db, {
+        venueId: id, storedName: before.canonical_name, next, syncDisplayNames, now,
+        coordinatesChanged: next.latitude !== before.latitude || next.longitude !== before.longitude,
+        update: { sql: "updated_at = ?", bindings: [before.updated_at] }, follow: saved,
+      }),
+      auditStatement(this.db, actor, requestId, "content.venue.update", "venue", id, { id, ...stored },
+        { id, ...next, ...(syncDisplayNames ? { synced_display_names: synced } : {}) }, now, saved.sql, saved.bindings),
+      receiptStatement(this.db, input.idempotency_key, "admin.venue.save", id, now, saved.sql, saved.bindings),
+    ]);
+    if ((results[0].meta.changes ?? 0) !== 1) throw new ServiceError("version_conflict", "场馆在保存前已发生变化，请刷新页面", 409);
+    return (await getVenueById(this.db, id))!;
   }
 
   /**

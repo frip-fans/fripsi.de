@@ -1,0 +1,74 @@
+---
+import AdminPageHeader from "../../../components/AdminPageHeader.astro";
+import { getVenueById, listAdministrativeAreas } from "@frip-fan/core";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+
+const db = getEnv().DB;
+const [venue, areas] = await Promise.all([getVenueById(db, Astro.params.id!), listAdministrativeAreas(db)]);
+if (!venue) return Astro.redirect("/admin/venues", 302);
+const canWrite = Astro.locals.actor!.scopes.includes("events:publish");
+const saved = Astro.url.searchParams.get("saved") === "1";
+const otherAliases = venue.aliases.filter((alias) => alias !== venue.canonical_name);
+// Links that show the venue's own name follow a rename only when the box below is ticked.
+const following = venue.events.filter((event) => event.display_name_snapshot === venue.canonical_name).length;
+---
+<SiteLayout title={venue.canonical_name} admin>
+  <AdminPageHeader title={venue.canonical_name} back={{ href: "/admin/venues", label: "场馆列表" }}>
+    <p class="muted" slot="meta">{venue.events.length} 场活动{venue.area_name && <> · {venue.area_name}</>}{otherAliases.length > 0 && <> · 别名：{otherAliases.join("、")}</>}</p>
+  </AdminPageHeader>
+  {saved && <p class="notice success" role="status">场馆已经保存并写入审计日志。</p>}
+
+  <form class="panel venue-form" method="post" action="/api/admin/venues/save">
+    <input type="hidden" name="id" value={venue.id} />
+    <input type="hidden" name="expected_updated_at" value={venue.updated_at} />
+    <input type="hidden" name="idempotency_key" value={`admin-venue-${venue.id}-${crypto.randomUUID()}`} />
+    <div class="form-grid">
+      <label class="wide">场馆名称 *<input name="canonical_name" required maxlength="240" value={venue.canonical_name} /></label>
+      <label class="publish-check wide"><input type="checkbox" name="sync_display_names" />改名时同步 {following} 场活动的显示名<small>纠正错字时勾选；场馆真的更名时不勾，旧活动保留当时的名称。</small></label>
+      <label>行政区
+        <select name="administrative_area_id"><option value="">未确定</option>{areas.map((area) =>
+          <option value={area.id} selected={venue.administrative_area_id === area.id}>{area.country_code} · {area.name_local}{area.codes[0] ? ` (${area.codes[0].code})` : ""}</option>)}</select>
+      </label>
+      <label>地址<input name="address_text" maxlength="500" value={venue.address_text ?? ""} /></label>
+      <label>纬度<input name="latitude" inputmode="decimal" value={venue.latitude ?? ""} /></label>
+      <label>经度<input name="longitude" inputmode="decimal" value={venue.longitude ?? ""} /></label>
+      <label>坐标精度
+        <select name="coordinate_precision"><option value="">未填写</option>{(["entrance", "building", "site", "approximate"] as const).map((precision) =>
+          <option value={precision} selected={venue.coordinate_precision === precision}>{precision}</option>)}</select>
+      </label>
+      <label>坐标来源<input name="coordinate_source" maxlength="120" value={venue.coordinate_source ?? ""} /></label>
+    </div>
+    <div class="form-actions">
+      {!canWrite && <span class="muted">当前账号没有 events:publish 权限。</span>}
+      <button type="submit" disabled={!canWrite}>保存场馆</button>
+    </div>
+  </form>
+
+  <section class="panel" aria-labelledby="venue-events-title">
+    <h2 id="venue-events-title">使用该场馆的活动 <span class="muted">{venue.events.length}</span></h2>
+    {venue.events.length ? (
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>日期</th><th>活动</th><th>当时显示名</th></tr></thead>
+          <tbody>
+            {venue.events.map((event) => <tr>
+              <td class="nowrap">{event.start_date}</td>
+              <td><a href={`/admin/events/${event.event_id}`}>{event.title}</a></td>
+              <td>{event.display_name_snapshot ?? <span class="muted">随场馆名称</span>}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+    ) : <p class="muted">没有活动使用该场馆。</p>}
+  </section>
+</SiteLayout>
+<style>
+  .venue-form { display: grid; gap: 1.2rem; margin-bottom: 1rem; }
+  .publish-check { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .55rem; }
+  .publish-check input { width: auto; }
+  .publish-check small { flex-basis: 100%; color: var(--muted); }
+  .form-actions { display: flex; justify-content: flex-end; align-items: center; gap: .8rem; }
+  .nowrap { white-space: nowrap; }
+  h2 { font-size: 1.1rem; }
+</style>

@@ -69,6 +69,8 @@ MCP Tools ──> EventService / ChangeService ───> SQLite
 
 `/admin/tours` 维护巡演的名称、slug、说明和是否公开，并列出各站、歌单是否已补；同一巡演中显示名重复的站会被标出，需要在活动里填写场次。巡演详情页可以搜索活动并批量加入（已属其他巡演的会移过来），也可以直接移出某一站；每场变化都会提升活动版本并写入审计日志（`content.event.tour`）。移出或移到其他巡演时会清空该活动的场次。
 
+`/admin/venues` 列出场馆及其行政区、坐标和使用它的活动数，可按名称、别名、地址或行政区搜索。场馆页编辑名称、行政区、地址和坐标，与 MCP 的 `patch.venue_updates` 是同一组字段和同一套写入规则：改名时原名称保留为别名；勾选“改名时同步显示名”会把当时显示名等于原名称的活动一并改为新名称，不勾则旧活动保留当时的名称。场馆记录由活动共用，保存后所有关联活动都会读到新内容，但活动版本号不变；审计动作为 `content.venue.update`。新场馆仍在活动编辑页创建，活动编辑页的每个既有场馆都有到场馆页的链接。
+
 人工后台不为每次编辑额外创建 change set。所有保存仍要求服务端校验、幂等键和乐观锁，并在同一 batch（SQLite 事务）中写入业务数据、operation receipt 和 audit log。`change_sets` 保留给 AI/MCP 提案，避免低风险日常维护被重复确认拖慢，也不降低自动化写入的审核门槛。
 
 危险操作必须二次确认，并显示影响：
@@ -176,6 +178,15 @@ scope: events:read
 readOnlyHint: true
 ```
 
+#### `areas.search`
+
+用途：按名称或地域代码查找行政区，取得新建场馆和 `venue_updates` 需要的 `administrative_area_id`。自动同步身份不挂载。
+
+```text
+scope: events:read
+readOnlyHint: true
+```
+
 #### `changes.propose_create`
 
 用途：提出新增活动，但不直接公开。
@@ -205,6 +216,28 @@ openWorldHint: false
 - 只传要修改的字段
 - `idempotency_key`
 - 来源和原因
+
+场馆记录本身（名称、行政区、地址、坐标）通过 `patch.venue_updates` 修改，不需要同时传 `venues`：
+
+```json
+{ "venue_updates": [{ "venue_id": "ven_…", "address_text": "東京都江東区有明2-1-6", "latitude": 35.6367, "longitude": 139.7915 }] }
+```
+
+| 字段 | 说明 |
+|---|---|
+| `canonical_name` | 场馆名称，不能为空。新名称同时写入 `venue_aliases`，原名称保留为别名 |
+| `administrative_area_id` | 行政区 ID，用 `areas.search` 查找，必须已存在；`null` 清空 |
+| `address_text` | 地址；`null` 清空 |
+| `latitude` / `longitude` | 必须成对填写或成对清空。变化时更新 `coordinates_verified_at`；清空时一并清空精度和来源 |
+| `coordinate_precision` / `coordinate_source` | 只在场馆有坐标时可填 |
+| `sync_display_names` | 只能与 `canonical_name` 一起传。`true` 时把当时显示名等于原名称的活动关联一并改为新名称 |
+
+- 只传要修改的字段，未传的字段保持不变。
+- `venue_id` 取自 `events.get` 返回的 `venues[].id`，且必须是该活动（应用本次 patch 之后）关联的场馆。未关联的场馆、不存在的行政区等无法发布的修改返回 `invalid_venue_update`。
+- 场馆记录由多个活动共用：发布后所有关联活动都会读到新内容，但只有目标活动的版本号递增。`changes.preview` 在 `venue_changes` 中逐字段给出修改前后的值和受影响的其他活动数量，并写入警告。
+- 页面显示场馆时优先使用活动关联上保存的当时显示名（`display_name_snapshot`），因此改名默认不会改变已保存显示名的活动——场馆真的更名时，旧活动应继续显示当时的名称。纠正错字时传 `sync_display_names: true`：显示名等于原名称的关联跟随改名，另行填写过显示名的关联保持不变。预览在 `venue_changes` 中给出跟随（`synced_display_names`）和保留（`kept_display_names`）的数量并写入警告；个别活动可通过 `venues[].display_name_snapshot` 单独修改。
+- 场馆修改随活动更新在同一个 batch 内写入，受同一乐观锁保护；审计记录的 metadata 带有 `venue_changes`。
+- 场馆状态（`status`）和外部 ID 暂不支持。官方活动自动同步（`sync.propose`）不接受 `venue_updates`。
 
 #### `changes.propose_status`
 

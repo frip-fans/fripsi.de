@@ -228,6 +228,33 @@ def monitor(c, client):
     print(json.dumps({'status': 'healthy', 'bytes': total, 'age_seconds': round(age)}))
 
 
+def fetch_payload(client, bucket, manifest, identity, temp):
+    """Download a committed snapshot into `temp`, then verify, decrypt and inspect it."""
+    encrypted = temp / 'payload.age'
+    with open(encrypted, 'wb') as f:
+        client.download_fileobj(bucket, manifest['object_key'], f)
+    if encrypted.stat().st_size != manifest['encrypted_bytes'] or digest(encrypted) != manifest['sha256']:
+        raise ValueError('Downloaded backup SHA-256 or size mismatch')
+    zipped = temp / 'payload.gz'
+    subprocess.run(['age', '--decrypt', '--identity', str(identity), '--output', str(zipped), str(encrypted)],
+                   check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=300)
+    restored = temp / 'restored.sqlite'
+    with gzip.open(zipped, 'rb') as src, open(restored, 'xb') as dst:
+        # Bound expansion using the recorded snapshot size.
+        remaining = manifest['sqlite_bytes']
+        while chunk := src.read(min(1024 * 1024, remaining + 1)):
+            remaining -= len(chunk)
+            if remaining < 0:
+                raise ValueError('Decompressed backup exceeds manifest size')
+            dst.write(chunk)
+    if remaining or digest(restored) != manifest['sqlite_sha256']:
+        raise ValueError('Restored SQLite SHA-256 or size mismatch')
+    details = inspect_db(restored)
+    if any(details[k] != manifest[k] for k in ('table_counts', 'migrations')):
+        raise ValueError('Restored database does not match manifest')
+    return restored, details
+
+
 def restore(c, client, key, output, identity, isolation_root):
     # No default backup; require an explicit manifest and a new isolation directory.
     if not key.startswith(c['prefix']) or not key.endswith('.sqlite.gz.age.json') or '..' in key:
@@ -246,28 +273,7 @@ def restore(c, client, key, output, identity, isolation_root):
     try:
         with tempfile.TemporaryDirectory(dir=root) as temp:
             temp = Path(temp)
-            encrypted = temp / 'payload.age'
-            with open(encrypted, 'wb') as f:
-                client.download_fileobj(c['bucket'], manifest['object_key'], f)
-            if encrypted.stat().st_size != manifest['encrypted_bytes'] or digest(encrypted) != manifest['sha256']:
-                raise ValueError('Downloaded backup SHA-256 or size mismatch')
-            zipped = temp / 'payload.gz'
-            subprocess.run(['age', '--decrypt', '--identity', str(identity), '--output', str(zipped), str(encrypted)],
-                           check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=300)
-            restored = temp / 'restored.sqlite'
-            with gzip.open(zipped, 'rb') as src, open(restored, 'xb') as dst:
-                # Bound expansion using the recorded snapshot size.
-                remaining = manifest['sqlite_bytes']
-                while chunk := src.read(min(1024 * 1024, remaining + 1)):
-                    remaining -= len(chunk)
-                    if remaining < 0:
-                        raise ValueError('Decompressed backup exceeds manifest size')
-                    dst.write(chunk)
-            if remaining or digest(restored) != manifest['sqlite_sha256']:
-                raise ValueError('Restored SQLite SHA-256 or size mismatch')
-            details = inspect_db(restored)
-            if any(details[k] != manifest[k] for k in ('table_counts', 'migrations')):
-                raise ValueError('Restored database does not match manifest')
+            restored, details = fetch_payload(client, c['bucket'], manifest, identity, temp)
             # Link is exclusive; even a concurrent creator cannot be overwritten.
             os.link(restored, out)
         atomic_json(root / 'restore-manifest.json', manifest)

@@ -1,0 +1,36 @@
+---
+import AdminPageHeader from "../../../components/AdminPageHeader.astro";
+import { listVenueUsage } from "@frip-fan/core";
+import SiteLayout from "../../../layouts/SiteLayout.astro";
+import { getEnv } from "../../../lib/env";
+
+const query = Astro.url.searchParams.get("q")?.trim() ?? "";
+const venues = await listVenueUsage(getEnv().DB, query);
+---
+<SiteLayout title="场馆管理" admin>
+  <AdminPageHeader title="场馆管理" description="场馆记录由多场活动共用。新场馆在活动编辑页创建。" />
+  <form class="panel venue-search" method="get" role="search">
+    <label>搜索<input type="search" name="q" value={query} placeholder="名称、别名、地址或行政区" /></label>
+    <button type="submit" class="secondary">搜索</button>
+    {query && <a class="button secondary" href="/admin/venues">清除</a>}
+  </form>
+  <div class="panel table-wrap">
+    <table>
+      <thead><tr><th>场馆</th><th>行政区</th><th>坐标</th><th class="num">活动</th></tr></thead>
+      <tbody>
+        {venues.map((venue) => <tr>
+          <td><a href={`/admin/venues/${venue.id}`}>{venue.canonical_name}</a>{venue.address_text && <small>{venue.address_text}</small>}</td>
+          <td>{venue.area_name ?? <span class="muted">—</span>}</td>
+          <td>{venue.latitude === null ? <span class="tag off">缺</span> : <span class="tag live">{venue.coordinate_precision ?? "有"}</span>}</td>
+          <td class="num">{venue.event_count}</td>
+        </tr>)}
+      </tbody>
+    </table>
+    {!venues.length && <div class="empty">{query ? "没有匹配的场馆。" : "还没有场馆。"}</div>}
+  </div>
+</SiteLayout>
+<style>
+  .venue-search { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem; margin-bottom: 1rem; }
+  .venue-search label { flex: 1 1 16rem; }
+  td small { display: block; color: var(--muted); }
+</style>

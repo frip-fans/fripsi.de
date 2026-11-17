@@ -13,6 +13,8 @@ describe("auditActionLabel", () => {
     expect(auditActionLabel("content.setlist.create")).toBe("新增Setlist");
     expect(auditActionLabel("content.events.bulk_import")).toBe("批量导入活动");
     expect(auditActionLabel("content.event.tour")).toBe("调整巡演归属（活动）");
+    expect(auditActionLabel("content.venue.update")).toBe("修改场馆");
+    expect(auditTargetHref("venue", "ven_1")).toBe("/admin/venues/ven_1");
   });
 
   it("keeps a key it does not know", () => {

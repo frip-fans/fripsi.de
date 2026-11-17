@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { ContentAdminService } from "./content-admin";
 import { ChangeService } from "./change-service";
 import type { Actor } from "./types";
+import { getVenueById, listVenueUsage } from "./venues";
 
 class TestStatement {
   private bindings: unknown[] = [];
@@ -333,6 +334,106 @@ describe("venue record proposals", () => {
     const published = await service.publish(relink.id, actor, "venue-edit-relink-publish");
     expect(published.venues.map((item) => [item.id, item.address_text])).toEqual([[otherVenue, "東京都大田区羽田空港1-1-4"]]);
     expect(venue()).toMatchObject({ canonical_name: "新宿LOFT", address_text: "旧地址" });
+    sqlite.close();
+  });
+});
+
+describe("admin venue save", () => {
+  async function setup() {
+    const sqlite = new DatabaseSync(":memory:");
+    for (const name of ["0001_initial.sql", "0002_import_jobs.sql", "0003_music_library.sql", "0004_structured_locations.sql", "0005_journey_coordinates.sql", "0006_journey_coordinate_data.sql", "0016_event_alias_tours.sql", "0018_admin_chat.sql", "0019_admin_chat_history.sql"]) {
+      sqlite.exec(migration(name));
+    }
+    const db = new TestD1(sqlite) as unknown as D1Database;
+    const actor: Actor = { id: "publisher", type: "human", channel: "admin", scopes: ["events:read", "events:publish"] };
+    const service = new ContentAdminService(db);
+    const event = (title: string, date: string, venue: object) => service.saveEvent({ published: true, idempotency_key: `venue-save-${title}`, event: {
+      title, start_date: date, timezone: "Asia/Tokyo", category: "LIVE", status: "scheduled", location_mode: "physical", location_note: null,
+      channels: [], venues: [{ role: "primary", position: 1, ...venue }], sources: [{ url: `https://fripside.net/${encodeURIComponent(title)}` }],
+    } }, actor);
+    const first = await event("Day 1", "2026-08-23", { canonical_name: "新宿LOFT", address_text: "旧地址" });
+    const venueId = first.venues[0].id;
+    const second = await event("Day 2", "2026-08-24", { venue_id: venueId, display_name_snapshot: "LOFT" });
+    const form = (overrides: object = {}) => ({
+      id: venueId, canonical_name: "新宿LOFT", administrative_area_id: null, address_text: "旧地址",
+      latitude: null, longitude: null, coordinate_precision: null, coordinate_source: null, ...overrides,
+    });
+    return { sqlite, db, actor, service, first, second, venueId, form };
+  }
+
+  it("lists venues with their usage and finds them by alias, address or area", async () => {
+    const { sqlite, db, venueId } = await setup();
+    sqlite.prepare("INSERT INTO venue_aliases (venue_id, alias) VALUES (?, 'ロフト')").run(venueId);
+    expect(await listVenueUsage(db)).toMatchObject([{ id: venueId, canonical_name: "新宿LOFT", event_count: 2 }]);
+    for (const query of ["loft", "ロフト", "旧地"]) expect(await listVenueUsage(db, query), query).toHaveLength(1);
+    expect(await listVenueUsage(db, "100%")).toHaveLength(0);
+    expect(await getVenueById(db, venueId)).toMatchObject({
+      aliases: ["ロフト", "新宿LOFT"],
+      events: [{ title: "Day 2", display_name_snapshot: "LOFT" }, { title: "Day 1", display_name_snapshot: "新宿LOFT" }],
+    });
+    expect(await getVenueById(db, "ven_missing")).toBeNull();
+    sqlite.close();
+  });
+
+  it("saves every field, keeps the old name as an alias and audits the change without touching events", async () => {
+    const { sqlite, db, actor, service, first, second, venueId, form } = await setup();
+    const before = (await getVenueById(db, venueId))!;
+    const saved = await service.saveVenue(form({
+      expected_updated_at: before.updated_at, idempotency_key: "venue-save-all",
+      canonical_name: "新宿ロフト", administrative_area_id: "area_jp_13104", address_text: "東京都新宿区歌舞伎町1-12-9",
+      latitude: 35.6955, longitude: 139.7025, coordinate_precision: "building", coordinate_source: "official",
+    }), actor, "request-venue");
+    expect(saved).toMatchObject({
+      canonical_name: "新宿ロフト", area_name: "新宿区", address_text: "東京都新宿区歌舞伎町1-12-9", latitude: 35.6955, longitude: 139.7025,
+      coordinate_precision: "building", coordinate_source: "official", coordinates_verified_at: saved.updated_at,
+      aliases: ["新宿LOFT", "新宿ロフト"],
+      // Not asked to sync: both links keep the name they displayed.
+      events: [{ display_name_snapshot: "LOFT" }, { display_name_snapshot: "新宿LOFT" }],
+    });
+    expect(saved.updated_at > before.updated_at).toBe(true);
+    expect(sqlite.prepare("SELECT version FROM events ORDER BY start_date").all()).toEqual([{ version: first.version }, { version: second.version }]);
+    const audit = sqlite.prepare("SELECT actor_id, target_id, before_json, after_json FROM audit_logs WHERE action = 'content.venue.update'").get() as Record<string, string>;
+    expect(audit).toMatchObject({ actor_id: "publisher", target_id: venueId });
+    expect(JSON.parse(audit.before_json)).toMatchObject({ canonical_name: "新宿LOFT", latitude: null });
+    expect(JSON.parse(audit.after_json)).toMatchObject({ canonical_name: "新宿ロフト", latitude: 35.6955 });
+
+    // A replay of the same submission returns the saved record instead of writing again.
+    const replay = await service.saveVenue(form({ expected_updated_at: before.updated_at, idempotency_key: "venue-save-all", canonical_name: "replayed" }), actor);
+    expect(replay).toMatchObject({ canonical_name: "新宿ロフト", updated_at: saved.updated_at });
+
+    // Emptying the coordinate boxes clears what described them.
+    const cleared = await service.saveVenue(form({ expected_updated_at: saved.updated_at, idempotency_key: "venue-save-clear", canonical_name: "新宿ロフト" }), actor);
+    expect(cleared).toMatchObject({ administrative_area_id: null, address_text: "旧地址", latitude: null, coordinate_precision: null, coordinates_verified_at: null });
+    expect(sqlite.prepare("PRAGMA foreign_key_check").all()).toEqual([]);
+    sqlite.close();
+  });
+
+  it("carries a corrected name to the links that displayed the old one", async () => {
+    const { sqlite, db, actor, service, venueId, form } = await setup();
+    const before = (await getVenueById(db, venueId))!;
+    const saved = await service.saveVenue(form({
+      expected_updated_at: before.updated_at, idempotency_key: "venue-save-sync", canonical_name: "新宿ロフト", sync_display_names: true,
+    }), actor);
+    expect(saved.events).toMatchObject([{ title: "Day 2", display_name_snapshot: "LOFT" }, { title: "Day 1", display_name_snapshot: "新宿ロフト" }]);
+    const audit = sqlite.prepare("SELECT after_json FROM audit_logs WHERE action = 'content.venue.update'").get() as { after_json: string };
+    expect(JSON.parse(audit.after_json)).toMatchObject({ synced_display_names: 1 });
+    sqlite.close();
+  });
+
+  it("refuses stale, unauthorised and invalid saves", async () => {
+    const { sqlite, db, actor, service, venueId, form } = await setup();
+    const { updated_at } = (await getVenueById(db, venueId))!;
+    const save = (overrides: object, key: string, who = actor) => service.saveVenue(form({ expected_updated_at: updated_at, idempotency_key: key, ...overrides }), who);
+    await expect(save({ expected_updated_at: "2020-01-01T00:00:00.000Z" }, "venue-save-stale")).rejects.toMatchObject({ code: "version_conflict" });
+    await expect(save({}, "venue-save-editor", { ...actor, scopes: ["events:read", "events:draft"] })).rejects.toMatchObject({ code: "forbidden" });
+    await expect(save({ id: "ven_missing" }, "venue-save-missing")).rejects.toMatchObject({ code: "not_found" });
+    await expect(save({ administrative_area_id: "area_nowhere" }, "venue-save-area")).rejects.toThrow("行政区不存在");
+    await expect(save({ canonical_name: " " }, "venue-save-blank")).rejects.toThrow();
+    await expect(save({ latitude: 35 }, "venue-save-half")).rejects.toThrow();
+    await expect(save({ latitude: Number.NaN, longitude: 139 }, "venue-save-nan")).rejects.toThrow();
+    await expect(save({ coordinate_precision: "building" }, "venue-save-precision")).rejects.toThrow();
+    expect((await getVenueById(db, venueId))!.updated_at).toBe(updated_at);
+    expect(sqlite.prepare("SELECT COUNT(*) AS count FROM audit_logs WHERE action = 'content.venue.update'").get()).toMatchObject({ count: 0 });
     sqlite.close();
   });
 });

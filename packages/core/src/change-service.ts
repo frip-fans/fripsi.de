@@ -9,12 +9,12 @@ import {
   type ChangeOperation,
   type EventDraft,
   type EventPatch,
-  type SourceInput,
-  type VenueUpdate
+  type SourceInput
 } from "./schema";
 import { prepareEventLocation, replaceEventLocationStatements } from "./locations";
 import { findDuplicates, getChangeSet, getChangeSetByKey, getEventById, requireEvent } from "./repository";
-import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource, VenueChange, VenueField, VenueFieldChange } from "./types";
+import type { Actor, ChangePreview, ChangeSet, EventLocationInput, EventRecord, EventSource, VenueChange, VenueFieldChange } from "./types";
+import { applyVenueUpdate, renameDisplayNameCounts, VENUE_FIELDS, venueWriteStatements, type VenueValues } from "./venues";
 import { assertScope, createEventSlug, makeId, nowIso, ServiceError } from "./utils";
 
 type NormalizedDraft = Omit<EventDraft, "slug" | "end_date" | "start_time" | "end_time" | "classification" | "location_note" | "remark"> & {
@@ -78,18 +78,8 @@ function mergedLocation(before: EventRecord, patch: EventPatch): EventLocationIn
   });
 }
 
-const VENUE_FIELDS: VenueField[] = ["canonical_name", "administrative_area_id", "address_text", "latitude", "longitude", "coordinate_precision", "coordinate_source"];
-type VenueValues = Record<VenueField, string | number | null>;
 interface VenueEdit { change: VenueChange; next: VenueValues; coordinatesChanged: boolean; syncDisplayNames: boolean }
 interface VenueEdits { edits: VenueEdit[]; problems: Array<{ venue_id: string; message: string }> }
-
-/** Stored venue values with an update laid over them; clearing the coordinates clears what describes them. */
-function applyVenueUpdate<T extends VenueValues>(stored: T, update: VenueUpdate): T {
-  const next = { ...stored };
-  for (const field of VENUE_FIELDS) if (update[field] !== undefined) (next as VenueValues)[field] = update[field] ?? null;
-  if (next.latitude === null) { next.coordinate_precision = null; next.coordinate_source = null; }
-  return next;
-}
 
 function previewSources(sources: SourceInput[], eventId: string): EventSource[] {
   return sources.map((source, index) => ({
@@ -331,26 +321,13 @@ export class ChangeService {
       statements.push(...replaceEventLocationStatements(this.db, before.id, prepareEventLocation(locationInput), now,
         "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)", [before.id, now]));
     }
+    // Runs after the event's own links are rewritten, so the target event follows a synced rename too.
+    const published = { sql: "EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)", bindings: [before.id, now] };
     for (const { change: item, next, coordinatesChanged, syncDisplayNames } of venueEdits) {
-      statements.push(this.db.prepare(`UPDATE venues SET canonical_name = ?, administrative_area_id = ?, address_text = ?,
-        latitude = ?, longitude = ?, coordinate_precision = ?, coordinate_source = ?,
-        coordinates_verified_at = CASE WHEN ? THEN ? ELSE coordinates_verified_at END, updated_at = ?
-        WHERE id = ? AND EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)`)
-        .bind(next.canonical_name, next.administrative_area_id, next.address_text, next.latitude, next.longitude,
-          next.coordinate_precision, next.coordinate_source, coordinatesChanged ? 1 : 0, next.latitude === null ? null : now, now,
-          item.venue_id, before.id, now));
-      if (next.canonical_name !== item.canonical_name) {
-        // The old name stays an alias, so searches for it keep finding the venue.
-        statements.push(this.db.prepare(`INSERT OR IGNORE INTO venue_aliases (venue_id, alias)
-          SELECT ?, ? WHERE EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)`)
-          .bind(item.venue_id, next.canonical_name, before.id, now));
-      }
-      if (syncDisplayNames) {
-        // Runs after the event's own links are rewritten, so the target event follows the rename too.
-        statements.push(this.db.prepare(`UPDATE event_venues SET display_name_snapshot = ?
-          WHERE venue_id = ? AND display_name_snapshot = ? AND EXISTS (SELECT 1 FROM events WHERE id = ? AND updated_at = ?)`)
-          .bind(next.canonical_name, item.venue_id, item.canonical_name, before.id, now));
-      }
+      statements.push(...venueWriteStatements(this.db, {
+        venueId: item.venue_id, storedName: item.canonical_name, next, coordinatesChanged, syncDisplayNames, now,
+        update: published, follow: published,
+      }));
     }
     if (change.operation === "update" && payload.patch.sources) {
       for (const source of payload.patch.sources) statements.push(this.insertSourceStatement(before.id, source, actor.id, now, now));
@@ -473,14 +450,9 @@ export class ChangeService {
       const renamed = next.canonical_name !== row.canonical_name;
       const syncDisplayNames = renamed && update.sync_display_names === true;
       if (renamed) {
-        const names = await this.db.prepare(`SELECT
-            COALESCE(SUM(display_name_snapshot = ?), 0) AS following,
-            COALESCE(SUM(display_name_snapshot <> ? AND display_name_snapshot <> ?), 0) AS other
-          FROM event_venues WHERE venue_id = ? AND display_name_snapshot IS NOT NULL`)
-          .bind(row.canonical_name, row.canonical_name, next.canonical_name, row.id).first<{ following: number; other: number }>();
-        const following = names?.following ?? 0;
-        change.kept_display_names = (names?.other ?? 0) + (syncDisplayNames ? 0 : following);
-        if (syncDisplayNames) change.synced_display_names = following;
+        const counts = await renameDisplayNameCounts(this.db, row.id, row.canonical_name, String(next.canonical_name), syncDisplayNames);
+        change.kept_display_names = counts.kept;
+        if (syncDisplayNames) change.synced_display_names = counts.synced;
       }
       edits.push({ change, next, coordinatesChanged: next.latitude !== row.latitude || next.longitude !== row.longitude, syncDisplayNames });
     }

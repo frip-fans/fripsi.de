@@ -30,6 +30,7 @@ export function getRuntimeEnv(): Env {
     ACCESS_TEAM_DOMAIN: process.env.ACCESS_TEAM_DOMAIN,
     ACCESS_AUD: process.env.ACCESS_AUD,
     ADMIN_PUBLISHERS: process.env.ADMIN_PUBLISHERS,
+    STAGING_SERVICE_CLIENTS: process.env.STAGING_SERVICE_CLIENTS,
     DEV_AUTH_BYPASS: development ? process.env.DEV_AUTH_BYPASS : "false",
     DEV_ACTOR: process.env.DEV_ACTOR,
     MAP_TILE_URL: process.env.MAP_TILE_URL,

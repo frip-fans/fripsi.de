@@ -44,6 +44,12 @@ describe("staging access isolation", () => {
     expect(response.status).toBe(403);
     expect(next).not.toHaveBeenCalled();
   });
+  it("admits a test agent without an allowlisted email, but nothing else that merely looks like one", async () => {
+    mocks.authenticate.mockResolvedValue({ id: "agent:abc.access", type: "ai" });
+    expect((await request("/admin")).response.status).toBe(200);
+    mocks.authenticate.mockResolvedValue({ id: "agent:abc.access", type: "human" });
+    expect((await request("/admin")).response.status).toBe(403);
+  });
   it("serves the owner with map CSP, no caching and no indexing", async () => {
     mocks.authenticate.mockResolvedValue({ id: "owner@example.com" });
     const { response, next } = await request("/journey");

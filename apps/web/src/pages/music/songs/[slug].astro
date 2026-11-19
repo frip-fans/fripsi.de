@@ -170,7 +170,7 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
       </dl>
     )}
 
-    <MusicListen sources={listenSources} autoload />
+    <MusicListen sources={listenSources} title={song.title} autoload />
 
     {chartYears.length > 0 && (
       <section class="music-section song-yearly" aria-labelledby="yearly-heading">

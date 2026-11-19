@@ -130,8 +130,8 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
   .spotlight-cover-link { display: block; border-radius: 12px; }
   .spotlight-cover-play {
     position: absolute;
-    right: 4px;
-    bottom: 4px;
+    inset: 50% auto auto 50%;
+    translate: -50% -50%;
     display: grid;
     place-items: center;
     width: 44px;
@@ -141,11 +141,13 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
     color: #fff;
     background: rgba(7, 16, 28, .88);
     font-size: 1.35rem;
+    opacity: 0;
+    pointer-events: none;
   }
+  .spotlight-cover-play:focus-visible { opacity: 1; pointer-events: auto; }
   .spotlight-cover-play:hover { color: var(--accent); }
   @media (hover: hover) and (pointer: fine) {
-    .spotlight-cover-play { inset: 50% auto auto 50%; translate: -50% -50%; }
-    .spotlight-cover:not(:hover, :focus-within) .spotlight-cover-play { opacity: 0; pointer-events: none; }
+    .spotlight-cover:hover .spotlight-cover-play { opacity: 1; pointer-events: auto; }
   }
   @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
     .spotlight-cover { transition: transform .18s; }

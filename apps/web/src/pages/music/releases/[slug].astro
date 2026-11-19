@@ -114,11 +114,12 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
     if (!canvas || !cover) return;
     const paint = () => {
       if (!hasArtwork(cover)) return;
-      // Downsample directly into the displayed pixel. Remote covers need no CORS readback.
+      // A small color grid preserves the sleeve palette without showing a second copy of the artwork.
       const context = canvas.getContext("2d");
       if (!context) return;
       context.imageSmoothingQuality = "high";
-      context.drawImage(cover, 0, 0, 1, 1);
+      context.drawImage(cover, 0, 0, canvas.width, canvas.height);
+      canvas.dataset.painted = "";
     };
     if (cover.complete) paint();
     else cover.addEventListener("load", paint, { once: true });
@@ -138,7 +139,7 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
   .release-rate strong { font-size: 1.5rem; line-height: 1; }
   .release-rate span { color: var(--muted); font-weight: 650; }
   .release-rate small { grid-column: 1 / -1; color: var(--muted); font-size: .8125rem; }
-  .release-tracks { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); overflow: hidden; }
+  .release-tracks { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: rgba(15, 17, 23, .72); overflow: hidden; }
   .release-tracks > li + .release-track-row, .release-tracks > li + .release-disc { border-top: 1px solid rgba(159, 180, 211, .1); }
   .release-disc { padding: .9rem 1rem .5rem; color: var(--muted); font: 700 .75rem/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
   .release-track { display: grid; grid-template-columns: var(--track-number-width) minmax(0, 1fr) minmax(4rem, 9rem) 4.5rem; align-items: center; gap: .9rem; min-height: 52px; padding: .55rem var(--track-inset); color: inherit; text-decoration: none; }

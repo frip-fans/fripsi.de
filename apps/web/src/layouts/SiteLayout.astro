@@ -134,7 +134,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
     <div class="safe-area-top" aria-hidden="true"></div>
     <a class="skip-link" href="#main-content">{t(locale, "nav.skip")}</a>
     {releaseBackdrop ? (
-      <canvas class="release-backdrop" data-release-backdrop width="1" height="1" aria-hidden="true"></canvas>
+      <canvas class="release-backdrop" data-release-backdrop width="3" height="3" aria-hidden="true"></canvas>
     ) : (
       <>
         <div class="background-rotator" data-background-rotator={rotateHomeBackground || undefined} aria-hidden="true">
@@ -447,7 +447,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
     cleanupBackground?.();
     const controller = new AbortController();
     const { signal } = controller;
-    const backgroundRotator = document.querySelector<HTMLElement>("[data-background-rotator]");
+    const backgroundRotator = document.querySelector<HTMLElement>("body > [data-background-rotator]");
     const backgroundSlides = [...(backgroundRotator?.querySelectorAll<HTMLElement>("[data-background-slide]") ?? [])];
     const reducedBackgroundMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let activeBackgroundIndex = 0;
@@ -483,7 +483,32 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
     startBackgroundRotation();
     cleanupBackground = () => { stopBackgroundRotation(); controller.abort(); };
   };
-  document.addEventListener("astro:before-swap", () => cleanupBackground?.());
+  document.addEventListener("astro:before-swap", event => {
+    cleanupBackground?.();
+    const cover = document.querySelector<HTMLCanvasElement>("body > [data-release-backdrop]");
+    if ((!cover && !event.newDocument.querySelector("[data-release-backdrop]")) ||
+        matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const layers = document.querySelectorAll<HTMLElement>("body > .background-rotator, body > .ambient, body > .release-backdrop");
+    const bounds = cover?.getBoundingClientRect();
+    document.addEventListener("astro:after-swap", () => {
+      const outgoing = document.createElement("div");
+      outgoing.className = "outgoing-backdrop";
+      outgoing.setAttribute("aria-hidden", "true");
+      // Keep the previous sleeve glow at its pre-navigation scroll position.
+      if (cover && bounds) {
+        cover.removeAttribute("data-release-backdrop");
+        cover.style.top = bounds.top + "px";
+        cover.style.height = bounds.height + "px";
+      }
+      layers.forEach(layer => outgoing.appendChild(layer));
+      document.body.insertBefore(outgoing, document.body.firstChild);
+      const fade = outgoing.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 440, easing: "ease-out", fill: "forwards"
+      });
+      fade.finished.then(() => outgoing.remove(), () => outgoing.remove());
+    }, { once: true });
+  });
   document.addEventListener("astro:page-load", setupBackground);
   setupBackground();
 </script>
@@ -532,7 +557,26 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   a, button, summary { touch-action: manipulation; }
   button, input, select, textarea { font: inherit; }
   button, .button { cursor: pointer; }
-  .release-backdrop { position: fixed; inset: 0; z-index: -3; width: 100%; height: 100%; opacity: .32; filter: saturate(1.5); pointer-events: none; }
+  .outgoing-backdrop { position: fixed; inset: 0; z-index: -1; background: var(--bg); pointer-events: none; overflow: hidden; }
+  .release-backdrop {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: -3;
+    width: 100%;
+    height: min(100%, 58rem);
+    opacity: 0;
+    transition: opacity 360ms ease-out;
+    filter: saturate(1.65);
+    mask-image: radial-gradient(ellipse 78% 72% at 28% 27%, #000 0%, #000a 42%, transparent 100%);
+    pointer-events: none;
+  }
+  .release-backdrop[data-painted] { opacity: .42; }
+  @media (prefers-reduced-motion: reduce) {
+    .release-backdrop { transition: none; }
+  }
+  @media (max-width: 640px) {
+    .release-backdrop { mask-image: radial-gradient(ellipse 105% 62% at 45% 23%, #000, transparent); }
+  }
   .background-rotator { position: fixed; z-index: -3; inset: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
   .space-backdrop {
     position: absolute;

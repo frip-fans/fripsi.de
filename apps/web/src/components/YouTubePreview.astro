@@ -7,6 +7,10 @@ const { locale } = Astro.props;
 ---
 <aside class="youtube-preview" data-youtube-preview transition:persist="youtube-preview" hidden aria-label="YouTube">
   <div class="youtube-preview-bar">
+    <div class="youtube-preview-size" data-youtube-size role="slider" tabindex="0" aria-valuemin="240" aria-valuemax="640" aria-valuenow="356"
+      aria-label={t(locale, "music.youtubeResize")} title={t(locale, "music.youtubeResize")}>
+      <Icon name="arrows-angle-expand" />
+    </div>
     <a data-youtube-return title={t(locale, "music.youtubeReturn")}>
       <span data-youtube-title translate="no"></span>
       <Icon name="box-arrow-up-right" />
@@ -28,7 +32,9 @@ const { locale } = Astro.props;
     right: max(.75rem, env(safe-area-inset-right));
     bottom: max(.75rem, env(safe-area-inset-bottom));
     z-index: 25;
-    width: min(356px, calc(100% - 1.5rem - env(safe-area-inset-left) - env(safe-area-inset-right)));
+    width: var(--youtube-preview-width, 356px);
+    max-width: min(640px, calc(100vw - max(.75rem, env(safe-area-inset-left)) - max(.75rem, env(safe-area-inset-right))));
+    max-width: min(640px, calc(100vw - max(.75rem, env(safe-area-inset-left)) - max(.75rem, env(safe-area-inset-right))), max(240px, calc((100svh - 72px) * 16 / 9)));
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 14px;
@@ -37,6 +43,7 @@ const { locale } = Astro.props;
   }
   .youtube-preview[data-inline] {
     position: absolute;
+    max-width: none;
     right: auto;
     bottom: auto;
     z-index: auto;
@@ -53,10 +60,22 @@ const { locale } = Astro.props;
     min-height: 44px;
     color: var(--text);
   }
-  .youtube-preview-bar a { flex: 1; min-width: 0; gap: .5rem; padding-inline: .8rem; font-weight: 650; }
+  .youtube-preview-bar a { flex: 1; min-width: 0; gap: .5rem; padding-inline: .25rem; font-weight: 650; }
   .youtube-preview-bar a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .youtube-preview-bar button { width: 44px; flex: none; padding: 0; background: transparent; }
-  .youtube-preview-bar :is(a, button):focus-visible { outline-offset: -3px; }
+  .youtube-preview-size {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    height: 44px;
+    color: var(--muted);
+    cursor: nwse-resize;
+    touch-action: none;
+    user-select: none;
+  }
+  .youtube-preview-size :global(.icon) { rotate: 90deg; }
+  .youtube-preview-size:hover, .youtube-preview-size:focus-visible { color: var(--text); }
+  .youtube-preview-bar :is(a, button, [role="slider"]):focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
   .youtube-preview :global(iframe) { display: block; width: 100%; min-height: 200px; aspect-ratio: 16 / 9; border: 0; }
   .youtube-preview[data-inline] :global(iframe) { height: 100%; min-height: 0; }
 </style>

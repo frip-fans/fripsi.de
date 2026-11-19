@@ -1,3 +1,5 @@
+import { setupYouTubePreviewSize } from "./youtube-preview-size";
+
 interface Preview {
   embed: string;
   title: string;
@@ -6,6 +8,7 @@ interface Preview {
 
 let active: Preview | undefined;
 let host: HTMLElement | undefined;
+let detachResize: (() => void) | undefined;
 let stage: HTMLElement | undefined;
 let trigger: HTMLElement | undefined;
 let motion: Animation | undefined;
@@ -36,7 +39,7 @@ function positionPreview(slot?: HTMLElement, from?: DOMRect) {
   stage = slot;
   layout.disconnect();
   host.toggleAttribute("data-inline", Boolean(stage));
-  host.style.cssText = "";
+  for (const property of ["left", "top", "width", "height"]) host.style.removeProperty(property);
   if (stage) {
     layout.observe(stage);
     layout.observe(document.body);
@@ -112,6 +115,7 @@ export function openYouTubePreview(preview: Preview, button?: HTMLElement, autop
   if (!mount) return;
   if (!host) {
     host = mount;
+    detachResize = setupYouTubePreviewSize(host);
     if (!("moveBefore" in document.documentElement)) {
       // Older browsers reload a playing iframe when Astro reparents it.
       // Keep the empty shell outside the swapped body before creating the frame.
@@ -158,6 +162,7 @@ document.addEventListener("astro:after-swap", () => {
   if (!host) return;
   if (!host.isConnected || document.body.classList.contains("admin")) {
     stopYouTubePreview();
+    detachResize?.();
     host.remove();
     host = undefined;
     return;

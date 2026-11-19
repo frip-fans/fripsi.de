@@ -186,3 +186,21 @@ export function computeTourMatrix(shows: TourMatrixShowInput[], entries: TourMat
     changes,
   };
 }
+
+/** Compare performances only when the other list confirms the song's absence. */
+export function changesSincePreviousStop(matrix: TourMatrix, index: number) {
+  const stop = matrix.columns[index];
+  let ref = index - 1;
+  while (ref >= 0 && matrix.columns[ref].stop_number === stop.stop_number) ref--;
+  const reference = matrix.columns[ref];
+  if (!reference?.setlist_id || !stop.setlist_id) return { reference, change: undefined };
+
+  const added = matrix.rows.flatMap(row => {
+    const cell = row.cells[index];
+    return cell.state === "sung" && row.cells[ref].state === "absent"
+      ? [{ song_id: row.song_id, song_slug: row.song_slug, song_title: row.song_title, position: cell.position, section: cell.section }]
+      : [];
+  }).sort((a, b) => a.position - b.position);
+  const dropped = matrix.rows.filter(row => row.cells[index].state === "absent" && row.cells[ref].state === "sung");
+  return { reference, change: { column_index: index, added, dropped } };
+}

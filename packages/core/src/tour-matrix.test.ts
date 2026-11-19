@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { describe, expect, it } from "vitest";
 import { createTestD1 } from "./test-d1";
-import { computeTourMatrix, type TourMatrixEntryInput, type TourMatrixShowInput } from "./tour-matrix";
+import { changesSincePreviousStop, computeTourMatrix, type TourMatrixEntryInput, type TourMatrixShowInput } from "./tour-matrix";
 import { getActiveTour, getEventTourContext, listPublicTourStops, getPublicTourPage, listTours, pickActiveTour, type ActiveTourRow } from "./tours";
 
 const show = (id: string, date: string, setlist: string | null, completeness: TourMatrixShowInput["completeness"] = "complete", label = "本公演"): TourMatrixShowInput => ({
@@ -13,6 +13,22 @@ const entries = (setlist: string, songs: string[]): TourMatrixEntryInput[] => so
 }));
 
 describe("tour matrix", () => {
+  it("compares with the last performance of the previous stop and respects missing or partial lists", () => {
+    const matrix = computeTourMatrix([
+      show("a", "2026-01-01", "day", "complete", "昼"),
+      show("a", "2026-01-01", "night", "partial", "夜"),
+      show("b", "2026-01-02", "second"),
+      show("c", "2026-01-03", null),
+      show("d", "2026-01-04", "last"),
+    ], [...entries("day", ["x"]), ...entries("night", ["y"]), ...entries("second", ["z"])]);
+    expect(changesSincePreviousStop(matrix, 1).reference).toBeUndefined();
+    const { reference, change } = changesSincePreviousStop(matrix, 2);
+    expect(reference?.setlist_id).toBe("night");
+    expect(change?.added).toEqual([]);
+    expect(change?.dropped.map(song => song.song_id)).toEqual(["y"]);
+    expect(changesSincePreviousStop(matrix, 4).change).toBeUndefined();
+  });
+
   it("orders songs by their usual slot and tells known-absent from unknown and missing", () => {
     const matrix = computeTourMatrix(
       [show("osaka", "2026-02-01", "s2", "partial"), show("tokyo", "2026-01-01", "s1"), show("nagoya", "2026-03-01", null), show("fukuoka", "2026-04-01", "s3")],

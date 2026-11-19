@@ -270,6 +270,14 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   import { setupPageEntryTransitions } from "../lib/page-entry-navigation";
   setupPageEntryTransitions();
 
+  // Mouse and touch readers can still select text. Keyboard caret browsing stays available.
+  document.addEventListener("pointerdown", () => {
+    document.body.toggleAttribute("data-pointer-caret", true);
+  }, true);
+  document.addEventListener("keydown", () => {
+    document.body.removeAttribute("data-pointer-caret");
+  }, true);
+
   // Record the exact source URL (including filters and fragment) before opening a music detail.
   document.addEventListener("click", event => {
     const anchor = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[href]") : null;
@@ -546,6 +554,8 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
     /* Keep Safari's top-edge color sampling off scrolling cards and background art. */
     .safe-area-top { display: block; position: fixed; z-index: 1000; inset: 0 0 auto; height: max(1px, var(--safe-area-top)); background: var(--bg); pointer-events: none; }
   }
+  body[data-pointer-caret] { caret-color: transparent; }
+  :where(input, textarea, :read-write) { caret-color: auto; }
   a { color: inherit; }
   :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   #main-content:focus { outline: none; }

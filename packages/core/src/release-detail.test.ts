@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { getReleaseBySlug } from "./music-repository";
+import { getReleaseBySlug, listSongYouTubePreviews } from "./music-repository";
 
 function fixture() {
   const sqlite = new DatabaseSync(":memory:");
@@ -34,12 +34,20 @@ describe("release detail tracks", () => {
         INSERT INTO release_tracks(id, release_id, song_version_id, track_number, display_title, created_at) VALUES
           ('t1', 'rel', 'vocal', 1, 'Song', 'now'),
           ('t2', 'rel', 'inst', 2, 'Song <instrumental>', 'now');
+        INSERT INTO releases(id, slug, title, release_type, release_date, published, created_at, updated_at) VALUES
+          ('hidden', 'hidden', 'Hidden', 'single', '2025-01-01', 0, 'now', 'now'),
+          ('earlier', 'earlier', 'Earlier', 'single', '2025-02-01', 1, 'now', 'now');
+        INSERT INTO release_tracks(id, release_id, song_version_id, track_number, display_title, created_at) VALUES
+          ('hidden-track', 'hidden', 'vocal', 1, 'Song', 'now'),
+          ('earlier-track', 'earlier', 'inst', 1, 'Song <instrumental>', 'now');
         INSERT INTO release_track_external_ids(release_track_id, provider, external_id) VALUES
-          ('t1', 'youtube', 'ZhIxg6_Femo'), ('t2', 'apple_music', '1804664580');
+          ('t1', 'youtube', 'ZhIxg6_Femo'), ('t2', 'apple_music', '1804664580'),
+          ('hidden-track', 'youtube', 'Yi5nf3Yh4DE'), ('earlier-track', 'youtube', '3SeZr00KGZE');
       `);
       const release = await getReleaseBySlug(db, "single");
       expect(release?.tracks.map(track => [track.version_id, Number(track.is_instrumental), track.youtube_video_id]))
         .toEqual([["vocal", 0, "ZhIxg6_Femo"], ["inst", 1, null]]);
+      expect(await listSongYouTubePreviews(db, ["s1", "missing"])).toEqual(new Map([["s1", "ZhIxg6_Femo"]]));
     } finally { sqlite.close(); }
   });
 });

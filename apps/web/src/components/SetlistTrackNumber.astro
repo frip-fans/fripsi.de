@@ -1,0 +1,45 @@
+---
+import type { SetlistEntryRecord } from "@frip-fan/core";
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+import { youtubeLinks } from "../lib/music-listen";
+
+interface Props {
+  entry: SetlistEntryRecord;
+  videoId?: string;
+  locale: Locale;
+}
+const { entry, videoId, locale } = Astro.props;
+const youtube = youtubeLinks(videoId);
+const songHref = `/music/songs/${encodeURIComponent(entry.song_slug)}`;
+const playLabel = t(locale, "music.youtubePlay", { title: entry.song_title });
+---
+<span class:list={["setlist-track-number", { "has-preview": youtube }]}>
+  <b>{String(entry.position).padStart(2, "0")}</b>
+  {youtube && <a class="setlist-track-play" href={youtube.page} target="_blank" rel="noreferrer"
+    data-track-youtube={youtube.embed} data-track-title={entry.song_title} data-track-song={songHref}
+    aria-label={playLabel} title={playLabel}><Icon name="play-fill" /></a>}
+</span>
+
+<style>
+  .setlist-track-number { position: relative; display: grid; place-items: center; color: var(--accent); }
+  .setlist-track-number b { font-size: .8125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .setlist-track-number.has-preview b { opacity: 0; }
+  .setlist-track-play {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    translate: -50% -50%;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    color: var(--accent);
+  }
+  .setlist-track-play:is(:hover, :focus-visible) { background: rgba(var(--accent-rgb), .13); }
+  .setlist-track-play:focus-visible { outline-offset: -2px; }
+  @media (hover: hover) and (pointer: fine) {
+    :global(.setlist-entry:not(:hover, :focus-within)) .setlist-track-number b { opacity: 1; }
+    :global(.setlist-entry:not(:hover, :focus-within)) .setlist-track-play { opacity: 0; pointer-events: none; }
+  }
+</style>

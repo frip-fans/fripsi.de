@@ -24,10 +24,10 @@ const ringFill = vocalTracks.length ? (performedTracks / vocalTracks.length) * r
 const performedLabel = t(locale, "music.performedRate", { performed: performedTracks, total: vocalTracks.length });
 ---
 <SiteLayout releaseBackdrop title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
-  <div class="music-page" data-music-detail>
+  <div class="music-page" data-music-detail data-cover-theme>
     <MusicBackLink href="/music/releases" storageKey="music:list:releases" label={t(locale, "music.backReleases")} />
     <header class="music-detail-head release-detail-header" data-page-entry>
-      <div>
+      <div data-theme-cover>
         <ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} eager />
         {release.cover_url && release.cover_source_url && <a class="release-cover-source" href={release.cover_source_url} target="_blank" rel="noreferrer">{t(locale, "music.coverSource")} <Icon name="box-arrow-up-right" /></a>}
       </div>
@@ -105,73 +105,7 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
   </div>
 </SiteLayout>
 
-<script>
-  import { hasArtwork } from "../../../scripts/release-cover";
-
-  // Choose the strongest hue in the same nine samples used for the backdrop.
-  function releaseAccent(pixels: Uint8ClampedArray) {
-    let bestChroma = 0;
-    let selected = [197, 205, 216];
-    let brightestBackdrop = 0;
-    const luminance = (rgb: number[]) => rgb.reduce((sum, channel, index) => {
-      const value = channel / 255;
-      const linear = value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
-      return sum + linear * [.2126, .7152, .0722][index];
-    }, 0);
-
-    for (let i = 0; i < pixels.length; i += 4) {
-      const rgb = Array.from(pixels.subarray(i, i + 3));
-      const chroma = Math.max(...rgb) - Math.min(...rgb);
-      if (chroma > bestChroma && pixels[i + 3] > 128) {
-        selected = rgb;
-        bestChroma = chroma;
-      }
-      // Match the CSS saturation and maximum opacity over the site's dark base.
-      const gray = rgb[0] * .213 + rgb[1] * .715 + rgb[2] * .072;
-      const backdrop = rgb.map((v, k) => {
-        const saturated = Math.min(255, Math.max(0, gray + 1.65 * (v - gray)));
-        return .42 * saturated + .58 * [7, 16, 28][k];
-      });
-      brightestBackdrop = Math.max(brightestBackdrop, luminance(backdrop));
-    }
-    // Lift dark cover colors until even the small date label has 4.5:1 contrast.
-    while (luminance(selected) + .05 < 4.5 * (brightestBackdrop + .05)) {
-      selected = selected.map(value => Math.ceil(value + .08 * (255 - value)));
-    }
-    return selected.join(", ");
-  }
-
-  function paintReleaseBackdrop() {
-    const canvas = document.querySelector<HTMLCanvasElement>("[data-release-backdrop]");
-    const cover = document.querySelector<HTMLImageElement>(".release-detail-header [data-release-cover-image]");
-    if (!canvas || !cover) return;
-    const paint = () => {
-      if (!hasArtwork(cover)) return;
-      // A small color grid preserves the sleeve palette without showing a second copy of the artwork.
-      const context = canvas.getContext("2d");
-      if (!context) return;
-      context.imageSmoothingQuality = "high";
-      context.drawImage(cover, 0, 0, canvas.width, canvas.height);
-      canvas.dataset.painted = "";
-      const page = cover.closest<HTMLElement>("[data-music-detail]");
-      if (!page) return;
-      try {
-        const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-        page.style.setProperty("--accent-rgb", releaseAccent(pixels));
-      } catch (error) {
-        // External artwork can be displayed even when its pixels cannot be read.
-        if (!(error instanceof DOMException && error.name === "SecurityError")) throw error;
-      }
-    };
-    if (cover.complete) paint();
-    else cover.addEventListener("load", paint, { once: true });
-  }
-  paintReleaseBackdrop();
-  document.addEventListener("astro:page-load", paintReleaseBackdrop);
-</script>
-
 <style>
-  [data-music-detail] { --accent-rgb: 207, 214, 226; --accent: rgb(var(--accent-rgb)); }
   .release-tracks-section { margin-top: 2rem; }
   .release-rate { display: inline-flex; align-items: center; gap: .75rem; margin-top: 1.1rem; }
   .release-rate-ring { width: 56px; height: 56px; flex: 0 0 auto; }

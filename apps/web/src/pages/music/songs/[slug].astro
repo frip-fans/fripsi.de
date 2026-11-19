@@ -2,6 +2,7 @@
 import { buildSearchText, countPublicSetlistsSince, getSetlistHighlights, getSongBySlug, listSetlistYears, searchMatcher } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
+import ReleaseCover from "../../../components/ReleaseCover.astro";
 import MusicListen from "../../../components/MusicListen.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
@@ -69,10 +70,10 @@ const versionName = (versionId: string) => {
 // Editions of one release (e.g. a shop-exclusive pressing) differ only by a trailing parenthetical.
 const baseReleaseTitle = (title: string) => title.replace(/\s*[（(][^（）()]*[）)]\s*$/u, "").trim() || title;
 const releaseChips = (versionIds: string[]) => {
-  const groups = new Map<string, { title: string; slug: string; editions: Set<string> }>();
+  const groups = new Map<string, { title: string; slug: string; coverUrl: string | null; editions: Set<string> }>();
   for (const appearance of song.releases.filter((item) => versionIds.includes(item.version_id))) {
     const key = baseReleaseTitle(appearance.release_title);
-    const group = groups.get(key) ?? { title: key, slug: appearance.release_slug, editions: new Set<string>() };
+    const group = groups.get(key) ?? { title: key, slug: appearance.release_slug, coverUrl: appearance.cover_url, editions: new Set<string>() };
     group.editions.add(appearance.release_id);
     groups.set(key, group);
   }
@@ -86,6 +87,13 @@ const isOriginalVersion = (versionId: string) => {
   const label = song.versions.find((item) => item.id === versionId)?.version_label;
   return !label || label.trim().toLowerCase() === "original";
 };
+// Prefer the first dated release of the original vocal recording for the title artwork.
+const coverReleases = song.releases.filter(item => item.cover_url);
+const coverPriority = (item: (typeof song.releases)[number]) =>
+  instrumentalParent.has(item.version_id) ? 2 : isOriginalVersion(item.version_id) ? 0 : 1;
+const titleRelease = coverReleases.sort((a, b) =>
+  coverPriority(a) - coverPriority(b) || (a.release_date ?? "9999").localeCompare(b.release_date ?? "9999")
+)[0];
 // Listen: one playable recording per vocal version, original first.
 const listenSources: ListenSource[] = [...vocalVersions]
   .sort((a, b) => Number(!isOriginalVersion(a.id)) - Number(!isOriginalVersion(b.id)))
@@ -152,13 +160,20 @@ const historyScope = [filterVersion ? versionLabel(filterVersion) : "", filterYe
 
 const showTitle = (item: { setlist_title?: string | null; event_title: string; performance_label: string; event_alias?: string | null; event_tour_title?: string | null }) => setlistDisplayTitle({ title: item.setlist_title ?? null, event_title: item.event_title, performance_label: item.performance_label, event_alias: item.event_alias, event_tour_title: item.event_tour_title });
 ---
-<SiteLayout title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
-  <div class="music-page" data-music-detail data-song-detail>
+<SiteLayout releaseBackdrop title={song.title} description={t(locale, "music.songDescription", { title: song.title })}>
+  <div class="music-page" data-music-detail data-song-detail data-cover-theme>
     <MusicBackLink href="/music/songs" storageKey="music:list:songs" label={t(locale, "music.backSongs")} />
     <header class="music-detail-head" data-page-entry>
+      {titleRelease && (
+        <a class="song-title-cover" data-theme-cover href={`/music/releases/${encodeURIComponent(titleRelease.release_slug)}`} aria-label={titleRelease.release_title} title={titleRelease.release_title}>
+          <ReleaseCover url={titleRelease.cover_url} alt="" eager />
+        </a>
+      )}
+      <div>
       <p class="eyebrow" translate="no">{song.original_artist}</p>
       <h1 translate="no">{song.title}</h1>
       {song.aliases.length > 0 && <div class="music-detail-meta">{song.aliases.map((alias) => <span class="tag">{t(locale, "music.alias", { alias })}</span>)}</div>}
+      </div>
     </header>
 
     {first && last && (
@@ -274,7 +289,7 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
                 <p class="song-version-relation">{relation ? `${versionRelationLabel(relation.type, locale)} ${versionName(relation.parentId)}` : t(locale, "music.firstRelease")}</p>
                 {chips.length > 0 && (
                   <ul class="song-release-chips">
-                    {chips.map((chip) => <li><a href={`/music/releases/${encodeURIComponent(chip.slug)}`} title={chip.title} translate="no">{chip.title}</a>{chip.editions.size > 1 && <small>{t(locale, "music.releaseEditions", { count: chip.editions.size })}</small>}</li>)}
+                    {chips.map((chip) => <li><a href={`/music/releases/${encodeURIComponent(chip.slug)}`} title={chip.title} translate="no">{chip.coverUrl && <span class="song-release-thumb"><ReleaseCover url={chip.coverUrl} alt="" /></span>}<span class="song-release-name">{chip.title}</span></a>{chip.editions.size > 1 && <small>{t(locale, "music.releaseEditions", { count: chip.editions.size })}</small>}</li>)}
                   </ul>
                 )}
                 {instrumentals.length > 0 && <p class="song-version-instrumental">{t(locale, "music.withInstrumental")}{instrumentalChips.length > 0 && <> · <span translate="no">{instrumentalChips.map((chip) => chip.title).join(" / ")}</span></>}</p>}
@@ -407,9 +422,16 @@ const showTitle = (item: { setlist_title?: string | null; event_title: string; p
   .song-version-top { display: flex; justify-content: space-between; gap: .75rem; margin: 0; color: var(--muted); font-size: .75rem; font-variant-numeric: tabular-nums; }
   .song-version-top span { color: var(--accent); font-weight: 700; }
   .song-version-relation { margin: .2rem 0 .7rem; color: var(--muted); font-size: .8125rem; }
+  .music-detail-head:has(.song-title-cover) { display: flex; align-items: center; gap: clamp(.85rem, 3vw, 2rem); }
+  .song-title-cover { flex: 0 0 clamp(76px, 18vw, 160px); border-radius: 12px; }
+  .song-title-cover + div { min-width: 0; overflow-wrap: anywhere; }
+  .song-title-cover :global(img), .song-release-thumb :global(img) { object-fit: cover; }
+  .song-release-thumb { width: 2rem; flex: none; }
+  .song-release-thumb :global(.release-cover) { border-radius: 5px; }
+  .song-release-name { overflow: hidden; text-overflow: ellipsis; }
   .song-release-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: 0; padding: 0; list-style: none; }
-  .song-release-chips li { display: inline-flex; align-items: center; gap: .3rem; max-width: 100%; min-width: 0; padding: .25rem .65rem; border: 1px solid var(--line); border-radius: 999px; background: rgba(5, 13, 23, .5); font-size: .75rem; }
-  .song-release-chips a { min-width: 0; overflow: hidden; color: var(--text); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+  .song-release-chips li { display: inline-flex; align-items: center; gap: .3rem; max-width: 100%; min-width: 0; padding: .25rem .65rem; border: 1px solid var(--line); border-radius: 9px; background: rgba(5, 13, 23, .5); font-size: .75rem; }
+  .song-release-chips a { display: flex; align-items: center; gap: .45rem; min-height: 44px; min-width: 0; overflow: hidden; color: var(--text); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
   .song-release-chips a:hover { color: var(--accent); }
   .song-release-chips a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
   .song-release-chips small { flex: 0 0 auto; color: var(--muted); }

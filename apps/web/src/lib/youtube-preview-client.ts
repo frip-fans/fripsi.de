@@ -2,7 +2,6 @@ interface Preview {
   embed: string;
   title: string;
   href: string;
-  inline: boolean;
 }
 
 let active: Preview | undefined;
@@ -116,8 +115,7 @@ document.addEventListener("click", (event) => {
   openYouTubePreview({
     embed: link.dataset.releaseYoutube!,
     title: link.dataset.trackTitle!,
-    href: `${location.pathname}${location.search}#${link.closest("li")!.id}`,
-    inline: false,
+    href: `${link.dataset.trackSong}#music-preview`,
   }, link, true);
   showYouTubeInline();
   if (event.detail === 0) host?.querySelector<HTMLElement>("[data-youtube-return]")?.focus();

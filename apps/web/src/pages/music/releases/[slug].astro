@@ -65,14 +65,14 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
             // "original" is the default and the instrumental status already shows on the right, so neither needs a label.
             const rawVersion = track.version_label || (track.version_title !== track.song_title ? track.version_title : "");
             const youtube = youtubeLinks(track.youtube_video_id);
-            const trackId = `track-${track.disc_number}-${track.track_number}`;
+            const songHref = `/music/songs/${encodeURIComponent(track.song_slug)}`;
             const playLabel = t(locale, "music.youtubePlay", { title: track.display_title });
             const version = instrumental || rawVersion.trim().toLowerCase() === "original" ? "" : rawVersion;
             return (
               <>
                 {beginsDisc && release.tracks.some((item) => item.disc_number > 1) && <li class="release-disc" aria-hidden="true">{t(locale, "music.disc", { disc: track.disc_number })}</li>}
-                <li class:list={["release-track-row", { "has-preview": youtube }]} id={trackId} tabindex={youtube ? "-1" : undefined}>
-                  <a class:list={["release-track", { "is-top": top, "is-silent": instrumental || shows === 0 }]} href={`/music/songs/${encodeURIComponent(track.song_slug)}`}>
+                <li class:list={["release-track-row", { "has-preview": youtube }]}>
+                  <a class:list={["release-track", { "is-top": top, "is-silent": instrumental || shows === 0 }]} href={songHref}>
                     <span class="release-track-number">{String(track.track_number).padStart(2, "0")}</span>
                     <span class="release-track-title"><strong translate="no">{track.display_title}</strong>{version && <small translate="no">{version}</small>}</span>
                     {instrumental || shows === 0 ? (
@@ -85,7 +85,7 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
                     )}
                   </a>
                   {youtube && <a class="release-track-play" href={youtube.page} target="_blank" rel="noreferrer"
-                    data-release-youtube={youtube.embed} data-track-title={track.display_title} aria-label={playLabel} title={playLabel}>
+                    data-release-youtube={youtube.embed} data-track-title={track.display_title} data-track-song={songHref} aria-label={playLabel} title={playLabel}>
                     <Icon name="play-fill" />
                   </a>}
                 </li>

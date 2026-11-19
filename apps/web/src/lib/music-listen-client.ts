@@ -27,10 +27,8 @@ export function setupMusicListen(): void {
   let source: HTMLElement = sources[0] ?? stage;
   let provider = (root.dataset.provider as Provider);
   const returnHref = () => `${location.pathname}${location.search}#${root.id}`;
-  const belongsToSong = (preview = currentYouTubePreview()) =>
-    preview?.inline && new URL(preview.href, location.origin).pathname === location.pathname;
   const active = currentYouTubePreview();
-  const returningSource = active && belongsToSong(active)
+  const returningSource = active && new URL(active.href, location.origin).pathname === location.pathname
     ? (sources.length ? sources : [stage]).find((item) => item.dataset.youtubeEmbed === active.embed)
     : undefined;
 
@@ -42,6 +40,7 @@ export function setupMusicListen(): void {
   } else if (preferred && has(source, preferred)) {
     provider = preferred;
   }
+  let ownsYouTubePlayer = false;
   let loaded = Boolean(returningSource || (root.dataset.autoload && (provider === "apple_music" || !active)));
 
   const render = (autoplay = false) => {
@@ -65,11 +64,13 @@ export function setupMusicListen(): void {
     if (!loaded) { frame?.remove(); return; }
     if (provider === "youtube") {
       frame?.remove();
-      openYouTubePreview({ embed, title: root.dataset.title!, href: returnHref(), inline: true }, load, autoplay);
+      openYouTubePreview({ embed, title: root.dataset.title!, href: returnHref() }, load, autoplay);
       showYouTubeInline(stage);
+      ownsYouTubePlayer = true;
       return;
     }
-    if (belongsToSong()) stopYouTubePreview();
+    if (ownsYouTubePlayer) stopYouTubePreview();
+    ownsYouTubePlayer = false;
     if (frame?.src === embed) return;
     const next = document.createElement("iframe");
     next.src = embed;

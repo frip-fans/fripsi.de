@@ -24,23 +24,32 @@ const active = Boolean(until && until >= dateInTimeZone());
       <div class="spoiler-cover">
         <div class="spoiler-notice panel">
           <Icon name="eye-slash" size="1.4rem" />
+          <div class="tile-field" aria-hidden="true">
+            {Array.from({ length: 48 }, (_, i) => {
+              const phase = [13, 34, 6, 29, 43, 19, 38, 11].indexOf(i);
+              return <i class:list={{ "fading-tile": phase >= 0 }} style={`--phase:${phase * 7}s;--hue:${30 - i % 8 * 16}`} />;
+            })}
+          </div>
           <div class="spoiler-notice-text">
             <h2>{t(locale, "spoiler.title")}</h2>
             <p>{t(locale, "spoiler.body")}</p>
           </div>
           <button type="button" data-spoiler-reveal><Icon name="eye" />{t(locale, "spoiler.reveal")}</button>
         </div>
-        <slot name="safe" />
+        {Astro.slots.has("safe") && <div class="spoiler-body"><slot name="safe" /></div>}
       </div>
     )}
     <div class="spoiler-content" data-spoiler-content tabindex="-1">
       {!quiet && (
+        <div class:list={{ "spoiler-tools": Astro.slots.has("summary") }}>
+        <slot name="summary" />
         <p class="spoiler-bar">
-          <span><Icon name="eye" />{t(locale, "spoiler.shown")}</span>
+          <span><i class="view-mark" aria-hidden="true"></i>{t(locale, "spoiler.shown")}</span>
           <button type="button" class="secondary" data-spoiler-hide><Icon name="eye-slash" />{t(locale, "spoiler.hide")}</button>
         </p>
+        </div>
       )}
-      <slot />
+      <div class="spoiler-body"><slot /></div>
     </div>
   </div>
   <script is:inline>
@@ -53,7 +62,7 @@ const active = Boolean(until && until >= dateInTimeZone());
   </script>
   <noscript><style>.spoiler-guard .spoiler-cover { display: none !important; } .spoiler-guard .spoiler-content { display: block !important; } .spoiler-guard .spoiler-bar { display: none !important; }</style></noscript>
   </>
-) : <slot />}
+) : <><slot name="summary" /><slot /></>}
 
 <script>
   import { isSpoilerConcealed, readRevealedTours, setTourRevealed, spoilerToday } from "../lib/spoiler-guard";
@@ -76,19 +85,36 @@ const active = Boolean(until && until >= dateInTimeZone());
     }
   }
 
+  const transitions = new WeakMap<HTMLElement, Animation[]>();
   document.addEventListener("click", (event) => {
     const button = (event.target as Element | null)?.closest<HTMLElement>("[data-spoiler-reveal], [data-spoiler-hide]");
     const guard = button?.closest<HTMLElement>("[data-spoiler-guard]");
     if (!button || !guard) return;
     const reveal = button.hasAttribute("data-spoiler-reveal");
     const tour = guard.dataset.spoilerTour!;
+    const oldHeight = guard.getBoundingClientRect().height;
+    transitions.get(guard)?.forEach(animation => animation.cancel());
+
     if (reveal) sessionRevealed.add(tour); else sessionRevealed.delete(tour);
     try { setTourRevealed(localStorage, tour, reveal); } catch { /* Storage unavailable: this page only. */ }
     applySpoilerGuards();
-    // Keep keyboard and screen-reader users where the change happened.
-    const target = reveal ? guard.querySelector<HTMLElement>("[data-spoiler-content]") : guard.querySelector<HTMLElement>("[data-spoiler-reveal]");
-    target?.focus({ preventScroll: true });
-    guard.scrollIntoView({ block: "nearest" });
+
+    const action = guard.querySelector<HTMLElement>(reveal ? "[data-spoiler-hide]" : "[data-spoiler-reveal]");
+    action?.focus({ preventScroll: true });
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const panel = guard.querySelector<HTMLElement>(reveal ? ".spoiler-bar" : ".spoiler-notice");
+      const duration = 300;
+      const easing = "cubic-bezier(.2,.75,.25,1)";
+      const animations = [guard.animate([
+        { height: oldHeight + "px", overflow: "clip" },
+        { height: guard.offsetHeight + "px", overflow: "clip" }
+      ], { duration, easing })];
+      if (panel) animations.push(panel.animate([
+        { clipPath: "inset(0 12% 0 0 round 12px)", opacity: .76 },
+        { clipPath: "inset(0 0 0 0 round 12px)", opacity: 1 }
+      ], { duration, easing }));
+      transitions.set(guard, animations);
+    }
   });
 
   applySpoilerGuards();
@@ -100,21 +126,91 @@ const active = Boolean(until && until >= dateInTimeZone());
 <style>
   .spoiler-guard:not([data-revealed]) > .spoiler-content { display: none; }
   .spoiler-guard[data-revealed] > .spoiler-cover { display: none; }
+  .spoiler-guard { position: relative; }
+  .spoiler-body { display: flow-root; }
   .spoiler-content:focus { outline: none; }
   .spoiler-cover { display: grid; gap: 1.25rem; }
-  .spoiler-notice { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .9rem 1.1rem; padding: 1.1rem 1.25rem; }
+  .spoiler-notice { display: grid; position: relative; isolation: isolate; overflow: hidden; min-height: 210px; align-content: center; justify-items: start; gap: .7rem; padding: clamp(1.3rem, 4vw, 3rem); }
   .spoiler-notice > :global(.icon) { color: var(--accent); }
-  .spoiler-notice-text { display: grid; gap: .25rem; min-width: 0; }
-  .spoiler-notice h2 { margin: 0; font-size: 1rem; }
+  .spoiler-notice-text { max-width: 68%; display: grid; gap: .25rem; min-width: 0; }
+  .spoiler-notice h2 { margin: 0; font-size: clamp(1.3rem, 3vw, 2rem); }
   .spoiler-notice p { margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.6; }
   .spoiler-notice button { white-space: nowrap; }
-  .spoiler-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem 1rem; margin: 0 0 1rem; padding: .35rem .4rem .35rem .85rem; color: var(--muted); border: 1px dashed rgba(var(--accent-rgb), .4); border-radius: 12px; font-size: .8125rem; }
-  .spoiler-bar span { display: inline-flex; align-items: center; gap: .45rem; }
-  .spoiler-bar span :global(.icon) { color: var(--accent); }
-  .spoiler-bar button { min-height: 36px; padding: .35rem .7rem; font-size: .8125rem; font-weight: 650; }
+  .spoiler-tools { display: flex; align-items: stretch; flex-wrap: wrap; gap: .65rem; margin-bottom: 1rem; }
+  .spoiler-tools .spoiler-bar { margin: 0; }
+  .spoiler-bar {
+    display: flex;
+    width: fit-content;
+    max-width: 100%;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .35rem 1rem;
+    padding: .4rem;
+    margin: 0 0 1rem;
+    border: 1px solid rgba(var(--accent-rgb), .26);
+    border-radius: 14px;
+    background: linear-gradient(115deg, #222432, #111926 72%);
+    color: #f5f5fa;
+    font-weight: 650;
+    font-size: .93rem;
+  }
+  .spoiler-bar span { display: flex; align-items: center; gap: .75rem; }
+  .view-mark {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 46px;
+    height: 46px;
+    color: #fff;
+    border-radius: 9px;
+    background-color: #382d30;
+  }
+  .view-mark {
+    background-color: #242234;
+    background-image:
+      linear-gradient(to bottom, transparent 0 7px, #242234 7px),
+      linear-gradient(to right, transparent 0 7px, #242234 7px),
+      linear-gradient(110deg, #bc804d, #a55e75, #7967ad, #a55e75, #bc804d);
+    background-size: 9px 9px, 9px 9px, 54px 100%;
+  }
+  .tile-field {
+    position: absolute;
+    z-index: -1;
+    inset: 0 0 0 auto;
+    width: 38%;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 4px;
+    mask-image: linear-gradient(90deg, transparent, black 44%);
+    opacity: .68;
+  }
+  .tile-field i {
+    background: hsl(var(--hue) 56% 64%);
+    border-radius: 2px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .tile-field .fading-tile { animation: fade-tile 56s ease-in-out var(--phase) infinite; }
+    .view-mark {
+      animation: scroll-grid 5.4s linear infinite paused;
+    }
+    .spoiler-bar:focus-within .view-mark { animation-play-state: running; }
+  }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .spoiler-bar:hover .view-mark { animation-play-state: running; }
+  }
+  @keyframes scroll-grid {
+    from { background-position: 0 0, 0 0, 0 0; }
+    to { background-position: 54px 0, 54px 0, 54px 0; }
+  }
+  @keyframes fade-tile {
+    0%, 8%, 100% { opacity: 1; }
+    4% { opacity: .58; }
+  }
+  .spoiler-bar button { min-height: 44px; margin-inline-start: auto; padding: .45rem .8rem; font-size: .85rem; }
   .spoiler-guard[data-spoiler-over] .spoiler-bar { display: none; }
   @media (max-width: 560px) {
-    .spoiler-notice { grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+    .spoiler-notice-text { max-width: 80%; }
     .spoiler-notice button { grid-column: 1 / -1; min-height: 44px; }
   }
 </style>

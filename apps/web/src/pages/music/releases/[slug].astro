@@ -23,7 +23,7 @@ const ringLength = 2 * Math.PI * ringRadius;
 const ringFill = vocalTracks.length ? (performedTracks / vocalTracks.length) * ringLength : 0;
 const performedLabel = t(locale, "music.performedRate", { performed: performedTracks, total: vocalTracks.length });
 ---
-<SiteLayout title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
+<SiteLayout releaseBackdrop title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
   <div class="music-page" data-music-detail>
     <MusicBackLink href="/music/releases" storageKey="music:list:releases" label={t(locale, "music.backReleases")} />
     <header class="music-detail-head release-detail-header" data-page-entry>
@@ -104,6 +104,28 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
     )}
   </div>
 </SiteLayout>
+
+<script>
+  import { hasArtwork } from "../../../scripts/release-cover";
+
+  function paintReleaseBackdrop() {
+    const canvas = document.querySelector<HTMLCanvasElement>("[data-release-backdrop]");
+    const cover = document.querySelector<HTMLImageElement>(".release-detail-header [data-release-cover-image]");
+    if (!canvas || !cover) return;
+    const paint = () => {
+      if (!hasArtwork(cover)) return;
+      // Downsample directly into the displayed pixel. Remote covers need no CORS readback.
+      const context = canvas.getContext("2d");
+      if (!context) return;
+      context.imageSmoothingQuality = "high";
+      context.drawImage(cover, 0, 0, 1, 1);
+    };
+    if (cover.complete) paint();
+    else cover.addEventListener("load", paint, { once: true });
+  }
+  paintReleaseBackdrop();
+  document.addEventListener("astro:page-load", paintReleaseBackdrop);
+</script>
 
 <style>
   .release-tracks-section { margin-top: 2rem; }

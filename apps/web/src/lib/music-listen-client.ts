@@ -1,3 +1,5 @@
+import { currentYouTubePreview, openYouTubePreview, showYouTubeInline, stopYouTubePreview } from "./youtube-preview-client";
+
 type Provider = "apple_music" | "youtube";
 const PROVIDER_KEY = "music:listen:provider";
 const prefix = (provider: Provider) => provider === "apple_music" ? "apple" : "youtube";
@@ -12,7 +14,6 @@ function saveProvider(provider: Provider) {
   try { localStorage.setItem(PROVIDER_KEY, provider); } catch { /* storage unavailable */ }
 }
 
-/** The player loads only after a click, so no third-party request happens on page view. */
 export function setupMusicListen(): void {
   const root = document.querySelector<HTMLElement>("[data-music-listen]");
   if (!root || root.dataset.listenReady) return;
@@ -25,14 +26,25 @@ export function setupMusicListen(): void {
   const caption = root.querySelector<HTMLAnchorElement>("[data-listen-caption]");
   let source: HTMLElement = sources[0] ?? stage;
   let provider = (root.dataset.provider as Provider);
-  // A server-rendered player (autoload) counts as already loaded.
-  let loaded = Boolean(stage.querySelector("iframe"));
+  const returnHref = () => `${location.pathname}${location.search}#${root.id}`;
+  const belongsToSong = (preview = currentYouTubePreview()) =>
+    preview?.inline && new URL(preview.href, location.origin).pathname === location.pathname;
+  const active = currentYouTubePreview();
+  const returningSource = active && belongsToSong(active)
+    ? (sources.length ? sources : [stage]).find((item) => item.dataset.youtubeEmbed === active.embed)
+    : undefined;
 
   const has = (element: HTMLElement, candidate: Provider) => Boolean(element.dataset[`${prefix(candidate)}Embed`]);
   const preferred = readProvider();
-  if (preferred && has(source, preferred)) provider = preferred;
+  if (returningSource) {
+    source = returningSource;
+    provider = "youtube";
+  } else if (preferred && has(source, preferred)) {
+    provider = preferred;
+  }
+  let loaded = Boolean(returningSource || (root.dataset.autoload && (provider === "apple_music" || !active)));
 
-  const render = () => {
+  const render = (autoplay = false) => {
     root.dataset.provider = provider;
     providers.forEach((button) => {
       const candidate = button.dataset.listenProvider as Provider;
@@ -49,27 +61,31 @@ export function setupMusicListen(): void {
     root.querySelector("[data-listen-load-label]")!.textContent = root.dataset[`labelLoad-${provider}`.replace(/-(\w)/g, (_, c: string) => c.toUpperCase())] ?? "";
     root.querySelector("[data-listen-note]")!.textContent = root.dataset[`labelNote-${provider}`.replace(/-(\w)/g, (_, c: string) => c.toUpperCase())] ?? "";
     const frame = stage.querySelector("iframe");
-    if (!loaded) { frame?.remove(); load.hidden = false; return; }
-    load.hidden = true;
+    load.hidden = loaded;
+    if (!loaded) { frame?.remove(); return; }
+    if (provider === "youtube") {
+      frame?.remove();
+      openYouTubePreview({ embed, title: root.dataset.title!, href: returnHref(), inline: true }, load, autoplay);
+      showYouTubeInline(stage);
+      return;
+    }
+    if (belongsToSong()) stopYouTubePreview();
     if (frame?.src === embed) return;
     const next = document.createElement("iframe");
     next.src = embed;
-    next.title = `${provider === "apple_music" ? "Apple Music" : "YouTube"} player`;
+    next.title = "Apple Music player";
     next.loading = "lazy";
-    next.allow = provider === "apple_music"
-      ? "autoplay *; encrypted-media *; fullscreen *; clipboard-write"
-      : "autoplay; encrypted-media; picture-in-picture; web-share";
-    if (provider === "apple_music") next.setAttribute("sandbox", "allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation");
-    else next.allowFullscreen = true;
+    next.allow = "autoplay *; encrypted-media *; fullscreen *; clipboard-write";
+    next.setAttribute("sandbox", "allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation");
     next.referrerPolicy = "strict-origin-when-cross-origin";
     frame ? frame.replaceWith(next) : stage.appendChild(next);
   };
 
   load.addEventListener("click", (event) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
     loaded = true;
-    render();
+    render(true);
   });
   providers.forEach((button) => button.addEventListener("click", () => {
     provider = button.dataset.listenProvider as Provider;

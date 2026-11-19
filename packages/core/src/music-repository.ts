@@ -316,6 +316,7 @@ export async function getReleaseBySlug(db: D1Database, slug: string): Promise<Re
   const [tracksResult, sources] = await Promise.all([
     db.prepare(`
       SELECT rt.id, rt.disc_number, rt.track_number, rt.display_title, rt.notes,
+        tyt.external_id AS youtube_video_id,
         s.id AS song_id, s.slug AS song_slug, s.title AS song_title,
         sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label,
         (SELECT COUNT(DISTINCT se.setlist_id)
@@ -333,6 +334,7 @@ export async function getReleaseBySlug(db: D1Database, slug: string): Promise<Re
       FROM release_tracks rt
       JOIN song_versions sv ON sv.id = rt.song_version_id AND sv.published = 1
       JOIN songs s ON s.id = sv.song_id AND s.published = 1
+      LEFT JOIN release_track_external_ids tyt ON tyt.release_track_id = rt.id AND tyt.provider = 'youtube'
       WHERE rt.release_id = ?
       ORDER BY rt.disc_number ASC, rt.track_number ASC
     `).bind(release.id).all<ReleaseTrackRecord>(),

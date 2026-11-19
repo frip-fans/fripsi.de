@@ -12,6 +12,7 @@ import { YAGINUMA_CALIBRATOR_ENABLED } from "../lib/features";
 import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
 import Icon from "../components/Icon.astro";
+import YouTubePreview from "../components/YouTubePreview.astro";
 import NavigationLoading from "../components/NavigationLoading.astro";
 import NavigationDiagnostics from "../components/NavigationDiagnostics.astro";
 import routerBootstrap from "../scripts/router-bootstrap.js?url";
@@ -243,6 +244,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
         <AdminChatDock state={chatDock} />
       </div>
     )}
+    {!admin && <YouTubePreview locale={locale} />}
   </body>
 </html>
 

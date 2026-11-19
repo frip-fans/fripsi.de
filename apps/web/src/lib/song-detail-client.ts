@@ -80,7 +80,7 @@ export function setupSongDetail(): void {
     pager.appendChild(step(page + 1, "›", pager.dataset.labelNext ?? "", "next"));
   };
 
-  const render = () => {
+  const render = (preserveAnchor = false) => {
     const needle = query.trim();
     const matchesQuery = searchMatcher(needle);
     const filtered = Boolean(version || year || needle);
@@ -114,6 +114,7 @@ export function setupSongDetail(): void {
     for (const label of labels) label.classList.toggle("is-active", label.dataset.yearLabel === year);
     renderPager(pages);
     const url = pageUrl(page);
+    if (preserveAnchor) url.hash = location.hash;
     if (url.href !== location.href) replacePublicUrl(url);
   };
 
@@ -162,5 +163,5 @@ export function setupSongDetail(): void {
       same?.focus({ preventScroll: true });
     }
   });
-  render();
+  render(true);
 }

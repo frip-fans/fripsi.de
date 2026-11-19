@@ -1,0 +1,61 @@
+---
+import Icon from "./Icon.astro";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props { locale: Locale }
+const { locale } = Astro.props;
+---
+<aside class="youtube-preview" data-youtube-preview transition:persist="youtube-preview" hidden aria-label="YouTube">
+  <div class="youtube-preview-bar">
+    <a data-youtube-return title={t(locale, "music.youtubeReturn")}>
+      <span data-youtube-title translate="no"></span>
+      <Icon name="box-arrow-up-right" />
+    </a>
+    <button type="button" data-youtube-close aria-label={t(locale, "music.youtubeClose")} title={t(locale, "music.youtubeClose")}>
+      <Icon name="x-lg" />
+    </button>
+  </div>
+</aside>
+
+<script>
+  import "../lib/youtube-preview-client";
+</script>
+
+<style>
+  :global(html:has([data-youtube-preview]:not([hidden], [data-inline])) .quiz-launcher-dock) { display: none; }
+  .youtube-preview {
+    position: fixed;
+    right: max(.75rem, env(safe-area-inset-right));
+    bottom: max(.75rem, env(safe-area-inset-bottom));
+    z-index: 25;
+    width: min(356px, calc(100% - 1.5rem - env(safe-area-inset-left) - env(safe-area-inset-right)));
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--panel-solid);
+    box-shadow: 0 8px 32px #0009;
+  }
+  .youtube-preview[data-inline] {
+    position: absolute;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    border: 0;
+    border-radius: 13px;
+    box-shadow: none;
+  }
+  .youtube-preview-bar { display: flex; align-items: center; }
+  [data-inline] .youtube-preview-bar { display: none; }
+  .youtube-preview-bar a, .youtube-preview-bar button {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--text);
+  }
+  .youtube-preview-bar a { flex: 1; min-width: 0; gap: .5rem; padding-inline: .8rem; font-weight: 650; }
+  .youtube-preview-bar a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .youtube-preview-bar button { width: 44px; flex: none; padding: 0; background: transparent; }
+  .youtube-preview-bar :is(a, button):focus-visible { outline-offset: -3px; }
+  .youtube-preview :global(iframe) { display: block; width: 100%; min-height: 200px; aspect-ratio: 16 / 9; border: 0; }
+  .youtube-preview[data-inline] :global(iframe) { height: 100%; min-height: 0; }
+</style>

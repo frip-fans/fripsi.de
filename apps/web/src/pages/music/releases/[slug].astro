@@ -7,6 +7,7 @@ import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { formatMusicDate, releaseTypeLabel } from "../../../lib/music";
 import { getLocale, t } from "../../../lib/i18n";
+import { youtubeLinks } from "../../../lib/music-listen";
 import "../../../styles/music.css";
 
 const locale = getLocale(Astro.request);
@@ -63,11 +64,14 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
             const top = !instrumental && maxShows > 0 && shows === maxShows;
             // "original" is the default and the instrumental status already shows on the right, so neither needs a label.
             const rawVersion = track.version_label || (track.version_title !== track.song_title ? track.version_title : "");
+            const youtube = youtubeLinks(track.youtube_video_id);
+            const trackId = `track-${track.disc_number}-${track.track_number}`;
+            const playLabel = t(locale, "music.youtubePlay", { title: track.display_title });
             const version = instrumental || rawVersion.trim().toLowerCase() === "original" ? "" : rawVersion;
             return (
               <>
                 {beginsDisc && release.tracks.some((item) => item.disc_number > 1) && <li class="release-disc" aria-hidden="true">{t(locale, "music.disc", { disc: track.disc_number })}</li>}
-                <li>
+                <li class:list={["release-track-row", { "has-preview": youtube }]} id={trackId} tabindex={youtube ? "-1" : undefined}>
                   <a class:list={["release-track", { "is-top": top, "is-silent": instrumental || shows === 0 }]} href={`/music/songs/${encodeURIComponent(track.song_slug)}`}>
                     <span class="release-track-number">{String(track.track_number).padStart(2, "0")}</span>
                     <span class="release-track-title"><strong translate="no">{track.display_title}</strong>{version && <small translate="no">{version}</small>}</span>
@@ -80,6 +84,10 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
                       </>
                     )}
                   </a>
+                  {youtube && <a class="release-track-play" href={youtube.page} target="_blank" rel="noreferrer"
+                    data-release-youtube={youtube.embed} data-track-title={track.display_title} aria-label={playLabel} title={playLabel}>
+                    <Icon name="play-fill" />
+                  </a>}
                 </li>
               </>
             );
@@ -109,9 +117,14 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
   .release-rate span { color: var(--muted); font-weight: 650; }
   .release-rate small { grid-column: 1 / -1; color: var(--muted); font-size: .8125rem; }
   .release-tracks { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); overflow: hidden; }
-  .release-tracks > li + li .release-track, .release-tracks > li + .release-disc { border-top: 1px solid rgba(159, 180, 211, .1); }
+  .release-tracks > li + .release-track-row, .release-tracks > li + .release-disc { border-top: 1px solid rgba(159, 180, 211, .1); }
   .release-disc { padding: .9rem 1rem .5rem; color: var(--muted); font: 700 .75rem/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
   .release-track { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) minmax(4rem, 9rem) 4.5rem; align-items: center; gap: .9rem; min-height: 52px; padding: .55rem 1rem; color: inherit; text-decoration: none; }
+  .release-track-row { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .release-track-row.has-preview { grid-template-columns: minmax(0, 1fr) 52px; }
+  .release-track-play { display: grid; place-items: center; width: 44px; height: 44px; align-self: center; border-radius: 10px; color: var(--accent); }
+  .release-track-play:hover { background: rgba(var(--accent-rgb), .13); }
+  .release-track-play:focus-visible { outline-offset: -2px; }
   .release-track:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .release-track-number { color: var(--muted); font: 700 .8rem/1 ui-monospace, monospace; font-variant-numeric: tabular-nums; }
   .release-track-title { display: flex; align-items: baseline; gap: .55rem; min-width: 0; }

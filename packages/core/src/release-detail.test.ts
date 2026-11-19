@@ -21,7 +21,7 @@ function fixture() {
 }
 
 describe("release detail tracks", () => {
-  it("flags instrumental versions from their version relation", async () => {
+  it("returns instrumental flags and YouTube previews for published tracks", async () => {
     const { sqlite, db } = fixture();
     try {
       sqlite.exec(`
@@ -34,9 +34,12 @@ describe("release detail tracks", () => {
         INSERT INTO release_tracks(id, release_id, song_version_id, track_number, display_title, created_at) VALUES
           ('t1', 'rel', 'vocal', 1, 'Song', 'now'),
           ('t2', 'rel', 'inst', 2, 'Song <instrumental>', 'now');
+        INSERT INTO release_track_external_ids(release_track_id, provider, external_id) VALUES
+          ('t1', 'youtube', 'ZhIxg6_Femo'), ('t2', 'apple_music', '1804664580');
       `);
       const release = await getReleaseBySlug(db, "single");
-      expect(release?.tracks.map(track => [track.version_id, Number(track.is_instrumental)])).toEqual([["vocal", 0], ["inst", 1]]);
+      expect(release?.tracks.map(track => [track.version_id, Number(track.is_instrumental), track.youtube_video_id]))
+        .toEqual([["vocal", 0, "ZhIxg6_Femo"], ["inst", 1, null]]);
     } finally { sqlite.close(); }
   });
 });

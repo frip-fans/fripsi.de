@@ -51,11 +51,15 @@ function positionPreview(slot?: HTMLElement, from?: DOMRect) {
   if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(from.width - to.width) < 1 && Math.abs(from.height - to.height) < 1) return;
   const panel = host.getBoundingClientRect();
   const transformOrigin = `${to.left - panel.left}px ${to.top - panel.top}px`;
-  const player = host;
-  const animation = player.animate([
+  animatePreview(host, [
     { transform: `translate(${dx}px, ${dy}px) scale(${from.width / to.width}, ${from.height / to.height})`, transformOrigin },
     { transform: "none", transformOrigin },
-  ], { duration: 270, easing: "cubic-bezier(.2, .75, .25, 1)" });
+  ]);
+}
+
+function animatePreview(player: HTMLElement, frames: Keyframe[], onFinish?: () => void) {
+  motion?.cancel();
+  const animation = player.animate(frames, { duration: 270, easing: "cubic-bezier(.2, .75, .25, 1)", fill: "both" });
   motion = animation;
   player.setAttribute("data-resizing", "");
   const clear = () => {
@@ -63,8 +67,30 @@ function positionPreview(slot?: HTMLElement, from?: DOMRect) {
     motion = undefined;
     player.removeAttribute("data-resizing");
   };
-  animation.addEventListener("finish", clear, { once: true });
+  animation.addEventListener("finish", () => {
+    if (motion !== animation) return;
+    clear();
+    onFinish?.();
+    animation.cancel();
+  }, { once: true });
   animation.addEventListener("cancel", clear, { once: true });
+}
+
+const belowViewport = "translateY(calc(100% + max(.75rem, env(safe-area-inset-bottom))))";
+
+function closeFloatingPreview() {
+  if (!host || !active) return;
+  const previousTrigger = trigger;
+  if (reducedMotion.matches) {
+    stopYouTubePreview();
+  } else {
+    const transform = getComputedStyle(host).transform;
+    active = undefined;
+    host.inert = true;
+    animatePreview(host, [{ transform }, { transform: belowViewport }], stopYouTubePreview);
+  }
+  if (previousTrigger?.isConnected) previousTrigger.focus();
+  else document.querySelector<HTMLElement>("#main-content")?.focus();
 }
 
 export function currentYouTubePreview() {
@@ -75,6 +101,7 @@ export function stopYouTubePreview() {
   if (!host) return;
   host.querySelector("iframe")?.remove();
   host.hidden = true;
+  host.inert = false;
   active = undefined;
   trigger = undefined;
   positionPreview();
@@ -92,6 +119,9 @@ export function openYouTubePreview(preview: Preview, button?: HTMLElement, autop
       document.documentElement.appendChild(host);
     }
   }
+  const startTransform = !slot && !reducedMotion.matches
+    ? host.hidden ? belowViewport : host.inert ? getComputedStyle(host).transform : undefined
+    : undefined;
   const sameVideo = active?.embed === preview.embed;
   const from = sameVideo && Boolean(stage) !== Boolean(slot) ? previewBounds() : undefined;
   if (!sameVideo) {
@@ -113,7 +143,9 @@ export function openYouTubePreview(preview: Preview, button?: HTMLElement, autop
   active = preview;
   trigger = button;
   host.hidden = false;
+  host.inert = false;
   positionPreview(slot, from);
+  if (startTransform) animatePreview(host, [{ transform: startTransform }, { transform: "none" }]);
 }
 
 document.addEventListener("astro:before-swap", () => {
@@ -146,10 +178,7 @@ document.addEventListener("astro:page-load", () => {
 document.addEventListener("click", (event) => {
   const target = event.target instanceof Element ? event.target : null;
   if (target?.closest("[data-youtube-close]")) {
-    const previousTrigger = trigger;
-    stopYouTubePreview();
-    if (previousTrigger?.isConnected) previousTrigger.focus();
-    else document.querySelector<HTMLElement>("#main-content")?.focus();
+    closeFloatingPreview();
     return;
   }
   const link = target?.closest<HTMLAnchorElement>("[data-release-youtube]");

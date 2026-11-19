@@ -119,10 +119,21 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
   .release-tracks { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); overflow: hidden; }
   .release-tracks > li + .release-track-row, .release-tracks > li + .release-disc { border-top: 1px solid rgba(159, 180, 211, .1); }
   .release-disc { padding: .9rem 1rem .5rem; color: var(--muted); font: 700 .75rem/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
-  .release-track { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) minmax(4rem, 9rem) 4.5rem; align-items: center; gap: .9rem; min-height: 52px; padding: .55rem 1rem; color: inherit; text-decoration: none; }
-  .release-track-row { display: grid; grid-template-columns: minmax(0, 1fr); }
-  .release-track-row.has-preview { grid-template-columns: minmax(0, 1fr) 52px; }
-  .release-track-play { display: grid; place-items: center; width: 44px; height: 44px; align-self: center; border-radius: 10px; color: var(--accent); }
+  .release-track { display: grid; grid-template-columns: var(--track-number-width) minmax(0, 1fr) minmax(4rem, 9rem) 4.5rem; align-items: center; gap: .9rem; min-height: 52px; padding: .55rem var(--track-inset); color: inherit; text-decoration: none; }
+  .release-track-row { position: relative; --track-inset: 1rem; --track-number-width: 2.25rem; }
+  .release-track-play {
+    position: absolute;
+    inset-inline-start: calc(var(--track-inset) + (var(--track-number-width) - 44px) / 2);
+    top: 50%;
+    translate: 0 -50%;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    color: var(--accent);
+  }
+  .has-preview .release-track-number { opacity: 0; }
   .release-track-play:hover { background: rgba(var(--accent-rgb), .13); }
   .release-track-play:focus-visible { outline-offset: -2px; }
   .release-track:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
@@ -138,12 +149,15 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
   .release-track.is-top .release-track-number, .release-track.is-top .release-track-shows { color: var(--accent); }
   .release-track.is-top .release-track-bar span { background: var(--accent); }
   @media (hover: hover) and (pointer: fine) {
+    .has-preview:not(:hover, :focus-within) .release-track-number { opacity: 1; }
+    .has-preview:not(:hover, :focus-within) .release-track-play { opacity: 0; pointer-events: none; }
     .release-track { transition: background-color .15s ease; }
     .release-track:hover { background: rgba(255, 255, 255, .035); }
     .release-track:hover .release-track-title strong { color: var(--accent); }
   }
   @media (max-width: 560px) {
-    .release-track { grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: .6rem; padding: .55rem .8rem; }
+    .release-track-row { --track-inset: .8rem; --track-number-width: 1.75rem; }
+    .release-track { grid-template-columns: var(--track-number-width) minmax(0, 1fr) auto; gap: .6rem; }
     .release-track-title { flex-direction: column; align-items: flex-start; gap: .15rem; }
     .release-track-title strong, .release-track-title small { max-width: 100%; }
     .release-track-bar { grid-column: 2; grid-row: 2; margin-top: -.15rem; height: 4px; }

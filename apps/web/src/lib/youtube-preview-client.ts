@@ -8,6 +8,9 @@ let active: Preview | undefined;
 let host: HTMLElement | undefined;
 let stage: HTMLElement | undefined;
 let trigger: HTMLElement | undefined;
+let motion: Animation | undefined;
+let outgoingBounds: DOMRect | undefined;
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const layout = new ResizeObserver(positionInline);
 
 function positionInline() {
@@ -20,8 +23,16 @@ function positionInline() {
   host.style.height = `${stage.clientHeight}px`;
 }
 
-export function showYouTubeInline(slot?: HTMLElement) {
+function previewBounds() {
+  if (reducedMotion.matches || !host || host.hidden) return;
+  const bounds = host.querySelector("iframe")?.getBoundingClientRect();
+  if (bounds?.width && bounds.height && bounds.bottom > 0 && bounds.top < innerHeight) return bounds;
+}
+
+function positionPreview(slot?: HTMLElement, from?: DOMRect) {
   if (!host) return;
+  motion?.cancel();
+  host.removeAttribute("data-resizing");
   stage = slot;
   layout.disconnect();
   host.toggleAttribute("data-inline", Boolean(stage));
@@ -31,6 +42,29 @@ export function showYouTubeInline(slot?: HTMLElement) {
     layout.observe(document.body);
     positionInline();
   }
+  const to = from && previewBounds();
+  if (!from || !to) return;
+
+  // Animate the visible video bounds. The floating controls sit above the video.
+  const dx = from.left - to.left;
+  const dy = from.top - to.top;
+  if (Math.abs(dx) < 1 && Math.abs(dy) < 1 && Math.abs(from.width - to.width) < 1 && Math.abs(from.height - to.height) < 1) return;
+  const panel = host.getBoundingClientRect();
+  const transformOrigin = `${to.left - panel.left}px ${to.top - panel.top}px`;
+  const player = host;
+  const animation = player.animate([
+    { transform: `translate(${dx}px, ${dy}px) scale(${from.width / to.width}, ${from.height / to.height})`, transformOrigin },
+    { transform: "none", transformOrigin },
+  ], { duration: 270, easing: "cubic-bezier(.2, .75, .25, 1)" });
+  motion = animation;
+  player.setAttribute("data-resizing", "");
+  const clear = () => {
+    if (motion !== animation) return;
+    motion = undefined;
+    player.removeAttribute("data-resizing");
+  };
+  animation.addEventListener("finish", clear, { once: true });
+  animation.addEventListener("cancel", clear, { once: true });
 }
 
 export function currentYouTubePreview() {
@@ -43,10 +77,10 @@ export function stopYouTubePreview() {
   host.hidden = true;
   active = undefined;
   trigger = undefined;
-  showYouTubeInline();
+  positionPreview();
 }
 
-export function openYouTubePreview(preview: Preview, button?: HTMLElement, autoplay = false) {
+export function openYouTubePreview(preview: Preview, button?: HTMLElement, autoplay = false, slot?: HTMLElement) {
   const mount = document.querySelector<HTMLElement>("[data-youtube-preview]");
   if (!mount) return;
   if (!host) {
@@ -58,7 +92,9 @@ export function openYouTubePreview(preview: Preview, button?: HTMLElement, autop
       document.documentElement.appendChild(host);
     }
   }
-  if (active?.embed !== preview.embed) {
+  const sameVideo = active?.embed === preview.embed;
+  const from = sameVideo && Boolean(stage) !== Boolean(slot) ? previewBounds() : undefined;
+  if (!sameVideo) {
     const frame = document.createElement("iframe");
     const url = new URL(preview.embed);
     if (autoplay) url.searchParams.set("autoplay", "1");
@@ -77,9 +113,16 @@ export function openYouTubePreview(preview: Preview, button?: HTMLElement, autop
   active = preview;
   trigger = button;
   host.hidden = false;
+  positionPreview(slot, from);
 }
 
+document.addEventListener("astro:before-swap", () => {
+  outgoingBounds = stage ? previewBounds() : undefined;
+});
+
 document.addEventListener("astro:after-swap", () => {
+  const from = outgoingBounds;
+  outgoingBounds = undefined;
   if (!host) return;
   if (!host.isConnected || document.body.classList.contains("admin")) {
     stopYouTubePreview();
@@ -88,7 +131,7 @@ document.addEventListener("astro:after-swap", () => {
     return;
   }
   // The old music section was replaced. The incoming page can dock the player again.
-  showYouTubeInline();
+  if (stage) positionPreview(undefined, from);
 });
 
 document.addEventListener("astro:page-load", () => {
@@ -117,7 +160,6 @@ document.addEventListener("click", (event) => {
     title: link.dataset.trackTitle!,
     href: `${link.dataset.trackSong}#music-preview`,
   }, link, true);
-  showYouTubeInline();
   if (event.detail === 0) host?.querySelector<HTMLElement>("[data-youtube-return]")?.focus();
 });
 

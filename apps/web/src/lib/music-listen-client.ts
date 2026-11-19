@@ -1,4 +1,4 @@
-import { currentYouTubePreview, openYouTubePreview, showYouTubeInline, stopYouTubePreview } from "./youtube-preview-client";
+import { currentYouTubePreview, openYouTubePreview, stopYouTubePreview } from "./youtube-preview-client";
 
 type Provider = "apple_music" | "youtube";
 const PROVIDER_KEY = "music:listen:provider";
@@ -64,8 +64,7 @@ export function setupMusicListen(): void {
     if (!loaded) { frame?.remove(); return; }
     if (provider === "youtube") {
       frame?.remove();
-      openYouTubePreview({ embed, title: root.dataset.title!, href: returnHref() }, load, autoplay);
-      showYouTubeInline(stage);
+      openYouTubePreview({ embed, title: root.dataset.title!, href: returnHref() }, load, autoplay, stage);
       ownsYouTubePlayer = true;
       return;
     }

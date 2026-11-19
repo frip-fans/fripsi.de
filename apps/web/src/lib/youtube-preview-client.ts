@@ -186,11 +186,11 @@ document.addEventListener("click", (event) => {
     closeFloatingPreview();
     return;
   }
-  const link = target?.closest<HTMLAnchorElement>("[data-release-youtube]");
+  const link = target?.closest<HTMLAnchorElement>("[data-track-youtube]");
   if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
   event.preventDefault();
   openYouTubePreview({
-    embed: link.dataset.releaseYoutube!,
+    embed: link.dataset.trackYoutube!,
     title: link.dataset.trackTitle!,
     href: `${link.dataset.trackSong}#music-preview`,
   }, link, true);

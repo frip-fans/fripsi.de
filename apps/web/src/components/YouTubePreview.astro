@@ -9,7 +9,7 @@ const { locale } = Astro.props;
   <div class="youtube-preview-bar">
     <div class="youtube-preview-size" data-youtube-size role="slider" tabindex="0" aria-valuemin="240" aria-valuemax="640" aria-valuenow="356"
       aria-label={t(locale, "music.youtubeResize")} title={t(locale, "music.youtubeResize")}>
-      <Icon name="arrows-angle-expand" />
+      <span class="youtube-preview-size-mark" aria-hidden="true"></span>
     </div>
     <a data-youtube-return title={t(locale, "music.youtubeReturn")}>
       <span data-youtube-title translate="no"></span>
@@ -73,9 +73,30 @@ const { locale } = Astro.props;
     touch-action: none;
     user-select: none;
   }
-  .youtube-preview-size :global(.icon) { rotate: 90deg; }
-  .youtube-preview-size:hover, .youtube-preview-size:focus-visible { color: var(--text); }
-  .youtube-preview-bar :is(a, button, [role="slider"]):focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+  .youtube-preview-size-mark {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+  }
+  .youtube-preview-size-mark::before,
+  .youtube-preview-size-mark::after {
+    content: "";
+    position: absolute;
+    border-top: 1.5px solid currentColor;
+    border-left: 1.5px solid currentColor;
+    border-radius: 3px 0 0 0;
+  }
+  .youtube-preview-size-mark::before { inset: 7px 8px 8px 7px; }
+  .youtube-preview-size-mark::after { inset: 11px 8px 8px 11px; }
+  .youtube-preview-size:hover .youtube-preview-size-mark,
+  .youtube-preview-size:focus-visible .youtube-preview-size-mark {
+    color: var(--text);
+    background: rgba(255, 255, 255, .08);
+  }
+  .youtube-preview-size:focus-visible { outline: none; }
+  .youtube-preview-size:focus-visible .youtube-preview-size-mark { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .youtube-preview-bar :is(a, button):focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
   .youtube-preview :global(iframe) { display: block; width: 100%; min-height: 200px; aspect-ratio: 16 / 9; border: 0; }
   .youtube-preview[data-inline] :global(iframe) { height: 100%; min-height: 0; }
 </style>

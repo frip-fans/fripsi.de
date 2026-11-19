@@ -1,5 +1,5 @@
 ---
-import { changesSincePreviousStop, getSetlistById, getPublicTourPage, type TourCell, type TourMatrixColumn } from "@frip-fan/core";
+import { changesSincePreviousStop, getSetlistById, getPublicTourPage, listSongYouTubePreviews, type TourCell, type TourMatrixColumn } from "@frip-fan/core";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
 import SpoilerGuard from "../../../components/SpoilerGuard.astro";
@@ -7,6 +7,7 @@ import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { getLocale, t } from "../../../lib/i18n";
 import { formatMusicDate } from "../../../lib/music";
+import { youtubeLinks } from "../../../lib/music-listen";
 import "../../../styles/music.css";
 
 const locale = getLocale(Astro.request);
@@ -14,7 +15,10 @@ const tour = await getPublicTourPage(getEnv().DB, Astro.params.slug!);
 if (!tour || !tour.matrix.columns.length) return Astro.redirect("/404", 302);
 const { matrix } = tour;
 const openingId = matrix.columns[0]?.setlist_id;
-const openingSetlist = openingId ? await getSetlistById(getEnv().DB, openingId) : null;
+const [openingSetlist, youtubePreviews] = await Promise.all([
+  openingId ? getSetlistById(getEnv().DB, openingId) : null,
+  listSongYouTubePreviews(getEnv().DB, matrix.rows.map((row) => row.song_id)),
+]);
 const previousStop = Astro.url.searchParams.get("basis") !== "core";
 const basisHref = (basis: string) => {
   const url = new URL(Astro.url);
@@ -103,30 +107,40 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
                 </tr>
               </thead>
               <tbody>
-                {matrix.rows.map((row) => (
-                  <tr class:list={[row.kind && `is-${row.kind}`]}>
-                    <th scope="row" class="tour-song-col">
-                      <span class="tour-song-cell">
-                        <a href={`/music/songs/${encodeURIComponent(row.song_slug)}`} translate="no" title={row.song_title}>{row.song_title}</a>
-                        <span class="tour-song-meta">
-                          {(row.kind === "rotating" || row.kind === "once") && <span class:list={["tour-badge", `is-${row.kind}`]}>{t(locale, row.kind === "once" ? "music.tourOnceBadge" : "music.tourRotatingBadge")}</span>}
-                          <small class="tour-freq">{row.sung_count}/{matrix.setlist_count}</small>
+                {matrix.rows.map((row) => {
+                  const songHref = `/music/songs/${encodeURIComponent(row.song_slug)}`;
+                  const youtube = youtubeLinks(youtubePreviews.get(row.song_id));
+                  const playLabel = t(locale, "music.youtubePlay", { title: row.song_title });
+                  return (
+                    <tr class:list={[row.kind && `is-${row.kind}`]}>
+                      <th scope="row" class="tour-song-col">
+                        <span class="tour-song-cell">
+                          <a href={songHref} translate="no" title={row.song_title}>{row.song_title}</a>
+                          <span class="tour-song-meta">
+                            {(row.kind === "rotating" || row.kind === "once") && <span class:list={["tour-badge", `is-${row.kind}`]}>{t(locale, row.kind === "once" ? "music.tourOnceBadge" : "music.tourRotatingBadge")}</span>}
+                            <span class:list={["tour-freq-slot", { "has-preview": youtube }]}>
+                              <small class="tour-freq">{row.sung_count}/{matrix.setlist_count}</small>
+                              {youtube && <a class="tour-freq-play" href={youtube.page} target="_blank" rel="noreferrer"
+                                data-track-youtube={youtube.embed} data-track-title={row.song_title} data-track-song={songHref}
+                                aria-label={playLabel} title={playLabel}><Icon name="play-fill" /></a>}
+                            </span>
+                          </span>
                         </span>
-                      </span>
-                    </th>
-                    {row.cells.map((cell, index) => cell.state === "sung" ? (
-                      <td class:list={["is-sung", { "is-encore": isEncore(cell) }]} style={`--heat: ${heatColor(cell.position, matrix.columns[index].entry_count)}`}>{isEncore(cell) && <span class="tour-encore">E</span>}{cell.position}</td>
-                    ) : cell.state === "absent" ? (
-                      <td class="is-absent"><span aria-hidden="true">·</span><span class="visually-hidden">{t(locale, "music.tourLegendAbsent")}</span></td>
-                    ) : cell.state === "unknown" ? (
-                      <td class="is-unknown"><span aria-hidden="true">?</span><span class="visually-hidden">{t(locale, "music.tourLegendUnknown")}</span></td>
-                    ) : cell.state === "upcoming" ? (
-                      <td class="is-upcoming"><span class="visually-hidden">{t(locale, "music.tourUpcoming")}</span></td>
-                    ) : (
-                      <td class="is-missing"><span class="visually-hidden">{t(locale, "music.tourMissingSetlist")}</span></td>
-                    ))}
-                  </tr>
-                ))}
+                      </th>
+                      {row.cells.map((cell, index) => cell.state === "sung" ? (
+                        <td class:list={["is-sung", { "is-encore": isEncore(cell) }]} style={`--heat: ${heatColor(cell.position, matrix.columns[index].entry_count)}`}>{isEncore(cell) && <span class="tour-encore">E</span>}{cell.position}</td>
+                      ) : cell.state === "absent" ? (
+                        <td class="is-absent"><span aria-hidden="true">·</span><span class="visually-hidden">{t(locale, "music.tourLegendAbsent")}</span></td>
+                      ) : cell.state === "unknown" ? (
+                        <td class="is-unknown"><span aria-hidden="true">?</span><span class="visually-hidden">{t(locale, "music.tourLegendUnknown")}</span></td>
+                      ) : cell.state === "upcoming" ? (
+                        <td class="is-upcoming"><span class="visually-hidden">{t(locale, "music.tourUpcoming")}</span></td>
+                      ) : (
+                        <td class="is-missing"><span class="visually-hidden">{t(locale, "music.tourMissingSetlist")}</span></td>
+                      ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -396,6 +410,31 @@ const changesByColumn = new Map(matrix.changes.map((change) => [change.column_in
   tbody .tour-song-col a:hover { color: var(--accent); }
   tbody .tour-song-col { color: var(--text); font-size: .84rem; }
   .tour-freq { display: inline-flex; flex: none; align-items: center; gap: .4rem; color: var(--muted); font-size: .7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tour-freq-slot { position: relative; display: inline-flex; align-items: center; justify-content: center; }
+  tbody .tour-song-col .tour-freq-play {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    color: var(--accent);
+    border-radius: 8px;
+  }
+  .tour-freq-play:hover, .tour-freq-play:focus-visible { background: rgba(var(--accent-rgb), .15); }
+  .tour-freq-play:focus-visible { outline-offset: -2px; }
+  @media (hover: hover) and (pointer: fine) {
+    .tour-freq-slot.has-preview { min-width: 32px; }
+    tbody .tour-song-col .tour-freq-play {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      translate: -50% -50%;
+      width: 32px;
+      height: 32px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    tbody tr:is(:hover, :focus-within) .has-preview .tour-freq { opacity: 0; }
+    tbody tr:is(:hover, :focus-within) .tour-song-col .tour-freq-play { opacity: 1; pointer-events: auto; }
+  }
   /* Row hover tints the song name and empty cells only; heat cells keep their colour and brighten. */
   tbody tr:hover > td:not(.is-sung) { background-color: rgba(var(--accent-rgb), .08); }
   tbody tr:hover .tour-song-col { background-color: #142a45; }

@@ -1,5 +1,5 @@
 import { eventTourStopSql } from "./event-display";
-import { countPublicSetlistsSince, listSetlistYears } from "./music-repository";
+import { countPublicSetlistsSince, listSetlistYears, listSongYouTubePreviews } from "./music-repository";
 
 export interface SpotlightPerformance {
   setlist_id: string;
@@ -33,6 +33,7 @@ export interface SongSpotlight {
   release_count: number;
   /** The release the card shows art for: one with a cover if there is one, else the earliest. */
   release: SpotlightRelease | null;
+  youtube_video_id: string | null;
   /** Archived setlists containing the song; a medley reprise counts once. */
   show_count: number;
   first_performance: SpotlightPerformance | null;
@@ -85,7 +86,7 @@ export async function getSongSpotlight(db: D1Database, seed: string): Promise<So
   const song = candidates.results[pickSpotlightIndex(seed, candidates.results.length)];
   if (!song) return null;
 
-  const [counts, releaseRow, firstRow, lastRow, sungYears, totalYears] = await Promise.all([
+  const [counts, releaseRow, firstRow, lastRow, sungYears, totalYears, youtubePreviews] = await Promise.all([
     db.prepare(`
       SELECT
         (SELECT COUNT(DISTINCT sl.id) ${performedSetlists} WHERE se.song_id = ?) AS show_count,
@@ -115,6 +116,7 @@ export async function getSongSpotlight(db: D1Database, seed: string): Promise<So
       GROUP BY substr(e.start_date, 1, 4)
     `).bind(song.id).all<{ year: string; sung: number }>(),
     listSetlistYears(db),
+    listSongYouTubePreviews(db, [song.id]),
   ]);
 
   // The rate counts only shows the song could have appeared at: released songs from their release
@@ -139,6 +141,7 @@ export async function getSongSpotlight(db: D1Database, seed: string): Promise<So
     first_release_date: song.first_release_date,
     release_count: Number(counts?.release_count ?? 0),
     release: releaseRow ?? null,
+    youtube_video_id: youtubePreviews.get(song.id) ?? null,
     show_count: Number(counts?.show_count ?? 0),
     first_performance: firstRow ?? null,
     last_performance: lastRow ?? null,

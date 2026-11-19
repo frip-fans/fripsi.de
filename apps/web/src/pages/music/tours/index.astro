@@ -1,9 +1,7 @@
 ---
-import { dateInTimeZone, listPublicTourStops, listTours, type TourListStop } from "@frip-fan/core";
+import { dateInTimeZone, listPublicTourStops, listTours } from "@frip-fan/core";
 import MusicListState from "../../../components/MusicListState.astro";
 import MusicNav from "../../../components/MusicNav.astro";
-import TourRouteLines from "../../../components/TourRouteLines.astro";
-import TourStopTrack, { type TrackStop } from "../../../components/TourStopTrack.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { getLocale, t } from "../../../lib/i18n";
@@ -13,14 +11,21 @@ import "../../../styles/music.css";
 const locale = getLocale(Astro.request);
 const today = dateInTimeZone();
 const [allTours, stopsByTour] = await Promise.all([listTours(getEnv().DB, { publicOnly: true }), listPublicTourStops(getEnv().DB, today)]);
+const MAX_PROGRESS_SEGMENTS = 24;
+let previousYear: string | null = null;
 const tours = allTours.filter((tour) => tour.stop_count > 0).map((tour) => {
   const stops = stopsByTour.get(tour.id) ?? [];
-  // On the road: the first stop has come and at least one is still ahead (today's included).
-  const next = stops[0]?.state !== "upcoming" ? stops.find((stop) => stop.state !== "done") : undefined;
-  // A lit dot is a stop with a setlist, a dim one was played without one, an open one is still to come.
-  const tone = (stop: TourListStop): TrackStop["tone"] => stop.has_setlist ? "lit" : stop.state === "done" ? "dim" : "open";
-  const track: TrackStop[] = stops.map((stop) => ({ label: stop.stop_label, date: stop.start_date, tone: tone(stop), next: stop === next }));
-  return { ...tour, track, live: Boolean(next) };
+  const upcoming = stops.length > 0 && stops[0].state === "upcoming";
+  // A tour is in progress once it has started and still has a stop today or later.
+  const next = !upcoming ? stops.find((stop) => stop.state !== "done") : undefined;
+  const done = stops.filter((stop) => stop.state === "done").length;
+  const showProgress = Boolean(next && stops.length > 1);
+  const useSegments = stops.length <= MAX_PROGRESS_SEGMENTS;
+  const progressPct = stops.length ? Math.round((done / stops.length) * 100) : 0;
+  const year = tour.first_date?.slice(0, 4) ?? null;
+  const showYear = Boolean(year && year !== previousYear);
+  if (year) previousYear = year;
+  return { ...tour, stops, upcoming, next, done, showProgress, useSegments, progressPct, year, showYear };
 });
 const range = (first: string | null, last: string | null) => !first ? t(locale, "common.datePending")
   : first === last ? formatMusicDate(first, locale) : `${formatMusicDate(first, locale)} – ${formatMusicDate(last, locale)}`;
@@ -32,39 +37,391 @@ const range = (first: string | null, last: string | null) => !first ? t(locale, 
     <section class="music-section music-list-section" aria-labelledby="tours-heading">
       <h1 id="tours-heading" class="visually-hidden">{t(locale, "music.nav.tours")}</h1>
       {tours.length ? (
-        <div class="music-grid tour-grid" data-page-entry>
+        <ol class="tour-timeline" data-page-entry>
           {tours.map((tour) => (
-            <a class:list={["music-card", "tour-card", { "is-live": tour.live }]} href={`/music/tours/${encodeURIComponent(tour.slug)}`}>
-              <TourRouteLines animated={tour.live} />
-              <p class="tour-card-date">
-                <span>{range(tour.first_date, tour.last_date)}</span>
-                {tour.live && <span class="tour-card-live"><i aria-hidden="true"></i>{t(locale, "home.tourLive")}</span>}
-              </p>
-              <h2 translate="no">{tour.name}</h2>
-              <TourStopTrack stops={tour.track} label={t(locale, "music.tourStops", { count: tour.stop_count })} showDates={false} />
-              <p class="music-card-meta">
-                <span>{t(locale, "music.tourStops", { count: tour.stop_count })}</span>
-                <span aria-hidden="true">·</span>
-                <span>{t(locale, "music.tourSetlistStops", { count: tour.setlist_stop_count })}</span>
-              </p>
-            </a>
+            <li class:list={["tour-timeline-item", { "is-year-start": tour.showYear, "is-live": tour.next, "is-upcoming": tour.upcoming }]}>
+              {tour.showYear ? (
+                <span class="tour-timeline-year" aria-hidden="true">{tour.year}</span>
+              ) : (
+                <span class="tour-timeline-year is-empty" aria-hidden="true"></span>
+              )}
+              <span class="tour-timeline-node" aria-hidden="true"></span>
+              <a
+                class:list={["music-card", "tour-card", { "is-live": tour.next, "is-upcoming": tour.upcoming }]}
+                href={`/music/tours/${encodeURIComponent(tour.slug)}`}
+              >
+                <p class="tour-card-date">{range(tour.first_date, tour.last_date)}</p>
+                {tour.next ? (
+                  <span class="tour-card-badge is-live">
+                    <i aria-hidden="true"></i>
+                    <span>
+                      {t(locale, tour.next.state === "today" ? "home.tourToday" : tour.next.stop_label ? "music.nextStop" : "home.tourLive")}
+                      {tour.next.stop_label && <> <span aria-hidden="true">·</span> <span translate="no">{tour.next.stop_label.replace(/公演$/, "")}</span></>}
+                    </span>
+                  </span>
+                ) : tour.upcoming && (
+                  <span class="tour-card-badge is-upcoming">
+                    <i aria-hidden="true"></i>
+                    <span>{t(locale, "music.tourUpcoming")}</span>
+                  </span>
+                )}
+                <h2 class="tour-card-title" translate="no">{tour.name}</h2>
+                {tour.showProgress && (
+                  <div class="tour-card-progress">
+                    {tour.useSegments ? (
+                      <div
+                        class="tour-progress-segments"
+                        role="img"
+                        aria-label={t(locale, "home.tourProgress", { done: tour.done, count: tour.stops.length })}
+                      >
+                        {tour.stops.map((stop) => (
+                          <span
+                            class:list={["tour-progress-seg", {
+                              "is-done": stop.state === "done",
+                              "is-next": stop === tour.next,
+                            }]}
+                          ></span>
+                        ))}
+                      </div>
+                    ) : (
+                      <div
+                        class="tour-progress-bar"
+                        role="img"
+                        aria-label={t(locale, "home.tourProgress", { done: tour.done, count: tour.stops.length })}
+                      >
+                        <span class="tour-progress-fill" style={`width: ${tour.progressPct}%`}></span>
+                      </div>
+                    )}
+                    <span class="tour-progress-count" aria-hidden="true">{tour.done}/{tour.stops.length}</span>
+                  </div>
+                )}
+                <p class="music-card-meta tour-card-meta">
+                  {t(locale, "music.tourStops", { count: tour.stop_count })}
+                </p>
+              </a>
+            </li>
           ))}
-        </div>
+        </ol>
       ) : <div class="music-empty panel">{t(locale, "music.toursEmpty")}</div>}
     </section>
   </div>
 </SiteLayout>
 
 <style>
-  /* Isolated and clipped for the route lines behind the text (see TourRouteLines). */
-  .tour-card { align-content: start; isolation: isolate; overflow: hidden; }
-  .tour-card.is-live { border-color: rgba(var(--accent-rgb), .32); }
-  .tour-card-date { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .2rem .75rem; color: var(--accent); font-size: .8125rem; font-weight: 650; font-variant-numeric: tabular-nums; }
-  .tour-card-live { display: inline-flex; align-items: center; gap: .4rem; font-size: .75rem; font-weight: 700; letter-spacing: .04em; }
-  .tour-card-live i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
-  .tour-card h2 { font-size: 1.05rem; }
-  .tour-card :global(.tour-track) { margin-top: .2rem; }
-  @media (max-width: 560px) {
-    .tour-grid { grid-template-columns: 1fr; }
+  .tour-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .tour-timeline-item {
+    --year-col: 3.5rem;
+    --rail-col: 1.5rem;
+    --col-gap: .7rem;
+    --rail-x: calc(var(--year-col) + var(--col-gap) + (var(--rail-col) / 2));
+    --node-y: 1.5rem;
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--year-col) var(--rail-col) minmax(0, 1fr);
+    column-gap: var(--col-gap);
+    align-items: start;
+    padding-bottom: .8rem;
+  }
+  .tour-timeline-item.is-year-start:not(:first-child) {
+    --node-y: 1.9rem;
+    padding-top: .4rem;
+  }
+  .tour-timeline-item:last-child {
+    padding-bottom: 0;
+  }
+  .tour-timeline-item::before {
+    content: "";
+    position: absolute;
+    left: var(--rail-x);
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-50%);
+    background: rgba(173, 206, 231, .2);
+    pointer-events: none;
+  }
+  .tour-timeline-item:first-child::before {
+    top: var(--node-y);
+  }
+  .tour-timeline-item:last-child::before {
+    bottom: auto;
+    height: var(--node-y);
+  }
+  .tour-timeline-item:only-child::before {
+    display: none;
+  }
+
+  .tour-timeline-year {
+    padding-top: .98rem;
+    color: var(--muted);
+    font-size: .875rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: right;
+    letter-spacing: .02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .tour-timeline-item.is-live .tour-timeline-year {
+    color: var(--text);
+  }
+  .tour-timeline-year.is-empty {
+    padding-top: 0;
+  }
+
+  .tour-timeline-node {
+    position: relative;
+    z-index: 1;
+    justify-self: center;
+    width: .6rem;
+    height: .6rem;
+    margin-top: 1.2rem;
+    border-radius: 50%;
+    border: 1.5px solid #6b7d99;
+    background: #6b7d99;
+    box-sizing: border-box;
+    transition: transform .18s, border-color .18s, background-color .18s, box-shadow .18s;
+  }
+  .tour-timeline-item.is-upcoming .tour-timeline-node {
+    border-color: var(--muted);
+    background: var(--bg);
+  }
+  .tour-timeline-item.is-live .tour-timeline-node {
+    width: .7rem;
+    height: .7rem;
+    margin-top: 1.15rem;
+    border-color: var(--accent);
+    background: var(--accent);
+    box-shadow: 0 0 0 4px rgba(var(--accent-rgb), .2), 0 0 12px rgba(var(--accent-rgb), .65);
+  }
+  .tour-timeline-item:has(.tour-card:hover) .tour-timeline-node {
+    border-color: var(--accent);
+    transform: scale(1.15);
+  }
+
+  .tour-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: .4rem 1.75rem;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: rgba(9, 20, 36, .84);
+    backdrop-filter: blur(14px);
+  }
+  .tour-card:hover { background: rgba(14, 29, 49, .92); }
+  .tour-card.is-live {
+    border-color: rgba(var(--accent-rgb), .42);
+    background:
+      linear-gradient(135deg, rgba(var(--accent-rgb), .08), transparent 58%),
+      rgba(9, 20, 36, .88);
+    box-shadow: inset 0 1px 0 rgba(var(--accent-rgb), .18);
+  }
+  .tour-card.is-live:hover {
+    border-color: rgba(var(--accent-rgb), .6);
+    background:
+      linear-gradient(135deg, rgba(var(--accent-rgb), .11), transparent 58%),
+      rgba(14, 29, 49, .94);
+  }
+  .tour-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .tour-card-date {
+    grid-column: 1;
+    grid-row: 1;
+    color: var(--muted);
+    font-size: .8125rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .tour-card-badge {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .22rem .55rem;
+    border-radius: 999px;
+    font-size: .75rem;
+    font-weight: 600;
+    line-height: 1.2;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .tour-card-badge i {
+    flex: none;
+    width: .38rem;
+    height: .38rem;
+    border-radius: 50%;
+    box-sizing: border-box;
+  }
+  .tour-card-badge.is-live {
+    color: var(--accent);
+    background: rgba(var(--accent-rgb), .12);
+    border: 1px solid rgba(var(--accent-rgb), .3);
+  }
+  .tour-card-badge.is-live i {
+    background: var(--accent);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), .65);
+  }
+  .tour-card-badge.is-upcoming {
+    color: var(--muted);
+    background: rgba(173, 206, 231, .07);
+    border: 1px solid rgba(173, 206, 231, .2);
+  }
+  .tour-card-badge.is-upcoming i {
+    border: 1.5px solid var(--muted);
+    background: transparent;
+  }
+
+  .tour-card-title {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 1.08rem;
+    line-height: 1.38;
+    letter-spacing: -.01em;
+  }
+
+  .tour-card-progress {
+    grid-column: 1;
+    grid-row: 3;
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    max-width: 34rem;
+    padding-top: .35rem;
+  }
+  .tour-progress-segments {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tour-progress-seg {
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(173, 206, 231, .16);
+  }
+  .tour-progress-seg.is-done {
+    background: rgba(var(--accent-rgb), .48);
+  }
+  .tour-progress-seg.is-next {
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), .55);
+  }
+  .tour-progress-bar {
+    flex: 1;
+    min-width: 0;
+    height: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(173, 206, 231, .16);
+  }
+  .tour-progress-fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+  }
+  .tour-progress-count {
+    flex: none;
+    color: var(--muted);
+    font-size: .75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tour-card-meta {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    justify-self: end;
+    align-self: center;
+    justify-content: flex-end;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .tour-card:has(.tour-card-badge) .tour-card-meta {
+    grid-row: 2;
+    align-self: end;
+  }
+  .tour-card:has(.tour-card-progress) .tour-card-meta {
+    grid-row: 3;
+    align-self: center;
+    padding-top: .35rem;
+  }
+
+  @media (max-width: 720px) {
+    .tour-card {
+      grid-template-columns: 1fr;
+      gap: .5rem;
+    }
+    .tour-card-date,
+    .tour-card-badge,
+    .tour-card-title,
+    .tour-card-progress,
+    .tour-card-meta,
+    .tour-card:has(.tour-card-badge) .tour-card-meta,
+    .tour-card:has(.tour-card-progress) .tour-card-meta {
+      grid-column: 1;
+      grid-row: auto;
+      justify-self: start;
+      align-self: auto;
+    }
+    .tour-card-progress {
+      justify-self: stretch;
+      max-width: none;
+      padding-top: .2rem;
+    }
+    .tour-card-meta {
+      justify-content: flex-start;
+      white-space: normal;
+      padding-top: .15rem;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .tour-timeline-item {
+      --rail-col: 1.15rem;
+      --col-gap: .55rem;
+      --rail-x: calc(var(--rail-col) / 2);
+      --node-y: 1.5rem;
+      grid-template-columns: var(--rail-col) minmax(0, 1fr);
+    }
+    .tour-timeline-item.is-year-start {
+      --node-y: 3.05rem;
+    }
+    .tour-timeline-item.is-year-start:not(:first-child) {
+      --node-y: 3.45rem;
+    }
+    .tour-timeline-year {
+      grid-column: 2;
+      grid-row: 1;
+      padding: 0 0 .45rem;
+      font-size: .8125rem;
+      text-align: left;
+    }
+    .tour-timeline-year.is-empty {
+      display: none;
+    }
+    .tour-timeline-node {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .tour-card {
+      grid-column: 2;
+      grid-row: 2;
+      padding: .95rem 1rem;
+    }
+    .tour-card-title {
+      font-size: 1.02rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tour-timeline-node { transition: none; }
   }
 </style>

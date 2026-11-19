@@ -28,17 +28,20 @@
    FRIP_STAGING_ACCESS_CLIENT_SECRET=...
    ```
 
-使用：请求带上两个头即可通过 Access，应用再从 Access 签发的 JWT 里识别身份。
+同一令牌轮换 Secret 后，在运行 agent 的机器上用本地编辑器更新上述文件中的 `FRIP_STAGING_ACCESS_CLIENT_SECRET`。如更换 Client ID，同时更新本地 ID、引用旧令牌的 Access 策略和测试机的 `STAGING_SERVICE_CLIENTS`，并重启测试机应用。发生泄露时还须立即使旧 Secret 失效、撤销已有会话并检查 Access 与 staging 的审计记录。
+
+### Agent 验收入口
+
+在仓库根目录运行。浏览器检查用项目锁定的 Playwright 和 Chromium；首次可用 `npm ci` 和 `npx playwright install chromium` 准备环境。
 
 ```bash
-. ~/.config/fripside/staging-agent.env
-curl --fail -H "CF-Access-Client-Id: $FRIP_STAGING_ACCESS_CLIENT_ID" \
-  -H "CF-Access-Client-Secret: $FRIP_STAGING_ACCESS_CLIENT_SECRET" https://staging.fripsi.de/healthz
+python3 -I ops/staging-check/check.py
+python3 -I ops/staging-check/check.py '/music/tours?lang=zh-CN' 'main h1'
 ```
 
-Access 会在响应里下发 `CF_Authorization` cookie；需要用浏览器检查页面时，把这个 cookie 设进浏览器即可，不必让浏览器发送 Secret。
+第一条校验健康响应。第二条在 Linux / WSL 的一次性无头浏览器中打开指定 staging 路径并断言元素可见。凭据文件使用上面的简单 `KEY=value` 格式，权限须为 0600。工具直接读取文件，请勿提前 source、导出 Secret 或用 Playwright 请求头传递令牌。认证仅请求固定主机，不跟随重定向。若 Access 不签发会话 cookie，浏览器检查会报告无法执行。
 
-撤销：在 Zero Trust 里删除或轮换服务令牌，并从 `STAGING_SERVICE_CLIENTS` 移除它的 Client ID。测试库里可能有来自生产快照的数据，令牌泄漏等同于泄漏测试站的全部内容，按密钥保管。
+浏览器通过匿名管道接收短期 cookie，用 `/dev/shm` 暂存一次性配置。工具仅报告预定义结果，丢弃浏览器进程树的标准输出和错误输出。需要验证进一步交互时，沿用此隔离入口增加针对页面的断言；不要为调试开启请求转储、trace、HAR、持久化登录状态或输出原始异常。可见性检查只证明给定元素可见，交互验收应报告实际操作的流程。
 
 ## 更新测试站
 

@@ -4,6 +4,7 @@ interface Props {
   description?: string;
   admin?: boolean;
   clientRouting?: boolean;
+  releaseBackdrop?: boolean;
   /** Schema.org data for this page, rendered as JSON-LD. */
   structuredData?: unknown;
 }
@@ -11,7 +12,9 @@ import { ClientRouter } from "astro:transitions";
 import { YAGINUMA_CALIBRATOR_ENABLED } from "../lib/features";
 import { getEnv } from "../lib/env";
 import { getLocale, t } from "../lib/i18n";
+import MusicCoverBackdrop from "../components/MusicCoverBackdrop.astro";
 import Icon from "../components/Icon.astro";
+import YouTubePreview from "../components/YouTubePreview.astro";
 import NavigationLoading from "../components/NavigationLoading.astro";
 import NavigationDiagnostics from "../components/NavigationDiagnostics.astro";
 import routerBootstrap from "../scripts/router-bootstrap.js?url";
@@ -33,6 +36,7 @@ const {
   description,
   structuredData,
   admin = false,
+  releaseBackdrop = false,
   clientRouting = !/^\/(journey|yaginuma-intensity-calibrator)(?:\/|$)/.test(Astro.url.pathname)
 } = Astro.props;
 const current = Astro.url.pathname;
@@ -130,14 +134,20 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   <body class:list={{ admin }}>
     <div class="safe-area-top" aria-hidden="true"></div>
     <a class="skip-link" href="#main-content">{t(locale, "nav.skip")}</a>
-    <div class="background-rotator" data-background-rotator={rotateHomeBackground || undefined} aria-hidden="true">
-      <div class="space-backdrop moon-backdrop is-active" data-background-slide style={`--space-image: url("${moonBackground}"); --space-position: center top`}></div>
-      {rotateHomeBackground && (
-        <div class="space-backdrop iss-backdrop" data-background-slide style={`--space-image: url("${issBackground}"); --space-position: center 18%`}></div>
-      )}
-    </div>
-    <div class="ambient ambient-a"></div>
-    <div class="ambient ambient-b"></div>
+    {releaseBackdrop ? (
+      <MusicCoverBackdrop />
+    ) : (
+      <>
+        <div class="background-rotator" data-background-rotator={rotateHomeBackground || undefined} aria-hidden="true">
+          <div class="space-backdrop moon-backdrop is-active" data-background-slide style={`--space-image: url("${moonBackground}"); --space-position: center top`}></div>
+          {rotateHomeBackground && (
+            <div class="space-backdrop iss-backdrop" data-background-slide style={`--space-image: url("${issBackground}"); --space-position: center 18%`}></div>
+          )}
+        </div>
+        <div class="ambient ambient-a"></div>
+        <div class="ambient ambient-b"></div>
+      </>
+    )}
     <header class="site-header">
       <a class="brand" href={admin ? "/admin" : "/"} aria-label={siteName}>
         {admin ? (
@@ -243,6 +253,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
         <AdminChatDock state={chatDock} />
       </div>
     )}
+    {!admin && <YouTubePreview locale={locale} />}
   </body>
 </html>
 
@@ -259,6 +270,14 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   import "../lib/public-navigation";
   import { setupPageEntryTransitions } from "../lib/page-entry-navigation";
   setupPageEntryTransitions();
+
+  // Mouse and touch readers can still select text. Keyboard caret browsing stays available.
+  document.addEventListener("pointerdown", () => {
+    document.body.toggleAttribute("data-pointer-caret", true);
+  }, true);
+  document.addEventListener("keydown", () => {
+    document.body.removeAttribute("data-pointer-caret");
+  }, true);
 
   // Record the exact source URL (including filters and fragment) before opening a music detail.
   document.addEventListener("click", event => {
@@ -437,7 +456,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
     cleanupBackground?.();
     const controller = new AbortController();
     const { signal } = controller;
-    const backgroundRotator = document.querySelector<HTMLElement>("[data-background-rotator]");
+    const backgroundRotator = document.querySelector<HTMLElement>("body > [data-background-rotator]");
     const backgroundSlides = [...(backgroundRotator?.querySelectorAll<HTMLElement>("[data-background-slide]") ?? [])];
     const reducedBackgroundMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let activeBackgroundIndex = 0;
@@ -473,7 +492,32 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
     startBackgroundRotation();
     cleanupBackground = () => { stopBackgroundRotation(); controller.abort(); };
   };
-  document.addEventListener("astro:before-swap", () => cleanupBackground?.());
+  document.addEventListener("astro:before-swap", event => {
+    cleanupBackground?.();
+    const cover = document.querySelector<HTMLCanvasElement>("body > [data-release-backdrop]");
+    if ((!cover && !event.newDocument.querySelector("[data-release-backdrop]")) ||
+        matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const layers = document.querySelectorAll<HTMLElement>("body > .background-rotator, body > .ambient, body > .release-backdrop");
+    const bounds = cover?.getBoundingClientRect();
+    document.addEventListener("astro:after-swap", () => {
+      const outgoing = document.createElement("div");
+      outgoing.className = "outgoing-backdrop";
+      outgoing.setAttribute("aria-hidden", "true");
+      // Keep the previous sleeve glow at its pre-navigation scroll position.
+      if (cover && bounds) {
+        cover.removeAttribute("data-release-backdrop");
+        cover.style.top = bounds.top + "px";
+        cover.style.height = bounds.height + "px";
+      }
+      layers.forEach(layer => outgoing.appendChild(layer));
+      document.body.insertBefore(outgoing, document.body.firstChild);
+      const fade = outgoing.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: 440, easing: "ease-out", fill: "forwards"
+      });
+      fade.finished.then(() => outgoing.remove(), () => outgoing.remove());
+    }, { once: true });
+  });
   document.addEventListener("astro:page-load", setupBackground);
   setupBackground();
 </script>
@@ -511,6 +555,8 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
     /* Keep Safari's top-edge color sampling off scrolling cards and background art. */
     .safe-area-top { display: block; position: fixed; z-index: 1000; inset: 0 0 auto; height: max(1px, var(--safe-area-top)); background: var(--bg); pointer-events: none; }
   }
+  body[data-pointer-caret] { caret-color: transparent; }
+  :where(input, textarea, :read-write) { caret-color: auto; }
   a { color: inherit; }
   :where(a, button, input, select, textarea, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   #main-content:focus { outline: none; }
@@ -522,6 +568,26 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   a, button, summary { touch-action: manipulation; }
   button, input, select, textarea { font: inherit; }
   button, .button { cursor: pointer; }
+  .outgoing-backdrop { position: fixed; inset: 0; z-index: -1; background: var(--bg); pointer-events: none; overflow: hidden; }
+  .release-backdrop {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: -3;
+    width: 100%;
+    height: min(100%, 58rem);
+    opacity: 0;
+    transition: opacity 360ms ease-out;
+    filter: saturate(1.65);
+    mask-image: radial-gradient(ellipse 78% 72% at 28% 27%, #000 0%, #000a 42%, transparent 100%);
+    pointer-events: none;
+  }
+  .release-backdrop[data-painted] { opacity: .42; }
+  @media (prefers-reduced-motion: reduce) {
+    .release-backdrop { transition: none; }
+  }
+  @media (max-width: 640px) {
+    .release-backdrop { mask-image: radial-gradient(ellipse 105% 62% at 45% 23%, #000, transparent); }
+  }
   .background-rotator { position: fixed; z-index: -3; inset: 0; overflow: hidden; pointer-events: none; background: var(--bg); }
   .space-backdrop {
     position: absolute;

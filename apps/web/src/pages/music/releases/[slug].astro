@@ -7,6 +7,7 @@ import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import { formatMusicDate, releaseTypeLabel } from "../../../lib/music";
 import { getLocale, t } from "../../../lib/i18n";
+import { youtubeLinks } from "../../../lib/music-listen";
 import "../../../styles/music.css";
 
 const locale = getLocale(Astro.request);
@@ -22,11 +23,11 @@ const ringLength = 2 * Math.PI * ringRadius;
 const ringFill = vocalTracks.length ? (performedTracks / vocalTracks.length) * ringLength : 0;
 const performedLabel = t(locale, "music.performedRate", { performed: performedTracks, total: vocalTracks.length });
 ---
-<SiteLayout title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
-  <div class="music-page" data-music-detail>
+<SiteLayout releaseBackdrop title={release.title} description={t(locale, "music.releaseDescription", { title: release.title })}>
+  <div class="music-page" data-music-detail data-cover-theme>
     <MusicBackLink href="/music/releases" storageKey="music:list:releases" label={t(locale, "music.backReleases")} />
     <header class="music-detail-head release-detail-header" data-page-entry>
-      <div>
+      <div data-theme-cover>
         <ReleaseCover url={release.cover_url} alt={t(locale, "music.coverAlt", { title: release.title })} eager />
         {release.cover_url && release.cover_source_url && <a class="release-cover-source" href={release.cover_source_url} target="_blank" rel="noreferrer">{t(locale, "music.coverSource")} <Icon name="box-arrow-up-right" /></a>}
       </div>
@@ -63,12 +64,15 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
             const top = !instrumental && maxShows > 0 && shows === maxShows;
             // "original" is the default and the instrumental status already shows on the right, so neither needs a label.
             const rawVersion = track.version_label || (track.version_title !== track.song_title ? track.version_title : "");
+            const youtube = youtubeLinks(track.youtube_video_id);
+            const songHref = `/music/songs/${encodeURIComponent(track.song_slug)}`;
+            const playLabel = t(locale, "music.youtubePlay", { title: track.display_title });
             const version = instrumental || rawVersion.trim().toLowerCase() === "original" ? "" : rawVersion;
             return (
               <>
                 {beginsDisc && release.tracks.some((item) => item.disc_number > 1) && <li class="release-disc" aria-hidden="true">{t(locale, "music.disc", { disc: track.disc_number })}</li>}
-                <li>
-                  <a class:list={["release-track", { "is-top": top, "is-silent": instrumental || shows === 0 }]} href={`/music/songs/${encodeURIComponent(track.song_slug)}`}>
+                <li class:list={["release-track-row", { "has-preview": youtube }]}>
+                  <a class:list={["release-track", { "is-top": top, "is-silent": instrumental || shows === 0 }]} href={songHref}>
                     <span class="release-track-number">{String(track.track_number).padStart(2, "0")}</span>
                     <span class="release-track-title"><strong translate="no">{track.display_title}</strong>{version && <small translate="no">{version}</small>}</span>
                     {instrumental || shows === 0 ? (
@@ -80,6 +84,10 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
                       </>
                     )}
                   </a>
+                  {youtube && <a class="release-track-play" href={youtube.page} target="_blank" rel="noreferrer"
+                    data-track-youtube={youtube.embed} data-track-title={track.display_title} data-track-song={songHref} aria-label={playLabel} title={playLabel}>
+                    <Icon name="play-fill" />
+                  </a>}
                 </li>
               </>
             );
@@ -108,12 +116,35 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
   .release-rate strong { font-size: 1.5rem; line-height: 1; }
   .release-rate span { color: var(--muted); font-weight: 650; }
   .release-rate small { grid-column: 1 / -1; color: var(--muted); font-size: .8125rem; }
-  .release-tracks { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); overflow: hidden; }
-  .release-tracks > li + li .release-track, .release-tracks > li + .release-disc { border-top: 1px solid rgba(159, 180, 211, .1); }
+  .release-tracks { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 14px; background: rgba(15, 17, 23, .72); overflow: hidden; }
+  .release-tracks > li + .release-track-row, .release-tracks > li + .release-disc { border-top: 1px solid rgba(159, 180, 211, .1); }
   .release-disc { padding: .9rem 1rem .5rem; color: var(--muted); font: 700 .75rem/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
-  .release-track { display: grid; grid-template-columns: 2.25rem minmax(0, 1fr) minmax(4rem, 9rem) 4.5rem; align-items: center; gap: .9rem; min-height: 52px; padding: .55rem 1rem; color: inherit; text-decoration: none; }
+  .release-track { display: grid; grid-template-columns: var(--track-number-width) minmax(0, 1fr) minmax(4rem, 9rem) 4.5rem; align-items: center; gap: .9rem; min-height: 52px; padding: .55rem var(--track-inset); color: inherit; text-decoration: none; }
+  .release-track-row { position: relative; --track-inset: 1rem; --track-number-width: 2.25rem; }
+  .release-track-play {
+    position: absolute;
+    inset-inline-start: calc(var(--track-inset) + (var(--track-number-width) - 44px) / 2);
+    top: 50%;
+    translate: 0 -50%;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    color: var(--accent);
+  }
+  .has-preview .release-track-number { opacity: 0; }
+  .release-track-play:hover { background: rgba(var(--accent-rgb), .13); }
+  .release-track-play:focus-visible { outline-offset: -2px; }
   .release-track:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .release-track-number { color: var(--muted); font: 700 .8rem/1 ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .release-track-number {
+    color: var(--muted);
+    font-size: .8125rem;
+    font-weight: 650;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
   .release-track-title { display: flex; align-items: baseline; gap: .55rem; min-width: 0; }
   .release-track-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .release-track-title small { flex: 0 1 auto; min-width: 0; overflow: hidden; color: var(--muted); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -125,12 +156,16 @@ const performedLabel = t(locale, "music.performedRate", { performed: performedTr
   .release-track.is-top .release-track-number, .release-track.is-top .release-track-shows { color: var(--accent); }
   .release-track.is-top .release-track-bar span { background: var(--accent); }
   @media (hover: hover) and (pointer: fine) {
+    .has-preview:not(:hover, :focus-within) .release-track-number { opacity: 1; }
+    .has-preview:not(:hover, :focus-within) .release-track-play { opacity: 0; pointer-events: none; }
     .release-track { transition: background-color .15s ease; }
     .release-track:hover { background: rgba(255, 255, 255, .035); }
     .release-track:hover .release-track-title strong { color: var(--accent); }
   }
   @media (max-width: 560px) {
-    .release-track { grid-template-columns: 1.75rem minmax(0, 1fr) auto; gap: .6rem; padding: .55rem .8rem; }
+    .release-track-row { --track-inset: .8rem; --track-number-width: 1.75rem; }
+    .release-track { grid-template-columns: var(--track-number-width) minmax(0, 1fr) auto; gap: .6rem; }
+    .release-track:has(.release-track-bar) .release-track-number { grid-row: 1 / 3; }
     .release-track-title { flex-direction: column; align-items: flex-start; gap: .15rem; }
     .release-track-title strong, .release-track-title small { max-width: 100%; }
     .release-track-bar { grid-column: 2; grid-row: 2; margin-top: -.15rem; height: 4px; }

@@ -3,6 +3,7 @@ import type { SongSpotlight } from "@frip-fan/core";
 import Icon from "./Icon.astro";
 import ReleaseCover from "./ReleaseCover.astro";
 import { formatMusicDate, setlistDisplayTitle } from "../lib/music";
+import { youtubeLinks } from "../lib/music-listen";
 import { type Locale, t } from "../lib/i18n";
 
 interface Props {
@@ -12,6 +13,9 @@ interface Props {
   archiveShows: number;
 }
 const { spotlight, locale, archiveShows } = Astro.props;
+const songHref = `/music/songs/${encodeURIComponent(spotlight.slug)}`;
+const youtube = youtubeLinks(spotlight.youtube_video_id);
+const playLabel = t(locale, "music.youtubePlay", { title: spotlight.title });
 const first = spotlight.first_performance;
 const last = spotlight.last_performance;
 const rate = spotlight.shows_since_release
@@ -34,20 +38,25 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
 <section class="spotlight panel" aria-labelledby="spotlight-title">
   <div class="spotlight-top">
     <span class="spotlight-label">{t(locale, "home.spotlightLabel")}</span>
-    <a class="spotlight-more" href={`/music/songs/${spotlight.slug}`}>
+    <a class="spotlight-more" href={songHref}>
       {t(locale, "home.spotlightMore")} <Icon name="chevron-right" size=".75rem" />
     </a>
   </div>
 
   <div class="spotlight-head">
     {spotlight.release && (
-      <a class="spotlight-cover" href={`/music/releases/${spotlight.release.slug}`} aria-label={t(locale, "music.coverAlt", { title: spotlight.release.title })}>
-        <ReleaseCover url={spotlight.release.cover_url} alt="" />
-      </a>
+      <div class="spotlight-cover">
+        <a class="spotlight-cover-link" href={`/music/releases/${encodeURIComponent(spotlight.release.slug)}`} aria-label={t(locale, "music.coverAlt", { title: spotlight.release.title })}>
+          <ReleaseCover url={spotlight.release.cover_url} alt="" />
+        </a>
+        {youtube && <a class="spotlight-cover-play" href={youtube.page} target="_blank" rel="noreferrer"
+          data-track-youtube={youtube.embed} data-track-title={spotlight.title} data-track-song={songHref}
+          aria-label={playLabel} title={playLabel}><Icon name="play-fill" /></a>}
+      </div>
     )}
     <div class="spotlight-head-text">
       <h2 id="spotlight-title" class="spotlight-song">
-        <a href={`/music/songs/${spotlight.slug}`} translate="no">{spotlight.title}</a>
+        <a href={songHref} translate="no">{spotlight.title}</a>
       </h2>
       <p class="spotlight-meta"><span translate="no">{spotlight.original_artist}</span>{meta.map((item) => <span>{item}</span>)}</p>
     </div>
@@ -117,9 +126,33 @@ const barLabel = (year: { year: string; total: number; sung: number }) => year.t
   .spotlight-more { display: inline-flex; align-items: center; gap: .3rem; min-height: 32px; color: var(--muted); font-size: .8125rem; text-decoration: none; }
   .spotlight-more:hover, .spotlight-more:focus-visible { color: var(--accent); }
   .spotlight-head { display: flex; align-items: center; gap: 1.1rem; min-width: 0; }
-  .spotlight-cover { flex: 0 0 auto; width: 5.5rem; border-radius: 12px; text-decoration: none; transition: transform .18s; }
-  .spotlight-cover:hover { transform: translateY(-2px); }
-  .spotlight-cover:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 12px; }
+  .spotlight-cover { position: relative; flex: 0 0 auto; width: 5.5rem; }
+  .spotlight-cover-link { display: block; border-radius: 12px; }
+  .spotlight-cover-play {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    translate: -50% -50%;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, .35);
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(7, 16, 28, .88);
+    font-size: 1.35rem;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .spotlight-cover-play:focus-visible { opacity: 1; pointer-events: auto; }
+  .spotlight-cover-play:hover { color: var(--accent); }
+  @media (hover: hover) and (pointer: fine) {
+    .spotlight-cover:hover .spotlight-cover-play { opacity: 1; pointer-events: auto; }
+  }
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .spotlight-cover { transition: transform .18s; }
+    .spotlight-cover:hover { transform: translateY(-2px); }
+  }
   .spotlight-head-text { min-width: 0; }
   .spotlight-song { margin: 0; font-size: clamp(1.5rem, 3.2vw, 2.1rem); line-height: 1.2; letter-spacing: -.02em; overflow-wrap: anywhere; }
   .spotlight-song a { color: inherit; text-decoration: none; }

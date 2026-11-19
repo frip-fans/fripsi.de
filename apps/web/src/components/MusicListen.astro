@@ -13,8 +13,8 @@ interface Props {
 const { sources, title, autoload = false } = Astro.props;
 const locale = getLocale(Astro.request);
 const first = sources[0];
-const providers = (["apple_music", "youtube"] as const).filter((provider) => sources.some((source) => provider === "apple_music" ? source.apple : source.youtube));
-const initial = first?.apple ? "apple_music" : "youtube";
+const providers = (["youtube", "apple_music"] as const).filter((provider) => sources.some((source) => provider === "apple_music" ? source.apple : source.youtube));
+const initial = first?.youtube ? "youtube" : "apple_music";
 const providerName = { apple_music: "Apple Music", youtube: "YouTube" } as const;
 const providerIcon = { apple_music: "audio-lines", youtube: "tv-minimal-play" } as const;
 const initialPage = initial === "apple_music" ? first?.apple?.page : first?.youtube?.page;

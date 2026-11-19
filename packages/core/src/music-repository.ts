@@ -289,6 +289,28 @@ export async function getSongBySlug(db: D1Database, slug: string, performancePag
   };
 }
 
+export async function listSongYouTubePreviews(db: D1Database, songIds: string[]): Promise<Map<string, string>> {
+  if (!songIds.length) return new Map();
+  // Prefer original recordings, then the first published release with a YouTube preview.
+  const { results } = await db.prepare(`
+    WITH ranked AS (
+      SELECT sv.song_id, yt.external_id,
+        ROW_NUMBER() OVER (PARTITION BY sv.song_id ORDER BY
+          CASE WHEN LOWER(TRIM(COALESCE(sv.version_label, ''))) IN ('', 'original') THEN 0 ELSE 1 END,
+          r.release_date IS NULL, r.release_date,
+          CASE r.release_type WHEN 'single' THEN 0 WHEN 'album' THEN 1 WHEN 'ep' THEN 2 ELSE 3 END,
+          r.slug, rt.disc_number, rt.track_number, rt.id) AS rank
+      FROM song_versions sv
+      JOIN release_tracks rt ON rt.song_version_id = sv.id
+      JOIN releases r ON r.id = rt.release_id AND r.published = 1
+      JOIN release_track_external_ids yt ON yt.release_track_id = rt.id AND yt.provider = 'youtube'
+      WHERE sv.published = 1 AND ${idInJson("sv.song_id")}
+    )
+    SELECT song_id, external_id FROM ranked WHERE rank = 1
+  `).bind(JSON.stringify(songIds)).all<{ song_id: string; external_id: string }>();
+  return new Map(results.map(row => [row.song_id, row.external_id]));
+}
+
 export async function listReleases(db: D1Database, options: ReleaseSearchOptions = {}): Promise<ReleaseSummary[]> {
   const clauses = ["r.published = 1"];
   const bindings: unknown[] = [];
@@ -316,6 +338,7 @@ export async function getReleaseBySlug(db: D1Database, slug: string): Promise<Re
   const [tracksResult, sources] = await Promise.all([
     db.prepare(`
       SELECT rt.id, rt.disc_number, rt.track_number, rt.display_title, rt.notes,
+        tyt.external_id AS youtube_video_id,
         s.id AS song_id, s.slug AS song_slug, s.title AS song_title,
         sv.id AS version_id, sv.slug AS version_slug, sv.title AS version_title, sv.version_label,
         (SELECT COUNT(DISTINCT se.setlist_id)
@@ -333,6 +356,7 @@ export async function getReleaseBySlug(db: D1Database, slug: string): Promise<Re
       FROM release_tracks rt
       JOIN song_versions sv ON sv.id = rt.song_version_id AND sv.published = 1
       JOIN songs s ON s.id = sv.song_id AND s.published = 1
+      LEFT JOIN release_track_external_ids tyt ON tyt.release_track_id = rt.id AND tyt.provider = 'youtube'
       WHERE rt.release_id = ?
       ORDER BY rt.disc_number ASC, rt.track_number ASC
     `).bind(release.id).all<ReleaseTrackRecord>(),

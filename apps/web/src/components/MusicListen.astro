@@ -5,15 +5,16 @@ import type { ListenSource } from "../lib/music-listen";
 
 interface Props {
   sources: ListenSource[];
+  title: string;
   /** Render the player immediately instead of waiting for a click. */
   autoload?: boolean;
 }
 
-const { sources, autoload = false } = Astro.props;
+const { sources, title, autoload = false } = Astro.props;
 const locale = getLocale(Astro.request);
 const first = sources[0];
-const providers = (["apple_music", "youtube"] as const).filter((provider) => sources.some((source) => provider === "apple_music" ? source.apple : source.youtube));
-const initial = first?.apple ? "apple_music" : "youtube";
+const providers = (["youtube", "apple_music"] as const).filter((provider) => sources.some((source) => provider === "apple_music" ? source.apple : source.youtube));
+const initial = first?.youtube ? "youtube" : "apple_music";
 const providerName = { apple_music: "Apple Music", youtube: "YouTube" } as const;
 const providerIcon = { apple_music: "audio-lines", youtube: "tv-minimal-play" } as const;
 const initialPage = initial === "apple_music" ? first?.apple?.page : first?.youtube?.page;
@@ -24,7 +25,7 @@ const frameAttributes = initial === "apple_music"
   : { allow: "autoplay; encrypted-media; picture-in-picture; web-share", allowfullscreen: true };
 ---
 {first && providers.length > 0 && (
-  <section class="music-listen" data-music-listen data-provider={initial} aria-labelledby="listen-heading"
+  <section class="music-listen" id="music-preview" tabindex="-1" data-music-listen data-title={title} data-autoload={autoload} data-provider={initial} aria-labelledby="listen-heading"
     data-label-load-apple_music={t(locale, "music.listenLoad", { provider: providerName.apple_music })}
     data-label-load-youtube={t(locale, "music.listenLoad", { provider: providerName.youtube })}
     data-label-note-apple_music={t(locale, "music.listenNote", { provider: providerName.apple_music })}
@@ -50,9 +51,9 @@ const frameAttributes = initial === "apple_music"
     <div class="music-listen-stage" data-listen-stage
       data-apple-embed={first.apple?.embed} data-apple-page={first.apple?.page}
       data-youtube-embed={first.youtube?.embed} data-youtube-page={first.youtube?.page}>
-      {autoload && initialEmbed && <iframe src={initialEmbed} title={`${providerName[initial]} player`} loading="lazy" referrerpolicy="strict-origin-when-cross-origin" {...frameAttributes}></iframe>}
+      {autoload && initial === "apple_music" && initialEmbed && <iframe src={initialEmbed} title={`${providerName[initial]} player`} loading="lazy" referrerpolicy="strict-origin-when-cross-origin" {...frameAttributes}></iframe>}
       {/* Without JS this is a plain link out; with JS a click swaps in the third-party player. */}
-      <a class="music-listen-load" href={initialPage} target="_blank" rel="noreferrer" data-listen-load hidden={autoload}>
+      <a class="music-listen-load" href={initialPage} target="_blank" rel="noreferrer" data-listen-load hidden={autoload && initial === "apple_music"}>
         <span class="music-listen-play" aria-hidden="true"><Icon name="play-fill" /></span>
         <span><strong data-listen-load-label>{t(locale, "music.listenLoad", { provider: providerName[initial] })}</strong>
           <small data-listen-note>{t(locale, "music.listenNote", { provider: providerName[initial] })}</small></span>
@@ -83,10 +84,9 @@ const frameAttributes = initial === "apple_music"
   .music-listen button[aria-pressed="true"] { color: var(--text); border-color: rgba(var(--accent-rgb), .6); background: rgba(var(--accent-rgb), .14); }
   .music-listen button:focus-visible, .music-listen-load:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .music-listen-stage { --listen-height: 175px; position: relative; max-width: 660px; min-height: var(--listen-height); border: 1px solid var(--line); border-radius: 14px; background: var(--music-panel); overflow: hidden; }
-  .music-listen[data-provider="youtube"] .music-listen-stage { --listen-height: auto; aspect-ratio: 16 / 9; min-height: 0; }
+  .music-listen[data-provider="youtube"] .music-listen-stage { --listen-height: auto; aspect-ratio: 16 / 9; min-height: 200px; }
   /* The iframe is created by script, so it carries no scoped-style attribute. */
   .music-listen-stage :global(iframe) { display: block; width: 100%; height: var(--listen-height); border: 0; }
-  .music-listen[data-provider="youtube"] .music-listen-stage :global(iframe) { height: 100%; }
   .music-listen-load { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: .9rem; padding: 1rem; color: var(--text); text-decoration: none; }
   .music-listen-load[hidden] { display: none; }
   .music-listen-load strong { display: block; font-size: .95rem; }

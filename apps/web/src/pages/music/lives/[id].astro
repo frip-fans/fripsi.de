@@ -1,9 +1,10 @@
 ---
-import { getAdjacentSetlists, getEventTourContext, getSetlistById, getSetlistHighlights } from "@frip-fan/core";
+import { getAdjacentSetlists, getEventTourContext, getSetlistById, getSetlistHighlights, listSongYouTubePreviews } from "@frip-fan/core";
 import Comments from "../../../components/Comments.astro";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
 import SpoilerGuard from "../../../components/SpoilerGuard.astro";
+import SetlistTrackNumber from "../../../components/SetlistTrackNumber.astro";
 import SiteLayout from "../../../layouts/SiteLayout.astro";
 import { getEnv } from "../../../lib/env";
 import {
@@ -24,7 +25,11 @@ const locale = getLocale(Astro.request);
 const db = getEnv().DB;
 const [setlist, archiveHighlights] = await Promise.all([getSetlistById(db, Astro.params.id!), getSetlistHighlights(db)]);
 if (!setlist) return Astro.redirect("/404", 302);
-const [adjacent, tour] = await Promise.all([getAdjacentSetlists(db, setlist), getEventTourContext(db, setlist.event_id)]);
+const [adjacent, tour, youtubePreviews] = await Promise.all([
+  getAdjacentSetlists(db, setlist),
+  getEventTourContext(db, setlist.event_id),
+  listSongYouTubePreviews(db, setlist.entries.map((entry) => entry.song_id)),
+]);
 const place = [setlist.venue, setlist.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending");
 const highlight = archiveHighlights.get(setlist.id);
 const debutSongs = new Set(highlight?.debuts.map(item => item.song_id));
@@ -105,7 +110,7 @@ let previousSection = "";
                     <div class="setlist-medley-tracks">
                       {group.entries.map((medleyEntry) => (
                         <div class="setlist-entry setlist-entry-child">
-                          <b>{String(medleyEntry.position).padStart(2, "0")}</b>
+                          <SetlistTrackNumber entry={medleyEntry} videoId={youtubePreviews.get(medleyEntry.song_id)} locale={locale} />
                           <div class="setlist-entry-main">
                             <a href={`/music/songs/${encodeURIComponent(medleyEntry.song_slug)}`} translate="no">{medleyEntry.display_title}</a>
                             {debutSongs.has(medleyEntry.song_id) && <span class="setlist-badge is-debut">{t(locale, "music.debutBadge")}</span>}
@@ -122,7 +127,7 @@ let previousSection = "";
                   </article>
                 ) : (
                   <article class="setlist-entry">
-                    <b>{String(entry.position).padStart(2, "0")}</b>
+                    <SetlistTrackNumber entry={entry} videoId={youtubePreviews.get(entry.song_id)} locale={locale} />
                     <div class="setlist-entry-main">
                       <a href={`/music/songs/${encodeURIComponent(entry.song_slug)}`} translate="no">{entry.display_title}</a>
                             {debutSongs.has(entry.song_id) && <span class="setlist-badge is-debut">{t(locale, "music.debutBadge")}</span>}

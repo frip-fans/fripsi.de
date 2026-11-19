@@ -35,6 +35,21 @@ jobs:
       - name: Verify code-only release packaging
         run: python3 -m unittest discover -s ops/oci -v
 
+  staging-check:
+    name: Staging credential isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .node-version
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Exercise synthetic Access and browser failures
+        run: python3 -m unittest discover -s ops/staging-check/tests -v
+
   sqlite-backup:
     name: SQLite backup safety
     runs-on: ubuntu-latest

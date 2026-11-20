@@ -52,6 +52,8 @@ git push -u origin HEAD
 
 发布后保留 staging，核对 master 的源代码文件树与冻结验收源一致，并确认 master 新提交的 CI、生产部署记录和 `https://fripsi.de/healthz` 返回的版本。rebase merge 会改变提交 SHA；每次发布从最新 master 生成新的快照差异，因此无需为对齐提交历史反复合并两条长期分支。后续任务继续从最新 staging 开始。
 
+如果 rebase 合并后 master 的新提交一直没有出现 push 触发的 `CI` 运行，部署会停在等待源码 CI。手动补跑的 CI 不满足部署检查；只含空提交的发布 PR 在 rebase 合并时会被丢弃，master 不会前进。此时按正常流程（任务 PR → staging → 新的 `release/*` 分支）带入一处实际改动，让 master 产生新的 push。
+
 ## CI 与分支规则
 
 GitHub Actions 的 `CI / Verify` 对 master/staging 的 push 与 PR 运行：安装锁定依赖、类型检查、测试、Node standalone 构建（`npm run build`）与 `ops/oci` 打包/migration 测试，另有 SQLite 备份脚本测试。CI 不持有部署凭据；构建和部署由私有部署仓库完成，见下文「部署」。

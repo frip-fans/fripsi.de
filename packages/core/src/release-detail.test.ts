@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { describe, expect, it } from "vitest";
-import { getReleaseBySlug, listSongYouTubePreviews } from "./music-repository";
+import { getReleaseBySlug, listReleaseYouTubeTracks, listSongYouTubePreviews } from "./music-repository";
 
 function fixture() {
   const sqlite = new DatabaseSync(":memory:");
@@ -48,6 +48,12 @@ describe("release detail tracks", () => {
       expect(release?.tracks.map(track => [track.version_id, Number(track.is_instrumental), track.youtube_video_id]))
         .toEqual([["vocal", 0, "ZhIxg6_Femo"], ["inst", 1, null]]);
       expect(await listSongYouTubePreviews(db, ["s1", "missing"])).toEqual(new Map([["s1", "ZhIxg6_Femo"]]));
+      // Only tracks with a YouTube preview, and never those of an unpublished release.
+      expect(await listReleaseYouTubeTracks(db, ["rel", "hidden", "earlier", "missing"])).toEqual(new Map([
+        ["rel", [{ display_title: "Song", song_slug: "song", youtube_video_id: "ZhIxg6_Femo" }]],
+        ["earlier", [{ display_title: "Song <instrumental>", song_slug: "song", youtube_video_id: "3SeZr00KGZE" }]],
+      ]));
+      expect(await listReleaseYouTubeTracks(db, [])).toEqual(new Map());
     } finally { sqlite.close(); }
   });
 });

@@ -1,6 +1,6 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { dateInTimeZone, eventUpdateWindowStart, getActiveTour, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listReleases, listSetlists, listSongCatalog, searchEvents, songPhasesFromMask, type EventUpdateKind } from "@frip-fan/core";
+import { dateInTimeZone, eventUpdateWindowStart, getActiveTour, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listReleaseYouTubeTracks, listReleases, listSetlists, listSongCatalog, listSongYouTubePreviews, searchEvents, songPhasesFromMask, type EventUpdateKind } from "@frip-fan/core";
 import ActiveTourCard from "../components/ActiveTourCard.astro";
 import Comments from "../components/Comments.astro";
 import Icon from "../components/Icon.astro";
@@ -10,6 +10,7 @@ import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
 import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../lib/format";
 import { getLocale, t } from "../lib/i18n";
+import { youtubeLinks } from "../lib/music-listen";
 import {
   formatMusicDate,
   releaseTypeLabel,
@@ -44,6 +45,10 @@ const recentReleases = recentReleasesRaw.filter((release) => {
   seenReleaseDates.add(key);
   return true;
 }).slice(0, 3);
+const [songPreviews, releasePreviews] = await Promise.all([
+  listSongYouTubePreviews(db, topSongs.map((song) => song.id)),
+  listReleaseYouTubeTracks(db, recentReleases.map((release) => release.id)),
+]);
 // Claim the daily sync only while it is actually running: the line disappears once the last
 // completed run falls out of the window, rather than promising something that stopped.
 const SYNC_NOTE_DAYS = 7;
@@ -202,16 +207,19 @@ const dateBadge = (event: UpcomingEvent) => {
                     <h3 id="home-top-songs-title" class="card-kind"><Icon name="audio-lines" /><span>{t(locale, "music.mostPerformed")}</span></h3>
                     <a class="top-songs-more" href="/music/songs">{t(locale, "music.nav.songs")} <Icon name="chevron-right" size=".75rem" /></a>
                   </div>
-                  <ol class="top-songs-list">
+                  <ol class="top-songs-list" data-youtube-list>
                     {topSongs.map((song, index) => {
                       const phases = songPhasesFromMask(song.phase_mask);
                       const phaseLabel = phases.length > 1
                         ? t(locale, "music.phaseJoint", { phases: phases.join("·") })
                         : phases.length === 1 ? t(locale, "music.phaseLabel", { phase: phases[0] }) : "";
                       const subMeta = [phaseLabel, song.first_release_date?.slice(0, 4) ?? ""].filter(Boolean).join(" · ");
+                      const songHref = `/music/songs/${encodeURIComponent(song.slug)}`;
+                      const youtube = youtubeLinks(songPreviews.get(song.id));
+                      const playLabel = t(locale, "music.youtubePlay", { title: song.title });
                       return (
-                        <li>
-                          <a class:list={["top-song-row", { "is-podium": index < 3 }]} href={`/music/songs/${encodeURIComponent(song.slug)}`}>
+                        <li class="top-song-item">
+                          <a class:list={["top-song-row", { "is-podium": index < 3 }]} href={songHref}>
                             <span class="top-song-rank">{index + 1}</span>
                             <span class="top-song-cover"><ReleaseCover url={song.cover_url} alt="" /></span>
                             <span class="top-song-info"><strong translate="no">{song.title}</strong>{subMeta && <small>{subMeta}</small>}</span>
@@ -220,6 +228,9 @@ const dateBadge = (event: UpcomingEvent) => {
                               <i aria-hidden="true"><span style={`--share: ${Math.max(8, Math.round((song.show_count / maxTopSongShows) * 100))}%`}></span></i>
                             </span>
                           </a>
+                          {youtube && <a class="cover-play" href={youtube.page} target="_blank" rel="noreferrer"
+                            data-track-youtube={youtube.embed} data-track-title={song.title} data-track-song={songHref}
+                            aria-label={playLabel} title={playLabel}><span><Icon name="play-fill" /></span></a>}
                         </li>
                       );
                     })}
@@ -282,8 +293,15 @@ const dateBadge = (event: UpcomingEvent) => {
             <a class="rail-link" href="/music/releases">{t(locale, "music.nav.releases")} <Icon name="chevron-right" size=".75rem" /></a>
           </div>
           <ol class="rail-rows">
-            {recentReleases.map((release) => (
-              <li>
+            {recentReleases.map((release) => {
+              // The release's playable tracks, queued in track order.
+              const queue = (releasePreviews.get(release.id) ?? []).flatMap((track) => {
+                const youtube = youtubeLinks(track.youtube_video_id);
+                return youtube ? [{ ...youtube, title: track.display_title, href: `/music/songs/${encodeURIComponent(track.song_slug)}#music-preview` }] : [];
+              });
+              const playLabel = t(locale, "music.youtubePlay", { title: release.title });
+              return (
+              <li class="rail-item">
                 <a class="rail-row" href={`/music/releases/${encodeURIComponent(release.slug)}`}>
                   <span class="rail-cover"><ReleaseCover url={release.cover_url} alt="" /></span>
                   <span class="rail-main">
@@ -291,8 +309,12 @@ const dateBadge = (event: UpcomingEvent) => {
                     <small>{[releaseTypeLabel(release.release_type, locale), formatMusicDate(release.release_date, locale)].filter(Boolean).join(" · ")}</small>
                   </span>
                 </a>
+                {queue[0] && <a class="cover-play" href={queue[0].page} target="_blank" rel="noreferrer"
+                  data-youtube-queue={JSON.stringify(queue.map(({ embed, title, href }) => ({ embed, title, href })))}
+                  aria-label={playLabel} title={playLabel}><span><Icon name="play-fill" /></span></a>}
               </li>
-            ))}
+              );
+            })}
           </ol>
         </section>
       )}
@@ -479,6 +501,39 @@ const dateBadge = (event: UpcomingEvent) => {
 
 
   /* Rail */
+  /* A play button over a row's cover. The link is a full touch target; the disc is what shows. */
+  .top-song-item, .rail-item { position: relative; }
+  .cover-play {
+    position: absolute;
+    top: 50%;
+    left: var(--cover-center);
+    translate: -50% -50%;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+  }
+  .cover-play span {
+    display: grid;
+    place-items: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 50%;
+    color: #fff;
+    background: rgba(5, 13, 23, .72);
+    font-size: 1rem;
+    transition: color .15s, background-color .15s;
+  }
+  .cover-play:hover span { color: #07101c; background: var(--accent); }
+  .cover-play:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+  /* Row border and padding, rank column and gap, then half the cover. */
+  .top-song-item { --cover-center: calc(1px + .5rem + 1.25rem + .6rem + 2.15rem / 2); }
+  .rail-item { --cover-center: calc(2.9rem / 2); }
+  @media (hover: hover) and (pointer: fine) {
+    .cover-play { opacity: 0; transition: opacity .15s; }
+    :is(.top-song-item, .rail-item):is(:hover, :focus-within) .cover-play { opacity: 1; }
+  }
   .rail-list, .library { padding: .9rem 1rem; }
   .rail-list { display: grid; gap: .5rem; }
   .rail-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }

@@ -13,6 +13,12 @@ const { locale } = Astro.props;
       <span data-youtube-title translate="no"></span>
       <Icon name="box-arrow-up-right" />
     </a>
+    <button type="button" data-youtube-step="-1" hidden aria-label={t(locale, "music.youtubePrevious")} title={t(locale, "music.youtubePrevious")}>
+      <Icon name="skip-start-fill" />
+    </button>
+    <button type="button" data-youtube-step="1" hidden aria-label={t(locale, "music.youtubeNext")} title={t(locale, "music.youtubeNext")}>
+      <Icon name="skip-end-fill" />
+    </button>
     <button type="button" data-youtube-close aria-label={t(locale, "music.youtubeClose")} title={t(locale, "music.youtubeClose")}>
       <Icon name="x-lg" />
     </button>
@@ -60,7 +66,9 @@ const { locale } = Astro.props;
   }
   .youtube-preview-bar a { flex: 1; min-width: 0; gap: .5rem; padding-inline: 1rem .5rem; font-weight: 650; }
   .youtube-preview-bar a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .youtube-preview-bar button { width: 44px; flex: none; padding: 0; background: transparent; }
+  .youtube-preview-bar button { justify-content: center; width: 44px; flex: none; padding: 0; background: transparent; }
+  .youtube-preview-bar button[hidden] { display: none; }
+  .youtube-preview-bar button:disabled { opacity: .35; cursor: default; }
   .youtube-preview-size {
     position: absolute;
     z-index: 1;

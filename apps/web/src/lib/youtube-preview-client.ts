@@ -1,4 +1,10 @@
 import { setupYouTubePreviewSize } from "./youtube-preview-size";
+import {
+  commandMessage, embedWithPlayerApi, listeningMessage, readPlayerReport, videoIdOf, YOUTUBE_EMBED_ORIGIN, YOUTUBE_ENDED,
+} from "./youtube-player-messages";
+
+/** Fired on `document` when the queue moves the player on to another video. */
+export const YOUTUBE_PREVIEW_CHANGE = "youtube-preview:change";
 
 interface Preview {
   embed: string;
@@ -13,6 +19,15 @@ let stage: HTMLElement | undefined;
 let trigger: HTMLElement | undefined;
 let motion: Animation | undefined;
 let outgoingBounds: DOMRect | undefined;
+// The videos to play one after another, and which of them is playing.
+let queue: Preview[] = [];
+let position = 0;
+// Whether the current frame's player answers messages, so it can be told to change video.
+let connected = false;
+let handshake: number | undefined;
+// One video can report its end more than once.
+let finished = false;
+let advancedByQueue = false;
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const layout = new ResizeObserver(positionInline);
 
@@ -96,6 +111,84 @@ function closeFloatingPreview() {
   else document.querySelector<HTMLElement>("#main-content")?.focus();
 }
 
+function postToPlayer(message: string) {
+  host?.querySelector("iframe")?.contentWindow?.postMessage(message, YOUTUBE_EMBED_ORIGIN);
+}
+
+function connectPlayer(frame: HTMLIFrameElement) {
+  connected = false;
+  clearInterval(handshake);
+  let attempts = 0;
+  // The player ignores messages until its own script has started, so ask until it answers.
+  handshake = window.setInterval(() => {
+    if (connected || !frame.isConnected || ++attempts > 40) clearInterval(handshake);
+    else frame.contentWindow?.postMessage(listeningMessage(), YOUTUBE_EMBED_ORIGIN);
+  }, 250);
+}
+
+function mountFrame(preview: Preview, autoplay: boolean) {
+  const frame = document.createElement("iframe");
+  frame.src = embedWithPlayerApi(preview.embed, location.origin, autoplay);
+  frame.allow = "autoplay; encrypted-media; picture-in-picture; web-share";
+  frame.allowFullscreen = true;
+  frame.referrerPolicy = "strict-origin-when-cross-origin";
+  // Also runs when a browser reloads the frame, which starts a new player.
+  frame.addEventListener("load", () => connectPlayer(frame));
+  connected = false;
+  finished = false;
+  host!.querySelector("iframe")?.remove();
+  host!.appendChild(frame);
+}
+
+function describePreview(preview: Preview) {
+  host!.querySelector("iframe")!.title = `YouTube · ${preview.title}`;
+  const returnLink = host!.querySelector<HTMLAnchorElement>("[data-youtube-return]")!;
+  returnLink.href = preview.href;
+  returnLink.setAttribute("aria-label", `${returnLink.title} · ${preview.title}`);
+  host!.querySelector("[data-youtube-title]")!.textContent = preview.title;
+  for (const button of host!.querySelectorAll<HTMLButtonElement>("[data-youtube-step]")) {
+    button.hidden = queue.length < 2;
+    button.disabled = !queue[position + Number(button.dataset.youtubeStep)];
+  }
+  active = preview;
+}
+
+function playQueued(next: number, automatic = false) {
+  const preview = queue[next];
+  const videoId = preview && videoIdOf(preview.embed);
+  if (!host || !active || !videoId) return;
+  position = next;
+  advancedByQueue = automatic;
+  // Changing the video inside the running player keeps playback allowed without a new click.
+  if (connected) postToPlayer(commandMessage("loadVideoById", videoId));
+  else mountFrame(preview, true);
+  const from = stage ? previewBounds() : undefined;
+  describePreview(preview);
+  // A song page holds its own song inline. The next one floats, as it belongs to no page.
+  if (stage) positionPreview(undefined, from);
+  document.dispatchEvent(new CustomEvent(YOUTUBE_PREVIEW_CHANGE));
+}
+
+window.addEventListener("message", (event) => {
+  const frame = host?.querySelector("iframe");
+  if (!frame || event.source !== frame.contentWindow || event.origin !== YOUTUBE_EMBED_ORIGIN) return;
+  const report = readPlayerReport(event.data);
+  if (!report) return;
+  if (!connected) {
+    connected = true;
+    for (const name of ["onStateChange", "onError"]) postToPlayer(commandMessage("addEventListener", name));
+  }
+  // A video the visitor chose stays on its error. One the queue reached is skipped.
+  const over = report.error ? advancedByQueue : report.state === YOUTUBE_ENDED;
+  if (!over) {
+    if (report.state !== undefined) finished = false;
+    return;
+  }
+  if (finished) return;
+  finished = true;
+  playQueued(position + 1, true);
+});
+
 export function currentYouTubePreview() {
   return active;
 }
@@ -107,10 +200,15 @@ export function stopYouTubePreview() {
   host.inert = false;
   active = undefined;
   trigger = undefined;
+  queue = [];
+  position = 0;
+  connected = false;
+  clearInterval(handshake);
   positionPreview();
 }
 
-export function openYouTubePreview(preview: Preview, button?: HTMLElement, autoplay = false, slot?: HTMLElement) {
+/** `list` is what plays on after `preview`, which it contains. Without one, a new video plays alone. */
+export function openYouTubePreview(preview: Preview, button?: HTMLElement, autoplay = false, slot?: HTMLElement, list?: Preview[]) {
   const mount = document.querySelector<HTMLElement>("[data-youtube-preview]");
   if (!mount) return;
   if (!host) {
@@ -128,23 +226,16 @@ export function openYouTubePreview(preview: Preview, button?: HTMLElement, autop
     : undefined;
   const sameVideo = active?.embed === preview.embed;
   const from = sameVideo && Boolean(stage) !== Boolean(slot) ? previewBounds() : undefined;
-  if (!sameVideo) {
-    const frame = document.createElement("iframe");
-    const url = new URL(preview.embed);
-    if (autoplay) url.searchParams.set("autoplay", "1");
-    frame.src = url.href;
-    frame.allow = "autoplay; encrypted-media; picture-in-picture; web-share";
-    frame.allowFullscreen = true;
-    frame.referrerPolicy = "strict-origin-when-cross-origin";
-    host.querySelector("iframe")?.remove();
-    host.appendChild(frame);
+  if (list) {
+    queue = list;
+    position = Math.max(0, list.indexOf(preview));
+  } else if (queue[position]?.embed !== preview.embed) {
+    queue = [preview];
+    position = 0;
   }
-  host.querySelector("iframe")!.title = `YouTube · ${preview.title}`;
-  const returnLink = host.querySelector<HTMLAnchorElement>("[data-youtube-return]")!;
-  returnLink.href = preview.href;
-  returnLink.setAttribute("aria-label", `${returnLink.title} · ${preview.title}`);
-  host.querySelector("[data-youtube-title]")!.textContent = preview.title;
-  active = preview;
+  advancedByQueue = false;
+  if (!sameVideo) mountFrame(preview, autoplay);
+  describePreview(preview);
   trigger = button;
   host.hidden = false;
   host.inert = false;
@@ -186,14 +277,24 @@ document.addEventListener("click", (event) => {
     closeFloatingPreview();
     return;
   }
+  const step = target?.closest<HTMLButtonElement>("[data-youtube-step]");
+  if (step) {
+    playQueued(position + Number(step.dataset.youtubeStep));
+    // The end of the queue disables the button that was just used.
+    if (step.disabled) host?.querySelector<HTMLButtonElement>("[data-youtube-step]:enabled")?.focus();
+    return;
+  }
   const link = target?.closest<HTMLAnchorElement>("[data-track-youtube]");
   if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
   event.preventDefault();
-  openYouTubePreview({
-    embed: link.dataset.trackYoutube!,
-    title: link.dataset.trackTitle!,
-    href: `${link.dataset.trackSong}#music-preview`,
-  }, link, true);
+  // The page's playable tracks, in the order shown, play on from the one chosen.
+  const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-track-youtube]")];
+  const list = links.map((item) => ({
+    embed: item.dataset.trackYoutube!,
+    title: item.dataset.trackTitle!,
+    href: `${item.dataset.trackSong}#music-preview`,
+  }));
+  openYouTubePreview(list[links.indexOf(link)]!, link, true, undefined, list);
   if (event.detail === 0) host?.querySelector<HTMLElement>("[data-youtube-return]")?.focus();
 });
 

@@ -1,4 +1,4 @@
-import { currentYouTubePreview, openYouTubePreview, stopYouTubePreview } from "./youtube-preview-client";
+import { currentYouTubePreview, openYouTubePreview, stopYouTubePreview, YOUTUBE_PREVIEW_CHANGE } from "./youtube-preview-client";
 
 type Provider = "apple_music" | "youtube";
 const PROVIDER_KEY = "music:listen:provider";
@@ -80,6 +80,16 @@ export function setupMusicListen(): void {
     next.referrerPolicy = "strict-origin-when-cross-origin";
     frame ? frame.replaceWith(next) : stage.appendChild(next);
   };
+
+  // The queue moved the player on to another song, so this page's slot is empty again.
+  const releasePlayer = () => {
+    if (!root.isConnected) { document.removeEventListener(YOUTUBE_PREVIEW_CHANGE, releasePlayer); return; }
+    if (!ownsYouTubePlayer || currentYouTubePreview()?.embed === source.dataset.youtubeEmbed) return;
+    ownsYouTubePlayer = false;
+    loaded = false;
+    render();
+  };
+  document.addEventListener(YOUTUBE_PREVIEW_CHANGE, releasePlayer);
 
   load.addEventListener("click", (event) => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;

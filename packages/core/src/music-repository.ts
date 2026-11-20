@@ -311,6 +311,30 @@ export async function listSongYouTubePreviews(db: D1Database, songIds: string[])
   return new Map(results.map(row => [row.song_id, row.external_id]));
 }
 
+export interface ReleaseYouTubeTrack {
+  display_title: string;
+  song_slug: string;
+  youtube_video_id: string;
+}
+
+/** The tracks of each release that have a YouTube preview, in track order. */
+export async function listReleaseYouTubeTracks(db: D1Database, releaseIds: string[]): Promise<Map<string, ReleaseYouTubeTrack[]>> {
+  const tracks = new Map<string, ReleaseYouTubeTrack[]>();
+  if (!releaseIds.length) return tracks;
+  const { results } = await db.prepare(`
+    SELECT rt.release_id, rt.display_title, s.slug AS song_slug, yt.external_id AS youtube_video_id
+    FROM release_tracks rt
+    JOIN releases r ON r.id = rt.release_id AND r.published = 1
+    JOIN song_versions sv ON sv.id = rt.song_version_id AND sv.published = 1
+    JOIN songs s ON s.id = sv.song_id AND s.published = 1
+    JOIN release_track_external_ids yt ON yt.release_track_id = rt.id AND yt.provider = 'youtube'
+    WHERE ${idInJson("rt.release_id")}
+    ORDER BY rt.disc_number ASC, rt.track_number ASC
+  `).bind(JSON.stringify(releaseIds)).all<ReleaseYouTubeTrack & { release_id: string }>();
+  for (const { release_id, ...track } of results) tracks.set(release_id, [...(tracks.get(release_id) ?? []), track]);
+  return tracks;
+}
+
 export async function listReleases(db: D1Database, options: ReleaseSearchOptions = {}): Promise<ReleaseSummary[]> {
   const clauses = ["r.published = 1"];
   const bindings: unknown[] = [];

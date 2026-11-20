@@ -425,7 +425,14 @@ const dateBadge = (event: UpcomingEvent) => {
 
   .tag.update { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .1); }
 
-  .event-card { grid-template-columns: 5.4rem minmax(0, 1fr); align-items: start; gap: .9rem; }
+  /* Two tones: events are the schedule and carry the warm accent; the daily cards between them are
+     cooler and quieter, so the eye can skip from one event to the next. */
+  .event-card { grid-template-columns: 5.4rem minmax(0, 1fr); align-items: start; gap: .9rem; border-color: rgba(var(--accent-rgb), .26); background: linear-gradient(100deg, rgba(var(--accent-rgb), .12), rgba(10, 22, 39, .8) 46%); }
+  .event-card:hover { border-color: rgba(var(--accent-rgb), .6); background: linear-gradient(100deg, rgba(var(--accent-rgb), .17), rgba(14, 29, 49, .9) 46%); }
+  .feed > li[data-kind="daily"] { --daily-rgb: 126, 190, 232; }
+  .feed > li[data-kind="daily"] .card, .feed-spotlight :global(.spotlight) { border-color: rgba(var(--daily-rgb), .16); background: rgba(13, 30, 48, .5); }
+  .feed > li[data-kind="daily"] .card-link:hover { border-color: rgba(var(--daily-rgb), .5); background: rgba(16, 36, 58, .72); }
+  .feed > li[data-kind="daily"] .card-kind > :global(.icon) { color: rgb(var(--daily-rgb)); }
   .event-date { display: grid; gap: .15rem; padding-right: .8rem; border-right: 1px solid rgba(159, 180, 211, .14); font-variant-numeric: tabular-nums; }
   .event-date strong { color: var(--accent); font-size: 1.12rem; font-weight: 800; line-height: 1.15; letter-spacing: -.03em; overflow-wrap: anywhere; }
   .event-date small { color: var(--muted); font-size: .7rem; letter-spacing: .04em; }

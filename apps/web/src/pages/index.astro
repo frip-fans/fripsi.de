@@ -1,31 +1,32 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
-import { dateInTimeZone, eventUpdateWindowStart, getActiveTour, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listSetlists, searchEvents, type EventUpdateKind } from "@frip-fan/core";
+import { dateInTimeZone, eventUpdateWindowStart, getActiveTour, getLastOfficialSyncAt, getMusicLibraryStats, getOnThisDay, getSongSpotlight, listEventUpdates, listReleases, listSetlists, listSongCatalog, searchEvents, songPhasesFromMask, type EventUpdateKind } from "@frip-fan/core";
 import ActiveTourCard from "../components/ActiveTourCard.astro";
-import EventCard from "../components/EventCard.astro";
 import Comments from "../components/Comments.astro";
 import Icon from "../components/Icon.astro";
+import ReleaseCover from "../components/ReleaseCover.astro";
 import SongSpotlight from "../components/SongSpotlight.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
-import { displayEventStatus, statusLabel } from "../lib/format";
+import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../lib/format";
 import { getLocale, t } from "../lib/i18n";
 import {
   formatMusicDate,
-  setlistCompletenessLabel,
+  releaseTypeLabel,
   setlistDisplayTitle,
-  setlistEventTypeLabel,
 } from "../lib/music";
 
 const env = getEnv();
 const locale = getLocale(Astro.request);
 const db = env.DB;
 const today = dateInTimeZone();
-const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay, activeTour] = await Promise.all([
-  searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 4 }, true),
-  listSetlists(db, { order: "desc", limit: 3 }),
+const [upcoming, recentSetlists, spotlight, topSongsCatalog, recentReleasesRaw, libraryStats, lastSyncAt, onThisDay, activeTour] = await Promise.all([
+  searchEvents(db, { date_from: today, statuses: ["scheduled", "cancelled", "postponed"], limit: 10 }, true),
+  listSetlists(db, { order: "desc", limit: 4 }),
   // The date is the seed, so the spotlight holds for the whole day and for every visitor and language.
   getSongSpotlight(db, today),
+  listSongCatalog(db, 6),
+  listReleases(db, { limit: 12 }),
   getMusicLibraryStats(db),
   getLastOfficialSyncAt(db),
   // The pill above the headline leads with what happened on this calendar day.
@@ -33,6 +34,16 @@ const [upcoming, recentSetlists, spotlight, libraryStats, lastSyncAt, onThisDay,
   // Shown only between a tour's first and last stop.
   getActiveTour(db, today),
 ]);
+const topSongs = [...topSongsCatalog].sort((a, b) => b.show_count - a.show_count || b.performance_count - a.performance_count).slice(0, 6);
+const maxTopSongShows = Math.max(1, ...topSongs.map((song) => song.show_count));
+// Collapse same-day edition variants (e.g. WMS / Selected Edition) so the list shows distinct releases.
+const seenReleaseDates = new Set<string>();
+const recentReleases = recentReleasesRaw.filter((release) => {
+  const key = release.release_date ?? release.id;
+  if (seenReleaseDates.has(key)) return false;
+  seenReleaseDates.add(key);
+  return true;
+}).slice(0, 3);
 // Claim the daily sync only while it is actually running: the line disappears once the last
 // completed run falls out of the window, rather than promising something that stopped.
 const SYNC_NOTE_DAYS = 7;
@@ -54,7 +65,6 @@ const structuredData = {
   about: { "@type": "MusicGroup", name: "fripSide" },
 };
 const next = upcoming[0];
-const moreEvents = upcoming.slice(1);
 // What actually changed recently, read from the audit log: events.updated_at also moves for bulk
 // archive imports, which would announce a 2005 show as freshly updated.
 const eventUpdates = await listEventUpdates(db, upcoming.map((event) => event.id), eventUpdateWindowStart(today));
@@ -80,127 +90,235 @@ const nextCountdown = !next
     : daysUntilNext === 1
       ? t(locale, "home.countdownTomorrow")
       : t(locale, "home.countdownDays", { count: daysUntilNext });
+// The stream is the schedule itself: every upcoming event after the pinned one, soonest first. The
+// daily cards have no date of their own, so they are slotted in at fixed positions between them.
+type UpcomingEvent = (typeof upcoming)[number];
+type FeedEntry =
+  | { kind: "event"; event: UpcomingEvent }
+  | { kind: "spotlight" | "today" | "songs" | "explore" };
+const news: FeedEntry[] = upcoming.slice(1).map((event) => ({ kind: "event", event }));
+const feedCategories = [...new Set(upcoming.slice(1).map((event) => event.category))];
+const daily: Array<[number, FeedEntry | null]> = [
+  [1, onThisDay ? { kind: "today" } : null],
+  [3, spotlight ? { kind: "spotlight" } : null],
+  [5, topSongs.length > 0 ? { kind: "songs" } : null],
+  [7, { kind: "explore" }],
+];
+const feed: FeedEntry[] = [];
+news.forEach((entry, index) => {
+  for (const [slot, card] of daily) if (slot === index && card) feed.push(card);
+  feed.push(entry);
+});
+for (const [slot, card] of daily) if (slot >= news.length && card) feed.push(card);
+const dateBadge = (event: UpcomingEvent) => {
+  const singleDay = !event.end_date || event.end_date === event.start_date;
+  return `${event.start_date.slice(5).replace("-", ".")}${!singleDay && event.end_date ? `–${event.end_date.slice(5).replace("-", ".")}` : ""}`;
+};
 ---
 <SiteLayout structuredData={structuredData}>
-  <section class="hero" data-page-entry>
-    <div class="hero-copy">
-      {onThisDay && (
-        <a class="today-pill" href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)}>
-          <Icon name="archive" size=".8rem" />
-          <span class="today-pill-label">{t(locale, "home.onThisDay")}</span>
-          <time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time>
-          <span class="today-pill-event"><span>{onThisDay.event.display_title ?? onThisDay.event.title}</span></span>
-          <Icon name="chevron-right" size=".7rem" />
-        </a>
-      )}
-      <h1 class="hero-title" lang="en" translate="no">
-        <span class="title-lead">This desire</span>
-        <span class="title-solid">is bound in the melody.</span>
-      </h1>
-      <p class="hero-subtitle">
-        {subtitleBefore}<a class="hero-source" href={SOURCE_URL} target="_blank" rel="external noopener noreferrer">{t(locale, "home.openSource")}</a>{subtitleAfter}
-      </p>
-    </div>
+  <div class="home-stage" data-page-entry>
+    <h1 class="home-h1">fripSi.de Fan Site</h1>
 
-    <aside class="signal panel">
-      <div class="panel-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
-      {next ? (
-        <>
-          <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
-          <h2>{next.display_title ?? next.title}</h2>
-          {updateLabel(next.id) && <p class="signal-update"><span class="tag update">{updateLabel(next.id)}</span></p>}
-          <div class="signal-footer">
-            <p>{next.location_label || t(locale, "common.locationPending")}</p>
-            <a href={eventDetailHref(next.slug, Astro.url, locale)} aria-label={t(locale, "common.view", { title: next.title })}><Icon name="chevron-right" size=".85rem" /></a>
-          </div>
-        </>
-      ) : (
-        <div class="no-signal"><strong>—</strong><h2>{t(locale, "home.waiting")}</h2><p>{t(locale, "home.noUpcoming")}</p></div>
-      )}
-    </aside>
+    <div class="home-main">
+      <div class="home-pinned">
+        <section class="signal panel" aria-label={t(locale, "home.next")}>
+          <div class="panel-top"><span>{t(locale, "home.next")}</span>{next && <b class="signal-countdown">{nextCountdown}</b>}<i></i></div>
+          {next ? (
+            <>
+              <div class="signal-head">
+                <strong>{next.start_date.slice(5).replace("-", ".")}</strong>
+                <div class="signal-meta">
+                  <span class:list={["tag", next.category.toLowerCase()]}>{categoryLabels[next.category]}</span>
+                  {next.classification && <span class="tag">{next.classification}</span>}
+                  {updateLabel(next.id) && <span class="tag update">{updateLabel(next.id)}</span>}
+                </div>
+              </div>
+              <h2>{next.display_title ?? next.title}</h2>
+              <div class="signal-footer">
+                <div class="signal-details">
+                  <p class="signal-time">{(!next.end_date || next.end_date === next.start_date) ? formatTime(next, locale) : `${formatDate(next.start_date, next.end_date, locale)} · ${formatTime(next, locale)}`}</p>
+                  <p class="signal-venue">{next.location_label || t(locale, "common.locationPending")}</p>
+                </div>
+                <a href={eventDetailHref(next.slug, Astro.url, locale)} aria-label={t(locale, "common.view", { title: next.title })}><Icon name="chevron-right" size=".85rem" /></a>
+              </div>
+            </>
+          ) : (
+            <div class="no-signal"><strong>—</strong><h2>{t(locale, "home.waiting")}</h2><p>{t(locale, "home.noUpcoming")}</p></div>
+          )}
+        </section>
 
-    <div class="hero-actions">
-      <div class="actions">
-        <a class="button" href="/calendar"><Icon name="calendar3" />{t(locale, "nav.calendar")}</a>
-        <a class="button secondary setlist-button" href="/music/lives"><Icon name="music-note-list" />{t(locale, "nav.music")}</a>
-        <a class="button secondary subscribe-action" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" /><span class="label-full">{t(locale, "home.subscribe")}</span><span class="label-short">{t(locale, "calendar.subscribeShort")}</span></a>
+        {activeTour && <ActiveTourCard tour={activeTour} today={today} />}
       </div>
-      <button class="motion-toggle" type="button" data-home-motion aria-label={t(locale, "home.motionLabel")} aria-pressed="false" data-pause-label={t(locale, "home.pauseMotion")} data-resume-label={t(locale, "home.resumeMotion")}>
-        <Icon name="pause-fill" /><span>{t(locale, "home.pauseMotion")}</span>
-      </button>
-    </div>
-  </section>
 
-  {activeTour && <ActiveTourCard tour={activeTour} today={today} />}
+      <section class="home-feed" aria-labelledby="home-feed-title">
+        <div class="feed-bar">
+          <h2 id="home-feed-title"><Icon name="tickets" />{t(locale, "home.moreEvents")}</h2>
+          {feedCategories.length > 1 && (
+            <div class="feed-filter" role="group" aria-label={t(locale, "home.feedFilterLabel")}>
+              <button type="button" data-feed-filter="all" aria-pressed="true">{t(locale, "common.all")}</button>
+              {feedCategories.map((category) => <button type="button" data-feed-filter={category.toLowerCase()} aria-pressed="false">{categoryLabels[category]}</button>)}
+            </div>
+          )}
+        </div>
 
-  {moreEvents.length > 0 && (
-    <>
-      <div class="section-heading latest-events-heading">
-        <h2><Icon name="tickets" />{t(locale, "home.moreEvents")}</h2>
-        <a class="section-link all-calendar" href="/calendar">{t(locale, "home.allCalendar")} <Icon name="chevron-right" size=".75rem" /></a>
-      </div>
-      <section class:list={["event-list", "event-grid", `count-${moreEvents.length}`]}>
-        {moreEvents.map((event) => <EventCard event={event} timeInHeader updateLabel={updateLabel(event.id)} />)}
+        <ol class="feed" data-feed data-filter="all">
+          {feed.map((entry) => {
+            if (entry.kind === "event") {
+              const event = entry.event;
+              const displayStatus = displayEventStatus(event);
+              return (
+                <li data-kind={event.category.toLowerCase()}>
+                  <a class="card card-link event-card" href={eventDetailHref(event.slug, Astro.url, locale)} data-astro-prefetch="tap">
+                    <span class="event-date"><strong>{dateBadge(event)}</strong><small>{event.start_date.slice(0, 4)}</small></span>
+                    <span class="event-body">
+                      <span class="event-tags">
+                        <span class:list={["tag", event.category.toLowerCase()]}>{categoryLabels[event.category]}</span>
+                        {displayStatus !== "scheduled" && <span class:list={["tag", displayStatus]}>{statusLabel(locale, displayStatus)}</span>}
+                        {event.classification && <span class="tag">{event.classification}</span>}
+                        {updateLabel(event.id) && <span class="tag update">{updateLabel(event.id)}</span>}
+                      </span>
+                      <strong>{event.display_title ?? event.title}</strong>
+                      <span class="card-sub">{[event.location_label, formatTime(event, locale)].filter(Boolean).join(" · ")}</span>
+                    </span>
+                  </a>
+                </li>
+              );
+            }
+            if (entry.kind === "spotlight") return (
+              <li data-kind="daily" class="feed-spotlight">{spotlight && <SongSpotlight spotlight={spotlight} locale={locale} archiveShows={libraryStats.setlist_count} />}</li>
+            );
+            if (entry.kind === "today") return onThisDay && (
+              <li data-kind="daily">
+                <a class="card card-link today-card" href={eventDetailHref(onThisDay.event.slug, Astro.url, locale)}>
+                  <span class="card-kind"><Icon name="archive" /><span>{t(locale, "home.onThisDay")}</span><time datetime={onThisDay.event.start_date}>{onThisDay.event.start_date.replaceAll("-", ".")}</time></span>
+                  <strong>{onThisDay.event.display_title ?? onThisDay.event.title}</strong>
+                </a>
+              </li>
+            );
+            if (entry.kind === "songs") return (
+              <li data-kind="daily">
+                <section class="card top-songs-panel" aria-labelledby="home-top-songs-title">
+                  <div class="top-songs-head">
+                    <h3 id="home-top-songs-title" class="card-kind"><Icon name="audio-lines" /><span>{t(locale, "music.mostPerformed")}</span></h3>
+                    <a class="top-songs-more" href="/music/songs">{t(locale, "music.nav.songs")} <Icon name="chevron-right" size=".75rem" /></a>
+                  </div>
+                  <ol class="top-songs-list">
+                    {topSongs.map((song, index) => {
+                      const phases = songPhasesFromMask(song.phase_mask);
+                      const phaseLabel = phases.length > 1
+                        ? t(locale, "music.phaseJoint", { phases: phases.join("·") })
+                        : phases.length === 1 ? t(locale, "music.phaseLabel", { phase: phases[0] }) : "";
+                      const subMeta = [phaseLabel, song.first_release_date?.slice(0, 4) ?? ""].filter(Boolean).join(" · ");
+                      return (
+                        <li>
+                          <a class:list={["top-song-row", { "is-podium": index < 3 }]} href={`/music/songs/${encodeURIComponent(song.slug)}`}>
+                            <span class="top-song-rank">{index + 1}</span>
+                            <span class="top-song-cover"><ReleaseCover url={song.cover_url} alt="" /></span>
+                            <span class="top-song-info"><strong translate="no">{song.title}</strong>{subMeta && <small>{subMeta}</small>}</span>
+                            <span class="top-song-metric">
+                              <b>{t(locale, "music.showsShort", { count: song.show_count })}</b>
+                              <i aria-hidden="true"><span style={`--share: ${Math.max(8, Math.round((song.show_count / maxTopSongShows) * 100))}%`}></span></i>
+                            </span>
+                          </a>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              </li>
+            );
+            return (
+              <li data-kind="daily" class="feed-pair">
+                <a class="card card-link explore-card" href="/quiz">
+                  <span class="card-kind"><Icon name="list-stars" /><span>{t(locale, "quiz.todayLabel")}</span></span>
+                  <strong>{t(locale, "quiz.title")}</strong>
+                  <span class="card-sub">{t(locale, "quiz.description")}</span>
+                </a>
+                <a class="card card-link explore-card" href="/journey">
+                  <span class="card-kind"><Icon name="globe-americas" /><span>{t(locale, "nav.journey")}</span></span>
+                  <strong translate="no">{t(locale, "journey.title")}</strong>
+                  <span class="card-sub">{t(locale, "journey.description")}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ol>
+        <div class="feed-actions">
+          <a class="button secondary" href="/calendar"><Icon name="calendar3" />{t(locale, "home.allCalendar")}</a>
+          <a class="button secondary" href={webcalUrl} title={t(locale, "home.subscriptionTitle", { url: subscriptionUrl.href })}><Icon name="calendar-plus" />{t(locale, "home.subscribe")}</a>
+        </div>
       </section>
-    </>
-  )}
 
-  {showSyncNote && lastSyncDate && (
-    <p class="sync-note">{t(locale, "home.syncNote", { date: formatMusicDate(lastSyncDate, locale) })}</p>
-  )}
-
-  <section class="recent-setlists" aria-labelledby="music-library-title">
-    <div class="section-heading">
-      <h2 id="music-library-title"><Icon name="list-music" />{t(locale, "home.musicLibrary")}</h2>
-      <a class="section-link recent-setlists-all" href="/music/lives">{t(locale, "home.allSetlists")} <Icon name="chevron-right" size=".75rem" /></a>
+      <Comments locale={locale} thread="site" title={t(locale, "community.discussionTitle")} />
     </div>
-    {spotlight && <SongSpotlight spotlight={spotlight} locale={locale} archiveShows={libraryStats.setlist_count} />}
-    <h3 class="subsection-title">{t(locale, "home.latestSetlists")}</h3>
-    {recentSetlists.length > 0 ? (
-      <div class="recent-setlist-grid">
-        {recentSetlists.map((setlist) => (
-          <a class="recent-setlist-card" href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
-            <div class="recent-setlist-top">
-              <time datetime={setlist.start_date}>{formatMusicDate(setlist.start_date, locale)}</time>
-              {setlist.event_classification && (
-                <span class:list={[
-                  "recent-setlist-type",
-                  {
-                    "is-solo": setlist.event_classification === "专场",
-                    "is-festival": setlist.event_classification === "拼盘",
-                  },
-                ]}>{setlistEventTypeLabel(setlist.event_classification, locale)}</span>
-              )}
-            </div>
-            <h3>{setlistDisplayTitle(setlist)}</h3>
-            <p>{[setlist.venue, setlist.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending")}</p>
-            <div class="recent-setlist-meta">
-              <span>{t(locale, "music.songsCount", { count: setlist.entry_count })}</span>
-              <span>{setlistCompletenessLabel(setlist.completeness, locale)}</span>
-              <Icon name="chevron-right" size=".85rem" />
-            </div>
-          </a>
-        ))}
+
+    <div class="home-rail">
+      {recentSetlists.length > 0 && (
+        <section class="rail-list panel" aria-labelledby="home-setlists-title">
+          <div class="rail-head">
+            <h2 id="home-setlists-title"><Icon name="list-music" />{t(locale, "home.latestSetlists")}</h2>
+            <a class="rail-link" href="/music/lives">{t(locale, "home.allSetlists")} <Icon name="chevron-right" size=".75rem" /></a>
+          </div>
+          <ol class="rail-rows">
+            {recentSetlists.map((setlist) => (
+              <li>
+                <a class="rail-row" href={`/music/lives/${encodeURIComponent(setlist.id)}`}>
+                  <span class="rail-date"><strong>{setlist.start_date.slice(5).replace("-", ".")}</strong><small>{setlist.start_date.slice(0, 4)}</small></span>
+                  <span class="rail-main">
+                    <b>{setlistDisplayTitle(setlist)}</b>
+                    <small>{[t(locale, "music.songsCount", { count: setlist.entry_count }), setlist.venue].filter(Boolean).join(" · ")}</small>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {recentReleases.length > 0 && (
+        <section class="rail-list panel" aria-labelledby="home-releases-title">
+          <div class="rail-head">
+            <h2 id="home-releases-title"><Icon name="music-note-beamed" />{t(locale, "music.releaseNewest")}</h2>
+            <a class="rail-link" href="/music/releases">{t(locale, "music.nav.releases")} <Icon name="chevron-right" size=".75rem" /></a>
+          </div>
+          <ol class="rail-rows">
+            {recentReleases.map((release) => (
+              <li>
+                <a class="rail-row" href={`/music/releases/${encodeURIComponent(release.slug)}`}>
+                  <span class="rail-cover"><ReleaseCover url={release.cover_url} alt="" /></span>
+                  <span class="rail-main">
+                    <b translate="no">{release.title}</b>
+                    <small>{[releaseTypeLabel(release.release_type, locale), formatMusicDate(release.release_date, locale)].filter(Boolean).join(" · ")}</small>
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <nav class="library panel" aria-label={t(locale, "music.nav.label")}>
+        <a href="/music/lives"><strong>{libraryStats.setlist_count}</strong><span>{t(locale, "music.nav.lives")}</span></a>
+        <a href="/music/songs"><strong>{libraryStats.song_count}</strong><span>{t(locale, "music.nav.songs")}</span></a>
+        <a href="/music/releases"><strong>{libraryStats.release_count}</strong><span>{t(locale, "music.nav.releases")}</span></a>
+      </nav>
+
+      <div class="about">
+        <p class="about-lyric" lang="en" translate="no">This desire is bound in the melody.</p>
+        <p>
+          {subtitleBefore}<a class="about-source" href={SOURCE_URL} target="_blank" rel="external noopener noreferrer">{t(locale, "home.openSource")}</a>{subtitleAfter}
+        </p>
+        {showSyncNote && lastSyncDate && <p>{t(locale, "home.syncNote", { date: formatMusicDate(lastSyncDate, locale) })}</p>}
+        <button class="motion-toggle" type="button" data-home-motion aria-label={t(locale, "home.motionLabel")} aria-pressed="false" data-pause-label={t(locale, "home.pauseMotion")} data-resume-label={t(locale, "home.resumeMotion")}>
+          <Icon name="pause-fill" /><span>{t(locale, "home.pauseMotion")}</span>
+        </button>
       </div>
-    ) : (
-      <div class="empty panel">{t(locale, "home.noSetlists")}</div>
-    )}
-  </section>
-
-  <a class="journey-teaser panel" href="/journey">
-    <span class="journey-teaser-text">
-      <span class="journey-teaser-label"><Icon name="globe-americas" />{t(locale, "journey.title")}</span>
-      <span class="journey-teaser-description">{t(locale, "journey.description")}</span>
-    </span>
-    <span class="journey-teaser-cta">{t(locale, "home.journeyCta")} <Icon name="chevron-right" size=".75rem" /></span>
-  </a>
-
-  <Comments locale={locale} thread="site" title={t(locale, "community.discussionTitle")} />
-
+    </div>
+  </div>
 </SiteLayout>
 
 <script>
-  // The toggle now only governs the background crossfade; the hero text no longer animates.
+  // The motion toggle only governs the background crossfade.
   let cleanupHome: (() => void) | undefined;
   const setupHome = () => {
     cleanupHome?.();
@@ -208,6 +326,16 @@ const nextCountdown = !next
     if (!motionToggle) return;
     const controller = new AbortController();
     const { signal } = controller;
+
+    // The feed filter only hides cards that are already on the page, so it needs no request.
+    const feedList = document.querySelector<HTMLElement>("[data-feed]");
+    const filterButtons = [...document.querySelectorAll<HTMLButtonElement>("[data-feed-filter]")];
+    for (const button of filterButtons) {
+      button.addEventListener("click", () => {
+        if (feedList) feedList.dataset.filter = button.dataset.feedFilter ?? "all";
+        for (const other of filterButtons) other.setAttribute("aria-pressed", String(other === button));
+      }, { signal });
+    }
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const updateMotionToggle = () => {
@@ -231,201 +359,173 @@ const nextCountdown = !next
 </script>
 
 <style>
-  .hero { display: grid; grid-template-columns: 1.25fr .75fr; align-items: start; gap: 0 clamp(1.5rem, 5vw, 4rem); padding: 2rem 0 .5rem; }
-  .hero-copy { grid-column: 1; grid-row: 1; min-width: 0; }
-  /* One shade for the whole left column — headline, subtitle and buttons alike — so no edge of
-     it cuts across the copy while the backdrop rotates to the busier photo. */
-  .hero { position: relative; isolation: isolate; }
-  .hero::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset: -2.5rem auto -2rem -6rem;
-    width: min(64rem, 82%);
-    pointer-events: none;
-    background: radial-gradient(ellipse 70% 62% at 40% 50%, rgba(7,16,28,.92) 0%, rgba(7,16,28,.78) 42%, rgba(7,16,28,.34) 70%, transparent 100%);
-    /* The radial alone still meets the viewport edge as a hard line; this fades that edge out. */
-    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 16%);
-    mask-image: linear-gradient(to right, transparent 0, #000 16%);
-  }
-  .signal { grid-column: 2; grid-row: 1 / span 2; }
-  .hero-actions { grid-column: 1; grid-row: 2; align-self: start; margin-top: 1.6rem; }
-  /* Today's archive entry rides above the headline: real content, but never the main event. */
-  .today-pill { display: inline-flex; align-items: center; gap: .45rem; max-width: 100%; margin-bottom: 1.1rem; padding: .4rem .8rem; color: var(--muted); border: 1px solid rgba(159, 180, 211, .22); border-radius: 999px; background: rgba(7, 16, 28, .72); font-size: .78rem; text-decoration: none; backdrop-filter: blur(10px); transition: border-color .18s, color .18s; }
-  .today-pill:hover { color: var(--text); border-color: rgba(var(--accent-rgb), .55); }
-  .today-pill :global(.icon) { flex: 0 0 auto; color: var(--accent); }
-  .today-pill-label { flex: 0 0 auto; font-weight: 650; }
-  .today-pill time { flex: 0 0 auto; color: var(--text); font-variant-numeric: tabular-nums; }
-  /* Collapsed the pill is just label and date; hovering widens it and scrolls the event name
-     past the window. No title attribute, so no native tooltip covers the headline, and the full
-     name stays in the DOM for screen readers. min(0px, …) keeps a short name still. */
-  .today-pill-event { --pill-window: 17rem; max-width: 0; margin-left: -.45rem; overflow: hidden; white-space: nowrap; transition: max-width .32s ease, margin-left .32s ease; }
-  .today-pill-event > span { display: inline-block; }
-  .today-pill:hover .today-pill-event, .today-pill:focus-visible .today-pill-event { max-width: var(--pill-window); margin-left: 0; mask-image: linear-gradient(to right, #000 88%, transparent); }
-  .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span {
-    animation: pill-marquee 5s linear .8s infinite alternate;
-  }
-  @keyframes pill-marquee { to { transform: translateX(min(0px, calc(var(--pill-window) - 100%))); } }
-  @media (prefers-reduced-motion: reduce) {
-    .today-pill-event { transition: none; }
-    .today-pill:hover .today-pill-event > span, .today-pill:focus-visible .today-pill-event > span { animation: none; }
-  }
-  .hero-title { display: grid; width: fit-content; max-width: 100%; align-content: start; gap: .14em; margin: 0; font-size: clamp(2rem, 4.2vw, 3.4rem); line-height: 1.06; letter-spacing: -.045em; }
-  .title-lead, .title-solid { display: block; }
-  .title-lead { color: var(--text); }
-  .title-solid { color: var(--text); font-size: .72em; line-height: 1.08; letter-spacing: -.045em; }
-  @supports (-webkit-text-stroke: 1px currentColor) {
-    .title-solid { color: transparent; -webkit-text-stroke: 1.5px var(--text); }
-  }
-  .hero-subtitle { max-width: 32rem; margin: 1rem 0 0; color: #c8d9e7; font-size: 1rem; line-height: 1.7; }
-  .hero-source { color: inherit; text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), .6); text-underline-offset: 3px; }
-  .hero-source:hover { color: var(--accent); }
-  .motion-toggle { min-height: 36px; padding: .35rem 0; color: var(--muted); background: transparent; font-size: .78rem; font-weight: 500; }
-  .motion-toggle:hover { color: var(--text); transform: none; }
-  .motion-toggle[hidden] { display: none; }
-  .motion-toggle[aria-pressed="true"] { color: var(--accent); }
-  .hero .actions .button { min-height: 50px; padding: .78rem 1.15rem; border-radius: 12px; font-size: .92rem; }
-  .hero .actions .button.secondary { background: rgba(7,16,28,.76); border-color: rgba(200,220,237,.22); box-shadow: 0 10px 28px rgba(0,0,0,.18); backdrop-filter: blur(16px); }
-  .hero .actions .button.secondary.setlist-button { border-color: rgba(var(--accent-rgb), .68); box-shadow: 0 10px 28px rgba(0,0,0,.18), inset 0 0 0 1px rgba(var(--accent-rgb), .08); }
-  .setlist-button :global(.icon) { color: var(--accent); }
-  .hero .actions .button.secondary.setlist-button:hover { background: rgba(var(--accent-rgb), .09); border-color: var(--accent); box-shadow: 0 10px 32px rgba(0,0,0,.22), 0 0 22px rgba(var(--accent-rgb), .1); }
-  .signal { position: relative; min-height: 340px; padding: 1.6rem; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; overflow: hidden; }
-  .panel-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: 1.25rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
+  /* A pinned next event, then one stream of upcoming events; setlists, releases and the library sit in a side rail. */
+  .home-stage { display: grid; grid-template-columns: minmax(0, 1fr) 20.5rem; gap: 1.25rem; align-items: start; }
+  .home-h1 { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .home-main { display: grid; gap: 1.25rem; min-width: 0; }
+  .home-pinned { display: grid; gap: .75rem; min-width: 0; }
+  .home-pinned :global(.tour-live) { margin-top: 0; }
+  .home-rail { position: sticky; top: 1rem; display: grid; gap: .75rem; min-width: 0; }
+  .home-main :global(.comments) { margin-top: 1.25rem; }
+
+  /* Signal Card (Coming Up Next) */
+  .signal { position: relative; padding: 1.2rem 1.35rem; display: flex; flex-direction: column; justify-content: flex-start; min-width: 0; overflow: hidden; border-color: rgba(var(--accent-rgb), .34); background: linear-gradient(145deg, rgba(16, 31, 52, .88), rgba(9, 19, 34, .84)); }
+  .signal::before { content: ""; position: absolute; inset: 0 -45% -18%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 calc(6% - 1px), rgba(var(--accent-rgb),.13) 6% calc(6% + 1px)); transform: rotate(-8deg); pointer-events: none; }
+  .panel-top { position: relative; display: flex; justify-content: space-between; align-items: center; gap: .65rem; margin-bottom: .65rem; flex-shrink: 0; color: var(--muted); font: 700 .68rem/1 ui-monospace; text-transform: uppercase; letter-spacing: .12em; }
   .panel-top span { margin-right: auto; }
-  .hero + .section-heading, :global(.tour-live) + .section-heading { margin-top: 2rem; }
-  /* Section headings sit above cards that carry their own titles, so they stay quieter than h2. */
-  .latest-events-heading h2, .recent-setlists .section-heading h2 { display: flex; align-items: center; gap: .5rem; font-size: clamp(1.15rem, 1.7vw, 1.4rem); }
-  .sync-note { margin: 1.1rem 0 0; color: var(--muted); font-size: .75rem; line-height: 1.6; }
-  .subsection-title { margin: 2.25rem 0 1rem; color: #d3dce8; font-size: 1rem; font-weight: 650; letter-spacing: -.01em; }
-  .latest-events-heading h2 > :global(.icon), .recent-setlists .section-heading h2 > :global(.icon) { color: var(--accent); font-size: .9em; }
-  .latest-events-heading, .recent-setlists .section-heading { align-items: center; }
-  .section-link { display: inline-flex; align-items: center; justify-content: flex-end; gap: .3rem; min-height: 44px; padding: .5rem .125rem; border-radius: 6px; color: var(--muted); font-size: .8125rem; font-weight: 400; text-decoration: none; touch-action: manipulation; }
-  .section-link:hover, .section-link:focus-visible { color: var(--accent); }
-  .event-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; align-items: stretch; }
-  .event-grid.count-1 { grid-template-columns: minmax(0, 1fr); }
-  .event-grid.count-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* Three cards side by side need the footer line on one level, whatever the title wraps to. */
-  /* Equal-height cards: the spare height goes to the title row and the details sit at the bottom,
-     whether the tags share the date line (wide) or take their own row (narrow, see EventCard). */
-  .event-grid :global(.event-card) { height: 100%; grid-template-rows: auto auto 1fr auto; }
-  .event-grid :global(.event-card h3) { align-self: start; }
-  .event-grid :global(.event-card .event-details) { align-self: end; }
-  /* Same frosted panel as the recent setlist cards below; only these few homepage cards blur,
-     long calendar lists keep the cheaper translucent gradient. */
-  /* Unprefixed only: with both written, the production minifier kept just -webkit-, which Chromium ignores. */
-  .event-grid :global(.event-card) { background: rgba(10, 22, 39, .76); backdrop-filter: blur(18px); }
-  .event-grid :global(.event-card:hover) { background: rgba(14, 29, 49, .88); }
-  .journey-teaser { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.5rem; margin-top: 4.5rem; padding: 1.35rem 1.5rem; color: inherit; text-decoration: none; transition: border-color .18s, transform .18s, background .18s; }
-  .journey-teaser:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); }
-  .journey-teaser-text { display: grid; gap: .3rem; min-width: 0; }
-  .journey-teaser-label { display: inline-flex; align-items: center; gap: .5rem; font-size: 1.0625rem; font-weight: 650; }
-  .journey-teaser-label :global(.icon) { color: var(--accent); }
-  .journey-teaser-description { color: var(--muted); font-size: .8125rem; line-height: 1.6; }
-  .journey-teaser-cta { display: inline-flex; align-items: center; gap: .3rem; flex: 0 0 auto; color: var(--accent); font-size: .8125rem; }
-  .recent-setlists { margin-top: 4.5rem; }
-  .recent-setlists .section-heading { margin-top: 0; }
-  .recent-setlist-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .9rem; }
-  .recent-setlist-card {
-    position: relative;
-    display: grid;
-    grid-template-rows: auto auto 1fr auto;
-    gap: .7rem;
-    min-width: 0;
-    min-height: 13.5rem;
-    padding: 1.15rem;
-    color: inherit;
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    background: rgba(10, 22, 39, .76);
-    text-decoration: none;
-    backdrop-filter: blur(18px);
-    transition: border-color .18s, transform .18s, background .18s;
-  }
-  .recent-setlist-card:hover { transform: translateY(-2px); border-color: rgba(var(--accent-rgb), .42); background: rgba(14, 29, 49, .88); }
-  .recent-setlist-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
-  .recent-setlist-top time { color: var(--accent); font-size: .73rem; font-weight: 720; }
-  .recent-setlist-type { display: inline-flex; align-items: center; gap: .35rem; padding: .27rem .5rem; color: var(--muted); border: 1px solid rgba(159, 180, 211, .17); border-radius: 999px; font-size: .75rem; line-height: 1; }
-  .recent-setlist-type:is(.is-solo, .is-festival)::before { content: ""; width: .42rem; height: .42rem; border: 1px solid var(--accent); border-radius: 50%; box-sizing: border-box; }
-  .recent-setlist-type.is-solo::before { background: var(--accent); box-shadow: 0 0 8px rgba(var(--accent-rgb), .34); }
-  .recent-setlist-card h3 { margin: 0; font-size: 1rem; line-height: 1.42; }
-  .recent-setlist-card > p { margin: 0; color: var(--muted); font-size: .8125rem; line-height: 1.55; }
-  .recent-setlist-meta { display: flex; align-items: center; gap: .65rem; padding-top: .75rem; color: var(--muted); border-top: 1px solid rgba(159, 180, 211, .12); font-size: .8125rem; }
-  .recent-setlist-meta :global(.icon) { margin-left: auto; color: var(--accent); }
-  /* Rings are spaced in percent and centred below the card, so the arcs sweep the whole panel
-     at any height instead of stopping part way down a tall one. */
-  .signal::before { content: ""; position: absolute; inset: 0 -45% -18%; background: repeating-radial-gradient(circle at 50% 100%, transparent 0 calc(6% - 1px), rgba(var(--accent-rgb),.13) 6% calc(6% + 1px)); transform: rotate(-8deg); }
-  .signal-countdown { color: var(--accent); font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
-  .label-short { display: none; }
   .panel-top i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 18px var(--accent); }
-  .signal > strong, .no-signal strong { color: var(--accent); font-size: clamp(3.7rem, 8vw, 6rem); line-height: 1; letter-spacing: -.08em; position: relative; }
-  .signal h2 { font-size: 1.25rem; line-height: 1.45; overflow-wrap: anywhere; margin: 1rem 0 .4rem; position: relative; }
-  .signal-update { position: relative; margin: .1rem 0 0; }
-  .signal-update .tag.update { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .1); }
-  .signal-footer { display: flex; align-items: center; gap: .65rem; margin-top: auto; padding-top: .75rem; border-top: 1px solid var(--line); }
-  .signal p { flex: 1; min-width: 0; margin: 0; color: var(--muted); position: relative; overflow-wrap: anywhere; }
-  .signal a { flex: 0 0 auto; color: var(--muted); opacity: .55; margin: 0; padding: 0; font-size: .85rem; text-decoration: none; }
+  .signal-countdown { color: var(--accent); font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
+  .signal-head { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .5rem .75rem; }
+  .signal-head > strong, .no-signal strong { color: var(--accent); font-size: clamp(2.6rem, 4.8vw, 3.6rem); line-height: .95; letter-spacing: -.07em; position: relative; font-variant-numeric: tabular-nums; }
+  .signal-meta { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: flex-end; }
+  .signal-meta .tag.update { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .1); }
+  .signal h2 { font-size: 1.12rem; line-height: 1.4; overflow-wrap: anywhere; margin: .65rem 0 .6rem; position: relative; }
+  .signal-footer { display: flex; align-items: center; gap: .65rem; margin-top: auto; padding-top: .65rem; border-top: 1px solid var(--line); }
+  .signal-details { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: .2rem .75rem; }
+  .signal p { margin: 0; color: var(--muted); position: relative; font-size: .8rem; line-height: 1.45; overflow-wrap: anywhere; }
+  .signal .signal-venue { color: #c8d9e7; }
+  .signal a { flex: 0 0 auto; color: var(--muted); opacity: .55; margin: 0; padding: 0; font-size: .85rem; text-decoration: none; display: inline-flex; align-items: center; gap: .35rem; }
   .signal:hover a, .signal:focus-within a { color: var(--accent); opacity: 1; }
   .signal:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
   .signal a:focus-visible { outline: none; }
   .signal a::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
-  .signal a { display: inline-flex; align-items: center; gap: .35rem; }
-  @media (min-width: 801px) and (max-width: 1040px) {
-    .event-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+
+  /* Feed */
+  .feed-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: .75rem; }
+  .feed-bar h2 { display: flex; align-items: center; gap: .45rem; margin: 0; font-size: 1.05rem; }
+  .feed-bar h2 > :global(.icon) { color: var(--accent); }
+  .feed-filter { display: flex; gap: .35rem; isolation: isolate; }
+  /* The pill is drawn inside a 44px-tall button, so the touch target stays full height. */
+  .feed-filter button { position: relative; min-height: 44px; padding: 0 .8rem; color: var(--muted); background: none; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+  .feed-filter button::before { content: ""; position: absolute; inset: 7px 0; z-index: -1; border: 1px solid rgba(159, 180, 211, .18); border-radius: 999px; background: rgba(7, 16, 28, .6); transition: border-color .15s, background .15s; }
+  .feed-filter button:hover { color: var(--text); filter: none; transform: none; }
+  .feed-filter button[aria-pressed="true"] { color: #07101c; }
+  .feed-filter button[aria-pressed="true"]::before { border-color: var(--accent); background: var(--accent); }
+  .feed { display: grid; gap: .75rem; margin: 0; padding: 0; list-style: none; }
+  .feed > li { min-width: 0; }
+  .feed:not([data-filter="all"]) > li { display: none; }
+  .feed[data-filter="live"] > li[data-kind="live"],
+  .feed[data-filter="event"] > li[data-kind="event"],
+  .feed[data-filter="release"] > li[data-kind="release"],
+  .feed[data-filter="media"] > li[data-kind="media"],
+  .feed[data-filter="other"] > li[data-kind="other"] { display: block; }
+  .feed-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+  .feed-actions .button { flex: 1 1 12rem; min-height: 44px; font-size: .84rem; }
+  .feed-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+
+  .card { display: grid; gap: .45rem; min-width: 0; padding: .95rem 1.1rem; color: inherit; border: 1px solid var(--line); border-radius: 16px; background: rgba(10, 22, 39, .78); text-decoration: none; backdrop-filter: blur(18px); }
+  .card-link { transition: border-color .18s, background .18s; }
+  .card-link:hover { border-color: rgba(var(--accent-rgb), .48); background: rgba(14, 29, 49, .9); }
+  .card-kind { display: flex; align-items: center; gap: .4rem; min-width: 0; margin: 0; color: var(--muted); font-size: .75rem; font-weight: 600; line-height: 1.2; }
+  .card-kind > :global(.icon) { flex: 0 0 auto; color: var(--accent); }
+  .card-kind time { margin-left: auto; font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .card h3, .card > strong, .event-body > strong { margin: 0; font-size: .98rem; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+  .card-sub { margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.45; }
+
+  .tag.update { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); background: rgba(var(--accent-rgb), .1); }
+
+  .event-card { grid-template-columns: 5.4rem minmax(0, 1fr); align-items: start; gap: .9rem; }
+  .event-date { display: grid; gap: .15rem; padding-right: .8rem; border-right: 1px solid rgba(159, 180, 211, .14); font-variant-numeric: tabular-nums; }
+  .event-date strong { color: var(--accent); font-size: 1.12rem; font-weight: 800; line-height: 1.15; letter-spacing: -.03em; overflow-wrap: anywhere; }
+  .event-date small { color: var(--muted); font-size: .7rem; letter-spacing: .04em; }
+  .event-body { display: grid; gap: .35rem; min-width: 0; }
+  .event-tags { display: flex; flex-wrap: wrap; gap: .3rem; }
+  .event-tags .tag { padding: .15rem .45rem; font-size: .68rem; }
+
+  .feed-spotlight :global(.spotlight) { border-radius: 16px; }
+  .today-card > strong { font-size: .92rem; font-weight: 650; }
+
+  .top-songs-panel { gap: .6rem; }
+  .top-songs-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; color: var(--muted); }
+  .top-songs-more { display: inline-flex; align-items: center; gap: .3rem; min-height: 26px; color: var(--muted); font-size: .78rem; text-decoration: none; }
+  .top-songs-more:hover, .top-songs-more:focus-visible { color: var(--accent); }
+  .top-songs-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .32rem; margin: 0; padding: 0; list-style: none; }
+  .top-song-row {
+    display: grid;
+    grid-template-columns: 1.25rem 2.15rem minmax(0, 1fr) 5.2rem;
+    align-items: center;
+    gap: .6rem;
+    padding: .35rem .5rem;
+    color: inherit;
+    border: 1px solid rgba(159, 180, 211, .1);
+    border-radius: 10px;
+    background: rgba(7, 16, 28, .46);
+    text-decoration: none;
+    transition: border-color .16s, background .16s, transform .16s;
   }
-  @media (max-width: 800px) {
-    /* One column, in source order: headline, next show, then the ways in. */
-    .hero { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 1rem; padding-top: 0; }
-    .hero-copy, .signal, .hero-actions { grid-column: auto; grid-row: auto; }
-    /* Sideways only as far as the 1rem page gutter: any wider and the phone page scrolls horizontally. */
-    .hero::before { inset: -1rem -1rem auto; width: auto; height: 60%; background: radial-gradient(ellipse 90% 70% at 50% 40%, rgba(7,16,28,.92) 0%, rgba(7,16,28,.74) 48%, rgba(7,16,28,.24) 76%, transparent 100%); }
-    .hero-actions { margin-top: 0; }
-    .today-pill { margin-bottom: .85rem; padding: .35rem .7rem; font-size: .72rem; }
-    .today-pill-event { --pill-window: 9rem; }
-    .hero-title { max-width: none; font-size: clamp(1.6rem, 7.5vw, 2.1rem); }
-    @supports (-webkit-text-stroke: 1px currentColor) {
-      .title-solid { color: rgba(239, 248, 255, .4); -webkit-text-stroke: 1px rgba(239, 248, 255, .95); text-shadow: 0 2px 18px rgba(0, 0, 0, .45); }
-    }
-    .hero-subtitle { margin-top: .7rem; font-size: .9375rem; line-height: 1.65; }
-    .hero .actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; margin-top: 0; }
-    .hero .actions .button { min-height: 48px; padding: .7rem .75rem; font-size: .9rem; white-space: nowrap; }
-    .label-full { display: none; }
-    .label-short { display: inline; overflow: hidden; text-overflow: ellipsis; }
-    .hero .actions .subscribe-action { grid-column: 1 / -1; }
-    .motion-toggle { align-self: flex-start; }
-    .signal { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: .75rem; min-height: 0; padding: 1rem 1.1rem 1.1rem; transition: border-color .18s; }
-    .signal:has(a:hover) { border-color: rgba(var(--accent-rgb), .42); }
-    .signal:has(a:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .panel-top { grid-column: 1 / -1; margin-bottom: .6rem; font-size: .6875rem; letter-spacing: .08em; }
-    .signal > strong, .no-signal strong { font-size: clamp(2.125rem, 9vw, 2.5rem); letter-spacing: -.05em; }
-    .signal > strong { grid-column: 1; }
-    .no-signal { grid-column: 1 / -1; }
-    .signal h2 { grid-column: 1 / -1; margin: .5rem 0 .2rem; font-size: 1.0625rem; font-weight: 600; line-height: 1.45; letter-spacing: -.015em; }
-    .signal-footer { grid-column: 1 / -1; margin-top: .65rem; }
-    .signal p { font-size: .8125rem; line-height: 1.55; }
-    .latest-events-heading h2, .recent-setlists .section-heading h2 { color: #d3dce8; font-size: 1.125rem; font-weight: 600; }
-    .subsection-title { margin: 1.75rem 0 .85rem; font-size: .9375rem; }
-    .event-list { --event-title-color: #d3dce8; --event-title-weight: 600; --event-title-size: 1.0625rem; --event-time-color: #a8b6c8; --event-venue-color: #8f9fb4; --event-year-color: #8998ac; }
-    .event-grid, .event-grid.count-1, .event-grid.count-2 { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
-    .event-grid :global(.event-card) { height: auto; }
-    .journey-teaser { margin-top: 3rem; padding: 1.15rem; }
-    .recent-setlists { margin-top: 3rem; }
-    .recent-setlist-grid { grid-template-columns: 1fr; }
-    .recent-setlist-card { min-height: 0; }
-    .recent-setlist-card h3 { color: #d3dce8; font-weight: 600; }
-  }
-  /* Phones lead with the content: of the hero copy only the on-this-day badge stays visible.
-     The headline is the page's h1, so it is hidden visually but kept for screen readers. */
-  @media (max-width: 760px) {
-    .hero-title { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-    .hero-subtitle { display: none; }
-    .hero-copy:not(:has(.today-pill)) { display: none; }
-    .today-pill { margin-bottom: 0; }
-  }
-  @media (max-width: 480px) {
-    .latest-events-heading h2, .recent-setlists .section-heading h2 { font-size: 1.0625rem; }
+  .top-song-row:hover { border-color: rgba(var(--accent-rgb), .42); background: rgba(14, 29, 49, .82); transform: translateX(2px); }
+  .top-song-rank { color: var(--muted); font-size: .78rem; font-weight: 750; text-align: center; font-variant-numeric: tabular-nums; }
+  .top-song-row.is-podium .top-song-rank { color: var(--accent); font-size: .88rem; }
+  .top-song-cover { width: 2.15rem; height: 2.15rem; border-radius: 6px; overflow: hidden; }
+  .top-song-cover :global(.release-cover) { border-radius: 6px; }
+  .top-song-cover :global(.release-cover-placeholder) { font-size: .95rem; }
+  .top-song-info { display: grid; gap: .08rem; min-width: 0; }
+  .top-song-info strong { overflow: hidden; font-size: .84rem; font-weight: 680; line-height: 1.28; text-overflow: ellipsis; white-space: nowrap; }
+  .top-song-info small { overflow: hidden; color: var(--muted); font-size: .68rem; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+  .top-song-metric { display: grid; justify-items: end; gap: .2rem; min-width: 0; }
+  .top-song-metric b { color: var(--text); font-size: .74rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .top-song-row.is-podium .top-song-metric b { color: var(--accent); }
+  .top-song-metric i { display: block; width: 100%; height: 4px; border-radius: 999px; background: rgba(159, 180, 211, .14); overflow: hidden; }
+  .top-song-metric i > span { display: block; width: var(--share); height: 100%; border-radius: inherit; background: rgba(159, 180, 211, .58); }
+  .top-song-row.is-podium .top-song-metric i > span { background: var(--accent); }
+
+
+  /* Rail */
+  .rail-list, .library { padding: .9rem 1rem; }
+  .rail-list { display: grid; gap: .5rem; }
+  .rail-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
+  .rail-head h2 { display: flex; align-items: center; gap: .45rem; margin: 0; font-size: .95rem; }
+  .rail-head h2 > :global(.icon) { color: var(--accent); }
+  .rail-link { display: inline-flex; align-items: center; gap: .3rem; min-height: 32px; color: var(--muted); font-size: .78rem; text-decoration: none; white-space: nowrap; }
+  .rail-link:hover, .rail-link:focus-visible { color: var(--accent); }
+  .rail-rows { display: grid; margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+  .rail-rows > li + li { border-top: 1px solid rgba(159, 180, 211, .11); }
+  .rail-row { display: grid; grid-template-columns: 2.9rem minmax(0, 1fr); align-items: center; gap: .7rem; min-height: 44px; padding: .5rem 0; color: inherit; text-decoration: none; }
+  .rail-date { display: grid; gap: .1rem; font-variant-numeric: tabular-nums; }
+  .rail-date strong { color: var(--accent); font-size: .88rem; font-weight: 800; line-height: 1.2; letter-spacing: -.03em; }
+  .rail-date small { color: var(--muted); font-size: .68rem; }
+  .rail-cover { width: 2.9rem; height: 2.9rem; border-radius: 7px; overflow: hidden; }
+  .rail-cover :global(.release-cover) { border-radius: 7px; }
+  .rail-cover :global(.release-cover-placeholder) { font-size: 1.1rem; }
+  .rail-main { display: grid; gap: .12rem; min-width: 0; }
+  .rail-main b { overflow: hidden; font-size: .84rem; font-weight: 650; line-height: 1.38; text-overflow: ellipsis; white-space: nowrap; transition: color .15s; }
+  .rail-row:hover b { color: var(--accent); }
+  .rail-main small { overflow: hidden; color: var(--muted); font-size: .72rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+  .library { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .25rem; }
+  .library a { display: grid; gap: .15rem; min-height: 44px; padding: .2rem .35rem; color: var(--muted); border-radius: 8px; font-size: .72rem; text-decoration: none; }
+  .library a + a { border-left: 1px solid rgba(159, 180, 211, .14); border-radius: 0; padding-left: .75rem; }
+  .library strong { color: var(--accent); font-size: 1.15rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .library a:hover span, .library a:focus-visible span { color: var(--text); }
+  .about { display: grid; gap: .35rem; padding: .25rem .35rem; color: var(--muted); font-size: .76rem; line-height: 1.6; }
+  .about p { margin: 0; }
+  .about-lyric { color: #c8d9e7; font-weight: 650; letter-spacing: -.01em; }
+  .about-source { color: var(--text); text-decoration: underline; text-decoration-color: rgba(var(--accent-rgb), .6); text-underline-offset: 3px; }
+  .about-source:hover { color: var(--accent); }
+  .motion-toggle { justify-self: start; min-height: 44px; padding: 0; color: var(--muted); background: transparent; font-size: .75rem; font-weight: 500; }
+  .motion-toggle:hover { color: var(--text); transform: none; }
+  .motion-toggle[hidden] { display: none; }
+  .motion-toggle[aria-pressed="true"] { color: var(--accent); }
+
+  /* One column: the next event, the stream of events, then the music lists. */
+  @media (max-width: 940px) {
+    .home-stage { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+    .home-main, .home-rail { display: contents; }
+    .home-pinned { order: 1; }
+    .home-feed { order: 2; }
+    .rail-list { order: 3; }
+    .library { order: 4; }
+    .home-main :global(.comments) { order: 5; margin-top: 1rem; }
+    .about { order: 6; }
+    .signal { padding: 1rem 1.1rem; }
+    .signal-head > strong, .no-signal strong { font-size: clamp(2.125rem, 9vw, 2.5rem); }
+    .signal h2 { font-size: 1.05rem; margin: .5rem 0 .4rem; }
   }
   @media (max-width: 560px) {
-    .event-list { --event-title-size: .9375rem; --event-title-line-height: 1.5; }
-    .recent-setlist-card h3 { font-size: .9375rem; line-height: 1.5; }
+    .card { padding: .85rem .95rem; }
+    .feed-pair, .top-songs-list { grid-template-columns: minmax(0, 1fr); }
+    .event-card { grid-template-columns: 4.3rem minmax(0, 1fr); gap: .7rem; }
+    .event-date { padding-right: .6rem; }
+    .event-date strong { font-size: .98rem; }
   }
 </style>

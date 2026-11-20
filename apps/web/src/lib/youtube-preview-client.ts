@@ -284,17 +284,26 @@ document.addEventListener("click", (event) => {
     if (step.disabled) host?.querySelector<HTMLButtonElement>("[data-youtube-step]:enabled")?.focus();
     return;
   }
-  const link = target?.closest<HTMLAnchorElement>("[data-track-youtube]");
+  const link = target?.closest<HTMLAnchorElement>("[data-track-youtube], [data-youtube-queue]");
   if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
   event.preventDefault();
-  // The page's playable tracks, in the order shown, play on from the one chosen.
-  const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-track-youtube]")];
-  const list = links.map((item) => ({
-    embed: item.dataset.trackYoutube!,
-    title: item.dataset.trackTitle!,
-    href: `${item.dataset.trackSong}#music-preview`,
-  }));
-  openYouTubePreview(list[links.indexOf(link)]!, link, true, undefined, list);
+  if (link.dataset.youtubeQueue) {
+    // One button for a whole release carries its tracks and starts at the first.
+    const list = JSON.parse(link.dataset.youtubeQueue) as Preview[];
+    openYouTubePreview(list[0]!, link, true, undefined, list);
+  } else {
+    // The playable tracks of the list the button is in, or else those of the page outside any
+    // such list, play on in the order shown from the one chosen.
+    const scope = link.closest("[data-youtube-list]");
+    const links = [...(scope ?? document).querySelectorAll<HTMLAnchorElement>("[data-track-youtube]")]
+      .filter((item) => scope || !item.closest("[data-youtube-list]"));
+    const list = links.map((item) => ({
+      embed: item.dataset.trackYoutube!,
+      title: item.dataset.trackTitle!,
+      href: `${item.dataset.trackSong}#music-preview`,
+    }));
+    openYouTubePreview(list[links.indexOf(link)]!, link, true, undefined, list);
+  }
   if (event.detail === 0) host?.querySelector<HTMLElement>("[data-youtube-return]")?.focus();
 });
 

@@ -121,8 +121,8 @@
 @media (max-width: 760px) {
   .quiz-launcher-dock { display: none; }
   .quiz-header-slot { position: relative; display: inline-flex; flex: none; margin-left: auto; }
-  .quiz-header-button { position: relative; display: inline-grid; place-items: end center; flex: none; width: 48px; height: 48px; padding: 0; overflow: hidden; color: var(--text); background: rgba(255,255,255,.07); border: 1.5px solid rgba(239,248,255,.6); box-shadow: 0 0 0 3px rgba(239,248,255,.06); }
-  .quiz-header-button svg { display: block; width: 46px; height: 46px; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .quiz-header-button { position: relative; display: inline-grid; place-items: center; flex: none; width: 48px; height: 48px; padding: 0; color: var(--text); background: rgba(255,255,255,.07); border: 1px solid var(--line); }
+  .quiz-header-button svg { display: block; color: var(--accent); }
   .quiz-header-button:hover { border-color: var(--accent); transform: none; filter: none; }
   /* Speech bubble under the mascot, once per quiz day, two seconds after she appears. */
   .quiz-header-bubble { position: absolute; z-index: 30; top: calc(100% + 10px); right: -2px; display: inline-flex; align-items: center; gap: .35rem; width: max-content; max-width: min(15rem, calc(100vw - 2rem)); min-height: 40px; padding: .5rem .8rem; color: #0b1626; background: #eff8ff; border: 0; border-radius: 14px; box-shadow: 0 10px 26px rgba(0,0,0,.45); font-size: .82rem; font-weight: 700; line-height: 1.3; white-space: nowrap; transform-origin: calc(100% - 22px) -8px; animation: quiz-bubble-in .32s cubic-bezier(.2,.9,.3,1.3); }
@@ -134,12 +134,8 @@
   .quiz-header-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .quiz-header-dot { position: absolute; top: 5px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px #07101c; }
   .quiz-header-dot[hidden] { display: none; }
-  /* She keeps the same slow idle bob as on desktop, so the button feels alive without nagging. */
-  .quiz-header-button .quiz-chibi { transform-box: fill-box; transform-origin: center bottom; animation: quiz-chibi-bob 3.6s ease-in-out infinite; }
-  .quiz-header-button[data-greeting="true"] .quiz-chibi { animation: quiz-hello-bounce .6s ease-in-out 3; }
-  .quiz-header-button[data-greeting="true"] .quiz-chibi-hand { transform-box: fill-box; transform-origin: left bottom; animation: quiz-hello-wave .3s ease-in-out 6; }
 }
-/* Brand, mascot and menu share one header row: the menu drops its label first, then the mascot shrinks. */
+/* Brand, quiz button and menu share one header row: the menu drops its label first, then the quiz button shrinks. */
 @media (max-width: 440px) {
   .site-header:has(.quiz-header-button) .mobile-menu-trigger { width: 48px; padding: .6rem; }
   .site-header:has(.quiz-header-button) .mobile-menu-trigger span { display: none; }
@@ -147,11 +143,9 @@
 @media (max-width: 360px) {
   .site-header:has(.quiz-header-button) { gap: .35rem; }
   .quiz-header-button { width: 40px; height: 40px; }
-  .quiz-header-button svg { width: 38px; height: 38px; }
 }
 @media (max-width: 760px) and (prefers-reduced-motion: reduce) {
-  .quiz-header-button .quiz-chibi, .quiz-header-button[data-greeting="true"] .quiz-chibi,
-  .quiz-header-button[data-greeting="true"] .quiz-chibi-hand, .quiz-header-bubble { animation: none; }
+  .quiz-header-bubble { animation: none; }
   .quiz-header-bubble[data-leaving="true"] { transition: none; }
 }
 @media (prefers-reduced-motion: reduce) {

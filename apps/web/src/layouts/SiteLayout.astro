@@ -24,7 +24,6 @@ import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import OfficialSiteGate from "../components/OfficialSiteGate.astro";
 import QuizBoard from "../components/QuizBoard.astro";
 import QuizInvite from "../components/QuizInvite.astro";
-import QuizChibi from "../components/QuizChibi.astro";
 import "../styles/quiz.css";
 import "../styles/admin.css";
 import { OFFICIAL_SITE_NOTICE_COOKIE } from "../lib/site-notice";
@@ -179,7 +178,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
       {showQuizLauncher && (
         <span class="quiz-header-slot">
           <button class="quiz-header-button" type="button" data-quiz-header-launcher aria-haspopup="dialog" aria-label={t(locale, "quiz.invite")} title={t(locale, "quiz.invite")}>
-            <svg viewBox="80 12 82 82" aria-hidden="true" focusable="false"><QuizChibi /></svg>
+            <Icon name="controller" size="1.5rem" />
             <span class="quiz-header-dot" data-quiz-header-dot hidden></span>
           </button>
           <button class="quiz-header-bubble" type="button" data-quiz-header-launcher data-quiz-header-bubble hidden>{t(locale, "quiz.invite")}<span aria-hidden="true">→</span></button>

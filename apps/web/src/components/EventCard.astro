@@ -1,9 +1,10 @@
 ---
 import { eventDetailHref } from "../lib/event-navigation";
 import type { EventSummary } from "@frip-fan/core";
-import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../lib/format";
+import { categoryLabels, displayEventStatus, formatDate, statusLabel } from "../lib/format";
 import { getLocale } from "../lib/i18n";
 import Icon from "./Icon.astro";
+import EventTime from "./EventTime.astro";
 
 interface Props { event: EventSummary; compact?: boolean; timeInHeader?: boolean; dateInGroup?: boolean; updateLabel?: string | null }
 const { event, compact = false, timeInHeader = false, dateInGroup = false, updateLabel = null } = Astro.props;
@@ -15,7 +16,7 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
   <div class="event-date">
     <span class="event-year">{event.start_date.slice(0, 4)}</span>
     <strong>{event.start_date.slice(5).replace("-", ".")}</strong>
-    {timeInHeader && <span class="event-header-time">{formatTime(event, locale)}</span>}
+    {timeInHeader && <span class="event-header-time"><EventTime event={event} /></span>}
   </div>
   <div class="event-main">
     <div class="meta">
@@ -27,7 +28,7 @@ const singleDay = !event.end_date || event.end_date === event.start_date;
     <h3><a href={eventDetailHref(event.slug, Astro.url, locale)} data-astro-prefetch="tap" title={event.display_title && event.display_title !== event.title ? event.title : undefined}>{event.display_title ?? event.title}</a></h3>
     <div class="event-details">
       <div class="event-detail-text">
-        <p class="event-time"><span class="event-day">{formatDate(event.start_date, event.end_date, locale)} · </span>{formatTime(event, locale)}</p>
+        <p class="event-time"><span class="event-day">{formatDate(event.start_date, event.end_date, locale)} · </span><EventTime event={event} /></p>
         {event.location_label && <p class="venue">{event.location_label}</p>}
       </div>
       <span class="arrow" aria-hidden="true"><Icon name="chevron-right" size=".85rem" /></span>

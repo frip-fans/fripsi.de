@@ -1,31 +1,11 @@
 import { physicalLocationLabel } from "./locations";
 import type { EventRecord } from "./types";
+import { zonedDateTimeToUtc } from "./utils";
 
 export interface CalendarOptions {
   siteUrl: string;
   calendarName?: string;
   description?: string;
-}
-
-// Building an Intl formatter costs far more than using one; the feed reuses one per zone.
-const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
-
-function zoneFormatter(timeZone: string): Intl.DateTimeFormat {
-  let formatter = zoneFormatters.get(timeZone);
-  if (!formatter) {
-    formatter = new Intl.DateTimeFormat("en-US", {
-      timeZone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hourCycle: "h23"
-    });
-    zoneFormatters.set(timeZone, formatter);
-  }
-  return formatter;
 }
 
 function utf8Length(codePoint: number): number {
@@ -54,33 +34,8 @@ function timestamp(value: string): string {
 }
 
 function localDateTimeAsUtc(date: string, time: string, timeZone: string): string | null {
-  const [year, month, day] = date.split("-").map(Number);
-  const [hour, minute] = time.split(":").map(Number);
-  const target = Date.UTC(year, month - 1, day, hour, minute, 0);
-  let guess = target;
-
-  try {
-    const formatter = zoneFormatter(timeZone);
-
-    for (let iteration = 0; iteration < 3; iteration += 1) {
-      const parts = Object.fromEntries(formatter.formatToParts(new Date(guess)).map((part) => [part.type, part.value]));
-      const represented = Date.UTC(
-        Number(parts.year),
-        Number(parts.month) - 1,
-        Number(parts.day),
-        Number(parts.hour),
-        Number(parts.minute),
-        Number(parts.second)
-      );
-      const difference = target - represented;
-      guess += difference;
-      if (difference === 0) break;
-    }
-
-    return formatUtc(new Date(guess));
-  } catch {
-    return null;
-  }
+  const instant = zonedDateTimeToUtc(date, time, timeZone);
+  return instant ? formatUtc(instant) : null;
 }
 
 function escapeText(value: string): string {

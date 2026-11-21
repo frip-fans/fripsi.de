@@ -311,6 +311,30 @@ export async function listSongYouTubePreviews(db: D1Database, songIds: string[])
   return new Map(results.map(row => [row.song_id, row.external_id]));
 }
 
+/**
+ * The YouTube preview of each exact song version, for places that know which
+ * version was performed. Versions without a preview of their own are absent.
+ */
+export async function listVersionYouTubePreviews(db: D1Database, versionIds: string[]): Promise<Map<string, string>> {
+  if (!versionIds.length) return new Map();
+  const { results } = await db.prepare(`
+    WITH ranked AS (
+      SELECT sv.id AS version_id, yt.external_id,
+        ROW_NUMBER() OVER (PARTITION BY sv.id ORDER BY
+          r.release_date IS NULL, r.release_date,
+          CASE r.release_type WHEN 'single' THEN 0 WHEN 'album' THEN 1 WHEN 'ep' THEN 2 ELSE 3 END,
+          r.slug, rt.disc_number, rt.track_number, rt.id) AS rank
+      FROM song_versions sv
+      JOIN release_tracks rt ON rt.song_version_id = sv.id
+      JOIN releases r ON r.id = rt.release_id AND r.published = 1
+      JOIN release_track_external_ids yt ON yt.release_track_id = rt.id AND yt.provider = 'youtube'
+      WHERE sv.published = 1 AND ${idInJson("sv.id")}
+    )
+    SELECT version_id, external_id FROM ranked WHERE rank = 1
+  `).bind(JSON.stringify(versionIds)).all<{ version_id: string; external_id: string }>();
+  return new Map(results.map(row => [row.version_id, row.external_id]));
+}
+
 export interface ReleaseYouTubeTrack {
   display_title: string;
   song_slug: string;

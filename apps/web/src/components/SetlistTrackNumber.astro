@@ -7,17 +7,20 @@ import { youtubeLinks } from "../lib/music-listen";
 interface Props {
   entry: SetlistEntryRecord;
   videoId?: string;
+  /** Name of the recording the video plays, when it is not the song's default one. */
+  title?: string;
   locale: Locale;
 }
 const { entry, videoId, locale } = Astro.props;
+const title = Astro.props.title ?? entry.song_title;
 const youtube = youtubeLinks(videoId);
 const songHref = `/music/songs/${encodeURIComponent(entry.song_slug)}`;
-const playLabel = t(locale, "music.youtubePlay", { title: entry.song_title });
+const playLabel = t(locale, "music.youtubePlay", { title });
 ---
 <span class:list={["setlist-track-number", { "has-preview": youtube }]}>
   <b>{String(entry.position).padStart(2, "0")}</b>
   {youtube && <a class="setlist-track-play" href={youtube.page} target="_blank" rel="noreferrer"
-    data-track-youtube={youtube.embed} data-track-title={entry.song_title} data-track-song={songHref}
+    data-track-youtube={youtube.embed} data-track-title={title} data-track-song={songHref}
     aria-label={playLabel} title={playLabel}><Icon name="play-fill" /></a>}
 </span>
 

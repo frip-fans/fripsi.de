@@ -1,5 +1,5 @@
 ---
-import { getAdjacentSetlists, getEventTourContext, getSetlistById, getSetlistHighlights, listSongYouTubePreviews } from "@frip-fan/core";
+import { getAdjacentSetlists, getEventTourContext, getSetlistById, getSetlistHighlights, listSongYouTubePreviews, listVersionYouTubePreviews } from "@frip-fan/core";
 import Comments from "../../../components/Comments.astro";
 import Icon from "../../../components/Icon.astro";
 import MusicBackLink from "../../../components/MusicBackLink.astro";
@@ -25,10 +25,11 @@ const locale = getLocale(Astro.request);
 const db = getEnv().DB;
 const [setlist, archiveHighlights] = await Promise.all([getSetlistById(db, Astro.params.id!), getSetlistHighlights(db)]);
 if (!setlist) return Astro.redirect("/404", 302);
-const [adjacent, tour, youtubePreviews] = await Promise.all([
+const [adjacent, tour, songPreviews, versionPreviews] = await Promise.all([
   getAdjacentSetlists(db, setlist),
   getEventTourContext(db, setlist.event_id),
   listSongYouTubePreviews(db, setlist.entries.map((entry) => entry.song_id)),
+  listVersionYouTubePreviews(db, setlist.entries.flatMap((entry) => entry.performed_version_id ?? [])),
 ]);
 const place = [setlist.venue, setlist.region].filter(Boolean).join(" · ") || t(locale, "common.locationPending");
 const highlight = archiveHighlights.get(setlist.id);
@@ -58,6 +59,13 @@ const versionNote = (entry: SetlistEntry) => {
       : null;
   }
   return entry.song_version_count > 1 ? t(locale, "music.versionPending") : null;
+};
+// Play the version that was performed when it has its own video; otherwise the song's default recording.
+const previewFor = (entry: SetlistEntry) => {
+  const versionVideo = entry.performed_version_id ? versionPreviews.get(entry.performed_version_id) : undefined;
+  return versionVideo
+    ? { videoId: versionVideo, title: entry.performed_version_title ?? undefined }
+    : { videoId: songPreviews.get(entry.song_id) };
 };
 let previousSection = "";
 ---
@@ -110,7 +118,7 @@ let previousSection = "";
                     <div class="setlist-medley-tracks">
                       {group.entries.map((medleyEntry) => (
                         <div class="setlist-entry setlist-entry-child">
-                          <SetlistTrackNumber entry={medleyEntry} videoId={youtubePreviews.get(medleyEntry.song_id)} locale={locale} />
+                          <SetlistTrackNumber entry={medleyEntry} {...previewFor(medleyEntry)} locale={locale} />
                           <div class="setlist-entry-main">
                             <a href={`/music/songs/${encodeURIComponent(medleyEntry.song_slug)}`} translate="no">{medleyEntry.display_title}</a>
                             {debutSongs.has(medleyEntry.song_id) && <span class="setlist-badge is-debut">{t(locale, "music.debutBadge")}</span>}
@@ -127,7 +135,7 @@ let previousSection = "";
                   </article>
                 ) : (
                   <article class="setlist-entry">
-                    <SetlistTrackNumber entry={entry} videoId={youtubePreviews.get(entry.song_id)} locale={locale} />
+                    <SetlistTrackNumber entry={entry} {...previewFor(entry)} locale={locale} />
                     <div class="setlist-entry-main">
                       <a href={`/music/songs/${encodeURIComponent(entry.song_slug)}`} translate="no">{entry.display_title}</a>
                             {debutSongs.has(entry.song_id) && <span class="setlist-badge is-debut">{t(locale, "music.debutBadge")}</span>}

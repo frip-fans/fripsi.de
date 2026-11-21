@@ -4,11 +4,12 @@ import { dateInTimeZone, eventUpdateWindowStart, getActiveTour, getLastOfficialS
 import ActiveTourCard from "../components/ActiveTourCard.astro";
 import Comments from "../components/Comments.astro";
 import Icon from "../components/Icon.astro";
+import EventTime from "../components/EventTime.astro";
 import ReleaseCover from "../components/ReleaseCover.astro";
 import SongSpotlight from "../components/SongSpotlight.astro";
 import SiteLayout from "../layouts/SiteLayout.astro";
 import { getEnv } from "../lib/env";
-import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../lib/format";
+import { categoryLabels, displayEventStatus, formatDate, statusLabel } from "../lib/format";
 import { getLocale, t } from "../lib/i18n";
 import { youtubeLinks } from "../lib/music-listen";
 import {
@@ -141,7 +142,7 @@ const dateBadge = (event: UpcomingEvent) => {
               <h2>{next.display_title ?? next.title}</h2>
               <div class="signal-footer">
                 <div class="signal-details">
-                  <p class="signal-time">{(!next.end_date || next.end_date === next.start_date) ? formatTime(next, locale) : `${formatDate(next.start_date, next.end_date, locale)} · ${formatTime(next, locale)}`}</p>
+                  <p class="signal-time">{next.end_date && next.end_date !== next.start_date && `${formatDate(next.start_date, next.end_date, locale)} · `}<EventTime event={next} /></p>
                   <p class="signal-venue">{next.location_label || t(locale, "common.locationPending")}</p>
                 </div>
                 <a href={eventDetailHref(next.slug, Astro.url, locale)} aria-label={t(locale, "common.view", { title: next.title })}><Icon name="chevron-right" size=".85rem" /></a>
@@ -183,7 +184,7 @@ const dateBadge = (event: UpcomingEvent) => {
                         {updateLabel(event.id) && <span class="tag update">{updateLabel(event.id)}</span>}
                       </span>
                       <strong>{event.display_title ?? event.title}</strong>
-                      <span class="card-sub">{[event.location_label, formatTime(event, locale)].filter(Boolean).join(" · ")}</span>
+                      <span class="card-sub">{event.location_label && `${event.location_label} · `}<EventTime event={event} /></span>
                     </span>
                   </a>
                 </li>

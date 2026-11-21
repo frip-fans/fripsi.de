@@ -54,3 +54,56 @@ export class ServiceError extends Error {
     this.name = "ServiceError";
   }
 }
+
+// Building an Intl formatter costs far more than using one; callers reuse one per zone.
+const zoneFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function zoneFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = zoneFormatters.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23"
+    });
+    zoneFormatters.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
+/** The instant at which a wall-clock date and time occur in the given zone; null for an unknown zone. */
+export function zonedDateTimeToUtc(date: string, time: string, timeZone: string): Date | null {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const target = Date.UTC(year, month - 1, day, hour, minute, 0);
+  let guess = target;
+
+  try {
+    const formatter = zoneFormatter(timeZone);
+
+    for (let iteration = 0; iteration < 3; iteration += 1) {
+      const parts = Object.fromEntries(formatter.formatToParts(new Date(guess)).map((part) => [part.type, part.value]));
+      const represented = Date.UTC(
+        Number(parts.year),
+        Number(parts.month) - 1,
+        Number(parts.day),
+        Number(parts.hour),
+        Number(parts.minute),
+        Number(parts.second)
+      );
+      const difference = target - represented;
+      guess += difference;
+      if (difference === 0) break;
+    }
+
+    const instant = new Date(guess);
+    return Number.isNaN(instant.valueOf()) ? null : instant;
+  } catch {
+    return null;
+  }
+}

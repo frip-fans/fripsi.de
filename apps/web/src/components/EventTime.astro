@@ -1,0 +1,25 @@
+---
+import { zonedDateTimeToUtc, type EventRecord } from "@frip-fan/core";
+import { formatTime } from "../lib/format";
+import { getLocale, t } from "../lib/i18n";
+
+interface Props { event: Pick<EventRecord, "start_date" | "end_date" | "start_time" | "end_time" | "timezone"> }
+const { event } = Astro.props;
+const locale = getLocale(Astro.request);
+const text = formatTime(event, locale);
+const start = event.start_time ? zonedDateTimeToUtc(event.start_date, event.start_time, event.timezone) : null;
+const end = start && event.end_time ? zonedDateTimeToUtc(event.end_date ?? event.start_date, event.end_time, event.timezone) : null;
+const slot = { time: "{time}", zone: "{zone}" };
+---
+{start ? (
+  <event-time
+    data-start={start.toISOString()}
+    data-end={end?.toISOString()}
+    data-date={event.start_date}
+    data-time={event.start_time}
+    data-viewer-same={t(locale, "event.viewerTime", slot)}
+    data-viewer-previous={t(locale, "event.viewerTimePreviousDay", slot)}
+    data-viewer-next={t(locale, "event.viewerTimeNextDay", slot)}
+    data-viewer-zone={t(locale, "event.viewerTimeZone", slot)}
+  >{text}</event-time>
+) : text}

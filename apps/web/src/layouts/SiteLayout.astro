@@ -288,6 +288,7 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
   });
 
   import "../lib/event-navigation-client";
+  import "../lib/event-time-client";
   import { setupMenuIndicator } from "../lib/menu-indicator";
   import { setupMenuLoading } from "../lib/menu-loading";
   let navigationController: AbortController | undefined;

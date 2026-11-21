@@ -4,7 +4,8 @@ import BackLink from "../../components/BackLink.astro";
 import Comments from "../../components/Comments.astro";
 import { eventReturnLink } from "../../lib/event-navigation";
 import Icon from "../../components/Icon.astro";
-import { categoryLabels, displayEventStatus, formatDate, formatTime, statusLabel } from "../../lib/format";
+import EventTime from "../../components/EventTime.astro";
+import { categoryLabels, displayEventStatus, formatDate, statusLabel } from "../../lib/format";
 import { setlistCompletenessLabel, setlistEventTypeLabel } from "../../lib/music";
 import SiteLayout from "../../layouts/SiteLayout.astro";
 import { getEnv } from "../../lib/env";
@@ -92,7 +93,7 @@ const structuredData = {
       {(event.start_time || showLocation || channels.length > 0) && (
         <dl class="panel facts" data-page-entry>
           {event.start_time && (
-            <div><dt>{t(locale, "event.time")}</dt><dd>{formatTime(event, locale)} <small translate="no">{event.timezone}</small></dd></div>
+            <div><dt>{t(locale, "event.time")}</dt><dd><EventTime event={event} /> <small translate="no">{event.timezone}</small></dd></div>
           )}
           {showLocation && (
             <div><dt>{t(locale, "event.location")}</dt><dd>{locationText || t(locale, "common.locationPending")}</dd></div>

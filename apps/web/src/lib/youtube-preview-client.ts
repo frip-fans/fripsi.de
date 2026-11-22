@@ -107,8 +107,9 @@ function closeFloatingPreview() {
     host.inert = true;
     animatePreview(host, [{ transform }, { transform: belowViewport }], stopYouTubePreview);
   }
-  if (previousTrigger?.isConnected) previousTrigger.focus();
-  else document.querySelector<HTMLElement>("#main-content")?.focus();
+  // The visitor may have scrolled away from the button that opened the player: return focus without moving the page.
+  const focusTarget = previousTrigger?.isConnected ? previousTrigger : document.querySelector<HTMLElement>("#main-content");
+  focusTarget?.focus({ preventScroll: true });
 }
 
 function postToPlayer(message: string) {

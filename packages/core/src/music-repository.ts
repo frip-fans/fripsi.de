@@ -98,7 +98,7 @@ const releaseSummarySelect = `
 `;
 
 const setlistSummarySelect = `
-  SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes,
+  SELECT sl.id, sl.event_id, sl.performance_label, sl.title, sl.completeness, sl.confidence, sl.notes, sl.created_at,
     e.slug AS event_slug, e.alias AS event_alias, ${eventTourStopSql("e")} AS event_tour_title, e.title AS event_title, e.category AS event_category,
     e.classification AS event_classification, e.start_date, e.start_time,
     ${eventVenueDisplay("e")} AS venue, ${eventAreaDisplay("e")} AS region,

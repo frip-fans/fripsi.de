@@ -3,7 +3,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { createTestD1 } from "../../../packages/core/src/test-d1";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AgentsClient } from "./agent";
-import { actionSchema, boundedText, officialUrl, verifyEvidence, actionKey, applyAction } from "@frip-fan/core";
+import { actionSchema, boundedText, ContentAdminService, officialUrl, verifyEvidence, actionKey, applyAction } from "@frip-fan/core";
 import { tick } from "./index";
 
 const config = { MCP_ENDPOINT_URL: "https://mcp.fripsi.test/mcp", AUTOMATION_SIGNING_SECRET: "test-signing-key-at-least-32-bytes-long", SYNC_DISCOVERY_ENABLED: "false" };
@@ -147,6 +147,48 @@ describe("Agents API and scheduled recovery", () => {
     expect(tools[1]).toMatchObject({ type: "mcp", required: true, connection_origin: "service", transport: { server_url: config.MCP_ENDPOINT_URL, authorization: "Bearer test" } });
     expect(tools[1].allowed_tools).toContain("changes.publish_automatic");
     expect(tools[1].allowed_tools).not.toContain("changes.publish");
+  });
+  it("lets the setlist task search the open web with only its own tools", async () => {
+    const request = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ id: "sess_test" }));
+    await new AgentsClient("test-key", request).start("test-model", { run_id: "test" }, "run-1", { url: config.MCP_ENDPOINT_URL, authorization: "Bearer test", autoPublish: false, kind: "setlists" });
+    const tools = JSON.parse(String(request.mock.calls[0][1]?.body)).agent.tools;
+    expect(tools[0]).toMatchObject({ type: "web_search" });
+    expect(tools[0].allowed_domains).toBeUndefined();
+    expect(tools[1].allowed_tools).toEqual(["sync.find_songs", "sync.create_song", "sync.propose_setlist", "changes.preview"]);
+  });
+  it("runs one setlist task after the day's official run when a show just ended", async () => {
+    const { db, sqlite } = database();
+    const report = { summary: "没有找到歌单", published_change_ids: [], review_change_ids: [], notes: [] };
+    const request = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(Response.json({ id: "sess_setlists" }))
+      .mockResolvedValueOnce(Response.json({ data: [{ id: "turn_1", status: "completed" }] }))
+      .mockResolvedValueOnce(Response.json({ data: [{ type: "message", role: "assistant", status: "completed", phase: "final_answer", turn_id: "turn_1", content: [{ type: "output_text", text: JSON.stringify(report) }] }] }));
+    vi.stubGlobal("fetch", request);
+    const admin = new ContentAdminService(db);
+    const owner = { id: "owner@example.com", type: "human" as const, channel: "admin" as const, scopes: ["events:read", "events:draft", "events:publish", "music:write"] };
+    const event = await admin.saveEvent({ published: true, idempotency_key: "setlist-sync-live", event: {
+      title: "fripSide LIVE", start_date: "2026-10-28", timezone: "Asia/Tokyo", category: "LIVE", classification: "专场", status: "scheduled",
+      location_mode: "none", location_note: null, venues: [], channels: [], sources: [{ url: "https://fripside.net/live" }] } }, owner);
+    sqlite.prepare("INSERT INTO official_sync_runs (id,status,auto_publish,created_at,updated_at) VALUES ('official-2026-10-29','completed',1,'2026-10-29T00:00:00Z','2026-10-29T00:10:00Z')").run();
+    const env = { ...config, DB: db, SYNC_ENABLED: "true", SYNC_AUTO_PUBLISH: "true", OPENAI_API_KEY: "test", OPENAI_MODEL: "gpt-6-luna" };
+    // Off unless switched on.
+    await tick(env, new Date("2026-10-29T10:00:00Z"));
+    expect(request).not.toHaveBeenCalled();
+    const enabled = { ...env, SYNC_SETLISTS_ENABLED: "true" };
+    await tick(enabled, new Date("2026-10-29T10:00:00Z"));
+    const run = sqlite.prepare("SELECT status,policy_version,auto_publish,input_json FROM official_sync_runs WHERE id='setlists-2026-10-29'").get() as { status: string; policy_version: string; auto_publish: number; input_json: string };
+    expect(run).toMatchObject({ status: "running", policy_version: "setlist-sync-v1", auto_publish: 1 });
+    expect(JSON.parse(run.input_json).input.events).toMatchObject([{ event_id: event.id, days_since: 1 }]);
+    const body = JSON.parse(String(request.mock.calls[0][1]?.body));
+    expect(body.agent.instructions).toContain("歌单搜集 Agent");
+    expect(body.agent.tools[1].allowed_tools).toContain("sync.propose_setlist");
+    expect(body.agent.tools[1].allowed_tools).not.toContain("sync.propose");
+    await tick(enabled, new Date("2026-10-29T10:05:00Z"));
+    expect(sqlite.prepare("SELECT status FROM official_sync_runs WHERE id='setlists-2026-10-29'").get()).toMatchObject({ status: "completed" });
+    // Finished for the day: no second run and no review by another model.
+    await tick(enabled, new Date("2026-10-29T10:10:00Z"));
+    expect(request).toHaveBeenCalledTimes(3);
+    expect(sqlite.prepare("SELECT COUNT(*) AS n FROM official_sync_runs").get()).toMatchObject({ n: 2 });
   });
   it("checks turn completion and ignores commentary or incomplete messages", async () => {
     const request = vi.fn<typeof fetch>()

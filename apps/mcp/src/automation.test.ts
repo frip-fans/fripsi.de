@@ -56,3 +56,31 @@ it("keeps ordinary clients on the per-publication confirmation flow", async () =
     expect(names).not.toContain("sync.propose");
   } finally { await client.close(); await server.close(); }
 });
+
+it("gives the setlist collection task only its own tools, through the real MCP protocol", async () => {
+  const { db, sqlite } = createTestD1(); databases.push(sqlite);
+  const now = new Date().toISOString();
+  sqlite.prepare("INSERT INTO songs (id, slug, title, normalized_title, created_at, updated_at) VALUES ('song-a', 'song-a', 'only my railgun', 'only my railgun', ?, ?)").run(now, now);
+  sqlite.prepare("INSERT INTO official_sync_runs (id, status, auto_publish, policy_version, input_json, created_at, updated_at) VALUES ('setlists-run', 'running', 1, 'setlist-sync-v1', ?, ?, ?)")
+    .run(JSON.stringify({ kind: "setlists", input: { events: [] } }), now, now);
+  const actor: Actor = { id: "official-sync-agent", type: "ai", channel: "mcp", automation_run_id: "setlists-run", automation_kind: "setlists",
+    scopes: ["events:read", "events:draft", "music:write", "events:publish", "events:auto_publish"] };
+  const server = createServer({ DB: db }, actor);
+  const client = new Client({ name: "test-agent", version: "1" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+  await server.connect(serverTransport);
+  await client.connect(clientTransport);
+  try {
+    expect((await client.listTools()).tools.map((tool) => tool.name).sort())
+      .toEqual(["changes.preview", "changes.publish_automatic", "sync.create_song", "sync.find_songs", "sync.propose_setlist"]);
+    const found = z.object({ result: z.object({ exists: z.boolean(), matches: z.array(z.object({ song_id: z.string() })) }) })
+      .parse((await client.callTool({ name: "sync.find_songs", arguments: { query: "Only My Railgun" } })).structuredContent);
+    expect(found.result).toMatchObject({ exists: true, matches: [{ song_id: "song-a" }] });
+    const duplicate = await client.callTool({ name: "sync.create_song", arguments: { title: "only my railgun", original_artist: "fripSide", source_url: "https://example.com/setlist", reason: "test" } });
+    expect(duplicate.isError).toBe(true);
+    expect(JSON.stringify(duplicate.structuredContent)).toContain("duplicate_song");
+    // No event belongs to this run, so no setlist can be proposed.
+    const refused = await client.callTool({ name: "sync.propose_setlist", arguments: { event_id: "evt-other", completeness: "complete", entries: [{ song_id: "song-a" }], source_url: "https://example.com/setlist", reason: "test" } });
+    expect(JSON.stringify(refused.structuredContent)).toContain("forbidden");
+  } finally { await client.close(); await server.close(); }
+});

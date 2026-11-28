@@ -3,75 +3,64 @@
 ## 分支
 
 ```text
-独立 worktree + 任务分支 → PR 到 staging → CI / 测试站验收 → release/*（基于 master，内容对齐已验收 staging）→ rebase PR 到 master → 生产部署
+独立 worktree + 任务分支 → PR 到 master → CI / 测试站验收 → 在已验收提交上打 v* tag → 生产部署
 ```
 
-`master` 是生产分支；`staging` 是长期测试分支。每个独立开发任务从最新 `origin/staging` 创建独立 worktree 和任务分支，同一任务的后续修正复用该 worktree。功能、修复、重构和文档变更均通过 PR 进入 `staging`，不直接推送 `staging` 或 `master`。
+`master` 是唯一的长期分支，对应测试站；生产运行的是最新 `v*` tag 指向的 master 提交。每个独立开发任务从最新 `origin/master` 创建独立 worktree 和任务分支，同一任务的后续修正复用该 worktree。功能、修复、重构和文档变更均通过 PR 进入 `master`，不直接推送 `master`。
 
 自动化开发代理遵循根目录 [AGENTS.md](../AGENTS.md)；Claude Code 通过 [CLAUDE.md](../CLAUDE.md) 的 `@AGENTS.md` 导入同一份规则。
 
 ## 开发与验收
 
-1. 开始修改前获取最新 `origin/staging`，创建独立 worktree 和任务分支；不搬运其他任务的未提交改动。
+1. 开始修改前获取最新 `origin/master`，创建独立 worktree 和任务分支；不搬运其他任务的未提交改动。
 2. 在任务 worktree 中开发并完成适用的验证。UI 预览必须来自该 worktree 的最新代码或构建，明确地址并实际确认改动可见。
-3. 推送任务分支并提 PR 到 `staging`，说明变更、验证及数据库影响。等待 `CI / Verify` 通过，获得合并授权后再合并。
-4. 在测试站完成验收。代码合并、CI 通过和测试站部署成功分别核对，不能互相替代。
-5. 验收通过并获得发布授权后，固定 staging 验收 SHA；从最新 master 创建独立 `release/*` 分支，核对其受版本控制内容与验收源完全一致，再提 PR 到 master。通过检查后选择 **Rebase and merge**，触发生产部署并核对线上版本。
-6. 任务 PR 或发布 PR 合并后，清理对应 worktree 和本地任务分支（Orca 与非 Orca 环境均适用）。删除前检查未提交、未推送或未跟踪的内容；如有，先向用户说明，经确认可删除后再删除。
+3. 推送任务分支并提 PR 到 `master`，说明变更、验证及数据库影响。等待 `CI / Verify` 通过，获得合并授权后用 **Rebase and merge** 合并。
+4. master 的 push CI 通过后测试站自动部署（或手动触发），在测试站完成验收。代码合并、CI 通过和测试站部署成功分别核对，不能互相替代。
+5. 验收通过并获得发布授权后，按下一节打 tag 发布到生产。
+6. 任务 PR 合并后，清理对应 worktree 和本地任务分支（Orca 与非 Orca 环境均适用）。删除前检查未提交、未推送或未跟踪的内容；如有，先向用户说明，经确认可删除后再删除。
 
 纯文档变更只需核对文案、链接、命令与 `git diff --check`，应用检查由 PR CI 执行。
 
-## Rebase 发布分支
+## 生产发布
 
-`Protect Master` 仅允许 **Rebase and merge**；保留仓库现有保护规则。staging 可以包含任务 PR 的 merge commit，不能假设 GitHub 能直接 rebase 整条长期分支。生产发布使用从最新 master 创建的短期 `release/*` 分支，仅提交本次已经在 staging 验证的内容差异，不继承 staging 的合并历史。
+生产只部署版本号最新的 `v*` tag。tag 名为 `v` 加点号分隔的数字，按数值比较；约定使用日期 `vYYYY.MM.DD`，同一天再次发布加序号（`v2026.11.28.2`）。其他名字的 tag 不触发部署。
 
-先确认 master 没有 staging 尚未包含的生产修复；如有，使用独立任务 PR 回补 staging 并重新验收。完成发布授权后，在独立 worktree 创建 `release/*` 分支，基点为最新 `origin/master`，在该 worktree 的仓库根目录执行以下步骤。不能在主工作区或已有未提交改动的目录执行快照对齐。
+部署工作流只接受满足下列条件的 tag，否则跳过并在日志中说明原因：
 
-```bash
-git fetch origin staging master
-release_source_sha="$(git rev-parse origin/staging)"
-release_base_sha="$(git rev-parse origin/master)"
-test -z "$(git status --porcelain)"
-test "$(git rev-parse HEAD)" = "$release_base_sha"
-# 确认 release_source_sha 就是已完成 CI / 测试站验收的提交
-git diff --stat "$release_base_sha" "$release_source_sha"
-git diff "$release_base_sha" "$release_source_sha"
-```
-
-核对差异符合本次发布范围后，对齐已验收内容，并验证文件树；任一检查失败都应停止后续步骤。
+- 指向的提交在 `master` 上；
+- 该提交有成功的 master push CI。一个 PR 含多个提交时，只有 rebase 合并后的最后一个提交有 push CI，tag 打在它上面；
+- 该提交在测试站部署成功过（最近 100 次测试站部署内）。
 
 ```bash
-git restore --source="$release_source_sha" --staged --worktree -- .
-test "$(git write-tree)" = "$(git rev-parse "${release_source_sha}^{tree}")"
-git diff --cached --check
-git commit -m "Release staging ${release_source_sha}"
-git push -u origin HEAD
+git fetch origin master --tags
+release_sha="$(git rev-parse origin/master)"   # 或更早的已验收提交
+# 核对 release_sha 就是测试站 /healthz 返回并完成验收的版本
+git log --oneline "$(git describe --tags --abbrev=0 --match 'v*' "$release_sha")..$release_sha"
+git tag -a v2026.11.28 "$release_sha" -m "Release <本次内容>"
+git push origin v2026.11.28
+gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production
 ```
 
-为 `release/*` → `master` 创建发布 PR，记录验收源 SHA、master 基点、发布分支 SHA、文件树核对、CI / 测试站结果和数据库影响。通过检查并获得发布授权后，使用 GitHub 的 **Rebase and merge** 或 `gh pr merge` 的 `--rebase` 与 `--match-head-commit` 选项；不要选择 merge commit 或 squash，也不要修改保护规则来允许其他方式。master 或验收源变化时，重新审查差异，在新的 release worktree / 分支准备更新后的候选版本并运行检查，不直接改写长期分支。
+`git log` 一行列出上一个 tag 之后将要发布的提交，核对它们都已验收。master 上比 tag 更新的提交不会发布。推送 tag 后可以手动触发部署，也可以等每半小时的计划检查；发布后确认生产部署记录和 `https://fripsi.de/healthz` 返回的版本。
 
-发布后保留 staging，核对 master 的源代码文件树与冻结验收源一致，并确认 master 新提交的 CI、生产部署记录和 `https://fripsi.de/healthz` 返回的版本。rebase merge 会改变提交 SHA；每次发布从最新 master 生成新的快照差异，因此无需为对齐提交历史反复合并两条长期分支。后续任务继续从最新 staging 开始。
-
-如果 rebase 合并后 master 的新提交一直没有出现 push 触发的 `CI` 运行，部署会停在等待源码 CI。手动补跑的 CI 不满足部署检查；只含空提交的发布 PR 在 rebase 合并时会被丢弃，master 不会前进。此时按正常流程（任务 PR → staging → 新的 `release/*` 分支）带入一处实际改动，让 master 产生新的 push。
+tag 不移动、不删除（仓库规则禁止）。回退到旧版本时，在那个提交上打一个版本号更新的 tag；代码回退不回滚数据库，增量 migration 保留。只想发布 master 上的一部分改动时，tag 打在包含它们的最后一个已验收提交上；如果未验收的改动排在前面，先用 PR revert 它，验收后再发布。
 
 ## CI 与分支规则
 
-GitHub Actions 的 `CI / Verify` 对 master/staging 的 push 与 PR 运行：安装锁定依赖、类型检查、测试、Node standalone 构建（`npm run build`）与 `ops/oci` 打包/migration 测试，另有 SQLite 备份脚本测试。CI 不持有部署凭据；构建和部署由私有部署仓库完成，见下文「部署」。
+GitHub Actions 的 `CI / Verify` 对 master 的 push 与 PR 运行：安装锁定依赖、类型检查、测试、Node standalone 构建（`npm run build`）与 `ops/oci` 打包/migration/部署探测测试，另有 SQLite 备份脚本测试。CI 不持有部署凭据；构建和部署由私有部署仓库完成，见下文「部署」。
 
-master 规则要求 PR、`Verify` 检查成功、PR 分支与目标分支保持最新、所有讨论已解决，并且仅允许 rebase 合并；不强制他人批准，适合单人维护。master/staging 均禁止删除和强推。
-
-项目协作规则要求 `staging` 也通过 PR 合入；即使仓库权限仍允许直接提交，也不能据此绕过该流程。`AGENTS.md` 和本文档不修改 GitHub 分支保护设置，仓库端的强制限制需单独配置。
+master 规则要求 PR、`Verify` 检查成功、PR 分支与目标分支保持最新、所有讨论已解决，并且仅允许 rebase 合并；不强制他人批准，适合单人维护。master 禁止删除和强推，`v*` tag 禁止删除和改写。
 
 ## 部署
 
-私有仓库 `frip-fans/fripside-deploy` 的 `OCI deploy` 工作流负责构建和部署：只部署受保护的 `staging`/`master` 分支头的精确 SHA，并要求该 SHA 的源码 push CI 已成功。手动触发或等待每半小时的计划检查：
+私有仓库 `frip-fans/fripside-deploy` 的 `OCI deploy` 工作流负责构建和部署：测试站部署 `master` 分支头，生产部署最新 `v*` tag，都只部署精确 SHA，并要求该 SHA 的 master push CI 已成功。手动触发或等待每半小时的计划检查：
 
 ```bash
 gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=staging
 gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production -f apply_production_migrations=true
 ```
 
-一次只向 staging 合并一项需要独立验收的改动；用部署记录的 `payload.source_sha` 和 `/healthz` 核对线上版本。构建、主机安装与回退细节见 [部署与运维](oci-deployment.md)。
+只有在测试站部署过的提交才能发布，连续合并多个 PR 时中间的提交可能没有单独部署过。需要独立验收的改动，等上一项在测试站部署并验收后再合并下一项；用部署记录的 `payload.source_sha` 和 `/healthz` 核对线上版本。构建、主机安装与回退细节见 [部署与运维](oci-deployment.md)。
 
 ## 数据库结构变更
 
@@ -87,8 +76,8 @@ gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=produ
 每次执行前都会先生成本机 SQLite 快照（保留最近 5 份），然后逐个在事务中执行并写入 `d1_migrations`；任何一步失败都会整体回滚，新代码不会上线。代码健康检查失败时只回退代码，增量 migration 保留，因为旧代码兼容。
 
 1. 本地验证 migration，PR 说明里写清楚是否为增量 migration。
-2. 合并到 staging 后，部署自动执行增量 migration；在测试站验收。
-3. 发布 PR 中写明生产 migration。合并到 master、源码 CI 通过后，手动触发生产部署：
+2. 合并到 master 后，测试站部署自动执行增量 migration；在测试站验收。
+3. 推送发布 tag 后手动触发生产部署，不等计划检查（计划检查只检查 migration，有待执行项时部署中止）：
 
    ```bash
    gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production -f apply_production_migrations=true

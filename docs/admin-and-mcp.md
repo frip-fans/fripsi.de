@@ -104,7 +104,7 @@ MCP 处理（`apps/mcp`，由 Web 进程在 `/mcp` 调用）使用 `@modelcontex
 
 普通编辑者的发布确认、自动同步身份的任务绑定与 `preview_digest` 校验继续由现有业务服务执行。协议测试覆盖自动同步的查询、提案、预览和自动发布；HTTP 测试覆盖 v2 客户端、旧客户端初始化、未认证拒绝和 Host/Origin 校验。
 
-MCP 随网站一起部署：staging 验收后通过发布 PR 进入生产，没有单独的 MCP 部署流程。
+MCP 随网站一起部署：测试站验收后随发布 tag 进入生产，没有单独的 MCP 部署流程。
 
 - Endpoint：`https://fripsi.de/mcp`（测试：`https://mcp-staging.fripsi.de/mcp`）
 - Transport：Streamable HTTP

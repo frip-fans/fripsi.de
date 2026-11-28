@@ -45,7 +45,7 @@ python3 -I ops/staging-check/check.py '/music/tours?lang=zh-CN' 'main h1'
 
 ## 更新测试站
 
-合并 PR 到 `staging` 不会立即更新测试站。私有部署仓库 `frip-fans/fripside-deploy` 的 `OCI deploy` 接受手动触发和每半小时的计划检查（`17,47 * * * *`），两者都要求 `staging` 的源码 push CI 已成功，并且只部署该分支当前 HEAD 的精确 SHA：
+测试站运行 `master` 分支头。合并 PR 到 `master` 不会立即更新测试站。私有部署仓库 `frip-fans/fripside-deploy` 的 `OCI deploy` 接受手动触发和每半小时的计划检查（`17,47 * * * *`），两者都要求 `master` 的源码 push CI 已成功，并且只部署该分支当前 HEAD 的精确 SHA：
 
 ```bash
 gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=staging

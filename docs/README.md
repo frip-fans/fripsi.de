@@ -5,7 +5,7 @@ fripsi.de 是一个非官方的 fripSide 粉丝站：活动日历、音乐库（
 ## 文档导航
 
 - [项目协作约定](../AGENTS.md)：独立 worktree、PR 与开发代理的共享规则。
-- [代码与数据发布流程](./release-workflow.md)：staging 验收、release 分支与 rebase 发布、migration 规则、内容变更。
+- [代码与数据发布流程](./release-workflow.md)：测试站验收、打 tag 发布生产、migration 规则、内容变更。
 - [部署与运维](./oci-deployment.md)：OCI 主机、私有部署流水线、schema migration、环境配置、同步任务与安全响应。
 - [测试环境](./staging.md)：测试站访问控制、更新方式和测试数据。
 - [SQLite 备份与恢复](./sqlite-backups.md)：加密快照、R2 生命周期、恢复演练。

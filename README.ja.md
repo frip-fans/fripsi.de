@@ -102,7 +102,7 @@ npm run import:sql
 
 本番とステージングはそれぞれ独立した OCI ホストで稼働します。Node 24 が Astro standalone ビルドを実行し、同じプロセスが `/mcp` も提供します。データはホスト上の SQLite に保存し、Cloudflare は DNS/CDN、Access、Tunnel を担当します。ビルドとデプロイは非公開のデプロイ用リポジトリのワークフローが行い、設定と秘密情報はホスト上にのみ保存します。
 
-コードはタスク PR で staging に入り、CI とステージングでの確認後、最新の master から作成した `release/*` ブランチを確認済みの staging と同じ内容に揃え、**Rebase and merge** で master に取り込みます。追加型のデータベースマイグレーションはデプロイ時に実行されます（本番は明示的な承認が必要）。詳しくは [リリース手順](./docs/release-workflow.md)、[デプロイと運用](./docs/oci-deployment.md)、[DB バックアップ](./docs/sqlite-backups.md)、[開発ルール](./AGENTS.md) を参照してください。
+コードはタスク PR を **Rebase and merge** で master に取り込み、ステージングにデプロイします。そこで確認した後、そのコミットに `v*` タグを付けて本番にリリースします。追加型のデータベースマイグレーションはデプロイ時に実行されます（本番は明示的な承認が必要）。詳しくは [リリース手順](./docs/release-workflow.md)、[デプロイと運用](./docs/oci-deployment.md)、[DB バックアップ](./docs/sqlite-backups.md)、[開発ルール](./AGENTS.md) を参照してください。
 
 ## コントリビューション
 

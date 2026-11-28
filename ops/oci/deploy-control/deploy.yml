@@ -7,7 +7,7 @@ on:
         type: choice
         options: [staging, production, all]
         default: staging
-        description: Deploy the latest protected branch head after successful source CI
+        description: Staging deploys the master head, production the newest v* tag; both need successful source CI
       apply_production_migrations:
         type: boolean
         default: false
@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 10
     env:
       SOURCE_SHA: ${{ matrix.sha }}
-      SOURCE_BRANCH: ${{ matrix.branch }}
+      SOURCE_REF: ${{ matrix.ref }}
       DEPLOY_ENVIRONMENT: ${{ matrix.environment }}
       GH_TOKEN: ${{ github.token }}
       # Staging applies additive migrations automatically. Production only checks unless a person
@@ -97,7 +97,7 @@ jobs:
         with:
           name: node-${{ matrix.environment }}-${{ matrix.sha }}
           path: incoming
-      - name: Reject superseded source heads and create deployment record
+      - name: Reject moved source refs and create deployment record
         id: record
         run: |
           python3 - <<'PY'
@@ -105,9 +105,9 @@ jobs:
           def api(path,data=None):
               request=urllib.request.Request('https://api.github.com/'+path,data=json.dumps(data).encode() if data else None,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'})
               with urllib.request.urlopen(request,timeout=30) as response: return json.load(response)
-          head=api('repos/frip-fans/fripsi.de/commits/'+os.environ['SOURCE_BRANCH'])['sha']
-          if head!=os.environ['SOURCE_SHA']: raise SystemExit('Source head advanced; refusing a stale deployment')
-          deployment=api('repos/frip-fans/fripside-deploy/deployments',{'ref':os.environ['GITHUB_SHA'],'auto_merge':False,'required_contexts':[],'environment':os.environ['DEPLOY_ENVIRONMENT'],'task':'deploy_node','payload':{'source_sha':head,'source_repository':'frip-fans/fripsi.de'}})
+          head=api('repos/frip-fans/fripsi.de/commits/'+os.environ['SOURCE_REF'])['sha']
+          if head!=os.environ['SOURCE_SHA']: raise SystemExit('Source ref moved; refusing a stale deployment')
+          deployment=api('repos/frip-fans/fripside-deploy/deployments',{'ref':os.environ['GITHUB_SHA'],'auto_merge':False,'required_contexts':[],'environment':os.environ['DEPLOY_ENVIRONMENT'],'task':'deploy_node','payload':{'source_sha':head,'source_ref':os.environ['SOURCE_REF'],'source_repository':'frip-fans/fripsi.de'}})
           with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('id='+str(deployment['id'])+'\n')
           PY
       - name: Verify, migrate and activate release

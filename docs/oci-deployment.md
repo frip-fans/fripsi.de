@@ -20,20 +20,20 @@
 
 ## CI/CD
 
-源码按「任务 PR → staging → 验收源快照 release/* → rebase PR 到 master」发布，流程见 [发布流程](release-workflow.md)。
+源码按「任务 PR → master（测试站）→ 验收后打 `v*` tag（生产）」发布，流程见 [发布流程](release-workflow.md)。
 
 私有部署仓库 `frip-fans/fripside-deploy` 拥有部署专用 runner，标签为 `fripside-staging`、`fripside-production` 和 `deploy-only`；不接收公共 PR 的任务，不保存主机 SSH 私钥。部署工作流可以手动触发：
 
 ```bash
 gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=staging
-# 发布 PR 合并且 master 源码 CI 成功后：
+# 推送发布 tag 后：
 gh workflow run deploy.yml --repo frip-fans/fripside-deploy -f environment=production -f apply_production_migrations=true
 ```
 
-另有每半小时（`17,47 * * * *`）的受保护分支检查。GitHub cron 可能延迟；检查任务使用托管 runner 分钟数，只在源 SHA 变化且源码 push CI 成功时构建。应用版本以部署记录的 `payload.source_sha` 和 `/healthz` 为准，不要把私有部署仓库的提交 SHA 当作应用版本。
+另有每半小时（`17,47 * * * *`）的计划检查：测试站对比 master 分支头，生产对比最新 `v*` tag。GitHub cron 可能延迟；检查任务使用托管 runner 分钟数，只在源 SHA 变化且源码 push CI 成功时构建。应用版本以部署记录的 `payload.source_sha` 和 `/healthz` 为准，不要把私有部署仓库的提交 SHA 当作应用版本。
 
 1. **构建**（托管 runner）：检出精确源 SHA，`npm run build:web:node`（`npm run build` 的别名，保留给部署工作流），用 `ops/oci/package-release.py` 打包 server/client、`migrations/*.sql`、REVISION 和逐文件 SHA-256 清单。产物保留三天，打包时拒绝数据库、密钥和配置文件。
-2. **安装**（主机 runner）：`/usr/local/bin/fripside-install-release` 校验归档哈希、来源 SHA、逐文件校验和与安全路径，拒绝已被新提交取代的分支头。
+2. **安装**（主机 runner）：`/usr/local/bin/fripside-install-release` 校验归档哈希、来源 SHA、逐文件校验和与安全路径，部署前再次解析 master 分支头或 tag，已变化则拒绝。
 3. **migration**：在切换代码前执行，规则见下文「Schema migration」。
 4. **切换**：原子替换 `/opt/fripside/current` 后重启 `fripside-web.service`。新版本 `/healthz` 必须在 30 秒内返回正确 SHA，否则切回上一个代码目录。代码回退不回滚数据库。
 5. 保留旧 release 以便回退；不要清理当前或上一个版本，磁盘用量由管理员定期检查。

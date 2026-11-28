@@ -5,28 +5,27 @@
 ## Worktree 与分支
 
 - 每个独立开发任务必须使用独立 worktree 和分支，包括新功能、修复、重构及文档变更。同一任务的后续修正复用原 worktree。
-- 开始修改前检查当前分支、工作区状态，并获取最新 `origin/staging`；新任务从最新 `origin/staging` 创建分支。分支按用途使用 `feature/*`、`fix/*`、`docs/*` 等名称。
-- 不在主工作区、`master` 或 `staging` 上直接开发，不混入其他任务的未提交改动。不要为切换任务而清理、覆盖或丢弃已有工作区内容。
+- 开始修改前检查当前分支、工作区状态，并获取最新 `origin/master`；新任务从最新 `origin/master` 创建分支。分支按用途使用 `feature/*`、`fix/*`、`docs/*` 等名称。
+- 不在主工作区或 `master` 上直接开发，不混入其他任务的未提交改动。不要为切换任务而清理、覆盖或丢弃已有工作区内容。
 - 在 Orca 环境中使用 `orca-cli` skill 创建和管理 worktree，先读取该环境的版本匹配操作指南。非 Orca 环境可使用标准 Git worktree。
 - 新建 worktree 不代表需要启动其他 agent；是否委派按当前任务授权处理。
-- 任务 PR（含 `release/*`）合并后清理对应 worktree 和本地任务分支，Orca 与非 Orca 环境均适用；Orca 中使用 `orca-cli` 删除，非 Orca 使用 `git worktree remove`。删除前检查未提交、未推送或未跟踪的内容（如本地数据、预览产物、笔记）；如有，先向用户说明，经用户确认可删除后再删除，不擅自丢弃或强制删除。
+- 任务 PR 合并后清理对应 worktree 和本地任务分支，Orca 与非 Orca 环境均适用；Orca 中使用 `orca-cli` 删除，非 Orca 使用 `git worktree remove`。删除前检查未提交、未推送或未跟踪的内容（如本地数据、预览产物、笔记）；如有，先向用户说明，经用户确认可删除后再删除，不擅自丢弃或强制删除。
 
 ## PR 与发布
 
 ```text
-独立 worktree + 任务分支 → PR 到 staging → CI / 测试站验收 → release/*（基于 master，内容对齐已验收 staging）→ rebase PR 到 master → 生产部署
+独立 worktree + 任务分支 → PR 到 master → CI / 测试站验收 → 在已验收提交上打 v* tag → 生产部署
 ```
 
-- 完成变更后推送任务分支，创建目标为 `staging` 的 PR，说明最终行为、验证结果及数据库影响。
-- 默认交付到可审查的 PR；只有已获得用户合并授权且检查通过，才合并到 `staging`。已有授权无需重复询问。
-- 不直接推送 `staging` 或 `master`，不从普通功能分支直接向 `master` 发布，也不通过手动部署绕过分支发布流程。生产发布只使用下述 `release/*` 分支。
-- `staging` 验收通过并获得发布授权后，固定验收提交 SHA；在独立 worktree 中从最新 `origin/master` 创建 `release/*` 分支，将已验收 staging 的完整受版本控制内容对齐到该分支，核对文件树完全一致，再提交发布 PR 到 `master`。不要将 staging 的合并历史直接带入发布分支。
-- `master` 的现有保护规则只允许 **Rebase and merge**。发布 PR 使用 rebase 合并，保留 PR、Verify 和其他现有保护；不得为了发布改动或绕过保护规则。提交前和合并前核对发布分支 SHA、验收源 SHA、目标 master 与 CI 状态；master 或验收范围变化后重新准备发布分支并验证。
-- 保留 `staging` 长期分支，不对 `staging` / `master` 本身做 rebase 或强推。rebase merge 会改变生产提交 SHA，发布后核对源代码文件树与生产部署提交，不要求两条长期分支具有相同提交历史。新的发布仍从最新 master 创建。
-- 如 master 有尚未进入 staging 的生产修复，先通过独立任务 PR 回补 staging 并重新验收，避免发布快照覆盖生产修复。
-- 不强推或删除 `staging`、`master`。修复发布问题仍走独立 worktree 和 PR 流程。
+- `master` 是唯一的长期分支，也是测试站的来源：合并到 `master` 的提交在源码 CI 通过后部署到测试站。没有 `staging` 分支和 `release/*` 分支。
+- 完成变更后推送任务分支，创建目标为 `master` 的 PR，说明最终行为、验证结果及数据库影响。
+- 默认交付到可审查的 PR；只有已获得用户合并授权且检查通过，才合并到 `master`。已有授权无需重复询问。`master` 的保护规则只允许 **Rebase and merge**，保留 PR、Verify 和其他现有保护，不为合并改动或绕过保护规则。
+- 不直接推送 `master`，不强推或删除 `master`，不通过手动部署绕过发布流程。
+- 生产发布只通过 tag：测试站验收通过并获得发布授权后，在已验收的 master 提交上打 `vYYYY.MM.DD` tag 并推送（同一天再次发布加序号，如 `v2026.11.28.2`）。合并授权不等于发布授权；打 tag 就是发布到生产，没有发布授权不打 tag。
+- 打 tag 前核对该提交：在 `master` 上、master push CI 成功、测试站部署成功且 `/healthz` 返回该 SHA。master 上比它更新的提交不会随这个 tag 发布。
+- tag 不移动、不删除。回退时在要恢复的旧提交上打一个版本号更新的 tag；修复发布问题仍走独立 worktree 和 PR 流程。
 - 代码合并不等于内容数据同步。内容导入和跨环境数据写入按发布文档单独处理，不随代码发布执行。
-- Schema migration 优先写成增量变更（只加表、索引、视图或列）。staging 部署自动执行增量 migration；生产部署只在手动触发并勾选 `apply_production_migrations` 时执行；非增量 migration 由管理员按发布文档单独执行。PR 说明须写明 migration 是否为增量。
+- Schema migration 优先写成增量变更（只加表、索引、视图或列）。测试站部署自动执行增量 migration；生产部署只在手动触发并勾选 `apply_production_migrations` 时执行；非增量 migration 由管理员按发布文档单独执行。PR 说明须写明 migration 是否为增量。
 
 ## 验证与预览
 
@@ -72,6 +71,6 @@
 
 ## OCI 部署
 
-- 部署与发布按 [部署与运维](docs/oci-deployment.md) 执行；生产仍遵循 release 快照与 master rebase PR。
-- 私有部署仓库拥有部署专用 runner；公共 PR 只运行 GitHub 托管 CI。源码/私有工作流只部署受保护 staging/master 的精确 SHA，并要求源码 push CI 成功。
+- 部署与发布按 [部署与运维](docs/oci-deployment.md) 执行；测试站跟随 master，生产跟随最新的 `v*` tag。
+- 私有部署仓库拥有部署专用 runner；公共 PR 只运行 GitHub 托管 CI。私有工作流只部署 master 分支头（测试站）和最新 `v*` tag（生产）的精确 SHA，并要求该提交的 master push CI 成功；生产还要求该提交在测试站部署成功过。
 - 主机 root 配置与应用/runner 用户隔离，部署产物只包含构建代码和 migration SQL，不包括数据库、备份或环境密钥。部署只按上述规则执行增量 migration（先快照），不覆盖数据库，不自动启用未验收 timer。

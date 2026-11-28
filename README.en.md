@@ -102,7 +102,7 @@ Place raw exports in the Git-ignored `data/raw/` directory. Review the generated
 
 Production and staging run on separate OCI hosts: Node 24 serves the Astro standalone build, the website process also serves `/mcp`, data lives in a local SQLite database, and Cloudflare provides DNS/CDN, Access, and Tunnel. A workflow in a private deployment repository builds and deploys releases; configuration and secrets stay on the hosts.
 
-Changes reach staging through task PRs. After CI and staging acceptance, a `release/*` branch created from the latest master is aligned with the accepted staging content and merged into master with **Rebase and merge**. Additive database migrations run during deployment (production requires explicit approval). See the [release workflow](./docs/release-workflow.md), [deployment and operations](./docs/oci-deployment.md), [database backups](./docs/sqlite-backups.md), and [collaboration rules](./AGENTS.md).
+Task PRs are merged into master with **Rebase and merge** and deployed to staging. After acceptance there, a `v*` tag on that commit releases it to production. Additive database migrations run during deployment (production requires explicit approval). See the [release workflow](./docs/release-workflow.md), [deployment and operations](./docs/oci-deployment.md), [database backups](./docs/sqlite-backups.md), and [collaboration rules](./AGENTS.md).
 
 ## Contributing
 

@@ -104,7 +104,7 @@ npm run import:sql
 
 生产站和测试站分别运行在独立的 OCI 主机上：Node 24 运行 Astro standalone 构建，网站进程同时提供 `/mcp`，数据保存在本机 SQLite，Cloudflare 负责 DNS/CDN、Access 和 Tunnel。构建和部署由私有部署仓库的工作流完成，配置与密钥只保存在主机上。
 
-代码先通过任务 PR 进入 staging，完成 CI 与测试站验收后，从最新 master 创建 `release/*` 分支并对齐已验收 staging 内容，再通过 **Rebase and merge** 合入 master。增量数据库迁移在部署时执行（生产需要显式批准）。详见 [发布流程](./docs/release-workflow.md)、[部署与运维](./docs/oci-deployment.md)、[数据库备份](./docs/sqlite-backups.md) 和 [项目协作约定](./AGENTS.md)。
+代码通过任务 PR 以 **Rebase and merge** 合入 master 并部署到测试站，完成验收后在该提交上打 `v*` tag 发布到生产。增量数据库迁移在部署时执行（生产需要显式批准）。详见 [发布流程](./docs/release-workflow.md)、[部署与运维](./docs/oci-deployment.md)、[数据库备份](./docs/sqlite-backups.md) 和 [项目协作约定](./AGENTS.md)。
 
 ## 参与项目
 

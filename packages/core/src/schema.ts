@@ -94,6 +94,9 @@ export const eventLocationSchema = z.object({
   channels: z.array(eventChannelInputSchema).max(20).default([]),
 }).superRefine(validateLocation);
 
+/** Shown to MCP clients on every tool that writes an event description. */
+const REMARK_HELP = "活动正文，在活动页面按简单 Markdown 显示：空行分段，可用 **加粗**、*斜体*、[文字](https://…) 链接、- 或 1. 列表、> 引用和 ## 小标题；不支持表格、图片和 HTML。";
+
 export const eventDraftSchema = z.object({
   slug: z.string().trim().min(3).max(180).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "slug 只能包含小写字母、数字和连字符").optional(),
   title: z.string().trim().min(1).max(240),
@@ -108,7 +111,7 @@ export const eventDraftSchema = z.object({
   location_note: z.string().trim().max(1000).nullish(),
   venues: z.array(eventVenueInputSchema).max(20).default([]),
   channels: z.array(eventChannelInputSchema).max(20).default([]),
-  remark: z.string().trim().max(4000).nullish(),
+  remark: z.string().trim().max(4000).nullish().describe(REMARK_HELP),
   status: eventStatusSchema.default("scheduled"),
   sources: z.array(sourceInputSchema).min(1, "至少需要一个官方来源").max(10)
 }).superRefine((event, context) => {
@@ -170,7 +173,7 @@ const eventPatchFields = {
   location_note: z.string().trim().max(1000).nullish(),
   venues: z.array(eventVenueInputSchema).max(20).optional(),
   channels: z.array(eventChannelInputSchema).max(20).optional(),
-  remark: z.string().trim().max(4000).nullish(),
+  remark: z.string().trim().max(4000).nullish().describe(REMARK_HELP),
   sources: z.array(sourceInputSchema).max(10).optional()
 };
 const hasChange = (patch: object) => Object.keys(patch).length > 0;

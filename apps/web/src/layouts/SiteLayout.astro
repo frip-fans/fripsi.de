@@ -126,7 +126,8 @@ const chatDockOpen = chatDock !== null && Astro.cookies.get("chat_dock_open")?.v
         <meta name="twitter:image" content={new URL("/og-cover.jpg", canonicalBase)} />
       </>
     )}
-    {structuredData && <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData)} />}
+    {/* "<" is written as \u003c so text such as "</script>" in a title or description cannot end the element. */}
+    {structuredData && <script type="application/ld+json" is:inline set:html={JSON.stringify(structuredData).replace(/</g, "\\u003c")} />}
     {clientRouting && <script is:inline src={`${routerBootstrap}?release=${encodeURIComponent(getEnv().FRIP_RELEASE_SHA || "development")}`}></script>}
     {clientRouting && <ClientRouter fallback="animate" />}
   </head>

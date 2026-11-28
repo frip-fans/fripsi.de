@@ -124,6 +124,7 @@ CREATE INDEX idx_events_status_date
 - 归档不删除数据；`archived_at` 非空时不出现在公开站点。
 - `location_mode` 表达地点形态；场馆、行政区和传播渠道不再保存为 `events` 自由文本列。
 - `location_note` 只用于未公开、待确认或无法完全结构化的例外说明。
+- `remark` 是活动正文，按简单 Markdown 保存：空行分段，支持加粗、斜体、http(s) 链接、列表、引用和小标题，不支持表格、图片和 HTML。活动页面用 `packages/core/src/markdown.ts` 渲染（先整体转义，只生成这几种标签）；日历订阅、搜索和结构化数据使用去掉标记后的纯文本，日历订阅在链接文字后保留网址。Markdown 之前写入的纯文本正文显示不变，单个换行仍是换行。
 
 #### 3.1.1 结构化地点
 

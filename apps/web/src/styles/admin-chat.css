@@ -182,7 +182,7 @@ body[data-chat-locked="true"] {
 .chat-turn-label { margin: 0; color: var(--muted); font: .68rem/1.4 ui-monospace; letter-spacing: .06em; }
 /* No bubble for the assistant: in a 420px rail two bubbles are mostly border and padding. */
 .chat-prose { font-size: .9rem; line-height: 1.7; overflow-wrap: anywhere; }
-/* Rendered from the reply's Markdown by lib/chat-markdown.ts. */
+/* Rendered from the reply's Markdown by @frip-fan/core/markdown. */
 .chat-prose > * { margin: 0; }
 .chat-prose > * + * { margin-top: .65em; }
 .chat-prose ul, .chat-prose ol { padding-left: 1.3em; }

@@ -1,4 +1,5 @@
 import { duplicateInputSchema, searchInputSchema, type SearchInput } from "./schema";
+import { markdownToText } from "./markdown";
 import { hydrateEventLocations } from "./locations";
 import type { ArchiveFilterEntry, AuditLog, ChangeSet, DuplicateCandidate, EventRecord, EventSource } from "./types";
 import { normalizeForDuplicate, ServiceError } from "./utils";
@@ -158,6 +159,8 @@ export async function listArchiveFilterEntries(db: D1Database): Promise<ArchiveF
   const split = (value: string | null): string[] => value?.split("\u001f").filter(Boolean) ?? [];
   return result.results.map((entry) => ({
     ...entry,
+    // Matched as text in the browser, so emphasis marks must not split a phrase.
+    remark: entry.remark ? markdownToText(entry.remark) : entry.remark,
     venue_names: split(entry.venue_names),
     area_ids: split(entry.area_ids),
     area_names: split(entry.area_names),

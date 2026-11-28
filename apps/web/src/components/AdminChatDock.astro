@@ -2,7 +2,7 @@
 import Icon from "./Icon.astro";
 import { CHAT_IMAGE_MAX, CHAT_IMAGE_MAX_BYTES, CHAT_MODELS_MAX, CHAT_SESSION_IDLE_SECONDS, CHAT_SESSION_MAX_SECONDS } from "@frip-fan/core";
 import type { ChatDockState } from "../lib/chat";
-import { renderChatMarkdown } from "../lib/chat-markdown";
+import { renderMarkdown } from "@frip-fan/core/markdown";
 import "../styles/admin-chat.css";
 
 interface Props { state: ChatDockState }
@@ -64,7 +64,7 @@ function clock(value: string): string {
           <p class="chat-turn-label">{message.role === "error" ? "出错" : "助手"} · <time datetime={message.created_at} data-chat-time>{clock(message.created_at)}</time></p>
           {message.role === "error"
             ? <div class="chat-error">{message.body}</div>
-            : <div class="chat-prose" set:html={renderChatMarkdown(message.body)} />}
+            : <div class="chat-prose" set:html={renderMarkdown(message.body)} />}
         </li>
       )
     ))}

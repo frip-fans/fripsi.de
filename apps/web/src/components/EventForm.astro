@@ -1,6 +1,7 @@
 ---
 import { EVENT_STATUS_LABELS, LOCATION_MODE_LABELS } from "../lib/change-review";
 import { categoryLabels } from "../lib/format";
+import { renderMarkdown } from "@frip-fan/core/markdown";
 import type { AdministrativeArea, EventRecord, TourRecord, VenueRecord } from "@frip-fan/core";
 
 interface Props { event?: EventRecord; areas: AdministrativeArea[]; venueOptions: VenueRecord[]; tours?: TourRecord[]; submitLabel?: string; canWrite?: boolean }
@@ -84,7 +85,11 @@ const channelRows = event?.channels.length ? event.channels : [null];
     <button type="button" class="secondary" data-add-channel>添加渠道</button>
   </fieldset>
   <label class="wide">Slug<input name="slug" maxlength="180" value={event?.slug ?? ""} placeholder="留空则自动生成" /></label>
-  <label class="wide">说明<textarea name="remark" maxlength="4000">{event?.remark ?? ""}</textarea></label>
+  <label class="wide">正文<textarea name="remark" maxlength="4000" rows="8" data-remark-input>{event?.remark ?? ""}</textarea><small>空行分段。支持 <code>**加粗**</code>、<code>*斜体*</code>、<code>[文字](https://…)</code>、<code>- 列表</code>、<code>&gt; 引用</code>、<code>## 小标题</code>。</small></label>
+  <div class="wide remark-preview" hidden={!event?.remark}>
+    <span>正文预览</span>
+    <div class="chat-prose" data-remark-preview set:html={renderMarkdown(event?.remark ?? "", { heading: "h2" })} />
+  </div>
   <label class="wide">来源 *<textarea name="sources" required placeholder="每行一个 HTTPS URL；可写成 URL | 显示名称 | 类型">{sources}</textarea><small>例如：<code>https://… | fripSide official | official</code></small></label>
   <label class="wide publish-check"><input type="checkbox" name="published" checked={event?.published ?? true} />在公开网站显示</label>
 </div>
@@ -105,6 +110,8 @@ const channelRows = event?.channels.length ? event.channels : [null];
 </div></template>
 <div class="actions form-actions"><button type="submit" disabled={!canWrite}>{submitLabel}</button><a class="button secondary" href={event ? "/admin/events" : "/admin"}>取消</a>{!canWrite && <span class="muted">当前账号没有 events:publish 权限。</span>}</div>
 <script>
+  import { renderMarkdown } from "@frip-fan/core/markdown";
+
   // A bundled module: the site's CSP only runs same-origin script files, and a routed
   // navigation runs it once, so each page's form is wired up as it arrives.
   document.addEventListener("astro:page-load", () => {
@@ -124,10 +131,24 @@ const channelRows = event?.channels.length ? event.channels : [null];
     };
     addRow("[data-add-row]", "[data-location-list]", "#venue-row-template", "[data-location-rows]");
     addRow("[data-add-channel]", "[data-channel-list]", "#channel-row-template", "[data-channel-rows]");
+
+    // The preview uses the renderer the public event page uses, so it shows what visitors will read.
+    for (const input of document.querySelectorAll<HTMLTextAreaElement>("[data-remark-input]")) {
+      const preview = input.form?.querySelector<HTMLElement>("[data-remark-preview]");
+      if (!preview) continue;
+      input.addEventListener("input", () => {
+        preview.innerHTML = renderMarkdown(input.value, { heading: "h2" });
+        preview.parentElement!.hidden = !input.value.trim();
+      });
+    }
   });
 </script>
 <style>
   small { color: var(--muted); }
+  .remark-preview { display: grid; gap: .4rem; padding: .8rem .9rem; border: 1px solid var(--line); border-radius: .75rem; }
+  .remark-preview[hidden] { display: none; }
+  .remark-preview > span { color: var(--muted); font-size: .76rem; }
+  .remark-preview :global(h2) { font-size: 1.05em; font-weight: 700; }
   .form-actions { margin-top: 1.5rem; }
   .publish-check { display: flex; align-items: center; gap: .55rem; }
   .publish-check input { width: auto; }

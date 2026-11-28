@@ -43,7 +43,7 @@ export const EVENT_FIELD_LABELS = {
   classification: "分类",
   location_mode: "地点形式",
   location_note: "地点备注",
-  remark: "备注",
+  remark: "正文",
   status: "状态",
   published: "公开",
   archived_at: "归档时间",

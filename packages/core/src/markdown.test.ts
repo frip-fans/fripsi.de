@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { renderChatMarkdown as render } from "./chat-markdown";
+import { markdownToText, renderMarkdown as render } from "./markdown";
 
-describe("chat markdown", () => {
+describe("markdown", () => {
   it("renders the reply shape the assistant actually writes", () => {
     const html = render([
       "检查了 2026 年 9 月的 10 条活动，发现 **1 组疑似重复**：",
@@ -53,5 +53,21 @@ describe("chat markdown", () => {
 
   it("shows a code block while its closing fence has not arrived", () => {
     expect(render("```json\n{\"a\": 1}")).toBe("<pre><code>{&quot;a&quot;: 1}</code></pre>");
+  });
+
+  it("uses the heading tag the page asks for", () => {
+    expect(render("## 出演\n# 收录", { heading: "h2" })).toBe("<h2>出演</h2><h2>收录</h2>");
+  });
+
+  it("keeps the line breaks of descriptions written before Markdown", () => {
+    expect(render("仅主唱及乐队全员出演\n终演后见送会实施\n\n开场16:00。")).toBe("<p>仅主唱及乐队全员出演<br>终演后见送会实施</p><p>开场16:00。</p>");
+    expect(markdownToText("仅主唱及乐队全员出演\n终演后见送会实施\n\n开场16:00。")).toBe("仅主唱及乐队全员出演\n终演后见送会实施\n\n开场16:00。");
+  });
+
+  it("strips markup for plain-text readers", () => {
+    const source = "## 出演\n**四位主唱**同台，*嘉宾* `angela`。\n\n- 收录\n- [官网公告](https://fripside.net/contents/1)\n\n1. 一\n2. 二\n\n> 引用\n\n---\n2 * 3 * 4";
+    expect(markdownToText(source)).toBe("出演\n\n四位主唱同台，嘉宾 angela。\n\n・收录\n・官网公告\n\n1. 一\n2. 二\n\n引用\n\n2 * 3 * 4");
+    expect(markdownToText("- [官网公告](https://fripside.net/contents/1)", { links: "url" })).toBe("・官网公告 https://fripside.net/contents/1");
+    expect(markdownToText("<b> & 未闭合的 **粗体")).toBe("<b> & 未闭合的 **粗体");
   });
 });

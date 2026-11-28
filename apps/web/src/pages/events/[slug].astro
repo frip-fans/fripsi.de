@@ -1,5 +1,6 @@
 ---
 import { getEventTourContext, getPublicEventBySlug, listPublicSetlistsForEvent } from "@frip-fan/core";
+import { markdownToText, renderMarkdown } from "@frip-fan/core/markdown";
 import BackLink from "../../components/BackLink.astro";
 import Comments from "../../components/Comments.astro";
 import { eventReturnLink } from "../../lib/event-navigation";
@@ -56,7 +57,7 @@ const structuredData = {
   eventAttendanceMode: `https://schema.org/${attendanceMode}`,
   performer: { "@type": "MusicGroup", name: "fripSide" },
   ...(schemaLocations.length ? { location: schemaLocations.length === 1 ? schemaLocations[0] : schemaLocations } : fallbackPlace ? { location: fallbackPlace } : {}),
-  ...(event.remark ? { description: event.remark } : {}),
+  ...(event.remark ? { description: markdownToText(event.remark) } : {}),
 };
 ---
 <SiteLayout title={title} description={[formatDate(event.start_date, event.end_date, locale), officialTitle ?? title, event.location_label].filter(Boolean).join(" · ")} structuredData={structuredData}>
@@ -112,7 +113,7 @@ const structuredData = {
         </dl>
       )}
       <section class="content">
-        {event.remark ? <p class="remark">{event.remark}</p> : <p class="muted">{t(locale, "event.noRemark")}</p>}
+        {event.remark ? <div class="remark" set:html={renderMarkdown(event.remark, { heading: "h2" })} /> : <p class="muted">{t(locale, "event.noRemark")}</p>}
         {setlists.length > 0 && (
           <div class="setlist-links">
             <h2 class="eyebrow">{t(locale, "event.setlist")}</h2>
@@ -167,7 +168,23 @@ const structuredData = {
   .channel-links a, .sources a { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); text-decoration: none; }
   .content { font-size: 1rem; line-height: 1.9; }
   .content > p:first-child { margin-top: 0; }
-  .remark { white-space: pre-wrap; }
+  /* Rendered from the description's Markdown by @frip-fan/core/markdown, so the rules reach past this component's scope. */
+  .remark { overflow-wrap: anywhere; }
+  .remark > :global(*) { margin: 0; }
+  .remark > :global(* + *) { margin-top: 1em; }
+  .remark :global(h2) { font-size: 1.05rem; font-weight: 700; line-height: 1.5; }
+  .remark > :global(* + h2) { margin-top: 1.8em; }
+  .remark > :global(h2 + *) { margin-top: .5em; }
+  .remark :global(:is(ul, ol)) { padding-left: 1.3em; }
+  .remark :global(ul) { list-style: disc; }
+  .remark :global(li + li) { margin-top: .25em; }
+  .remark :global(li::marker) { color: var(--muted); }
+  .remark :global(a) { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .remark :global(blockquote) { padding-left: .9em; border-left: 2px solid var(--line); color: var(--muted); }
+  .remark :global(hr) { border: 0; border-top: 1px solid var(--line); }
+  .remark :global(code) { padding: .1em .35em; border-radius: 5px; background: rgba(255,255,255,.08); font: .88em/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .remark :global(pre) { padding: .7rem .8rem; border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; }
+  .remark :global(pre code) { padding: 0; background: none; white-space: pre; }
   h2.eyebrow { margin: 0 0 .15rem; }
   .sources { margin-top: 2.5rem; display: grid; justify-items: start; gap: .7rem; }
   .sources a { font-size: .9rem; }

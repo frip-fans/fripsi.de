@@ -27,8 +27,8 @@ class ProbeTest(unittest.TestCase):
         control='repos/frip-fans/fripside-deploy/'
         if path.startswith(source+'git/matching-refs/tags/v'):
             return [{'ref':'refs/tags/'+tag} for tag in self.tags]
-        if path==source+'commits/heads/master': return {'sha':self.master}
-        if path.startswith(source+'commits/tags/'):
+        if path==source+'commits/refs/heads/master': return {'sha':self.master}
+        if path.startswith(source+'commits/refs/tags/'):
             return {'sha':self.tags[path.rsplit('/',1)[1]]}
         if path.startswith(source+'contents/'): return {}
         if path.startswith(source+'actions/workflows/ci.yml/runs'):
@@ -52,7 +52,7 @@ class ProbeTest(unittest.TestCase):
 
     def test_staging_follows_master_head(self):
         item,_=self.ready('staging')
-        self.assertEqual((item['ref'],item['sha'],item['runner']),('heads/master',B,'fripside-staging'))
+        self.assertEqual((item['ref'],item['sha'],item['runner']),('refs/heads/master',B,'fripside-staging'))
         self.deployments['staging']=[(B,'success')]
         self.assertIsNone(self.ready('staging')[0])
 
@@ -65,7 +65,7 @@ class ProbeTest(unittest.TestCase):
         self.tags={'v2026.11.28':A,'v2026.11.28.2':B,'v2026.9.30':A,'vnext':A,'v1-rc':A}
         self.deployments['staging']=[(B,'success'),(A,'success')]
         item,_=self.ready('production')
-        self.assertEqual((item['ref'],item['sha'],item['runner']),('tags/v2026.11.28.2',B,'fripside-production'))
+        self.assertEqual((item['ref'],item['sha'],item['runner']),('refs/tags/v2026.11.28.2',B,'fripside-production'))
 
     def test_newer_tag_on_older_commit_rolls_back(self):
         self.tags={'v2026.11.28':B,'v2026.11.29':A}

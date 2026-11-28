@@ -45,13 +45,13 @@ def deployed(environment,sha,ever=False):
 
 def ready(environment):
     if environment=='staging':
-        ref='heads/'+MAIN
+        ref='refs/heads/'+MAIN
     else:
         tag=release_tag()
         if not tag:
             print('production: no release tag')
             return None
-        ref='tags/'+tag
+        ref='refs/tags/'+tag
     sha=api(f'repos/{SOURCE}/commits/{ref}')['sha']
     try:
         api(f'repos/{SOURCE}/contents/ops/oci/package-release.py?ref={sha}')

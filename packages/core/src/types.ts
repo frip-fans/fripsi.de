@@ -195,6 +195,8 @@ export interface Actor {
   /** Set for the admin chat assistant, so its proposals are attributable to one session. */
   chat_session_id?: string;
   automation_role?: "primary" | "review";
+  /** Which automatic task the identity belongs to; absent for the official event sync. */
+  automation_kind?: "setlists";
   id: string;
   type: "human" | "ai" | "system";
   channel: "admin" | "mcp" | "import" | "system";

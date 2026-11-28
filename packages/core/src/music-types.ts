@@ -230,6 +230,8 @@ export interface SetlistSummary {
   completeness: SetlistCompleteness;
   confidence: SetlistConfidence;
   notes: string | null;
+  /** When the setlist was added to the archive, which can be years after the show. */
+  created_at: string;
   event_slug: string;
   event_title: string;
   /** Admin-set event display name (see event-display.ts). */

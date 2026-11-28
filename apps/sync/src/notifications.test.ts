@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import { afterEach, expect, it, vi } from "vitest";
 import type { DatabaseSync } from "node:sqlite";
-import { ChangeService, createComment, moderateComment, type Actor } from "@frip-fan/core";
+import { ChangeService, ContentAdminService, createComment, moderateComment, type Actor } from "@frip-fan/core";
 import { createTestD1 } from "../../../packages/core/src/test-d1";
 import { scheduledTick } from "./index";
 import { safeTickNotifications, tickCommentNotifications, tickNotifications, type BarkEnv } from "./notifications";
@@ -183,4 +183,30 @@ it("announces new comments once, skips history and hidden ones, and retries a fa
   await tickCommentNotifications(t.env, at(10), t.request);
   expect(t.request).toHaveBeenCalledTimes(2);
   expect(t.sqlite.prepare("SELECT last_comment_id AS id FROM comment_notification_state").get()).toMatchObject({ id: quiet.id });
+});
+
+it("reports setlists the collection task published, the songs it created and what it left behind", async () => {
+  const t = setup(); await tickNotifications(t.env, initial, t.request); t.run("setlists-2026-10-31");
+  const owner: Actor = { id: "owner@example.com", type: "human", channel: "admin", scopes: ["events:read", "events:draft", "events:publish", "music:write"] };
+  const event = await new ContentAdminService(t.db).saveEvent({ published: true, idempotency_key: "notify-setlist-live", event: {
+    title: "fripSide LIVE in Tokyo", start_date: "2026-10-30", timezone: "Asia/Tokyo", category: "LIVE", classification: "专场", status: "scheduled",
+    location_mode: "none", location_note: null, venues: [], channels: [], sources: [{ url: "https://fripside.net/live" }] } }, owner);
+  const link = (id: string) => t.sqlite.prepare("INSERT INTO official_sync_changes(run_id,change_id,action_json,created_at) VALUES ('setlists-2026-10-31',?,'{}',?)").run(id, later.toISOString());
+  const song = await t.changes.proposeCatalog("song", { song: { title: "Brand New Song", original_artist: "fripSide" }, source_url: "https://example.com/setlist", reason: "new", idempotency_key: "notify-song-1" }, owner);
+  link(song.id); await t.changes.publishAny(song.id, owner, "notify-song-1:publish");
+  const songId = (t.sqlite.prepare("SELECT subject_id FROM change_sets WHERE id=?").get(song.id) as { subject_id: string }).subject_id;
+  const body = (label: string) => ({ event_id: event.id, setlist: { performance_label: label, completeness: "complete", confidence: "reported", entries: [{ song_id: songId }] },
+    source_url: "https://example.com/setlist", reason: "report", idempotency_key: `notify-setlist-${label}` });
+  const published = await t.changes.proposeSetlist(body("昼公演"), owner); link(published.id); await t.changes.publishAny(published.id, owner, "notify-setlist:publish");
+  const waiting = await t.changes.proposeSetlist(body("夜公演"), owner); link(waiting.id);
+  await tickNotifications(t.env, later, t.request);
+  expect(t.request).toHaveBeenCalledTimes(1);
+  const payload = JSON.parse(String(t.request.mock.calls[0][1]?.body));
+  const setlistId = (t.sqlite.prepare("SELECT id FROM setlists").get() as { id: string }).id;
+  expect(payload.title).toBe("fripSi.de 新歌单");
+  expect(payload.body).toContain("歌单 2026-10-30 fripSide LIVE in Tokyo（1 首）");
+  expect(payload.body).toContain("自动新建歌曲 1 首，请核对：Brand New Song");
+  expect(payload.body).toContain("有 1 条歌单或歌曲提案未能自动发布");
+  expect(payload.body).not.toContain("新增 ");
+  expect(payload.url).toBe(`https://fripsi.de/music/lives/${setlistId}`);
 });

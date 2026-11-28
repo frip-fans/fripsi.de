@@ -3,6 +3,8 @@ import { normalizeForDuplicate } from "./utils";
 
 export const SYNC_POLICY_VERSION = "official-sync-v2";
 export const SYNC_TOOL_LIMIT = 80;
+/** Runs that collect setlists for shows that just ended carry this policy instead of the event one. */
+export const SETLIST_SYNC_POLICY_VERSION = "setlist-sync-v1";
 
 export function occurrenceLabel(title: string): string | null {
   const text = title.normalize("NFKC");

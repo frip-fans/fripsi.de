@@ -379,6 +379,17 @@ openWorldHint: true
 
 维护者启用每日自动同步后，专用身份可使用 `sync.propose` → `changes.preview` → `changes.publish_automatic`，无需逐条确认。发布工具要求本次服务端预览摘要，只接受当前活跃任务关联的活动新增、修改或状态变更；来源、重复、版本和审计检查仍然执行。普通 MCP 身份不暴露这些自动化写入工具，也不能仅凭 OAuth scope 升级为自动身份。
 
+### 3.6 歌单搜集任务的工具
+
+每日的歌单搜集任务使用另一种自动化身份，只挂载下列工具，不挂载活动工具，也不挂载 3.3 中的 `songs.search`、`changes.propose_setlist` 等普通工具。规则与范围见 [官方活动自动同步](official-sync.md#歌单搜集任务)。
+
+- `sync.find_songs`：按歌名查音乐库，返回是否已有（`exists`）、命中的歌曲及其版本、相近的歌曲。
+- `sync.create_song`：新建音乐库没有的歌曲；歌名、别名与已有歌曲重复时返回 `duplicate_song` 和已有歌曲。任务未获发布授权时只留下提案。
+- `sync.propose_setlist`：为本次任务范围内的演出提交新增歌单；同一场再次提交会替换上一次的提案。
+- `changes.preview` / `changes.publish_automatic`：预览并发布本次任务提交的新增歌单。
+
+后台对应的操作是音乐库的“新建歌曲”和“新增歌单”，以及 `/admin/changes` 中对提案的发布与丢弃。
+
 ## 4. 强制工作流
 
 MCP server `instructions` 和配套 Codex skill/plugin 应规定：

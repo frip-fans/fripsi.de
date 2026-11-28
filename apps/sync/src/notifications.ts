@@ -9,6 +9,7 @@ export interface BarkEnv {
 interface NotificationPayload { title: string; body: string; url: string; group: string }
 interface TerminalRun { id: string; status: string; error_code: string | null; source_errors: number }
 interface PublishedChange { event_id: string; operation: string; title: string; slug: string; start_date: string; start_time: string | null; status: string }
+interface PublishedSetlist { setlist_id: string; title: string; start_date: string; entries: number }
 interface Delivery { run_id: string; payload_json: string; attempts: number }
 // Keep the icon publicly reachable even when a staging site is Access-protected.
 const BARK_ICON_URL = "https://fripsi.de/bark-icon-v2.png";
@@ -38,7 +39,20 @@ async function payloadForRun(db: D1Database, run: TerminalRun, site: string): Pr
     FROM official_sync_changes s JOIN change_sets c ON c.id=s.change_id
     JOIN events e ON e.id=COALESCE(c.target_event_id,json_extract(c.payload_json,'$.event.id'))
     WHERE s.run_id=? AND c.status='published' AND e.published=1 AND e.archived_at IS NULL
+    AND COALESCE(c.subject_type,'event')='event'
     ORDER BY c.published_at,c.id`).bind(run.id).all<PublishedChange>();
+  // The setlist collection task publishes setlists and the songs they needed, not events.
+  const setlists = await db.prepare(`SELECT sl.id AS setlist_id,e.title,e.start_date,
+    (SELECT COUNT(*) FROM setlist_entries se WHERE se.setlist_id=sl.id) AS entries
+    FROM official_sync_changes s JOIN change_sets c ON c.id=s.change_id
+    JOIN setlists sl ON sl.id=c.subject_id JOIN events e ON e.id=sl.event_id
+    WHERE s.run_id=? AND c.status='published' AND c.subject_type='setlist' ORDER BY c.published_at,c.id`).bind(run.id).all<PublishedSetlist>();
+  const songs = await db.prepare(`SELECT sg.title FROM official_sync_changes s JOIN change_sets c ON c.id=s.change_id
+    JOIN songs sg ON sg.id=c.subject_id WHERE s.run_id=? AND c.status='published' AND c.subject_type='song' ORDER BY c.published_at,c.id`)
+    .bind(run.id).all<{ title: string }>();
+  const waiting = await db.prepare(`SELECT COUNT(*) AS n FROM official_sync_changes s JOIN change_sets c ON c.id=s.change_id
+    WHERE s.run_id=? AND c.status='proposed' AND c.subject_type IN ('setlist','song')`).bind(run.id).first<{ n: number }>();
+  const music = setlists.results.length + songs.results.length + (waiting?.n ?? 0);
   const pending = await db.prepare(`SELECT
     EXISTS(SELECT 1 FROM official_sync_reviews WHERE run_id=? AND status IN ('unresolved','budget_stopped'))
     OR EXISTS(SELECT 1 FROM official_sync_source_reviews WHERE run_id=? AND status IN ('unresolved','budget_stopped')) AS needed`)
@@ -50,7 +64,7 @@ async function payloadForRun(db: D1Database, run: TerminalRun, site: string): Pr
   const changes = [...unique.values()], failed = run.status === "failed", needsAttention = Boolean(pending?.needed);
   const sourceFailure = failed && run.error_code ? SOURCE_FAILURES[run.error_code] : undefined;
   const partialSourceErrors = !failed && run.source_errors > 0 ? run.source_errors : 0;
-  if (!changes.length && !failed && !needsAttention && !partialSourceErrors) return null;
+  if (!changes.length && !music && !failed && !needsAttention && !partialSourceErrors) return null;
   const created = changes.filter((change) => change.operation === "create").length;
   const lines: string[] = [];
   if (changes.length) lines.push(`已发布：新增 ${created} 条，更新 ${changes.length - created} 条。`);
@@ -59,15 +73,22 @@ async function payloadForRun(db: D1Database, run: TerminalRun, site: string): Pr
     lines.push(`${label} ${change.start_date}${change.start_time ? ` ${change.start_time}` : ""} ${truncate(change.title, 160)}\n${site}/events/${encodeURIComponent(change.slug)}`);
   }
   if (changes.length > 4) lines.push(`另有 ${changes.length - 4} 条，请查看站点。`);
+  for (const setlist of setlists.results.slice(0, 4)) {
+    lines.push(`歌单 ${setlist.start_date} ${truncate(setlist.title, 160)}（${setlist.entries} 首）\n${site}/music/lives/${encodeURIComponent(setlist.setlist_id)}`);
+  }
+  if (setlists.results.length > 4) lines.push(`另有 ${setlists.results.length - 4} 份歌单，请查看站点。`);
+  if (songs.results.length) lines.push(`自动新建歌曲 ${songs.results.length} 首，请核对：${truncate(songs.results.map((song) => song.title).join("、"), 300)}`);
+  if (waiting?.n) lines.push(`有 ${waiting.n} 条歌单或歌曲提案未能自动发布，可查看后台变更记录。`);
   if (sourceFailure) lines.push(`${sourceFailure}（${run.error_code}）。已自动重试仍失败，请人工查看官网。`);
-  else if (failed) lines.push(`同步任务未完成${run.error_code && /^[a-z0-9_]{1,80}$/.test(run.error_code) ? `（${run.error_code}）` : ""}。`);
+  else if (failed) lines.push(`${run.id.startsWith("setlists-") ? "歌单搜集任务" : "同步任务"}未完成${run.error_code && /^[a-z0-9_]{1,80}$/.test(run.error_code) ? `（${run.error_code}）` : ""}。`);
   if (needsAttention) lines.push("自动复核后仍有事项待核实，可查看后台变更记录。");
   if (partialSourceErrors) lines.push(`官网有 ${partialSourceErrors} 个页面读取失败，这些页面今天未检查。`);
   const prefix = new URL(site).hostname === "fripsi.de" ? "fripSi.de" : "fripSi.de [测试]";
   return {
-    title: `${prefix} ${sourceFailure ? "官网读取失败" : failed ? "同步异常" : needsAttention ? "更新与待核实事项" : changes.length ? "活动更新" : "官网部分读取失败"}`,
+    title: `${prefix} ${sourceFailure ? "官网读取失败" : failed ? "同步异常" : needsAttention ? "更新与待核实事项" : changes.length ? "活动更新" : setlists.results.length ? "新歌单" : music ? "歌单待处理" : "官网部分读取失败"}`,
     body: truncate(lines.join("\n\n"), 2000),
-    url: changes.length === 1 ? `${site}/events/${encodeURIComponent(changes[0].slug)}` : changes.length ? `${site}/` : `${site}/admin/changes`,
+    url: changes.length === 1 ? `${site}/events/${encodeURIComponent(changes[0].slug)}` : changes.length ? `${site}/`
+      : setlists.results.length === 1 ? `${site}/music/lives/${encodeURIComponent(setlists.results[0].setlist_id)}` : setlists.results.length ? `${site}/music/lives` : `${site}/admin/changes`,
     group: "fripsi-official-sync",
   };
 }

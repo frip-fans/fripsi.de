@@ -14,6 +14,7 @@ import { getLocale, t } from "../lib/i18n";
 import { youtubeLinks } from "../lib/music-listen";
 import {
   formatMusicDate,
+  isNewlyAddedSetlist,
   releaseTypeLabel,
   setlistDisplayTitle,
 } from "../lib/music";
@@ -278,7 +279,7 @@ const dateBadge = (event: UpcomingEvent) => {
                   <span class="rail-date"><strong>{setlist.start_date.slice(5).replace("-", ".")}</strong><small>{setlist.start_date.slice(0, 4)}</small></span>
                   <span class="rail-main">
                     <b>{setlistDisplayTitle(setlist)}</b>
-                    <small>{[t(locale, "music.songsCount", { count: setlist.entry_count }), setlist.venue].filter(Boolean).join(" · ")}</small>
+                    <small>{isNewlyAddedSetlist(setlist) && <span class="rail-new">{t(locale, "music.newlyAdded")} · </span>}{[t(locale, "music.songsCount", { count: setlist.entry_count }), setlist.venue].filter(Boolean).join(" · ")}</small>
                   </span>
                 </a>
               </li>
@@ -554,6 +555,7 @@ const dateBadge = (event: UpcomingEvent) => {
   .rail-main { display: grid; gap: .12rem; min-width: 0; }
   .rail-main b { overflow: hidden; font-size: .84rem; font-weight: 650; line-height: 1.38; text-overflow: ellipsis; white-space: nowrap; transition: color .15s; }
   .rail-row:hover b { color: var(--accent); }
+  .rail-new { color: var(--accent); font-weight: 650; }
   .rail-main small { overflow: hidden; color: var(--muted); font-size: .72rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
   .library { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .25rem; }
   .library a { display: grid; gap: .15rem; min-height: 44px; padding: .2rem .35rem; color: var(--muted); border-radius: 8px; font-size: .72rem; text-decoration: none; }

@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import type { Actor } from "./types";
+import { SETLIST_SYNC_POLICY_VERSION } from "./sync-policy";
 import { ServiceError } from "./utils";
 
 const issuer = "fripsi:official-sync";
@@ -26,13 +27,16 @@ export async function authenticateAutomationToken(token: string, env: {
       requiredClaims: ["exp", "iat", "sub", "run_id"],
     });
     if (typeof payload.run_id !== "string") throw new Error("invalid_run");
-    const run = await env.DB.prepare("SELECT status, auto_publish, created_at FROM official_sync_runs WHERE id = ?")
-      .bind(payload.run_id).first<{ status: string; auto_publish: number; created_at: string }>();
+    const run = await env.DB.prepare("SELECT status, auto_publish, created_at, policy_version FROM official_sync_runs WHERE id = ?")
+      .bind(payload.run_id).first<{ status: string; auto_publish: number; created_at: string; policy_version: string }>();
     if (!run || !["starting", "running"].includes(run.status) || Date.now() - Date.parse(run.created_at) >= 3_600_000) throw new Error("inactive_run");
+    const setlists = run.policy_version === SETLIST_SYNC_POLICY_VERSION;
     return {
       id: automationSubject, type: "ai", channel: "mcp", automation_run_id: payload.run_id,
       automation_role: payload.role === "review" ? "review" : "primary",
-      scopes: ["events:read", "events:draft", ...(run.auto_publish === 1 ? ["events:publish", "events:auto_publish"] : [])],
+      ...(setlists ? { automation_kind: "setlists" as const } : {}),
+      // Saving a setlist or a song needs music:write; publishing still needs the run's own grant.
+      scopes: ["events:read", "events:draft", ...(setlists ? ["music:write"] : []), ...(run.auto_publish === 1 ? ["events:publish", "events:auto_publish"] : [])],
     };
   } catch { throw new ServiceError("unauthorized", "自动同步凭据无效、已过期或任务已结束", 401); }
 }

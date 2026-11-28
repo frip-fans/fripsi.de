@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setlistDisplayTitle, shouldShowPerformedVersion } from "./music";
+import { isNewlyAddedSetlist, setlistDisplayTitle, shouldShowPerformedVersion } from "./music";
 
 describe("shouldShowPerformedVersion", () => {
   it("hides a redundant version label when it matches the displayed track title", () => {
@@ -30,5 +30,19 @@ describe("setlistDisplayTitle", () => {
   it("adds a non-default performance label unless the name already contains it", () => {
     expect(setlistDisplayTitle({ ...base, performance_label: "昼公演", event_alias: "Alias" })).toBe("Alias · 昼公演");
     expect(setlistDisplayTitle({ ...base, performance_label: "昼公演", event_alias: "Alias 昼公演" })).toBe("Alias 昼公演");
+  });
+});
+
+describe("isNewlyAddedSetlist", () => {
+  const now = Date.parse("2026-11-24T00:00:00Z");
+  it("flags a setlist for 30 days after it was added", () => {
+    expect(isNewlyAddedSetlist({ created_at: "2026-11-23T10:00:00.000Z" }, now)).toBe(true);
+    expect(isNewlyAddedSetlist({ created_at: "2026-10-25T00:00:01.000Z" }, now)).toBe(true);
+    expect(isNewlyAddedSetlist({ created_at: "2026-10-25T00:00:00.000Z" }, now)).toBe(false);
+    expect(isNewlyAddedSetlist({ created_at: "2026-08-03T15:25:55.657Z" }, now)).toBe(false);
+  });
+  it("ignores unreadable and future timestamps", () => {
+    expect(isNewlyAddedSetlist({ created_at: "now" }, now)).toBe(false);
+    expect(isNewlyAddedSetlist({ created_at: "2026-12-01T00:00:00.000Z" }, now)).toBe(false);
   });
 });

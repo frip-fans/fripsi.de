@@ -1,15 +1,15 @@
-import { signAutomationToken, SYNC_POLICY_VERSION } from "@frip-fan/core";
+import { listSetlistCandidates, SETLIST_LOOKBACK_DAYS, SETLIST_SYNC_POLICY_VERSION, signAutomationToken, SYNC_POLICY_VERSION, type SetlistCandidate } from "@frip-fan/core";
 import { AgentsClient, agentReportSchema, type AgentReport, type SessionProgress } from "./agent";
 import { Budget } from "./budget";
 import { discover, DISCOVERY_LOOKBACK_DAYS } from "./discovery";
 import { tickEvaluations } from "./evaluations";
-import { instructions, reviewInstructions } from "./prompt";
+import { instructions, reviewInstructions, setlistInstructions } from "./prompt";
 import { safeTickNotifications, type BarkEnv } from "./notifications";
 
 export interface SyncEnv extends BarkEnv {
   DB: D1Database;
   OPENAI_API_KEY?: string; OPENAI_MODEL?: string; OPENAI_REVIEW_MODEL?: string;
-  SYNC_ENABLED?: string; SYNC_AUTO_PUBLISH?: string; SYNC_DISCOVERY_ENABLED?: string;
+  SYNC_ENABLED?: string; SYNC_AUTO_PUBLISH?: string; SYNC_DISCOVERY_ENABLED?: string; SYNC_SETLISTS_ENABLED?: string;
   SYNC_EVAL_ENABLED?: string; SYNC_BUDGET_GROUP?: string; SYNC_BUDGET_USD?: string;
   MCP_ENDPOINT_URL?: string; AUTOMATION_SIGNING_SECRET?: string;
   MCP_ACCESS_CLIENT_ID?: string; MCP_ACCESS_CLIENT_SECRET?: string;
@@ -21,9 +21,12 @@ interface Run {
   review_attempted: number; review_session_id: string | null; review_input_json: string | null; review_report_json: string | null;
 }
 interface Manifest {
+  /** Absent for the official event sync. */
+  kind?: "setlists";
   model: string; mcp_url: string; auto_publish: boolean; prompt: string; input: {
     today: string; lookback_days: number; run_id: string; auto_publish: boolean;
     articles?: Array<{ source_url: string; title: string }>;
+    events?: SetlistCandidate[];
     source_errors?: unknown[]; review_change_ids?: string[]; review_source_urls?: string[];
   };
 }
@@ -39,11 +42,32 @@ function report(progress: SessionProgress): AgentReport {
 async function startSession(client: AgentsClient, env: SyncEnv, run: Run, manifest: Manifest, role: "primary" | "review") {
   const token = await signAutomationToken(env.AUTOMATION_SIGNING_SECRET!, manifest.mcp_url, run.id, run.created_at, role);
   return client.start(manifest.model, manifest.input, `${run.id}:${role}:v2`, {
-    url: manifest.mcp_url, authorization: `Bearer ${token}`, autoPublish: manifest.auto_publish,
+    url: manifest.mcp_url, authorization: `Bearer ${token}`, autoPublish: manifest.auto_publish, kind: manifest.kind ?? "events",
     ...(env.MCP_ACCESS_CLIENT_ID && env.MCP_ACCESS_CLIENT_SECRET ? { headers: {
       "CF-Access-Client-Id": env.MCP_ACCESS_CLIENT_ID, "CF-Access-Client-Secret": env.MCP_ACCESS_CLIENT_SECRET,
     } } : {}),
   }, manifest.prompt);
+}
+
+/**
+ * Once the day's official run is over, one run looks for the setlists of shows that just ended.
+ * It is created with its input, so the events it may touch are fixed before the agent starts.
+ */
+async function createSetlistRun(env: SyncEnv, day: string, now: Date): Promise<Run | null> {
+  if (env.SYNC_SETLISTS_ENABLED !== "true") return null;
+  const id = `setlists-${day}`;
+  if (await env.DB.prepare("SELECT 1 FROM official_sync_runs WHERE id=?").bind(id).first()) return null;
+  const events = await listSetlistCandidates(env.DB, day);
+  if (!events.length) return null;
+  const autoPublish = env.SYNC_AUTO_PUBLISH === "true";
+  const manifest: Manifest = { kind: "setlists", model: env.OPENAI_MODEL!, mcp_url: env.MCP_ENDPOINT_URL!, auto_publish: autoPublish, prompt: setlistInstructions,
+    input: { today: now.toISOString(), lookback_days: SETLIST_LOOKBACK_DAYS, run_id: id, auto_publish: autoPublish, events } };
+  const inserted = await env.DB.prepare(`INSERT OR IGNORE INTO official_sync_runs (id,status,auto_publish,policy_version,budget_group,input_json,created_at,updated_at)
+    VALUES (?,'starting',?,?,?,?,?,?)`).bind(id, autoPublish ? 1 : 0, SETLIST_SYNC_POLICY_VERSION, env.SYNC_BUDGET_GROUP || `daily:${day}`,
+    JSON.stringify(manifest), now.toISOString(), now.toISOString()).run();
+  if (!inserted.meta.changes) return null;
+  console.log(JSON.stringify({ action: "setlist_sync.created", run_id: id, events: events.length }));
+  return env.DB.prepare("SELECT * FROM official_sync_runs WHERE id=?").bind(id).first<Run>();
 }
 
 async function queueReviews(db: D1Database, run: Run, primary: AgentReport, manifest: Manifest) {
@@ -114,9 +138,14 @@ export async function tick(env: SyncEnv, now = new Date(), trial?: TrialOptions)
       const group = env.SYNC_BUDGET_GROUP || `daily:${day}`;
       const inserted = await env.DB.prepare(`INSERT OR IGNORE INTO official_sync_runs (id,status,auto_publish,policy_version,budget_group,created_at,updated_at)
         VALUES (?,'starting',?,?,?,?,?)`).bind(desiredId, autoPublish ? 1 : 0, SYNC_POLICY_VERSION, group, now.toISOString(), now.toISOString()).run();
-      if (!inserted.meta.changes) return;
-      run = await env.DB.prepare("SELECT * FROM official_sync_runs WHERE id=?").bind(desiredId).first<Run>();
-      if (!run) throw new Error("run_creation_failed");
+      if (!inserted.meta.changes) {
+        // Today's official run already ended.
+        run = trial ? null : await createSetlistRun(env, day, now);
+        if (!run) return;
+      } else {
+        run = await env.DB.prepare("SELECT * FROM official_sync_runs WHERE id=?").bind(desiredId).first<Run>();
+        if (!run) throw new Error("run_creation_failed");
+      }
     }
     budget = new Budget(env.DB, run.budget_group || env.SYNC_BUDGET_GROUP || `daily:${day}`, Number(env.SYNC_BUDGET_USD || 1));
     await budget.initialize();
@@ -156,7 +185,9 @@ export async function tick(env: SyncEnv, now = new Date(), trial?: TrialOptions)
       if (progress.state === "failed") throw new Error("agent_turn_failed");
       const primary = report(progress); run.result_json = JSON.stringify(primary); run.primary_done = 1;
       await env.DB.prepare("UPDATE official_sync_runs SET primary_done=1,result_json=?,updated_at=? WHERE id=?").bind(run.result_json, now.toISOString(), run.id).run();
-      await budget.close(`${run.id}:primary`); await queueReviews(env.DB, run, primary, manifest);
+      await budget.close(`${run.id}:primary`);
+      // A setlist nobody could confirm waits for a person or the next retry day, not for a second model.
+      if (manifest.kind !== "setlists") await queueReviews(env.DB, run, primary, manifest);
     }
     const primary = agentReportSchema.parse(JSON.parse(run.result_json!)) as AgentReport;
     // Restore observational metadata; schema parsing above intentionally validates only the model contract.

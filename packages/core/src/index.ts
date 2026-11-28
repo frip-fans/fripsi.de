@@ -33,6 +33,7 @@ export * from "./chat-attachments";
 export * from "./app-settings";
 export * from "./comments";
 export * from "./automation-service";
+export * from "./setlist-automation";
 export * from "./sync-policy";
 export * from "./official-sync-monitor";
 

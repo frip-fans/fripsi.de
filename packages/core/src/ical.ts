@@ -1,4 +1,5 @@
 import { physicalLocationLabel } from "./locations";
+import { markdownToText } from "./markdown";
 import type { EventRecord } from "./types";
 import { zonedDateTimeToUtc } from "./utils";
 
@@ -80,7 +81,8 @@ function eventLines(event: EventRecord, siteUrl: URL): string[] {
   const location = physicalLocationLabel(event);
   const description = [
     event.classification ? `分类：${event.classification}` : null,
-    event.remark,
+    // Calendar apps show this as plain text, so a link keeps its address.
+    event.remark ? markdownToText(event.remark, { links: "url" }) : null,
     `详情：${detailUrl}`
   ].filter((value): value is string => Boolean(value)).join("\n\n");
   const lines = [

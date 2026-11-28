@@ -1,9 +1,11 @@
 /**
- * Renders the Markdown an assistant reply uses into HTML for the chat dock, on the
- * server and in the browser alike. The reply is model output, so nothing in it is
- * trusted: every character is escaped first and only the tags written here come out.
- * Links are limited to http(s). This is a deliberately small subset (what chat replies
- * actually contain), not a CommonMark implementation.
+ * The small Markdown subset the site renders: event descriptions on public pages and
+ * assistant replies in the admin chat dock, on the server and in the browser alike.
+ * The source is maintainer, agent or model text, so nothing in it is trusted: every
+ * character is escaped first and only the tags written here come out. Links are limited
+ * to http(s). This is deliberately not a CommonMark implementation.
+ *
+ * Imported as `@frip-fan/core/markdown` so browser bundles take this file alone.
  */
 
 const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
@@ -32,9 +34,11 @@ function inline(text: string): string {
 type Block =
   | { kind: "paragraph" | "quote"; lines: string[] }
   | { kind: "list"; ordered: boolean; start: number; items: string[][] }
-  | { kind: "raw"; html: string };
+  | { kind: "heading"; text: string }
+  | { kind: "code"; text: string }
+  | { kind: "rule" };
 
-export function renderChatMarkdown(source: string): string {
+function parseBlocks(source: string): Block[] {
   const blocks: Block[] = [];
   // Held in an object: a `let` assigned inside the loop body narrows to `never` here.
   const state: { open: Block | null } = { open: null };
@@ -47,14 +51,14 @@ export function renderChatMarkdown(source: string): string {
       const body: string[] = [];
       // An unclosed fence (a reply still streaming) runs to the end of the text.
       for (index++; index < lines.length && !/^\s*```\s*$/.test(lines[index]!); index++) body.push(lines[index]!);
-      blocks.push({ kind: "raw", html: `<pre><code>${escapeHtml(body.join("\n"))}</code></pre>` });
+      blocks.push({ kind: "code", text: body.join("\n") });
       close();
       continue;
     }
     if (!line.trim()) { close(); continue; }
     const heading = /^\s{0,3}#{1,6}\s+(.+?)\s*#*$/.exec(line);
-    if (heading) { blocks.push({ kind: "raw", html: `<h4>${inline(heading[1]!)}</h4>` }); close(); continue; }
-    if (/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(line)) { blocks.push({ kind: "raw", html: "<hr>" }); close(); continue; }
+    if (heading) { blocks.push({ kind: "heading", text: heading[1]! }); close(); continue; }
+    if (/^\s{0,3}([-*_])(\s*\1){2,}\s*$/.test(line)) { blocks.push({ kind: "rule" }); close(); continue; }
     const bullet = /^\s*[-*+•]\s+(.*)$/.exec(line);
     const numbered = /^\s*(\d{1,9})[.)]\s+(.*)$/.exec(line);
     if (bullet || numbered) {
@@ -77,13 +81,46 @@ export function renderChatMarkdown(source: string): string {
     state.open = { kind, lines: [text] };
     blocks.push(state.open);
   }
+  return blocks;
+}
+
+/** `heading` is the tag every heading level becomes; the page decides where it sits in its outline. */
+export function renderMarkdown(source: string, options: { heading?: "h2" | "h3" | "h4" } = {}): string {
+  const heading = options.heading ?? "h4";
   const joined = (parts: string[]) => parts.map(inline).join("<br>");
-  return blocks.map((block) => {
-    if (block.kind === "raw") return block.html;
+  return parseBlocks(source).map((block) => {
+    if (block.kind === "heading") return `<${heading}>${inline(block.text)}</${heading}>`;
+    if (block.kind === "code") return `<pre><code>${escapeHtml(block.text)}</code></pre>`;
+    if (block.kind === "rule") return "<hr>";
     if (block.kind === "list") {
       const items = block.items.map((item) => `<li>${joined(item)}</li>`).join("");
       return block.ordered ? `<ol${block.start !== 1 ? ` start="${block.start}"` : ""}>${items}</ol>` : `<ul>${items}</ul>`;
     }
     return block.kind === "quote" ? `<blockquote>${joined(block.lines)}</blockquote>` : `<p>${joined(block.lines)}</p>`;
   }).join("");
+}
+
+function plainInline(text: string, links: "label" | "url"): string {
+  return text.split(/(`[^`\n]+`)/g).map((part, index) => index % 2 ? part.slice(1, -1) : part
+    .replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_match, label: string, target: string) => links === "url" ? `${label} ${target}` : label)
+    .replace(/\*\*(?=\S)([^\n]+?)(?<=\S)\*\*/g, "$1")
+    .replace(/(?<![*\w])\*(?=[^\s*])([^*\n]+?)(?<=[^\s*])\*(?![*\w])/g, "$1")).join("");
+}
+
+/**
+ * The same source without its markup, for places that show plain text: calendar feeds,
+ * search and page metadata. `links: "url"` keeps a link's address after its label, for
+ * readers who cannot follow one otherwise.
+ */
+export function markdownToText(source: string, options: { links?: "label" | "url" } = {}): string {
+  const plain = (text: string) => plainInline(text, options.links ?? "label");
+  return parseBlocks(source).flatMap((block) => {
+    if (block.kind === "rule") return [];
+    if (block.kind === "heading") return [plain(block.text)];
+    if (block.kind === "code") return [block.text];
+    if (block.kind === "list") {
+      return [block.items.map((item, index) => `${block.ordered ? `${block.start + index}.` : "・"}${block.ordered ? " " : ""}${item.map(plain).join("\n")}`).join("\n")];
+    }
+    return [block.lines.map(plain).join("\n")];
+  }).join("\n\n");
 }

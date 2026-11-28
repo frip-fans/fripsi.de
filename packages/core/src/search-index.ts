@@ -1,3 +1,4 @@
+import { markdownToText } from "./markdown";
 import { buildSearchText, eventLabelSearchTerms, searchMatcher } from "./search-text";
 
 /**
@@ -73,7 +74,7 @@ async function eventCorpus(db: D1Database, scope: SearchScope, withSources = sco
     corpus.set(id, [
       event.title as string, event.alias as string | null, event.tour_name as string | null, event.tour_stop as string | null,
       category, classification, ...eventLabelSearchTerms(category, classification),
-      event.location_note as string | null, event.remark as string | null,
+      event.location_note as string | null, event.remark ? markdownToText(event.remark as string) : null,
       ...(places.get(id) ?? []), ...(extra.get(id) ?? []),
     ]);
   }

@@ -6,7 +6,7 @@
  * (the header launcher, the page behind the sheet) is wired up again per page.
  */
 import { prepareImage, type PreparedImage } from "./chat-images-client";
-import { renderChatMarkdown } from "./chat-markdown";
+import { renderMarkdown } from "@frip-fan/core/markdown";
 import { setupChatModelSettings } from "./chat-model-settings-client";
 
 const POLL_MS = 2500;
@@ -256,8 +256,8 @@ export function setupAdminChatDock(): void {
       label.textContent = `${role === "error" ? "出错" : "助手"} · ${clock(at)}`;
       const body = document.createElement("div");
       body.className = role === "error" ? "chat-error" : "chat-prose";
-      // renderChatMarkdown escapes the reply and emits only its own tags.
-      if (role === "assistant") body.innerHTML = renderChatMarkdown(text);
+      // renderMarkdown escapes the reply and emits only its own tags.
+      if (role === "assistant") body.innerHTML = renderMarkdown(text);
       else body.textContent = text;
       item.appendChild(label);
       item.appendChild(body);
@@ -358,7 +358,7 @@ export function setupAdminChatDock(): void {
       if (data.type === "delta") {
         // The whole reply so far is re-rendered: a delta can close a list or a bold run.
         streamed += data.text;
-        liveTurn().prose.innerHTML = renderChatMarkdown(streamed);
+        liveTurn().prose.innerHTML = renderMarkdown(streamed);
         scrollToEnd();
       } else if (data.type === "tool") {
         running.set(data.name, data.status);
@@ -370,7 +370,7 @@ export function setupAdminChatDock(): void {
       } else if (data.type === "done") {
         closeStream();
         const prose = liveTurn().prose;
-        if (data.text) prose.innerHTML = renderChatMarkdown(data.text);
+        if (data.text) prose.innerHTML = renderMarkdown(data.text);
         lastTurn = data.turn_id ?? lastTurn;
         settleLive();
         announce.textContent = `助手已回复：${String(data.text ?? "").slice(0, 120)}`;

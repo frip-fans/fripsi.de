@@ -23,7 +23,8 @@ export class AgentsClient extends AgentsClientBase {
     super(key, request, "official_sync");
   }
 
-  async start(model: string, input: unknown, key: string, mcp: { url: string; authorization: string; autoPublish: boolean; headers?: Record<string, string> }, prompt = instructions): Promise<string> {
+  async start(model: string, input: unknown, key: string, mcp: { url: string; authorization: string; autoPublish: boolean; headers?: Record<string, string>; kind?: "events" | "setlists" }, prompt = instructions): Promise<string> {
+    const setlists = mcp.kind === "setlists";
     const schema = z.toJSONSchema(agentReportSchema, { unrepresentable: "any", override: ({ jsonSchema }) => {
       // Structured Outputs does not accept JSON Schema's general URI format.
       // Retain z.url() validation when parsing the completed report locally.
@@ -37,11 +38,14 @@ export class AgentsClient extends AgentsClientBase {
         reasoning: { effort: "medium" },
         service_tier: "default",
         tools: [
-          { type: "web_search", mode: "live", allowed_domains: ["fripside.net", "www.fripside.net"], context_size: "medium" },
+          // Setlists are reported by fans and media, not the official site, so that task searches the open web.
+          { type: "web_search", mode: "live", ...(setlists ? {} : { allowed_domains: ["fripside.net", "www.fripside.net"] }), context_size: "medium" },
           { type: "mcp", server_label: "fripsi", connection_origin: "service", required: true,
             transport: { type: "http", server_url: mcp.url, authorization: mcp.authorization,
               headers: { "User-Agent": "fripsi-official-sync/1.0", ...mcp.headers } },
-            allowed_tools: ["events.search", "events.get", "events.list_upcoming", "events.check_duplicate", "sources.read", "sync.propose", "sync.inspect", "sync.discard", "sync.request_review", "changes.preview",
+            allowed_tools: [...(setlists
+              ? ["sync.find_songs", "sync.create_song", "sync.propose_setlist", "changes.preview"]
+              : ["events.search", "events.get", "events.list_upcoming", "events.check_duplicate", "sources.read", "sync.propose", "sync.inspect", "sync.discard", "sync.request_review", "changes.preview"]),
               ...(mcp.autoPublish ? ["changes.publish_automatic"] : [])] },
         ],
         text: { format: { type: "json_schema", schema } },

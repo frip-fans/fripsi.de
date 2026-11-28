@@ -5,7 +5,7 @@ import type {
   SetlistSection,
   VersionRelationType,
 } from "@frip-fan/core";
-import { normalizeForDuplicate } from "@frip-fan/core";
+import { EVENT_UPDATE_WINDOW_DAYS, normalizeForDuplicate } from "@frip-fan/core";
 import { t, type Locale } from "./i18n";
 
 export const releaseTypeLabels: Record<ReleaseType, string> = {
@@ -133,4 +133,10 @@ export function shouldShowPerformedVersion(displayTitle: string, performedVersio
     performedVersionTitle
     && normalizeForDuplicate(displayTitle) !== normalizeForDuplicate(performedVersionTitle),
   );
+}
+
+/** Whether a setlist joined the archive recently enough to flag, however old its show is. */
+export function isNewlyAddedSetlist(setlist: { created_at: string }, now = Date.now()): boolean {
+  const added = Date.parse(setlist.created_at);
+  return Number.isFinite(added) && added <= now && now - added < EVENT_UPDATE_WINDOW_DAYS * 86_400_000;
 }

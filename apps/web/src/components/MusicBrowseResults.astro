@@ -3,7 +3,7 @@ import { songPhasesFromMask } from "@frip-fan/core";
 import ReleaseCover from "./ReleaseCover.astro";
 import { getEnv } from "../lib/env";
 import { getMusicBrowseResults, type MusicBrowseKind } from "../lib/music-browse";
-import { formatGapYears, formatMusicDate, musicDateParts, setlistCompletenessLabel, setlistDisplayTitle, setlistEventTypeLabel, releaseTypeLabel } from "../lib/music";
+import { formatGapYears, formatMusicDate, isNewlyAddedSetlist, musicDateParts, setlistCompletenessLabel, setlistDisplayTitle, setlistEventTypeLabel, releaseTypeLabel } from "../lib/music";
 import { getLocale, t } from "../lib/i18n";
 // `append` returns only the requested batch; `fragment` marks output parsed by the client.
 interface Props { kind: MusicBrowseKind; append?: boolean; fragment?: boolean; }
@@ -65,6 +65,7 @@ const showArtist = (artist: string) => !/^fripSide(?: \(Phase \d\))?$/.test(arti
               </div>
               <div class="live-card-side">
                 <span class="live-card-count"><strong>{setlist.entry_count}</strong> <small>{t(locale, "music.songsUnit")}</small></span>
+                {isNewlyAddedSetlist(setlist) && <span class="live-card-new">{t(locale, "music.newlyAdded")}</span>}
                 {setlist.completeness !== "complete" && <span class="music-card-flag">{setlistCompletenessLabel(setlist.completeness, locale)}</span>}
               </div>
             </a>
